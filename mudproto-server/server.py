@@ -6,7 +6,7 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from commands import dispatch_message, execute_command
-from display import display_connected, display_error, display_system, display_room
+from display import display_connected, display_error, display_system, display_room, display_prompt
 from protocol import validate_message
 from sessions import (
     connected_clients,
@@ -39,16 +39,19 @@ async def command_scheduler_loop(session) -> None:
             if is_session_lagged(session):
                 continue
 
-            if not session.command_queue:
+            if session.command_queue:
+                queued_command = session.command_queue.pop(0)
+
+                queued_notice = display_system(f'Executing queued command: "{queued_command.command_text}"')
+                await send_json(session.websocket, queued_notice)
+
+                result = execute_command(session, queued_command.command_text)
+                await send_json(session.websocket, result)
                 continue
 
-            queued_command = session.command_queue.pop(0)
-
-            queued_notice = display_system(f'Executing queued command: "{queued_command.command_text}"')
-            await send_json(session.websocket, queued_notice)
-
-            result = execute_command(session, queued_command.command_text)
-            await send_json(session.websocket, result)
+            if session.prompt_pending_after_lag:
+                session.prompt_pending_after_lag = False
+                await send_json(session.websocket, display_prompt(session))
 
     except asyncio.CancelledError:
         raise

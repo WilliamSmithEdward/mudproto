@@ -25,3 +25,4 @@ class ClientSession:
     vigor: int = 119
     extra_lives: int = 1
     coins: int = 4030
+    prompt_pending_after_lag: bool = False

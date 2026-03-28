@@ -144,6 +144,8 @@ async def receive_loop(websocket) -> None:
 
             if response.get("type") == "display":
                 render_display_message(response)
+            elif response.get("type") == "noop":
+                pass
             else:
                 write_line(json.dumps(response, ensure_ascii=False))
 

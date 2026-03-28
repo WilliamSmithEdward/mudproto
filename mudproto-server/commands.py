@@ -70,7 +70,7 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
 
         return display_room(session, room)
 
-    if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
+    if verb in {"north", "south", "east", "west", "n", "s", "e", "w"}:
         return try_move(session, verb)
 
     if verb == "go":
@@ -145,7 +145,7 @@ async def process_input_message(message: dict, session: ClientSession) -> dict:
         if not was_queued:
             return display_error(queue_message, session)
 
-        return display_queue_ack(session, input_text)
+        return {"type": "noop"}
 
     return execute_command(session, input_text)
 
