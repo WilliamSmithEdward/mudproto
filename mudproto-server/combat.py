@@ -98,12 +98,12 @@ def build_auto_aggro_notice(entity: EntityState) -> list[dict]:
     ]
 
 
-def build_auto_aggro_outbound(session: ClientSession, room_display: dict) -> dict | list[dict]:
+def build_auto_aggro_outbound(session: ClientSession, room_display: dict) -> list[dict]:
     from display import display_force_prompt
 
     auto_entity = maybe_auto_engage_current_room(session)
     if auto_entity is None:
-        return room_display
+        return [room_display]
 
     room_display["payload"]["prompt_after"] = False
     room_display["payload"]["prompt_text"] = None
@@ -169,7 +169,7 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     return [combat_result, display_force_prompt(session)]
 
 
-def disengage(session: ClientSession) -> dict:
+def disengage(session: ClientSession) -> dict | list[dict]:
     from display import build_part, display_command_result, display_error
 
     clear_combat_if_invalid(session)
@@ -189,7 +189,7 @@ def disengage(session: ClientSession) -> dict:
     ])
 
 
-def flee(session: ClientSession) -> dict:
+def flee(session: ClientSession) -> dict | list[dict]:
     from display import build_part, display_command_result, display_error, display_room
     from world import get_room
 
@@ -256,6 +256,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
     parts: list[dict] = []
     player = session.player
+    status = session.status
 
     for _ in range(max(1, player.attacks_per_round)):
         if not entity.is_alive:
@@ -276,7 +277,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         entity.is_alive = False
         session.engaged_entity_id = None
         session.next_combat_round_monotonic = None
-        player.coins += entity.coin_reward
+        status.coins += entity.coin_reward
 
         _append_newline_if_needed(parts)
         parts.extend([
@@ -291,24 +292,24 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
     for _ in range(max(1, entity.attacks_per_round)):
         _append_newline_if_needed(parts)
-        player.hit_points = max(0, player.hit_points - entity.attack_damage)
+        status.hit_points = max(0, status.hit_points - entity.attack_damage)
         parts.extend([
             build_part(entity.name, "bright_red", True),
             build_part(" hits you for ", "bright_white"),
             build_part(str(entity.attack_damage), "bright_yellow", True),
             build_part(" damage", "bright_white"),
-            build_part(f" ({player.hit_points} HP).", "bright_white"),
+            build_part(f" ({status.hit_points} HP).", "bright_white"),
         ])
 
-    if player.hit_points <= 0:
+    if status.hit_points <= 0:
         session.engaged_entity_id = None
         session.next_combat_round_monotonic = None
 
         _append_newline_if_needed(parts)
-        if player.extra_lives > 0:
-            player.extra_lives -= 1
-            player.hit_points = 575
-            player.vigor = 119
+        if status.extra_lives > 0:
+            status.extra_lives -= 1
+            status.hit_points = 575
+            status.vigor = 119
             parts.extend([
                 build_part("You collapse, then recover using an extra life. Combat ends.", "bright_magenta", True),
             ])

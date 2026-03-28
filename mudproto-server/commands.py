@@ -114,11 +114,11 @@ def try_adjust_stat(
     if not allow_negative and amount < 0:
         return display_error(f"{label} amount must be zero or greater.", session)
 
-    current_value = getattr(session.player, attribute_name)
+    current_value = getattr(session.status, attribute_name)
     new_value = current_value + amount
     if new_value < 0:
         new_value = 0
-    setattr(session.player, attribute_name, new_value)
+    setattr(session.status, attribute_name, new_value)
 
     sign = "+" if amount >= 0 else ""
     return display_command_result(session, [
@@ -149,6 +149,9 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         target_name = " ".join(args).strip()
         if not target_name:
             return display_error(f"Usage: {verb} <target>", session)
+
+        if session.engaged_entity_id is not None:
+            return display_error("You're already fighting!", session)
 
         return begin_attack(session, target_name)
 

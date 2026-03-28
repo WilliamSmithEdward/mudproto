@@ -35,8 +35,8 @@ def build_prompt_text(session: ClientSession) -> str:
     if not exit_letters:
         exit_letters = "None"
 
-    player = session.player
-    return f"{player.hit_points}H {player.vigor}V {player.extra_lives}X {player.coins}C Exits:{exit_letters}> "
+    status = session.status
+    return f"{status.hit_points}H {status.vigor}V {status.extra_lives}X {status.coins}C Exits:{exit_letters}> "
 
 
 def build_display(

@@ -14,12 +14,16 @@ class QueuedCommand:
 @dataclass
 class PlayerState:
     current_room_id: str = "start"
+    attack_damage: int = 12
+    attacks_per_round: int = 1
+
+
+@dataclass
+class PlayerStatus:
     hit_points: int = 575
     vigor: int = 119
     extra_lives: int = 1
     coins: int = 4030
-    attack_damage: int = 12
-    attacks_per_round: int = 1
 
 
 @dataclass
@@ -43,6 +47,7 @@ class ClientSession:
     websocket: ServerConnection
     connected_at: str
     player: PlayerState = field(default_factory=PlayerState)
+    status: PlayerStatus = field(default_factory=PlayerStatus)
     last_message_at: Optional[str] = None
     lag_until_monotonic: Optional[float] = None
     command_queue: list[QueuedCommand] = field(default_factory=list)
