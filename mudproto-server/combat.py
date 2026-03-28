@@ -513,48 +513,63 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
             break
 
 
-def _apply_entity_attacks(session: ClientSession, entity: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
+def _list_room_attackers(session: ClientSession, primary_entity: EntityState) -> list[EntityState]:
+    attackers: list[EntityState] = [primary_entity]
+    for candidate in list_room_entities(session, session.player.current_room_id):
+        if candidate.entity_id == primary_entity.entity_id:
+            continue
+        if not candidate.is_alive or not candidate.is_aggro:
+            continue
+        attackers.append(candidate)
+    return attackers
+
+
+def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], parts: list[dict], allow_off_hand: bool) -> None:
     status = session.status
 
-    for _ in range(max(1, entity.attacks_per_round)):
-        _append_newline_if_needed(parts)
-
-        if not _roll_hit(entity.hit_roll_modifier, PLAYER_ARMOR_CLASS):
-            parts.extend(_build_entity_attack_parts(
-                entity=entity,
-                attack_verb=entity.attack_verb,
-                damage=0,
-            ))
+    for entity in attackers:
+        if not entity.is_alive:
             continue
 
-        attack_damage = max(0, entity.attack_damage)
-        status.hit_points = max(0, status.hit_points - attack_damage)
-        parts.extend(_build_entity_attack_parts(
-            entity=entity,
-            attack_verb=entity.attack_verb,
-            damage=attack_damage,
-        ))
-
-    if allow_off_hand:
-        off_hand_swings = max(0, entity.off_hand_attacks_per_round)
-        for _ in range(off_hand_swings):
+        for _ in range(max(1, entity.attacks_per_round)):
             _append_newline_if_needed(parts)
 
-            if not _roll_hit(entity.off_hand_hit_roll_modifier, PLAYER_ARMOR_CLASS):
+            if not _roll_hit(entity.hit_roll_modifier, PLAYER_ARMOR_CLASS):
                 parts.extend(_build_entity_attack_parts(
                     entity=entity,
-                    attack_verb=entity.off_hand_attack_verb,
+                    attack_verb=entity.attack_verb,
                     damage=0,
                 ))
                 continue
 
-            off_hand_damage = max(0, entity.off_hand_attack_damage)
-            status.hit_points = max(0, status.hit_points - off_hand_damage)
+            attack_damage = max(0, entity.attack_damage)
+            status.hit_points = max(0, status.hit_points - attack_damage)
             parts.extend(_build_entity_attack_parts(
                 entity=entity,
-                attack_verb=entity.off_hand_attack_verb,
-                damage=off_hand_damage,
+                attack_verb=entity.attack_verb,
+                damage=attack_damage,
             ))
+
+        if allow_off_hand:
+            off_hand_swings = max(0, entity.off_hand_attacks_per_round)
+            for _ in range(off_hand_swings):
+                _append_newline_if_needed(parts)
+
+                if not _roll_hit(entity.off_hand_hit_roll_modifier, PLAYER_ARMOR_CLASS):
+                    parts.extend(_build_entity_attack_parts(
+                        entity=entity,
+                        attack_verb=entity.off_hand_attack_verb,
+                        damage=0,
+                    ))
+                    continue
+
+                off_hand_damage = max(0, entity.off_hand_attack_damage)
+                status.hit_points = max(0, status.hit_points - off_hand_damage)
+                parts.extend(_build_entity_attack_parts(
+                    entity=entity,
+                    attack_verb=entity.off_hand_attack_verb,
+                    damage=off_hand_damage,
+                ))
 
 
 def resolve_combat_round(session: ClientSession) -> dict | None:
@@ -575,9 +590,10 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     status = session.status
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
+    room_attackers = _list_room_attackers(session, entity)
 
     if opening_attacker == OPENING_ATTACKER_ENTITY:
-        _apply_entity_attacks(session, entity, parts, allow_off_hand=False)
+        _apply_entity_attacks(session, room_attackers, parts, allow_off_hand=False)
     else:
         _apply_player_attacks(session, entity, parts, allow_off_hand=not is_opening_round)
 
@@ -608,7 +624,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     if opening_attacker is not None:
         session.combat.opening_attacker = None
     else:
-        _apply_entity_attacks(session, entity, parts, allow_off_hand=True)
+        _apply_entity_attacks(session, room_attackers, parts, allow_off_hand=True)
 
     if status.hit_points <= 0:
         end_combat(session)

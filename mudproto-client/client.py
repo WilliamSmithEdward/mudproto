@@ -124,9 +124,23 @@ def _style_prompt_text(prompt_text: str) -> str:
 
     styled = prompt_text
     if me_fg is not None and me_match is not None:
-        styled = styled.replace(me_match.group(0), style_text(me_match.group(0), me_fg, True), 1)
+        raw_segment = me_match.group(0)
+        condition_segment = me_match.group(1)
+        colored_segment = raw_segment.replace(
+            condition_segment,
+            style_text(condition_segment, me_fg, True),
+            1,
+        )
+        styled = styled.replace(raw_segment, colored_segment, 1)
     if npc_fg is not None and npc_match is not None:
-        styled = styled.replace(npc_match.group(0), style_text(npc_match.group(0), npc_fg, True), 1)
+        raw_segment = npc_match.group(0)
+        condition_segment = npc_match.group(1)
+        colored_segment = raw_segment.replace(
+            condition_segment,
+            style_text(condition_segment, npc_fg, True),
+            1,
+        )
+        styled = styled.replace(raw_segment, colored_segment, 1)
 
     hp_match = re.match(r"(\d+)H", prompt_text)
     if hp_match is not None and me_fg is not None:
