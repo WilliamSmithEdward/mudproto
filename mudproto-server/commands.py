@@ -13,6 +13,14 @@ from sessions import apply_lag, enqueue_command, is_session_lagged
 from world import get_room
 
 
+DIRECTION_ALIASES = {
+    "n": "north",
+    "s": "south",
+    "e": "east",
+    "w": "west",
+}
+
+
 def parse_command(command_text: str) -> tuple[str, list[str]]:
     normalized = command_text.strip()
     if not normalized:
@@ -22,6 +30,30 @@ def parse_command(command_text: str) -> tuple[str, list[str]]:
     verb = parts[0].lower()
     args = parts[1:]
     return verb, args
+
+
+def normalize_direction(direction: str) -> str:
+    direction = direction.lower().strip()
+    return DIRECTION_ALIASES.get(direction, direction)
+
+
+def try_move(session: ClientSession, direction: str) -> dict:
+    current_room = get_room(session.current_room_id)
+    if current_room is None:
+        return display_error(f"Current room not found: {session.current_room_id}")
+
+    normalized_direction = normalize_direction(direction)
+    next_room_id = current_room.exits.get(normalized_direction)
+
+    if next_room_id is None:
+        return display_error(f"You cannot go {normalized_direction} from here.")
+
+    next_room = get_room(next_room_id)
+    if next_room is None:
+        return display_error(f"Destination room not found: {next_room_id}")
+
+    session.current_room_id = next_room.room_id
+    return display_room(next_room)
 
 
 def execute_command(session: ClientSession, command_text: str) -> dict:
@@ -36,6 +68,15 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
             return display_error(f"Current room not found: {session.current_room_id}")
 
         return display_room(room)
+
+    if verb in {"north", "south", "east", "west", "n", "s", "e", "w"}:
+        return try_move(session, verb)
+
+    if verb == "go":
+        if not args:
+            return display_error("Usage: go <direction>")
+
+        return try_move(session, args[0])
 
     if verb == "wait":
         return display_command_result([

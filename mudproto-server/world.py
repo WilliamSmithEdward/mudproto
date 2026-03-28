@@ -21,7 +21,18 @@ def build_default_world() -> WorldState:
         room_id="start",
         title="Prototype Chamber",
         description="A plain stone chamber used for early server testing.",
-        exits={}
+        exits={
+            "north": "hall"
+        }
+    )
+
+    world.rooms["hall"] = Room(
+        room_id="hall",
+        title="Northern Hall",
+        description="A narrow hall of cold stone extends here, quiet and still.",
+        exits={
+            "south": "start"
+        }
     )
 
     return world
