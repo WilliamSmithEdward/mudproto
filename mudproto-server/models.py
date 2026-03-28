@@ -34,6 +34,7 @@ class PlayerStatus:
 class CombatState:
     engaged_entity_id: Optional[str] = None
     next_round_monotonic: Optional[float] = None
+    opening_attacker: Optional[str] = None
 
 
 @dataclass

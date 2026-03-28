@@ -5,6 +5,8 @@ from models import ClientSession, EntityState
 
 
 COMBAT_ROUND_INTERVAL_SECONDS = 2.5
+OPENING_ATTACKER_PLAYER = "player"
+OPENING_ATTACKER_ENTITY = "entity"
 
 
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
@@ -52,6 +54,13 @@ def clear_combat_if_invalid(session: ClientSession) -> None:
 def end_combat(session: ClientSession) -> None:
     session.combat.engaged_entity_id = None
     session.combat.next_round_monotonic = None
+    session.combat.opening_attacker = None
+
+
+def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> None:
+    session.combat.engaged_entity_id = entity_id
+    session.combat.next_round_monotonic = None
+    session.combat.opening_attacker = opening_attacker
 
 
 def get_engaged_entity(session: ClientSession) -> EntityState | None:
@@ -92,8 +101,7 @@ def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None
     room_entities = list_room_entities(session, session.player.current_room_id)
     for entity in room_entities:
         if entity.is_aggro:
-            session.combat.engaged_entity_id = entity.entity_id
-            session.combat.next_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+            start_combat(session, entity.entity_id, OPENING_ATTACKER_ENTITY)
             return entity
 
     return None
@@ -142,7 +150,7 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     if entity is None:
         return display_error(f"No target named '{target_name}' is here.", session)
 
-    session.combat.engaged_entity_id = entity.entity_id
+    start_combat(session, entity.entity_id, OPENING_ATTACKER_PLAYER)
     combat_result = resolve_combat_round(session)
 
     if combat_result is None:
@@ -176,23 +184,10 @@ def _append_newline_if_needed(parts: list[dict]) -> None:
         parts.append({"text": "\n", "fg": "bright_white", "bold": False})
 
 
-def resolve_combat_round(session: ClientSession) -> dict | None:
-    from display import build_part, display_combat_round_result
+def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: list[dict]) -> None:
+    from display import build_part
 
-    clear_combat_if_invalid(session)
-
-    target_id = session.combat.engaged_entity_id
-    if target_id is None:
-        return None
-
-    entity = session.entities.get(target_id)
-    if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
-        clear_combat_if_invalid(session)
-        return None
-
-    parts: list[dict] = []
     player = session.player_combat
-    status = session.status
 
     for _ in range(max(1, player.attacks_per_round)):
         if not entity.is_alive:
@@ -208,6 +203,47 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
             build_part(" damage", "bright_white"),
             build_part(f" ({entity.hit_points}/{entity.max_hit_points} HP).", "bright_white"),
         ])
+
+
+def _apply_entity_attacks(session: ClientSession, entity: EntityState, parts: list[dict]) -> None:
+    from display import build_part
+
+    status = session.status
+
+    for _ in range(max(1, entity.attacks_per_round)):
+        _append_newline_if_needed(parts)
+        status.hit_points = max(0, status.hit_points - entity.attack_damage)
+        parts.extend([
+            build_part(entity.name, "bright_red", True),
+            build_part(" hits you for ", "bright_white"),
+            build_part(str(entity.attack_damage), "bright_yellow", True),
+            build_part(" damage", "bright_white"),
+            build_part(f" ({status.hit_points} HP).", "bright_white"),
+        ])
+
+
+def resolve_combat_round(session: ClientSession) -> dict | None:
+    from display import build_part, display_combat_round_result
+
+    clear_combat_if_invalid(session)
+
+    target_id = session.combat.engaged_entity_id
+    if target_id is None:
+        return None
+
+    entity = session.entities.get(target_id)
+    if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
+        clear_combat_if_invalid(session)
+        return None
+
+    parts: list[dict] = []
+    status = session.status
+    opening_attacker = session.combat.opening_attacker
+
+    if opening_attacker == OPENING_ATTACKER_ENTITY:
+        _apply_entity_attacks(session, entity, parts)
+    else:
+        _apply_player_attacks(session, entity, parts)
 
     if entity.hit_points <= 0:
         entity.is_alive = False
@@ -225,16 +261,10 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
         return display_combat_round_result(session, parts)
 
-    for _ in range(max(1, entity.attacks_per_round)):
-        _append_newline_if_needed(parts)
-        status.hit_points = max(0, status.hit_points - entity.attack_damage)
-        parts.extend([
-            build_part(entity.name, "bright_red", True),
-            build_part(" hits you for ", "bright_white"),
-            build_part(str(entity.attack_damage), "bright_yellow", True),
-            build_part(" damage", "bright_white"),
-            build_part(f" ({status.hit_points} HP).", "bright_white"),
-        ])
+    if opening_attacker is not None:
+        session.combat.opening_attacker = None
+    else:
+        _apply_entity_attacks(session, entity, parts)
 
     if status.hit_points <= 0:
         end_combat(session)
