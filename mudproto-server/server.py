@@ -72,7 +72,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
     try:
         await send_json(session.websocket, display_connected(session))
 
-        starting_room = get_room(session.current_room_id)
+        starting_room = get_room(session.player.current_room_id)
         if starting_room is not None:
             await send_json(session.websocket, display_room(session, starting_room))
 

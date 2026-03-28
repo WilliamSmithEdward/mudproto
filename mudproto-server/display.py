@@ -13,7 +13,7 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
 
 
 def build_prompt_text(session: ClientSession) -> str:
-    room = get_room(session.current_room_id)
+    room = get_room(session.player.current_room_id)
     exit_letters = ""
 
     if room is not None and room.exits:
@@ -22,6 +22,8 @@ def build_prompt_text(session: ClientSession) -> str:
             "south": "S",
             "east": "E",
             "west": "W",
+            "up": "U",
+            "down": "D",
         }
         exit_letters = "".join(
             direction_letters[direction]
@@ -32,7 +34,8 @@ def build_prompt_text(session: ClientSession) -> str:
     if not exit_letters:
         exit_letters = "None"
 
-    return f"{session.hit_points}H {session.vigor}V {session.extra_lives}X {session.coins}C Exits:{exit_letters}> "
+    player = session.player
+    return f"{player.hit_points}H {player.vigor}V {player.extra_lives}X {player.coins}C Exits:{exit_letters}> "
 
 
 def build_display(
@@ -127,7 +130,7 @@ def display_whoami(session: ClientSession) -> dict:
         build_part("Client ID: ", "bright_white"),
         build_part(session.client_id, "bright_yellow"),
         build_part(" | Room: ", "bright_white"),
-        build_part(session.current_room_id, "bright_green", True),
+        build_part(session.player.current_room_id, "bright_green", True),
         build_part(" | Connected: ", "bright_white"),
         build_part(session.connected_at, "bright_cyan"),
         build_part(" | Last Message: ", "bright_white"),

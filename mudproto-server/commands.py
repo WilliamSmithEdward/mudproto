@@ -41,9 +41,9 @@ def normalize_direction(direction: str) -> str:
 
 
 def try_move(session: ClientSession, direction: str) -> dict:
-    current_room = get_room(session.current_room_id)
+    current_room = get_room(session.player.current_room_id)
     if current_room is None:
-        return display_error(f"Current room not found: {session.current_room_id}", session)
+        return display_error(f"Current room not found: {session.player.current_room_id}", session)
 
     normalized_direction = normalize_direction(direction)
     next_room_id = current_room.exits.get(normalized_direction)
@@ -55,8 +55,38 @@ def try_move(session: ClientSession, direction: str) -> dict:
     if next_room is None:
         return display_error(f"Destination room not found: {next_room_id}", session)
 
-    session.current_room_id = next_room.room_id
+    session.player.current_room_id = next_room.room_id
     return display_room(session, next_room)
+
+
+def try_adjust_stat(session: ClientSession, args: list[str], attribute_name: str, label: str, allow_negative: bool = False) -> dict:
+    if not args:
+        return display_error(f"Usage: {label.lower()} <amount>", session)
+
+    try:
+        amount = int(args[0])
+    except ValueError:
+        return display_error(f"{label} amount must be an integer.", session)
+
+    if not allow_negative and amount < 0:
+        return display_error(f"{label} amount must be zero or greater.", session)
+
+    current_value = getattr(session.player, attribute_name)
+    new_value = current_value + amount
+    if new_value < 0:
+        new_value = 0
+    setattr(session.player, attribute_name, new_value)
+
+    sign = "+" if amount >= 0 else ""
+    return display_command_result(session, [
+        build_part(f"{label}: ", "bright_white"),
+        build_part(str(current_value), "bright_yellow", True),
+        build_part(" -> ", "bright_white"),
+        build_part(str(new_value), "bright_green", True),
+        build_part(" (", "bright_white"),
+        build_part(f"{sign}{amount}", "bright_cyan", True),
+        build_part(")", "bright_white"),
+    ])
 
 
 def execute_command(session: ClientSession, command_text: str) -> dict:
@@ -66,9 +96,9 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
         return display_prompt(session)
 
     if verb == "look":
-        room = get_room(session.current_room_id)
+        room = get_room(session.player.current_room_id)
         if room is None:
-            return display_error(f"Current room not found: {session.current_room_id}", session)
+            return display_error(f"Current room not found: {session.player.current_room_id}", session)
 
         return display_room(session, room)
 
@@ -106,6 +136,48 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
             build_part("You say, ", "bright_white"),
             build_part(f'"{spoken_text}"', "bright_magenta", True)
         ])
+
+    if verb == "hurt":
+        if not args:
+            return display_error("Usage: hurt <amount>", session)
+        try:
+            amount = int(args[0])
+        except ValueError:
+            return display_error("Hurt amount must be an integer.", session)
+        if amount < 0:
+            return display_error("Hurt amount must be zero or greater.", session)
+        return try_adjust_stat(session, [str(-amount)], "hit_points", "HP", allow_negative=True)
+
+    if verb == "heal":
+        return try_adjust_stat(session, args, "hit_points", "HP")
+
+    if verb == "usevigor":
+        if not args:
+            return display_error("Usage: usevigor <amount>", session)
+        try:
+            amount = int(args[0])
+        except ValueError:
+            return display_error("Vigor amount must be an integer.", session)
+        if amount < 0:
+            return display_error("Vigor amount must be zero or greater.", session)
+        return try_adjust_stat(session, [str(-amount)], "vigor", "Vigor", allow_negative=True)
+
+    if verb == "restorevigor":
+        return try_adjust_stat(session, args, "vigor", "Vigor")
+
+    if verb == "gaincoins":
+        return try_adjust_stat(session, args, "coins", "Coins")
+
+    if verb == "spendcoins":
+        if not args:
+            return display_error("Usage: spendcoins <amount>", session)
+        try:
+            amount = int(args[0])
+        except ValueError:
+            return display_error("Coins amount must be an integer.", session)
+        if amount < 0:
+            return display_error("Coins amount must be zero or greater.", session)
+        return try_adjust_stat(session, [str(-amount)], "coins", "Coins", allow_negative=True)
 
     return display_error(f"Unknown command: {verb}", session)
 

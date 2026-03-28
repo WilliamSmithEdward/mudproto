@@ -12,17 +12,22 @@ class QueuedCommand:
 
 
 @dataclass
-class ClientSession:
-    client_id: str
-    websocket: ServerConnection
-    connected_at: str
+class PlayerState:
     current_room_id: str = "start"
-    last_message_at: Optional[str] = None
-    lag_until_monotonic: Optional[float] = None
-    command_queue: list[QueuedCommand] = field(default_factory=list)
-    scheduler_task: Optional[asyncio.Task] = None
     hit_points: int = 575
     vigor: int = 119
     extra_lives: int = 1
     coins: int = 4030
+
+
+@dataclass
+class ClientSession:
+    client_id: str
+    websocket: ServerConnection
+    connected_at: str
+    player: PlayerState = field(default_factory=PlayerState)
+    last_message_at: Optional[str] = None
+    lag_until_monotonic: Optional[float] = None
+    command_queue: list[QueuedCommand] = field(default_factory=list)
+    scheduler_task: Optional[asyncio.Task] = None
     prompt_pending_after_lag: bool = False
