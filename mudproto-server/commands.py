@@ -70,7 +70,7 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
 
         return display_room(session, room)
 
-    if verb in {"north", "south", "east", "west", "n", "s", "e", "w"}:
+    if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
         return try_move(session, verb)
 
     if verb == "go":

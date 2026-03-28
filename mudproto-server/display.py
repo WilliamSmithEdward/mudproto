@@ -22,6 +22,8 @@ def build_prompt_text(session: ClientSession) -> str:
             "south": "S",
             "east": "E",
             "west": "W",
+            "up": "U",
+            "down": "D"
         }
         exit_letters = "".join(
             direction_letters[direction]
