@@ -125,8 +125,11 @@ def render_display_message(message: dict) -> None:
     if has_parts:
         sys.stdout.write(render_parts(parts))
 
-    if prompt_after:
+    if has_parts and prompt_after:
         sys.stdout.write("\n\n")
+        write_prompt(prompt_text)
+    elif prompt_after:
+        sys.stdout.write("\n")
         write_prompt(prompt_text)
     elif has_parts:
         sys.stdout.write("\n")

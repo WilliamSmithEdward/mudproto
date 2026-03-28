@@ -121,8 +121,8 @@ def spawn_dummy(session: ClientSession) -> dict:
     ])
 
 
-def begin_attack(session: ClientSession, target_name: str) -> dict:
-    from display import display_prompt, display_error
+def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
+    from display import display_error, display_force_prompt
 
     clear_combat_if_invalid(session)
     entity = find_room_entity_by_name(session, session.player.current_room_id, target_name)
@@ -131,9 +131,13 @@ def begin_attack(session: ClientSession, target_name: str) -> dict:
         return display_error(f"No target named '{target_name}' is here.", session)
 
     session.engaged_entity_id = entity.entity_id
-    session.next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+    combat_result = resolve_combat_round(session)
 
-    return display_prompt(session)
+    if combat_result is None:
+        session.next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+        return display_force_prompt(session)
+
+    return [combat_result, display_force_prompt(session)]
 
 
 def disengage(session: ClientSession) -> dict:
@@ -194,7 +198,9 @@ def flee(session: ClientSession) -> dict:
     room_display["payload"]["parts"] = [
         build_part("You flee ", "bright_white"),
         build_part(flee_direction, "bright_yellow", True),
-        build_part(".\n\n", "bright_white"),
+        build_part(".", "bright_white"),
+        build_part("\n"),
+        build_part("\n"),
     ] + room_display["payload"]["parts"]
 
     auto_entity = maybe_auto_engage_current_room(session)

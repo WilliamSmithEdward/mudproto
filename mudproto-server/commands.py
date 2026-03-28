@@ -13,6 +13,8 @@ from models import ClientSession
 from sessions import apply_lag, enqueue_command, is_session_lagged
 from world import get_room
 
+OutboundMessage = dict[str, object]
+OutboundResult = OutboundMessage | list[OutboundMessage]
 
 DIRECTION_ALIASES = {
     "n": "north",
@@ -40,7 +42,7 @@ def normalize_direction(direction: str) -> str:
     return DIRECTION_ALIASES.get(direction, direction)
 
 
-def try_move(session: ClientSession, direction: str) -> dict:
+def try_move(session: ClientSession, direction: str) -> OutboundResult:
     if session.engaged_entity_id is not None:
         return display_error("You cannot move while engaged in combat. Try flee.", session)
 
@@ -75,7 +77,13 @@ def try_move(session: ClientSession, direction: str) -> dict:
     return room_display
 
 
-def try_adjust_stat(session: ClientSession, args: list[str], attribute_name: str, label: str, allow_negative: bool = False) -> dict:
+def try_adjust_stat(
+    session: ClientSession,
+    args: list[str],
+    attribute_name: str,
+    label: str,
+    allow_negative: bool = False
+) -> OutboundResult:
     if not args:
         return display_error(f"Usage: {label.lower()} <amount>", session)
 
@@ -105,7 +113,7 @@ def try_adjust_stat(session: ClientSession, args: list[str], attribute_name: str
     ])
 
 
-def execute_command(session: ClientSession, command_text: str) -> dict:
+def execute_command(session: ClientSession, command_text: str) -> OutboundResult:
     verb, args = parse_command(command_text)
 
     if not verb:
@@ -218,7 +226,7 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
     return display_error(f"Unknown command: {verb}", session)
 
 
-async def process_input_message(message: dict, session: ClientSession) -> dict:
+async def process_input_message(message: dict, session: ClientSession) -> OutboundResult:
     payload = message["payload"]
     input_text = payload.get("text")
 
@@ -261,7 +269,7 @@ async def process_input_message(message: dict, session: ClientSession) -> dict:
     return execute_command(session, input_text)
 
 
-async def dispatch_message(message: dict, session: ClientSession) -> dict:
+async def dispatch_message(message: dict, session: ClientSession) -> OutboundResult:
     msg_type = message["type"]
 
     if msg_type == "input":

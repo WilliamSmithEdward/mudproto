@@ -7,7 +7,13 @@ import websockets
 
 from combat import initialize_session_entities, resolve_combat_round
 from commands import dispatch_message, execute_command
-from display import display_connected, display_error, display_room, display_prompt
+from display import (
+    display_connected,
+    display_error,
+    display_force_prompt,
+    display_prompt,
+    display_room,
+)
 from protocol import validate_message
 from sessions import (
     connected_clients,
@@ -29,6 +35,17 @@ async def send_json(websocket: ServerConnection, message: dict) -> None:
     print(f"Sent response: {message}")
 
 
+async def send_outbound(
+    websocket: ServerConnection,
+    outbound: dict | list[dict],
+) -> None:
+    if isinstance(outbound, list):
+        for message in outbound:
+            await send_json(websocket, message)
+    else:
+        await send_json(websocket, outbound)
+
+
 async def command_scheduler_loop(session) -> None:
     try:
         while True:
@@ -44,7 +61,10 @@ async def command_scheduler_loop(session) -> None:
                     combat_result = resolve_combat_round(session)
 
             if combat_result is not None:
-                await send_json(session.websocket, combat_result)
+                await send_outbound(
+                    session.websocket,
+                    [combat_result, display_force_prompt(session)],
+                )
                 continue
 
             if is_session_lagged(session):
@@ -54,7 +74,7 @@ async def command_scheduler_loop(session) -> None:
                 queued_command = session.command_queue.pop(0)
 
                 result = execute_command(session, queued_command.command_text)
-                await send_json(session.websocket, result)
+                await send_outbound(session.websocket, result)
                 continue
 
             if session.prompt_pending_after_lag:
@@ -109,7 +129,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
                 continue
 
             response = await dispatch_message(message, session)
-            await send_json(session.websocket, response)
+            await send_outbound(session.websocket, response)
 
     finally:
         if session.scheduler_task is not None:

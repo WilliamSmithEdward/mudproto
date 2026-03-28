@@ -98,6 +98,10 @@ def display_prompt(session: ClientSession) -> dict:
     return build_display([], prompt_after=prompt_after, prompt_text=prompt_text)
 
 
+def display_force_prompt(session: ClientSession) -> dict:
+    return build_display([], prompt_after=True, prompt_text=build_prompt_text(session))
+
+
 def display_connected(session: ClientSession) -> dict:
     return build_display([
         build_part("Connection established. ", "bright_green", True),
@@ -194,8 +198,8 @@ def display_command_result(
 def display_combat_round_result(session: ClientSession, parts: list[dict]) -> dict:
     return build_display(
         parts,
-        prompt_after=True,
-        prompt_text=build_prompt_text(session),
+        prompt_after=False,
+        prompt_text=None,
         starts_on_new_line=True
     )
 
