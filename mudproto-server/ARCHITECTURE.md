@@ -1,42 +1,67 @@
-# MudProto Server Architecture
+# MudProto Architecture
+
+## Core Boundary
+
+MudProto uses a strict client/server separation of concerns.
+
+### Client responsibilities
+The client is generic. It should not contain game-specific logic.
+
+The client is responsible for:
+- opening and maintaining the websocket connection
+- sending generic user input messages to the server
+- rendering generic display messages from the server
+- local terminal behavior such as:
+  - ANSI color rendering
+  - bold text rendering
+  - prompt display
+  - local-only commands like `/quit`
+
+The client must not:
+- know game command semantics
+- interpret game mechanics
+- decide how gameplay text should be composed
+- embed rules for room descriptions, combat, lag, or queue behavior
+
+### Server responsibilities
+The server is the sole owner of game meaning.
+
+The server is responsible for:
+- validating protocol envelopes
+- interpreting generic client input
+- parsing commands
+- applying gameplay rules
+- enforcing lag
+- queueing commands during lag
+- generating display/output instructions for the client
+- managing connection/session state
 
 ## Invariants
 
 - Lag is enforced server-side.
 - Lag blocks command execution, not outbound server messages.
 - Commands received during lag are queued per session.
-- The client is generic and should not contain game-specific rendering rules.
+- Command queues are FIFO per session.
+- The client is generic and does not contain game-specific rendering rules.
 - The server sends display/output instructions to the client.
-- The client renders generic display parts like text, color, and boldness.
+- The server is the sole owner of input interpretation.
+- The client sends generic user input, not game-specific protocol messages.
 
-## Current Display Contract
+## Current Client-to-Server Contract
 
-Server-to-client display messages use:
+Client sends generic input messages:
 
-- `type = "display"`
-- `payload.parts = [{ text, fg, bold }]`
-- `payload.blank_lines_before`
-- `payload.prompt_after`
+- `type = "input"`
+- `payload.text = "<raw user input>"`
 
-## Current Runtime Model
+Example:
 
-- One `ClientSession` per connected socket
-- Per-session lag timer
-- Per-session FIFO command queue
-- Scheduler loop drains queued commands when lag clears
-
-## Current Command Set
-
-- `look`
-- `wait`
-- `heavy`
-- `say`
-
-## File Responsibilities
-
-- `models.py` = dataclasses
-- `protocol.py` = envelope and validation
-- `sessions.py` = connection registry and lag/queue state
-- `display.py` = server-side display composition
-- `commands.py` = command parsing and execution
-- `server.py` = websocket server and scheduler wiring
+```json
+{
+  "type": "input",
+  "source": "mudproto-client",
+  "timestamp": "2026-03-28T12:34:56Z",
+  "payload": {
+    "text": "look"
+  }
+}
