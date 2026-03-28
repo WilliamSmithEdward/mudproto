@@ -5,10 +5,12 @@ from display import (
     display_hello,
     display_pong,
     display_queue_ack,
+    display_room,
     display_whoami,
 )
 from models import ClientSession
 from sessions import apply_lag, enqueue_command, is_session_lagged
+from world import get_room
 
 
 def parse_command(command_text: str) -> tuple[str, list[str]]:
@@ -29,13 +31,11 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
         return display_error("Command text is empty.")
 
     if verb == "look":
-        return display_command_result([
-            build_part("You are standing in ", "bright_white"),
-            build_part("a prototype room", "bright_green", True),
-            build_part(". Exits: ", "bright_white"),
-            build_part("none", "bright_yellow", True),
-            build_part(".", "bright_white")
-        ])
+        room = get_room(session.current_room_id)
+        if room is None:
+            return display_error(f"Current room not found: {session.current_room_id}")
+
+        return display_room(room)
 
     if verb == "wait":
         return display_command_result([
@@ -63,23 +63,6 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
         ])
 
     return display_error(f"Unknown command: {verb}")
-
-
-async def process_command_message(message: dict, session: ClientSession) -> dict:
-    payload = message["payload"]
-    command_text = payload.get("command_text")
-
-    if not isinstance(command_text, str):
-        return display_error("Field 'payload.command_text' must be a string.")
-
-    if is_session_lagged(session):
-        was_queued, queue_message = enqueue_command(session, command_text)
-        if not was_queued:
-            return display_error(queue_message)
-
-        return display_queue_ack(session, command_text)
-
-    return execute_command(session, command_text)
 
 
 async def process_input_message(message: dict, session: ClientSession) -> dict:
@@ -122,36 +105,10 @@ async def process_input_message(message: dict, session: ClientSession) -> dict:
     return execute_command(session, input_text)
 
 
-def handle_hello(message: dict, session: ClientSession) -> dict:
-    payload = message["payload"]
-    name = payload.get("name", "unknown")
-    return display_hello(str(name))
-
-
-def handle_ping(message: dict, session: ClientSession) -> dict:
-    return display_pong()
-
-
-def handle_whoami(message: dict, session: ClientSession) -> dict:
-    return display_whoami(session)
-
-
 async def dispatch_message(message: dict, session: ClientSession) -> dict:
     msg_type = message["type"]
 
     if msg_type == "input":
         return await process_input_message(message, session)
-
-    if msg_type == "hello":
-        return handle_hello(message, session)
-
-    if msg_type == "ping":
-        return handle_ping(message, session)
-
-    if msg_type == "whoami":
-        return handle_whoami(message, session)
-
-    if msg_type == "command":
-        return await process_command_message(message, session)
 
     return display_error(f"Unsupported message type: {msg_type}")

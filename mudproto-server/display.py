@@ -1,6 +1,7 @@
 from models import ClientSession
 from protocol import build_response
 from sessions import get_remaining_lag_seconds
+from world import Room
 
 
 def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
@@ -60,6 +61,8 @@ def display_whoami(session: ClientSession) -> dict:
     return build_display([
         build_part("Client ID: ", "bright_white"),
         build_part(session.client_id, "bright_yellow"),
+        build_part(" | Room: ", "bright_white"),
+        build_part(session.current_room_id, "bright_green", True),
         build_part(" | Connected: ", "bright_white"),
         build_part(session.connected_at, "bright_cyan"),
         build_part(" | Last Message: ", "bright_white"),
@@ -100,3 +103,16 @@ def display_command_result(
     prompt_after: bool = True
 ) -> dict:
     return build_display(parts, blank_lines_before=blank_lines_before, prompt_after=prompt_after)
+
+
+def display_room(room: Room) -> dict:
+    exit_names = ", ".join(room.exits.keys()) if room.exits else "none"
+
+    return build_display([
+        build_part(room.title, "bright_green", True),
+        build_part("\n"),
+        build_part(room.description, "bright_white"),
+        build_part("\n"),
+        build_part("Exits: ", "bright_white"),
+        build_part(exit_names, "bright_yellow", True)
+    ])
