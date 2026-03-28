@@ -53,12 +53,14 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def build_message(message_type: str, payload: dict) -> dict:
+def build_input_message(text: str) -> dict:
     return {
-        "type": message_type,
+        "type": "input",
         "source": "mudproto-client",
         "timestamp": utc_now_iso(),
-        "payload": payload
+        "payload": {
+            "text": text
+        }
     }
 
 
@@ -150,13 +152,10 @@ async def receive_loop(websocket) -> None:
 
 
 async def input_loop(websocket) -> None:
-    write_line("Type commands and press Enter.")
-    write_line("Special local commands:")
-    write_line("  /hello <name>")
-    write_line("  /ping")
-    write_line("  /whoami")
+    write_line("Type input and press Enter.")
+    write_line("Local client commands:")
     write_line("  /quit")
-    write_line("Anything else will be sent as a game command.")
+    write_line("Everything else is sent to the server as generic input.")
 
     while True:
         print_prompt()
@@ -171,26 +170,7 @@ async def input_loop(websocket) -> None:
             await websocket.close()
             break
 
-        if user_input.lower().startswith("/hello"):
-            parts = user_input.split(maxsplit=1)
-            name = parts[1] if len(parts) > 1 else "William"
-
-            await send_json(websocket, build_message("hello", {
-                "name": name
-            }))
-            continue
-
-        if user_input.lower() == "/ping":
-            await send_json(websocket, build_message("ping", {}))
-            continue
-
-        if user_input.lower() == "/whoami":
-            await send_json(websocket, build_message("whoami", {}))
-            continue
-
-        await send_json(websocket, build_message("command", {
-            "command_text": user_input
-        }))
+        await send_json(websocket, build_input_message(user_input))
 
 
 async def main():

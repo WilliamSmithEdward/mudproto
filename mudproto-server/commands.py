@@ -82,6 +82,46 @@ async def process_command_message(message: dict, session: ClientSession) -> dict
     return execute_command(session, command_text)
 
 
+async def process_input_message(message: dict, session: ClientSession) -> dict:
+    payload = message["payload"]
+    input_text = payload.get("text")
+
+    if not isinstance(input_text, str):
+        return display_error("Field 'payload.text' must be a string.")
+
+    input_text = input_text.strip()
+    if not input_text:
+        return display_error("Input text is empty.")
+
+    if input_text.startswith("/"):
+        command_line = input_text[1:].strip()
+        verb, args = parse_command(command_line)
+
+        if not verb:
+            return display_error("Slash command is empty.")
+
+        if verb == "hello":
+            name = " ".join(args).strip() or "unknown"
+            return display_hello(name)
+
+        if verb == "ping":
+            return display_pong()
+
+        if verb == "whoami":
+            return display_whoami(session)
+
+        return display_error(f"Unknown slash command: /{verb}")
+
+    if is_session_lagged(session):
+        was_queued, queue_message = enqueue_command(session, input_text)
+        if not was_queued:
+            return display_error(queue_message)
+
+        return display_queue_ack(session, input_text)
+
+    return execute_command(session, input_text)
+
+
 def handle_hello(message: dict, session: ClientSession) -> dict:
     payload = message["payload"]
     name = payload.get("name", "unknown")
@@ -98,6 +138,9 @@ def handle_whoami(message: dict, session: ClientSession) -> dict:
 
 async def dispatch_message(message: dict, session: ClientSession) -> dict:
     msg_type = message["type"]
+
+    if msg_type == "input":
+        return await process_input_message(message, session)
 
     if msg_type == "hello":
         return handle_hello(message, session)
