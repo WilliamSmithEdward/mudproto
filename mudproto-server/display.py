@@ -32,7 +32,7 @@ def build_prompt_text(session: ClientSession) -> str:
     if not exit_letters:
         exit_letters = "None"
 
-    return f"{session.hit_points}H {session.vigor}V {session.extra_lives}X {session.coins}C Exits:{exit_letters}>"
+    return f"{session.hit_points}H {session.vigor}V {session.extra_lives}X {session.coins}C Exits:{exit_letters}> "
 
 
 def build_display(

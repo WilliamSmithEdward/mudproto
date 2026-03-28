@@ -6,7 +6,7 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from commands import dispatch_message, execute_command
-from display import display_connected, display_error, display_system, display_room, display_prompt
+from display import display_connected, display_error, display_room, display_prompt
 from protocol import validate_message
 from sessions import (
     connected_clients,
@@ -41,9 +41,6 @@ async def command_scheduler_loop(session) -> None:
 
             if session.command_queue:
                 queued_command = session.command_queue.pop(0)
-
-                queued_notice = display_system(f'Executing queued command: "{queued_command.command_text}"')
-                await send_json(session.websocket, queued_notice)
 
                 result = execute_command(session, queued_command.command_text)
                 await send_json(session.websocket, result)

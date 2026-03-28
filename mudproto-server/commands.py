@@ -19,6 +19,8 @@ DIRECTION_ALIASES = {
     "s": "south",
     "e": "east",
     "w": "west",
+    "u": "up",
+    "d": "down"
 }
 
 
@@ -70,7 +72,7 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
 
         return display_room(session, room)
 
-    if verb in {"north", "south", "east", "west", "n", "s", "e", "w"}:
+    if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
         return try_move(session, verb)
 
     if verb == "go":
@@ -85,14 +87,15 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
         ])
 
     if verb == "heavy":
-        apply_lag(session, 3.0)
-        return display_command_result(session, [
+        response = display_command_result(session, [
             build_part("You use ", "bright_white"),
             build_part("a heavy skill", "bright_red", True),
             build_part(". Lag applied for ", "bright_white"),
             build_part("3.0", "bright_yellow", True),
             build_part(" seconds.", "bright_white")
         ])
+        apply_lag(session, 3.0)
+        return response
 
     if verb == "say":
         spoken_text = " ".join(args).strip()
