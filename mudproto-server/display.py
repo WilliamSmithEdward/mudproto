@@ -44,13 +44,15 @@ def build_display(
     *,
     blank_lines_before: int = 1,
     prompt_after: bool = False,
-    prompt_text: str | None = None
+    prompt_text: str | None = None,
+    starts_on_new_line: bool = False
 ) -> dict:
     return build_response("display", {
         "parts": parts,
         "blank_lines_before": blank_lines_before,
         "prompt_after": prompt_after,
-        "prompt_text": prompt_text
+        "prompt_text": prompt_text,
+        "starts_on_new_line": starts_on_new_line
     })
 
 
@@ -189,18 +191,12 @@ def display_command_result(
     )
 
 
-def display_combat_round_result(
-    session: ClientSession,
-    parts: list[dict],
-    *,
-    blank_lines_before: int = 1,
-) -> dict:
-    session.prompt_pending_after_lag = False
+def display_combat_round_result(session: ClientSession, parts: list[dict]) -> dict:
     return build_display(
         parts,
-        blank_lines_before=blank_lines_before,
         prompt_after=True,
-        prompt_text=build_prompt_text(session)
+        prompt_text=build_prompt_text(session),
+        starts_on_new_line=True
     )
 
 

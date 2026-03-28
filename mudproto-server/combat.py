@@ -122,7 +122,7 @@ def spawn_dummy(session: ClientSession) -> dict:
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict:
-    from display import build_part, display_command_result, display_error
+    from display import display_prompt, display_error
 
     clear_combat_if_invalid(session)
     entity = find_room_entity_by_name(session, session.player.current_room_id, target_name)
@@ -133,11 +133,7 @@ def begin_attack(session: ClientSession, target_name: str) -> dict:
     session.engaged_entity_id = entity.entity_id
     session.next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
 
-    return display_command_result(session, [
-        build_part("You engage ", "bright_white"),
-        build_part(entity.name, "bright_red", True),
-        build_part(".", "bright_white"),
-    ])
+    return display_prompt(session)
 
 
 def disengage(session: ClientSession) -> dict:

@@ -115,17 +115,18 @@ def render_display_message(message: dict) -> None:
     prompt_after = bool(payload.get("prompt_after", False))
     prompt_text = str(payload.get("prompt_text", ">"))
     parts = payload.get("parts", [])
+    starts_on_new_line = bool(payload.get("starts_on_new_line", False))
 
     has_parts = isinstance(parts, list) and len(parts) > 0
+
+    if starts_on_new_line:
+        sys.stdout.write("\n")
 
     if has_parts:
         sys.stdout.write(render_parts(parts))
 
     if prompt_after:
-        if has_parts:
-            sys.stdout.write("\n\n")
-        else:
-            sys.stdout.write("\n")
+        sys.stdout.write("\n\n")
         write_prompt(prompt_text)
     elif has_parts:
         sys.stdout.write("\n")
