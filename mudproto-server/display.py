@@ -1,3 +1,4 @@
+from equipment import get_equipped_weapon, get_player_attack_damage, get_player_attacks_per_round, list_equipment
 from models import ClientSession
 from protocol import build_response
 from sessions import get_remaining_lag_seconds, is_session_lagged
@@ -147,6 +148,68 @@ def display_whoami(session: ClientSession) -> dict:
         build_part(" | Queued: ", "bright_white"),
         build_part(str(queued_count), "bright_yellow", True)
     ], prompt_after=prompt_after, prompt_text=prompt_text)
+
+
+def display_equipment(session: ClientSession) -> dict:
+    prompt_after, prompt_text = resolve_prompt(session, True)
+    held_weapon = get_equipped_weapon(session)
+    attack_damage = get_player_attack_damage(session)
+    attacks_per_round = get_player_attacks_per_round(session)
+
+    parts = [
+        build_part("Equipment", "bright_white", True),
+        build_part("\n"),
+        build_part("Held weapon: ", "bright_white"),
+    ]
+
+    if held_weapon is None:
+        parts.append(build_part("None", "bright_yellow", True))
+    else:
+        parts.extend([
+            build_part(held_weapon.name, "bright_cyan", True),
+            build_part(" [", "bright_white"),
+            build_part(held_weapon.template_id, "bright_magenta"),
+            build_part("]", "bright_white"),
+        ])
+
+    parts.extend([
+        build_part("\n"),
+        build_part("Attack profile: ", "bright_white"),
+        build_part(str(attack_damage), "bright_yellow", True),
+        build_part(" damage x ", "bright_white"),
+        build_part(str(attacks_per_round), "bright_yellow", True),
+        build_part(" attack(s)/round", "bright_white"),
+    ])
+
+    equipment_items = list_equipment(session)
+    if equipment_items:
+        parts.extend([
+            build_part("\n"),
+            build_part("\n"),
+            build_part("Owned equipment:", "bright_white", True),
+        ])
+
+        for item in equipment_items:
+            slot_label = item.slot.capitalize()
+            is_held_weapon = held_weapon is not None and item.item_id == held_weapon.item_id
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(item.name, "bright_magenta", True),
+                build_part(f" ({slot_label}", "bright_white"),
+            ])
+            if is_held_weapon:
+                parts.extend([
+                    build_part(", held", "bright_cyan", True),
+                ])
+            parts.extend([
+                build_part(")", "bright_white"),
+                build_part(" [", "bright_white"),
+                build_part(item.item_id, "bright_yellow"),
+                build_part("]", "bright_white"),
+            ])
+
+    return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)
 
 
 def display_error(message: str, session: ClientSession | None = None) -> dict:

@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 
+from equipment import get_held_weapon_name, get_player_attack_damage, get_player_attacks_per_round
 from models import ClientSession, EntityState
 
 
@@ -187,22 +188,34 @@ def _append_newline_if_needed(parts: list[dict]) -> None:
 def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: list[dict]) -> None:
     from display import build_part
 
-    player = session.player_combat
+    attack_damage = get_player_attack_damage(session)
+    attacks_per_round = get_player_attacks_per_round(session)
+    held_weapon_name = get_held_weapon_name(session)
 
-    for _ in range(max(1, player.attacks_per_round)):
+    for _ in range(attacks_per_round):
         if not entity.is_alive:
             break
 
         _append_newline_if_needed(parts)
-        entity.hit_points = max(0, entity.hit_points - player.attack_damage)
-        parts.extend([
+        entity.hit_points = max(0, entity.hit_points - attack_damage)
+
+        attack_parts = [
             build_part("You hit ", "bright_white"),
             build_part(entity.name, "bright_red", True),
+        ]
+        if held_weapon_name is not None:
+            attack_parts.extend([
+                build_part(" with ", "bright_white"),
+                build_part(held_weapon_name, "bright_cyan", True),
+            ])
+
+        attack_parts.extend([
             build_part(" for ", "bright_white"),
-            build_part(str(player.attack_damage), "bright_yellow", True),
+            build_part(str(attack_damage), "bright_yellow", True),
             build_part(" damage", "bright_white"),
             build_part(f" ({entity.hit_points}/{entity.max_hit_points} HP).", "bright_white"),
         ])
+        parts.extend(attack_parts)
 
 
 def _apply_entity_attacks(session: ClientSession, entity: EntityState, parts: list[dict]) -> None:

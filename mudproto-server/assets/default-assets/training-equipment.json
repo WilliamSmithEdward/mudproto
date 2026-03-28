@@ -1,0 +1,12 @@
+[
+  {
+    "template_id": "weapon.training-sword",
+    "name": "Training Sword",
+    "slot": "weapon",
+    "description": "A blunted practice sword issued to new recruits.",
+    "attack_damage_bonus": 2,
+    "attacks_per_round_bonus": 0,
+    "grant_to_new_players": true,
+    "equip_on_grant": true
+  }
+]

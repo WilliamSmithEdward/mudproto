@@ -12,6 +12,7 @@ import random
 from display import (
     build_part,
     display_command_result,
+    display_equipment,
     display_error,
     display_force_prompt,
     display_hello,
@@ -210,6 +211,9 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error(f"Current room not found: {session.player.current_room_id}", session)
 
         return display_room(session, room)
+
+    if verb in {"equipment", "eq", "equi", "equip"}:
+        return display_equipment(session)
 
     if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
         return try_move(session, verb)
