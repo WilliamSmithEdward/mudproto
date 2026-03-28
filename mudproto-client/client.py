@@ -63,7 +63,7 @@ def build_message(message_type: str, payload: dict) -> dict:
 
 
 def print_prompt() -> None:
-    sys.stdout.write("\n\n> ")
+    sys.stdout.write("\n> ")
     sys.stdout.flush()
 
 
