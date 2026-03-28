@@ -87,6 +87,35 @@ def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None
     return None
 
 
+def build_auto_aggro_notice(entity: EntityState) -> list[dict]:
+    from display import build_part
+
+    return [
+        build_part("\n"),
+        build_part("\n"),
+        build_part(entity.name, "bright_red", True),
+        build_part(" notices you and attacks!", "bright_white"),
+    ]
+
+
+def build_auto_aggro_outbound(session: ClientSession, room_display: dict) -> dict | list[dict]:
+    from display import display_force_prompt
+
+    auto_entity = maybe_auto_engage_current_room(session)
+    if auto_entity is None:
+        return room_display
+
+    room_display["payload"]["prompt_after"] = False
+    room_display["payload"]["prompt_text"] = None
+    room_display["payload"]["parts"].extend(build_auto_aggro_notice(auto_entity))
+
+    combat_result = resolve_combat_round(session)
+    if combat_result is None:
+        return [room_display, display_force_prompt(session)]
+
+    return [room_display, combat_result, display_force_prompt(session)]
+
+
 def spawn_dummy(session: ClientSession) -> dict:
     from display import build_part, display_command_result
 
@@ -203,16 +232,7 @@ def flee(session: ClientSession) -> dict:
         build_part("\n"),
     ] + room_display["payload"]["parts"]
 
-    auto_entity = maybe_auto_engage_current_room(session)
-    if auto_entity is not None:
-        room_display["payload"]["parts"].extend([
-            build_part("\n"),
-            build_part("\n"),
-            build_part(auto_entity.name, "bright_red", True),
-            build_part(" notices you and attacks!", "bright_white"),
-        ])
-
-    return room_display
+    return build_auto_aggro_outbound(session, room_display)
 
 
 def _append_newline_if_needed(parts: list[dict]) -> None:

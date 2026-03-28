@@ -1,8 +1,16 @@
-from combat import begin_attack, disengage, flee, maybe_auto_engage_current_room, spawn_dummy
+from combat import (
+    begin_attack,
+    disengage,
+    flee,
+    maybe_auto_engage_current_room,
+    resolve_combat_round,
+    spawn_dummy,
+)
 from display import (
     build_part,
     display_command_result,
     display_error,
+    display_force_prompt,
     display_hello,
     display_pong,
     display_prompt,
@@ -42,6 +50,26 @@ def normalize_direction(direction: str) -> str:
     return DIRECTION_ALIASES.get(direction, direction)
 
 
+def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMessage) -> OutboundResult:
+    auto_entity = maybe_auto_engage_current_room(session)
+    if auto_entity is None:
+        return room_display
+
+    room_display["payload"]["parts"].extend([
+        build_part("\n"),
+        build_part("\n"),
+        build_part(auto_entity.name, "bright_red", True),
+        build_part(" notices you and attacks!", "bright_white"),
+    ])
+
+    combat_result = resolve_combat_round(session)
+    if combat_result is None:
+        return room_display
+
+    return [room_display, combat_result, display_force_prompt(session)]
+
+
+
 def try_move(session: ClientSession, direction: str) -> OutboundResult:
     if session.engaged_entity_id is not None:
         return display_error("You cannot move while engaged in combat. Try flee.", session)
@@ -65,16 +93,7 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
     session.next_combat_round_monotonic = None
 
     room_display = display_room(session, next_room)
-    auto_entity = maybe_auto_engage_current_room(session)
-    if auto_entity is not None:
-        room_display["payload"]["parts"].extend([
-            build_part("\n"),
-            build_part("\n"),
-            build_part(auto_entity.name, "bright_red", True),
-            build_part(" notices you and attacks!", "bright_white"),
-        ])
-
-    return room_display
+    return build_auto_aggro_outbound(session, room_display)
 
 
 def try_adjust_stat(
