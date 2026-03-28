@@ -189,6 +189,21 @@ def display_command_result(
     )
 
 
+def display_combat_round_result(
+    session: ClientSession,
+    parts: list[dict],
+    *,
+    blank_lines_before: int = 1,
+) -> dict:
+    session.prompt_pending_after_lag = False
+    return build_display(
+        parts,
+        blank_lines_before=blank_lines_before,
+        prompt_after=True,
+        prompt_text=build_prompt_text(session)
+    )
+
+
 def display_room(session: ClientSession, room: Room) -> dict:
     prompt_after, prompt_text = resolve_prompt(session, True)
 

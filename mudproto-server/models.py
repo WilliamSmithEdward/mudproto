@@ -22,8 +22,6 @@ class PlayerState:
     attacks_per_round: int = 1
 
 
-
-
 @dataclass
 class EntityState:
     entity_id: str
@@ -36,6 +34,7 @@ class EntityState:
     coin_reward: int = 0
     is_alive: bool = True
     spawn_sequence: int = 0
+    is_aggro: bool = False
 
 
 @dataclass

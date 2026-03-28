@@ -5,7 +5,7 @@ import uuid
 from websockets.asyncio.server import ServerConnection
 import websockets
 
-from combat import resolve_combat_round
+from combat import initialize_session_entities, resolve_combat_round
 from commands import dispatch_message, execute_command
 from display import display_connected, display_error, display_room, display_prompt
 from protocol import validate_message
@@ -75,6 +75,7 @@ async def command_scheduler_loop(session) -> None:
 async def handle_connection(websocket: ServerConnection) -> None:
     client_id = str(uuid.uuid4())
     session = register_client(client_id, websocket)
+    initialize_session_entities(session)
     session.scheduler_task = asyncio.create_task(command_scheduler_loop(session))
 
     print(f"Client connected: {session.client_id}")

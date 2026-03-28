@@ -1,4 +1,4 @@
-from combat import begin_attack, disengage, spawn_dummy
+from combat import begin_attack, disengage, flee, maybe_auto_engage_current_room, spawn_dummy
 from display import (
     build_part,
     display_command_result,
@@ -41,6 +41,9 @@ def normalize_direction(direction: str) -> str:
 
 
 def try_move(session: ClientSession, direction: str) -> dict:
+    if session.engaged_entity_id is not None:
+        return display_error("You cannot move while engaged in combat. Try flee.", session)
+
     current_room = get_room(session.player.current_room_id)
     if current_room is None:
         return display_error(f"Current room not found: {session.player.current_room_id}", session)
@@ -58,7 +61,18 @@ def try_move(session: ClientSession, direction: str) -> dict:
     session.player.current_room_id = next_room.room_id
     session.engaged_entity_id = None
     session.next_combat_round_monotonic = None
-    return display_room(session, next_room)
+
+    room_display = display_room(session, next_room)
+    auto_entity = maybe_auto_engage_current_room(session)
+    if auto_entity is not None:
+        room_display["payload"]["parts"].extend([
+            build_part("\n"),
+            build_part("\n"),
+            build_part(auto_entity.name, "bright_red", True),
+            build_part(" notices you and attacks!", "bright_white"),
+        ])
+
+    return room_display
 
 
 def try_adjust_stat(session: ClientSession, args: list[str], attribute_name: str, label: str, allow_negative: bool = False) -> dict:
@@ -104,15 +118,18 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
 
         return spawn_dummy(session)
 
-    if verb == "attack":
+    if verb in {"attack", "ki", "kil", "kill"}:
         target_name = " ".join(args).strip()
         if not target_name:
-            return display_error("Usage: attack <target>", session)
+            return display_error(f"Usage: {verb} <target>", session)
 
         return begin_attack(session, target_name)
 
     if verb == "disengage":
         return disengage(session)
+
+    if verb == "flee":
+        return flee(session)
 
     if verb == "look":
         room = get_room(session.player.current_room_id)
