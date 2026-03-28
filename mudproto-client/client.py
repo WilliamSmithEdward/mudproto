@@ -1,6 +1,5 @@
 import asyncio
 import json
-import re
 import sys
 from datetime import datetime, timezone
 
@@ -101,59 +100,6 @@ def write_line(text: str) -> None:
     sys.stdout.flush()
 
 
-def _condition_to_fg(condition_name: str | None) -> str | None:
-    if condition_name is None:
-        return None
-
-    normalized = condition_name.strip().lower()
-    if normalized in {"awful", "very poor", "poor"}:
-        return "bright_red"
-    if normalized in {"average", "fair"}:
-        return "bright_yellow"
-    if normalized in {"good", "very good", "perfect"}:
-        return "bright_green"
-    return None
-
-
-def _style_prompt_text(prompt_text: str) -> str:
-    me_match = re.search(r"\[Me:([^\]]+)\]", prompt_text)
-    npc_match = re.search(r"\[NPC:([^\]]+)\]", prompt_text)
-
-    me_fg = _condition_to_fg(me_match.group(1) if me_match else None)
-    npc_fg = _condition_to_fg(npc_match.group(1) if npc_match else None)
-
-    styled = prompt_text
-    if me_fg is not None and me_match is not None:
-        raw_segment = me_match.group(0)
-        condition_segment = me_match.group(1)
-        colored_segment = raw_segment.replace(
-            condition_segment,
-            style_text(condition_segment, me_fg, True),
-            1,
-        )
-        styled = styled.replace(raw_segment, colored_segment, 1)
-    if npc_fg is not None and npc_match is not None:
-        raw_segment = npc_match.group(0)
-        condition_segment = npc_match.group(1)
-        colored_segment = raw_segment.replace(
-            condition_segment,
-            style_text(condition_segment, npc_fg, True),
-            1,
-        )
-        styled = styled.replace(raw_segment, colored_segment, 1)
-
-    hp_match = re.match(r"(\d+)H", prompt_text)
-    if hp_match is not None and me_fg is not None:
-        styled = styled.replace(hp_match.group(0), style_text(hp_match.group(0), me_fg, True), 1)
-
-    return styled
-
-
-def write_prompt(prompt_text: str) -> None:
-    sys.stdout.write(_style_prompt_text(prompt_text))
-    sys.stdout.flush()
-
-
 async def send_json(websocket, message: dict) -> None:
     message_text = json.dumps(message)
     await websocket.send(message_text)
@@ -162,7 +108,7 @@ async def send_json(websocket, message: dict) -> None:
 def render_display_message(message: dict) -> None:
     payload = message.get("payload", {})
     prompt_after = bool(payload.get("prompt_after", False))
-    prompt_text = str(payload.get("prompt_text", ">"))
+    prompt_parts = payload.get("prompt_parts") or []
     parts = payload.get("parts", [])
     starts_on_new_line = bool(payload.get("starts_on_new_line", False))
 
@@ -176,10 +122,12 @@ def render_display_message(message: dict) -> None:
 
     if has_parts and prompt_after:
         sys.stdout.write("\n\n")
-        write_prompt(prompt_text)
+        sys.stdout.write(render_parts(prompt_parts))
+        sys.stdout.flush()
     elif prompt_after:
         sys.stdout.write("\n")
-        write_prompt(prompt_text)
+        sys.stdout.write(render_parts(prompt_parts))
+        sys.stdout.flush()
     elif has_parts:
         sys.stdout.write("\n")
 

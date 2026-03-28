@@ -17,7 +17,7 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     }
 
 
-def build_prompt_text(session: ClientSession) -> str:
+def build_prompt_parts(session: ClientSession) -> list[dict]:
     room = get_room(session.player.current_room_id)
     exit_letters = ""
 
@@ -40,18 +40,26 @@ def build_prompt_text(session: ClientSession) -> str:
         exit_letters = "None"
 
     status = session.status
-    me_condition, _ = get_health_condition(status.hit_points, PLAYER_REFERENCE_MAX_HP)
+    me_condition, me_condition_color = get_health_condition(status.hit_points, PLAYER_REFERENCE_MAX_HP)
+
+    parts = [
+        build_part(f"{status.hit_points}H", me_condition_color, True),
+        build_part(f" {status.vigor}V {status.extra_lives}X {status.coins}C [Me:", "bright_white"),
+        build_part(me_condition.title(), me_condition_color, True),
+        build_part("]", "bright_white"),
+    ]
 
     engaged_entity = get_engaged_entity(session)
-    npc_segment = ""
     if engaged_entity is not None:
-        npc_condition, _ = get_entity_condition(engaged_entity)
-        npc_segment = f" [NPC:{npc_condition.title()}]"
+        npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
+        parts.extend([
+            build_part(" [NPC:", "bright_white"),
+            build_part(npc_condition.title(), npc_condition_color, True),
+            build_part("]", "bright_white"),
+        ])
 
-    return (
-        f"{status.hit_points}H {status.vigor}V {status.extra_lives}X {status.coins}C "
-        f"[Me:{me_condition.title()}]{npc_segment} Exits:{exit_letters}>"
-    )
+    parts.append(build_part(f" Exits:{exit_letters}> ", "bright_white"))
+    return parts
 
 
 def build_display(
@@ -59,14 +67,14 @@ def build_display(
     *,
     blank_lines_before: int = 1,
     prompt_after: bool = False,
-    prompt_text: str | None = None,
+    prompt_parts: list[dict] | None = None,
     starts_on_new_line: bool = False
 ) -> dict:
     return build_response("display", {
         "parts": parts,
         "blank_lines_before": blank_lines_before,
         "prompt_after": prompt_after,
-        "prompt_text": prompt_text,
+        "prompt_parts": prompt_parts,
         "starts_on_new_line": starts_on_new_line
     })
 
@@ -78,13 +86,13 @@ def display_text(
     bold: bool = False,
     blank_lines_before: int = 1,
     prompt_after: bool = False,
-    prompt_text: str | None = None
+    prompt_parts: list[dict] | None = None
 ) -> dict:
     return build_display(
         [build_part(text, fg, bold)],
         blank_lines_before=blank_lines_before,
         prompt_after=prompt_after,
-        prompt_text=prompt_text
+        prompt_parts=prompt_parts
     )
 
 
@@ -96,25 +104,25 @@ def mark_prompt_pending(session: ClientSession) -> None:
     session.prompt_pending_after_lag = True
 
 
-def resolve_prompt(session: ClientSession, prompt_after: bool) -> tuple[bool, str | None]:
+def resolve_prompt(session: ClientSession, prompt_after: bool) -> tuple[bool, list[dict] | None]:
     if not prompt_after:
         return False, None
 
     if should_show_prompt(session):
         session.prompt_pending_after_lag = False
-        return True, build_prompt_text(session)
+        return True, build_prompt_parts(session)
 
     mark_prompt_pending(session)
     return False, None
 
 
 def display_prompt(session: ClientSession) -> dict:
-    prompt_after, prompt_text = resolve_prompt(session, True)
-    return build_display([], prompt_after=prompt_after, prompt_text=prompt_text)
+    prompt_after, prompt_parts = resolve_prompt(session, True)
+    return build_display([], prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_force_prompt(session: ClientSession) -> dict:
-    return build_display([], prompt_after=True, prompt_text=build_prompt_text(session))
+    return build_display([], prompt_after=True, prompt_parts=build_prompt_parts(session))
 
 
 def display_connected(session: ClientSession) -> dict:
@@ -124,25 +132,25 @@ def display_connected(session: ClientSession) -> dict:
 
 
 def display_hello(name: str, session: ClientSession) -> dict:
-    prompt_after, prompt_text = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True)
     return build_display([
         build_part("Hello, ", "bright_green"),
         build_part(str(name), "bright_white", True)
-    ], prompt_after=prompt_after, prompt_text=prompt_text)
+    ], prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_pong(session: ClientSession) -> dict:
-    prompt_after, prompt_text = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True)
     return display_text(
         "Ping received.",
         fg="bright_cyan",
         prompt_after=prompt_after,
-        prompt_text=prompt_text
+        prompt_parts=prompt_parts
     )
 
 
 def display_whoami(session: ClientSession) -> dict:
-    prompt_after, prompt_text = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True)
     me_condition, me_condition_color = get_health_condition(session.status.hit_points, PLAYER_REFERENCE_MAX_HP)
     engaged_entity = get_engaged_entity(session)
 
@@ -163,11 +171,11 @@ def display_whoami(session: ClientSession) -> dict:
             build_part(").", "bright_white"),
         ])
 
-    return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)
+    return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_equipment(session: ClientSession) -> dict:
-    prompt_after, prompt_text = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True)
     main_hand = get_equipped_main_hand(session)
     off_hand = get_equipped_off_hand(session)
     held_weapon = get_held_weapon(session)
@@ -257,20 +265,20 @@ def display_equipment(session: ClientSession) -> dict:
                 build_part(".".join(item.keywords) if item.keywords else "none", "bright_cyan"),
             ])
 
-    return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)
+    return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_error(message: str, session: ClientSession | None = None) -> dict:
     prompt_after = False
-    prompt_text = None
+    prompt_parts: list[dict] | None = None
 
     if session is not None:
-        prompt_after, prompt_text = resolve_prompt(session, True)
+        prompt_after, prompt_parts = resolve_prompt(session, True)
 
     return build_display(
         [build_part(f"Error: {message}", "bright_red", True)],
         prompt_after=prompt_after,
-        prompt_text=prompt_text,
+        prompt_parts=prompt_parts,
     )
 
 
@@ -293,12 +301,12 @@ def display_command_result(
     blank_lines_before: int = 1,
     prompt_after: bool = True
 ) -> dict:
-    prompt_after, prompt_text = resolve_prompt(session, prompt_after)
+    prompt_after, prompt_parts = resolve_prompt(session, prompt_after)
     return build_display(
         parts,
         blank_lines_before=blank_lines_before,
         prompt_after=prompt_after,
-        prompt_text=prompt_text
+        prompt_parts=prompt_parts
     )
 
 
@@ -306,13 +314,12 @@ def display_combat_round_result(session: ClientSession, parts: list[dict]) -> di
     return build_display(
         parts,
         prompt_after=False,
-        prompt_text=None,
         starts_on_new_line=True
     )
 
 
 def display_room(session: ClientSession, room: Room) -> dict:
-    prompt_after, prompt_text = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True)
 
     parts = [
         build_part(room.title, "bright_green", True),
@@ -339,4 +346,4 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(" condition)", "bright_white"),
             ])
 
-    return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)
+    return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)

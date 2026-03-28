@@ -76,6 +76,10 @@ def _resolve_weapon_verb(weapon_type: str) -> str:
     return WEAPON_TYPE_TO_VERB.get(normalized, "hit")
 
 
+def _article(name: str) -> str:
+    return "an" if name.strip().lower()[:1] in "aeiou" else "a"
+
+
 def _choose_severity(damage: int, target_max_hp: int) -> str:
     if damage <= 0:
         return "miss"
@@ -99,7 +103,6 @@ def _choose_severity(damage: int, target_max_hp: int) -> str:
 def _build_player_attack_parts(
     *,
     entity_name: str,
-    weapon_name: str | None,
     attack_verb: str,
     damage: int,
     target_max_hp: int,
@@ -108,47 +111,30 @@ def _build_player_attack_parts(
 
     verb_noun = _to_third_person(attack_verb)
     severity = _choose_severity(damage, target_max_hp)
+    article = _article(entity_name)
+    named = f"{article} {entity_name}"
 
     parts: list[dict] = []
     if severity == "miss":
         parts.extend([
             build_part("You miss ", "bright_white"),
-            build_part(entity_name, "bright_red", True),
+            build_part(named, "bright_red", True),
+            build_part(" with your ", "bright_white"),
+            build_part(attack_verb, "bright_cyan", True),
+            build_part(".", "bright_white"),
         ])
-        if weapon_name is not None:
-            parts.extend([
-                build_part(" with ", "bright_white"),
-                build_part(weapon_name, "bright_cyan", True),
-            ])
-        parts.append(build_part(".", "bright_white"))
         return parts
 
-    if severity == "barely":
-        parts.append(build_part("You barely ", "bright_white"))
-    elif severity == "normal":
-        parts.append(build_part("You ", "bright_white"))
-    elif severity == "hard":
-        parts.append(build_part("You ", "bright_white"))
-    elif severity == "extreme":
-        parts.append(build_part("You ", "bright_white"))
-    elif severity == "massacre":
-        parts.append(build_part("You massacre ", "bright_white"))
-    elif severity == "annihilate":
-        parts.append(build_part("You annihilate ", "bright_white"))
-    else:
-        parts.append(build_part("You obliterate ", "bright_white"))
-
     if severity in {"barely", "normal", "hard", "extreme"}:
+        if severity == "barely":
+            parts.append(build_part("You barely ", "bright_white"))
+        else:
+            parts.append(build_part("You ", "bright_white"))
         parts.extend([
             build_part(attack_verb, "bright_cyan", True),
             build_part(" ", "bright_white"),
-            build_part(entity_name, "bright_red", True),
+            build_part(named, "bright_red", True),
         ])
-        if weapon_name is not None:
-            parts.extend([
-                build_part(" with ", "bright_white"),
-                build_part(weapon_name, "bright_cyan", True),
-            ])
         if severity == "hard":
             parts.append(build_part(" hard", "bright_white"))
         elif severity == "extreme":
@@ -156,8 +142,14 @@ def _build_player_attack_parts(
         parts.append(build_part(".", "bright_white"))
         return parts
 
-    parts.append(build_part(entity_name, "bright_red", True))
+    top_label = {
+        "massacre": "massacre",
+        "annihilate": "annihilate",
+        "obliterate": "obliterate",
+    }[severity]
     parts.extend([
+        build_part(f"You {top_label} ", "bright_white"),
+        build_part(named, "bright_red", True),
         build_part(" with your ", "bright_white"),
         build_part(verb_noun, "bright_cyan", True),
         build_part(".", "bright_white"),
@@ -487,11 +479,9 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
 
         hit_modifier = _get_player_hit_modifier(weapon)
         if not _roll_hit(hit_modifier, entity.armor_class):
-            miss_weapon_name = weapon.name if weapon is not None else None
             miss_verb = _resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
             parts.extend(_build_player_attack_parts(
                 entity_name=entity.name,
-                weapon_name=miss_weapon_name,
                 attack_verb=miss_verb,
                 damage=0,
                 target_max_hp=entity.max_hit_points,
@@ -502,7 +492,6 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
         entity.hit_points = max(0, entity.hit_points - rolled_damage)
         parts.extend(_build_player_attack_parts(
             entity_name=entity.name,
-            weapon_name=weapon_name,
             attack_verb=attack_verb,
             damage=rolled_damage,
             target_max_hp=entity.max_hit_points,
