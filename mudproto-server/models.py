@@ -14,6 +14,10 @@ class QueuedCommand:
 @dataclass
 class PlayerState:
     current_room_id: str = "start"
+
+
+@dataclass
+class PlayerCombatState:
     attack_damage: int = 12
     attacks_per_round: int = 1
 
@@ -24,6 +28,12 @@ class PlayerStatus:
     vigor: int = 119
     extra_lives: int = 1
     coins: int = 4030
+
+
+@dataclass
+class CombatState:
+    engaged_entity_id: Optional[str] = None
+    next_round_monotonic: Optional[float] = None
 
 
 @dataclass
@@ -47,7 +57,9 @@ class ClientSession:
     websocket: ServerConnection
     connected_at: str
     player: PlayerState = field(default_factory=PlayerState)
+    player_combat: PlayerCombatState = field(default_factory=PlayerCombatState)
     status: PlayerStatus = field(default_factory=PlayerStatus)
+    combat: CombatState = field(default_factory=CombatState)
     last_message_at: Optional[str] = None
     lag_until_monotonic: Optional[float] = None
     command_queue: list[QueuedCommand] = field(default_factory=list)
@@ -55,5 +67,3 @@ class ClientSession:
     prompt_pending_after_lag: bool = False
     entities: dict[str, EntityState] = field(default_factory=dict)
     entity_spawn_counter: int = 0
-    engaged_entity_id: Optional[str] = None
-    next_combat_round_monotonic: Optional[float] = None

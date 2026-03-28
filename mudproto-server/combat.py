@@ -42,14 +42,14 @@ def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: 
 
 
 def clear_combat_if_invalid(session: ClientSession) -> None:
-    target_id = session.engaged_entity_id
+    target_id = session.combat.engaged_entity_id
     if target_id is None:
         return
 
     entity = session.entities.get(target_id)
     if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
-        session.engaged_entity_id = None
-        session.next_combat_round_monotonic = None
+        session.combat.engaged_entity_id = None
+        session.combat.next_round_monotonic = None
 
 
 def initialize_session_entities(session: ClientSession) -> None:
@@ -74,14 +74,14 @@ def initialize_session_entities(session: ClientSession) -> None:
 
 def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None:
     clear_combat_if_invalid(session)
-    if session.engaged_entity_id is not None:
+    if session.combat.engaged_entity_id is not None:
         return None
 
     room_entities = list_room_entities(session, session.player.current_room_id)
     for entity in room_entities:
         if entity.is_aggro:
-            session.engaged_entity_id = entity.entity_id
-            session.next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+            session.combat.engaged_entity_id = entity.entity_id
+            session.combat.next_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
             return entity
 
     return None
@@ -159,11 +159,11 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     if entity is None:
         return display_error(f"No target named '{target_name}' is here.", session)
 
-    session.engaged_entity_id = entity.entity_id
+    session.combat.engaged_entity_id = entity.entity_id
     combat_result = resolve_combat_round(session)
 
     if combat_result is None:
-        session.next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+        session.combat.next_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
         return display_force_prompt(session)
 
     return [combat_result, display_force_prompt(session)]
@@ -174,12 +174,12 @@ def disengage(session: ClientSession) -> dict | list[dict]:
 
     clear_combat_if_invalid(session)
 
-    if session.engaged_entity_id is None:
+    if session.combat.engaged_entity_id is None:
         return display_error("You are not engaged with anything.", session)
 
-    entity = session.entities.get(session.engaged_entity_id)
-    session.engaged_entity_id = None
-    session.next_combat_round_monotonic = None
+    entity = session.entities.get(session.combat.engaged_entity_id)
+    session.combat.engaged_entity_id = None
+    session.combat.next_round_monotonic = None
 
     target_name = entity.name if entity is not None else "your target"
     return display_command_result(session, [
@@ -194,7 +194,7 @@ def flee(session: ClientSession) -> dict | list[dict]:
     from world import get_room
 
     clear_combat_if_invalid(session)
-    if session.engaged_entity_id is None:
+    if session.combat.engaged_entity_id is None:
         return display_error("You are not engaged with anything.", session)
 
     current_room = get_room(session.player.current_room_id)
@@ -206,7 +206,7 @@ def flee(session: ClientSession) -> dict | list[dict]:
         return display_error("There is nowhere to flee.", session)
 
     if random.random() >= FLEE_SUCCESS_CHANCE:
-        entity = session.entities.get(session.engaged_entity_id)
+        entity = session.entities.get(session.combat.engaged_entity_id)
         target_name = entity.name if entity is not None else "your attacker"
         return display_command_result(session, [
             build_part("You try to flee from ", "bright_white"),
@@ -220,8 +220,8 @@ def flee(session: ClientSession) -> dict | list[dict]:
         return display_error(f"Destination room not found: {next_room_id}", session)
 
     session.player.current_room_id = next_room.room_id
-    session.engaged_entity_id = None
-    session.next_combat_round_monotonic = None
+    session.combat.engaged_entity_id = None
+    session.combat.next_round_monotonic = None
 
     room_display = display_room(session, next_room)
     room_display["payload"]["parts"] = [
@@ -245,7 +245,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
     clear_combat_if_invalid(session)
 
-    target_id = session.engaged_entity_id
+    target_id = session.combat.engaged_entity_id
     if target_id is None:
         return None
 
@@ -255,7 +255,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         return None
 
     parts: list[dict] = []
-    player = session.player
+    player = session.player_combat
     status = session.status
 
     for _ in range(max(1, player.attacks_per_round)):
@@ -275,8 +275,8 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
     if entity.hit_points <= 0:
         entity.is_alive = False
-        session.engaged_entity_id = None
-        session.next_combat_round_monotonic = None
+        session.combat.engaged_entity_id = None
+        session.combat.next_round_monotonic = None
         status.coins += entity.coin_reward
 
         _append_newline_if_needed(parts)
@@ -302,8 +302,8 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         ])
 
     if status.hit_points <= 0:
-        session.engaged_entity_id = None
-        session.next_combat_round_monotonic = None
+        session.combat.engaged_entity_id = None
+        session.combat.next_round_monotonic = None
 
         _append_newline_if_needed(parts)
         if status.extra_lives > 0:
@@ -320,5 +320,5 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
         return display_combat_round_result(session, parts)
 
-    session.next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+    session.combat.next_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
     return display_combat_round_result(session, parts)

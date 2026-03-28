@@ -55,9 +55,9 @@ async def command_scheduler_loop(session) -> None:
                 break
 
             combat_result = None
-            if session.next_combat_round_monotonic is not None:
+            if session.combat.next_round_monotonic is not None:
                 now = asyncio.get_running_loop().time()
-                if now >= session.next_combat_round_monotonic:
+                if now >= session.combat.next_round_monotonic:
                     combat_result = resolve_combat_round(session)
 
             if combat_result is not None:

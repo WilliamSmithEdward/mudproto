@@ -71,7 +71,7 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
 
 
 def try_move(session: ClientSession, direction: str) -> OutboundResult:
-    if session.engaged_entity_id is not None:
+    if session.combat.engaged_entity_id is not None:
         return display_error("You cannot move while engaged in combat. Try flee.", session)
 
     current_room = get_room(session.player.current_room_id)
@@ -89,8 +89,8 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
         return display_error(f"Destination room not found: {next_room_id}", session)
 
     session.player.current_room_id = next_room.room_id
-    session.engaged_entity_id = None
-    session.next_combat_round_monotonic = None
+    session.combat.engaged_entity_id = None
+    session.combat.next_round_monotonic = None
 
     room_display = display_room(session, next_room)
     return build_auto_aggro_outbound(session, room_display)
@@ -150,7 +150,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not target_name:
             return display_error(f"Usage: {verb} <target>", session)
 
-        if session.engaged_entity_id is not None:
+        if session.combat.engaged_entity_id is not None:
             return display_error("You're already fighting!", session)
 
         return begin_attack(session, target_name)
