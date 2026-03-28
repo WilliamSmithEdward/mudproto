@@ -67,6 +67,14 @@ def display_text(
     )
 
 
+def display_prompt(session: ClientSession) -> dict:
+    return build_display(
+        [],
+        prompt_after=True,
+        prompt_text=build_prompt_text(session)
+    )
+
+
 def display_connected(session: ClientSession) -> dict:
     return build_display([
         build_part("Connection established. ", "bright_green", True),

@@ -4,6 +4,7 @@ from display import (
     display_error,
     display_hello,
     display_pong,
+    display_prompt,
     display_queue_ack,
     display_room,
     display_whoami,
@@ -60,7 +61,7 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
     verb, args = parse_command(command_text)
 
     if not verb:
-        return display_error("Command text is empty.", session)
+        return display_prompt(session)
 
     if verb == "look":
         room = get_room(session.current_room_id)
@@ -110,19 +111,22 @@ async def process_input_message(message: dict, session: ClientSession) -> dict:
     payload = message["payload"]
     input_text = payload.get("text")
 
+    if input_text is None:
+        return display_prompt(session)
+
     if not isinstance(input_text, str):
         return display_error("Field 'payload.text' must be a string.", session)
 
     input_text = input_text.strip()
     if not input_text:
-        return display_error("Input text is empty.", session)
+        return display_prompt(session)
 
     if input_text.startswith("/"):
         command_line = input_text[1:].strip()
         verb, args = parse_command(command_line)
 
         if not verb:
-            return display_error("Slash command is empty.", session)
+            return display_prompt(session)
 
         if verb == "hello":
             name = " ".join(args).strip() or "unknown"

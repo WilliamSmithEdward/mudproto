@@ -101,7 +101,6 @@ def write_line(text: str) -> None:
 
 
 def write_prompt(prompt_text: str) -> None:
-    print()
     sys.stdout.write(prompt_text)
     sys.stdout.flush()
 
@@ -113,22 +112,23 @@ async def send_json(websocket, message: dict) -> None:
 
 def render_display_message(message: dict) -> None:
     payload = message.get("payload", {})
-    blank_lines_before = int(payload.get("blank_lines_before", 0))
     prompt_after = bool(payload.get("prompt_after", False))
     prompt_text = str(payload.get("prompt_text", ">"))
     parts = payload.get("parts", [])
 
-    if blank_lines_before > 0:
-        sys.stdout.write("\n" * blank_lines_before)
+    has_parts = isinstance(parts, list) and len(parts) > 0
 
-    if isinstance(parts, list) and parts:
+    if has_parts:
         sys.stdout.write(render_parts(parts))
-        sys.stdout.write("\n")
-    else:
-        sys.stdout.write(json.dumps(message, ensure_ascii=False) + "\n")
 
     if prompt_after:
+        if has_parts:
+            sys.stdout.write("\n\n")
+        else:
+            sys.stdout.write("\n")
         write_prompt(prompt_text)
+    elif has_parts:
+        sys.stdout.write("\n")
 
     sys.stdout.flush()
 
@@ -159,12 +159,8 @@ async def input_loop(websocket) -> None:
 
     while True:
         user_input = await asyncio.to_thread(input, "")
-        user_input = user_input.strip()
 
-        if not user_input:
-            continue
-
-        if user_input.lower() == "/quit":
+        if user_input.lower().strip() == "/quit":
             write_line("Closing connection...")
             await websocket.close()
             break
