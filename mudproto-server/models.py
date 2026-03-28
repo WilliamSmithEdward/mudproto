@@ -21,3 +21,7 @@ class ClientSession:
     lag_until_monotonic: Optional[float] = None
     command_queue: list[QueuedCommand] = field(default_factory=list)
     scheduler_task: Optional[asyncio.Task] = None
+    hit_points: int = 575
+    vigor: int = 119
+    extra_lives: int = 1
+    coins: int = 4030

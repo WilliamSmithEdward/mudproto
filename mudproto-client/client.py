@@ -64,11 +64,6 @@ def build_input_message(text: str) -> dict:
     }
 
 
-def print_prompt() -> None:
-    sys.stdout.write("\n> ")
-    sys.stdout.flush()
-
-
 def style_text(text: str, fg: str | None = None, bold: bool = False) -> str:
     prefix = ""
 
@@ -105,6 +100,12 @@ def write_line(text: str) -> None:
     sys.stdout.flush()
 
 
+def write_prompt(prompt_text: str) -> None:
+    print()
+    sys.stdout.write(prompt_text)
+    sys.stdout.flush()
+
+
 async def send_json(websocket, message: dict) -> None:
     message_text = json.dumps(message)
     await websocket.send(message_text)
@@ -113,7 +114,8 @@ async def send_json(websocket, message: dict) -> None:
 def render_display_message(message: dict) -> None:
     payload = message.get("payload", {})
     blank_lines_before = int(payload.get("blank_lines_before", 0))
-    prompt_after = bool(payload.get("prompt_after", True))
+    prompt_after = bool(payload.get("prompt_after", False))
+    prompt_text = str(payload.get("prompt_text", ">"))
     parts = payload.get("parts", [])
 
     if blank_lines_before > 0:
@@ -125,10 +127,10 @@ def render_display_message(message: dict) -> None:
     else:
         sys.stdout.write(json.dumps(message, ensure_ascii=False) + "\n")
 
-    sys.stdout.flush()
-
     if prompt_after:
-        print_prompt()
+        write_prompt(prompt_text)
+
+    sys.stdout.flush()
 
 
 async def receive_loop(websocket) -> None:
@@ -138,14 +140,12 @@ async def receive_loop(websocket) -> None:
                 response = json.loads(response_text)
             except json.JSONDecodeError:
                 write_line("Received non-JSON response from server.")
-                print_prompt()
                 continue
 
             if response.get("type") == "display":
                 render_display_message(response)
             else:
                 write_line(json.dumps(response, ensure_ascii=False))
-                print_prompt()
 
     except websockets.ConnectionClosed:
         write_line("\nConnection closed by server.")
@@ -158,7 +158,6 @@ async def input_loop(websocket) -> None:
     write_line("Everything else is sent to the server as generic input.")
 
     while True:
-        print_prompt()
         user_input = await asyncio.to_thread(input, "")
         user_input = user_input.strip()
 

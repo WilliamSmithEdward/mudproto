@@ -1,7 +1,7 @@
 from models import ClientSession
 from protocol import build_response
 from sessions import get_remaining_lag_seconds
-from world import Room
+from world import Room, get_room
 
 
 def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
@@ -12,11 +12,41 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     }
 
 
-def build_display(parts: list[dict], *, blank_lines_before: int = 1, prompt_after: bool = True) -> dict:
+def build_prompt_text(session: ClientSession) -> str:
+    room = get_room(session.current_room_id)
+    exit_letters = ""
+
+    if room is not None and room.exits:
+        direction_letters = {
+            "north": "N",
+            "south": "S",
+            "east": "E",
+            "west": "W",
+        }
+        exit_letters = "".join(
+            direction_letters[direction]
+            for direction in room.exits.keys()
+            if direction in direction_letters
+        )
+
+    if not exit_letters:
+        exit_letters = "None"
+
+    return f"{session.hit_points}H {session.vigor}V {session.extra_lives}X {session.coins}C Exits:{exit_letters}>"
+
+
+def build_display(
+    parts: list[dict],
+    *,
+    blank_lines_before: int = 1,
+    prompt_after: bool = False,
+    prompt_text: str | None = None
+) -> dict:
     return build_response("display", {
         "parts": parts,
         "blank_lines_before": blank_lines_before,
-        "prompt_after": prompt_after
+        "prompt_after": prompt_after,
+        "prompt_text": prompt_text
     })
 
 
@@ -26,12 +56,14 @@ def display_text(
     fg: str = "bright_white",
     bold: bool = False,
     blank_lines_before: int = 1,
-    prompt_after: bool = True
+    prompt_after: bool = False,
+    prompt_text: str | None = None
 ) -> dict:
     return build_display(
         [build_part(text, fg, bold)],
         blank_lines_before=blank_lines_before,
-        prompt_after=prompt_after
+        prompt_after=prompt_after,
+        prompt_text=prompt_text
     )
 
 
@@ -43,15 +75,20 @@ def display_connected(session: ClientSession) -> dict:
     ])
 
 
-def display_hello(name: str) -> dict:
+def display_hello(name: str, session: ClientSession) -> dict:
     return build_display([
         build_part("Hello, ", "bright_green"),
         build_part(str(name), "bright_white", True)
-    ])
+    ], prompt_after=True, prompt_text=build_prompt_text(session))
 
 
-def display_pong() -> dict:
-    return display_text("Ping received.", fg="bright_cyan")
+def display_pong(session: ClientSession) -> dict:
+    return display_text(
+        "Ping received.",
+        fg="bright_cyan",
+        prompt_after=True,
+        prompt_text=build_prompt_text(session)
+    )
 
 
 def display_whoami(session: ClientSession) -> dict:
@@ -71,14 +108,15 @@ def display_whoami(session: ClientSession) -> dict:
         build_part(str(remaining_lag), "bright_yellow", True),
         build_part(" | Queued: ", "bright_white"),
         build_part(str(queued_count), "bright_yellow", True)
-    ])
+    ], prompt_after=True, prompt_text=build_prompt_text(session))
 
 
-def display_error(message: str) -> dict:
-    return build_display([
-        build_part("Error: ", "bright_red", True),
-        build_part(message, "bright_white")
-    ])
+def display_error(message: str, session: ClientSession | None = None) -> dict:
+    return build_display(
+        [build_part(f"Error: {message}", "bright_red", True)],
+        prompt_after=session is not None,
+        prompt_text=build_prompt_text(session) if session is not None else None,
+    )
 
 
 def display_system(message: str) -> dict:
@@ -97,22 +135,24 @@ def display_queue_ack(session: ClientSession, command_text: str) -> dict:
 
 
 def display_command_result(
+    session: ClientSession,
     parts: list[dict],
     *,
     blank_lines_before: int = 1,
     prompt_after: bool = True
 ) -> dict:
-    return build_display(parts, blank_lines_before=blank_lines_before, prompt_after=prompt_after)
+    prompt_text = build_prompt_text(session) if prompt_after else None
+    return build_display(
+        parts,
+        blank_lines_before=blank_lines_before,
+        prompt_after=prompt_after,
+        prompt_text=prompt_text
+    )
 
 
-def display_room(room: Room) -> dict:
-    exit_names = ", ".join(room.exits.keys()) if room.exits else "none"
-
+def display_room(session: ClientSession, room: Room) -> dict:
     return build_display([
         build_part(room.title, "bright_green", True),
         build_part("\n"),
         build_part(room.description, "bright_white"),
-        build_part("\n"),
-        build_part("Exits: ", "bright_white"),
-        build_part(exit_names, "bright_yellow", True)
-    ])
+    ], prompt_after=True, prompt_text=build_prompt_text(session))

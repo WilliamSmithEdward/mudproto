@@ -6,7 +6,7 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from commands import dispatch_message, execute_command
-from display import display_connected, display_error, display_system
+from display import display_connected, display_error, display_system, display_room
 from protocol import validate_message
 from sessions import (
     connected_clients,
@@ -16,6 +16,7 @@ from sessions import (
     touch_session,
     unregister_client,
 )
+from world import get_room
 
 
 COMMAND_SCHEDULER_INTERVAL_SECONDS = 0.1
@@ -70,6 +71,10 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
     try:
         await send_json(session.websocket, display_connected(session))
+
+        starting_room = get_room(session.current_room_id)
+        if starting_room is not None:
+            await send_json(session.websocket, display_room(session, starting_room))
 
         async for message_text in session.websocket:
             touch_session(session)
