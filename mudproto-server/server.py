@@ -5,6 +5,7 @@ import uuid
 from websockets.asyncio.server import ServerConnection
 import websockets
 
+from combat import resolve_combat_round
 from commands import dispatch_message, execute_command
 from display import display_connected, display_error, display_room, display_prompt
 from protocol import validate_message
@@ -35,6 +36,16 @@ async def command_scheduler_loop(session) -> None:
 
             if session.client_id not in connected_clients:
                 break
+
+            combat_result = None
+            if session.next_combat_round_monotonic is not None:
+                now = asyncio.get_running_loop().time()
+                if now >= session.next_combat_round_monotonic:
+                    combat_result = resolve_combat_round(session)
+
+            if combat_result is not None:
+                await send_json(session.websocket, combat_result)
+                continue
 
             if is_session_lagged(session):
                 continue

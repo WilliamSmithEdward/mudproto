@@ -1,6 +1,7 @@
 from models import ClientSession
 from protocol import build_response
 from sessions import get_remaining_lag_seconds, is_session_lagged
+from combat import list_room_entities
 from world import Room, get_room
 
 
@@ -190,8 +191,27 @@ def display_command_result(
 
 def display_room(session: ClientSession, room: Room) -> dict:
     prompt_after, prompt_text = resolve_prompt(session, True)
-    return build_display([
+
+    parts = [
         build_part(room.title, "bright_green", True),
         build_part("\n"),
         build_part(room.description, "bright_white"),
-    ], prompt_after=prompt_after, prompt_text=prompt_text)
+    ]
+
+    entities = list_room_entities(session, room.room_id)
+    if entities:
+        parts.extend([
+            build_part("\n"),
+            build_part("\n"),
+            build_part("You see here:", "bright_white", True),
+        ])
+
+        for entity in entities:
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(entity.name, "bright_magenta", True),
+                build_part(f" ({entity.hit_points}/{entity.max_hit_points} HP)", "bright_white"),
+            ])
+
+    return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)

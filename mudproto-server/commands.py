@@ -1,3 +1,4 @@
+from combat import begin_attack, disengage, spawn_dummy
 from display import (
     build_part,
     display_command_result,
@@ -5,7 +6,6 @@ from display import (
     display_hello,
     display_pong,
     display_prompt,
-    display_queue_ack,
     display_room,
     display_whoami,
 )
@@ -56,6 +56,8 @@ def try_move(session: ClientSession, direction: str) -> dict:
         return display_error(f"Destination room not found: {next_room_id}", session)
 
     session.player.current_room_id = next_room.room_id
+    session.engaged_entity_id = None
+    session.next_combat_round_monotonic = None
     return display_room(session, next_room)
 
 
@@ -94,6 +96,23 @@ def execute_command(session: ClientSession, command_text: str) -> dict:
 
     if not verb:
         return display_prompt(session)
+
+    if verb == "spawn":
+        target_name = " ".join(args).strip().lower()
+        if target_name != "dummy":
+            return display_error("Usage: spawn dummy", session)
+
+        return spawn_dummy(session)
+
+    if verb == "attack":
+        target_name = " ".join(args).strip()
+        if not target_name:
+            return display_error("Usage: attack <target>", session)
+
+        return begin_attack(session, target_name)
+
+    if verb == "disengage":
+        return disengage(session)
 
     if verb == "look":
         room = get_room(session.player.current_room_id)
