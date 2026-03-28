@@ -1,13 +1,28 @@
 import asyncio
+import random
 import uuid
 
-from equipment import get_held_weapon_name, get_player_attack_damage, get_player_attacks_per_round
-from models import ClientSession, EntityState
+from equipment import get_equipped_main_hand, get_equipped_off_hand
+from models import ClientSession, EntityState, EquipmentItemState
 
 
 COMBAT_ROUND_INTERVAL_SECONDS = 2.5
 OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
+PLAYER_ARMOR_CLASS = 10
+HIT_ROLL_DICE_SIDES = 20
+PLAYER_REFERENCE_MAX_HP = 575
+
+WEAPON_TYPE_TO_VERB = {
+    "unarmed": "hit",
+    "sword": "slash",
+    "axe": "hack",
+    "bludgeon": "bludgeon",
+    "mace": "bludgeon",
+    "club": "bludgeon",
+    "dagger": "stab",
+    "spear": "pierce",
+}
 
 
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
@@ -19,6 +34,245 @@ def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState
 
     entities.sort(key=lambda item: item.spawn_sequence)
     return entities
+
+
+def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str]:
+    if max_hit_points <= 0:
+        return "awful", "bright_red"
+
+    ratio = max(0.0, min(1.0, hit_points / max_hit_points))
+    if ratio <= 0.15:
+        return "awful", "bright_red"
+    if ratio <= 0.30:
+        return "very poor", "bright_red"
+    if ratio <= 0.45:
+        return "poor", "bright_red"
+    if ratio <= 0.60:
+        return "average", "bright_yellow"
+    if ratio <= 0.75:
+        return "fair", "bright_yellow"
+    if ratio <= 0.90:
+        return "good", "bright_green"
+    if ratio < 1.0:
+        return "very good", "bright_green"
+    return "perfect", "bright_green"
+
+
+def get_entity_condition(entity: EntityState) -> tuple[str, str]:
+    return get_health_condition(entity.hit_points, entity.max_hit_points)
+
+
+def _to_third_person(verb: str) -> str:
+    normalized = verb.strip().lower() or "hit"
+    if normalized.endswith("y") and len(normalized) > 1 and normalized[-2] not in "aeiou":
+        return f"{normalized[:-1]}ies"
+    if normalized.endswith(("s", "x", "z", "ch", "sh")):
+        return f"{normalized}es"
+    return f"{normalized}s"
+
+
+def _resolve_weapon_verb(weapon_type: str) -> str:
+    normalized = weapon_type.strip().lower() if weapon_type else "unarmed"
+    return WEAPON_TYPE_TO_VERB.get(normalized, "hit")
+
+
+def _choose_severity(damage: int, target_max_hp: int) -> str:
+    if damage <= 0:
+        return "miss"
+
+    ratio = damage / max(1, target_max_hp)
+    if ratio < 0.05:
+        return "barely"
+    if ratio < 0.12:
+        return "normal"
+    if ratio < 0.22:
+        return "hard"
+    if ratio < 0.35:
+        return "extreme"
+    if ratio < 0.50:
+        return "massacre"
+    if ratio < 0.75:
+        return "annihilate"
+    return "obliterate"
+
+
+def _build_player_attack_parts(
+    *,
+    entity_name: str,
+    weapon_name: str | None,
+    attack_verb: str,
+    damage: int,
+    target_max_hp: int,
+) -> list[dict]:
+    from display import build_part
+
+    verb_noun = _to_third_person(attack_verb)
+    severity = _choose_severity(damage, target_max_hp)
+
+    parts: list[dict] = []
+    if severity == "miss":
+        parts.extend([
+            build_part("You miss ", "bright_white"),
+            build_part(entity_name, "bright_red", True),
+        ])
+        if weapon_name is not None:
+            parts.extend([
+                build_part(" with ", "bright_white"),
+                build_part(weapon_name, "bright_cyan", True),
+            ])
+        parts.append(build_part(".", "bright_white"))
+        return parts
+
+    if severity == "barely":
+        parts.append(build_part("You barely ", "bright_white"))
+    elif severity == "normal":
+        parts.append(build_part("You ", "bright_white"))
+    elif severity == "hard":
+        parts.append(build_part("You ", "bright_white"))
+    elif severity == "extreme":
+        parts.append(build_part("You ", "bright_white"))
+    elif severity == "massacre":
+        parts.append(build_part("You massacre ", "bright_white"))
+    elif severity == "annihilate":
+        parts.append(build_part("You annihilate ", "bright_white"))
+    else:
+        parts.append(build_part("You obliterate ", "bright_white"))
+
+    if severity in {"barely", "normal", "hard", "extreme"}:
+        parts.extend([
+            build_part(attack_verb, "bright_cyan", True),
+            build_part(" ", "bright_white"),
+            build_part(entity_name, "bright_red", True),
+        ])
+        if weapon_name is not None:
+            parts.extend([
+                build_part(" with ", "bright_white"),
+                build_part(weapon_name, "bright_cyan", True),
+            ])
+        if severity == "hard":
+            parts.append(build_part(" hard", "bright_white"))
+        elif severity == "extreme":
+            parts.append(build_part(" extremely hard", "bright_white"))
+        parts.append(build_part(".", "bright_white"))
+        return parts
+
+    parts.append(build_part(entity_name, "bright_red", True))
+    parts.extend([
+        build_part(" with your ", "bright_white"),
+        build_part(verb_noun, "bright_cyan", True),
+        build_part(".", "bright_white"),
+    ])
+    return parts
+
+
+def _build_entity_attack_parts(
+    *,
+    entity: EntityState,
+    attack_verb: str,
+    damage: int,
+) -> list[dict]:
+    from display import build_part
+
+    verb_noun = _to_third_person(attack_verb)
+    severity = _choose_severity(damage, PLAYER_REFERENCE_MAX_HP)
+
+    parts: list[dict] = []
+    if severity == "miss":
+        parts.extend([
+            build_part(entity.name, "bright_red", True),
+            build_part(" misses you.", "bright_white"),
+        ])
+        return parts
+
+    if severity == "barely":
+        parts.extend([
+            build_part(entity.name, "bright_red", True),
+            build_part(" barely ", "bright_white"),
+            build_part(_to_third_person(attack_verb), "bright_red", True),
+            build_part(" you.", "bright_white"),
+        ])
+        return parts
+
+    if severity in {"normal", "hard", "extreme"}:
+        parts.extend([
+            build_part(entity.name, "bright_red", True),
+            build_part(" ", "bright_white"),
+            build_part(_to_third_person(attack_verb), "bright_red", True),
+            build_part(" you", "bright_white"),
+        ])
+        if severity == "hard":
+            parts.append(build_part(" hard", "bright_white"))
+        elif severity == "extreme":
+            parts.append(build_part(" extremely hard", "bright_white"))
+        parts.append(build_part(".", "bright_white"))
+        return parts
+
+    top_verb = {
+        "massacre": "massacres",
+        "annihilate": "annihilates",
+        "obliterate": "obliterates",
+    }[severity]
+    pronoun = entity.pronoun_possessive.strip().lower() or "its"
+    parts.extend([
+        build_part(entity.name, "bright_red", True),
+        build_part(f" {top_verb} you with {pronoun} ", "bright_white"),
+        build_part(verb_noun, "bright_red", True),
+        build_part(".", "bright_white"),
+    ])
+    return parts
+
+
+def _roll_hit(total_modifier: int, target_armor_class: int) -> bool:
+    roll = random.randint(1, HIT_ROLL_DICE_SIDES)
+    return (roll + total_modifier) >= target_armor_class
+
+
+def _roll_player_damage(session: ClientSession, weapon: EquipmentItemState | None) -> tuple[int, str | None, str]:
+
+    if weapon is None:
+        base_damage = max(0, session.player_combat.attack_damage)
+        return base_damage, None, "hit"
+
+    dice_count = max(0, weapon.damage_dice_count)
+    dice_sides = max(0, weapon.damage_dice_sides)
+
+    rolled_damage = 0
+    if dice_count > 0 and dice_sides > 0:
+        for _ in range(dice_count):
+            rolled_damage += random.randint(1, dice_sides)
+
+    total_damage = (
+        rolled_damage
+        + session.player_combat.attack_damage
+        + weapon.damage_roll_modifier
+        + weapon.attack_damage_bonus
+    )
+    return max(0, total_damage), weapon.name, _resolve_weapon_verb(weapon.weapon_type)
+
+
+def _get_player_hit_modifier(weapon: EquipmentItemState | None) -> int:
+    if weapon is None:
+        return 0
+    return weapon.hit_roll_modifier
+
+
+def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[EquipmentItemState | None]:
+    attack_sequence: list[EquipmentItemState | None] = []
+
+    main_hand = get_equipped_main_hand(session)
+    main_weapon = main_hand if main_hand is not None and main_hand.slot == "weapon" else None
+
+    off_hand = get_equipped_off_hand(session)
+    off_weapon = off_hand if off_hand is not None and off_hand.slot == "weapon" else None
+    if main_weapon is not None and off_weapon is not None and off_weapon.item_id == main_weapon.item_id:
+        off_weapon = None
+
+    attack_sequence.append(main_weapon)
+
+    if allow_off_hand and off_weapon is not None:
+        attack_sequence.append(off_weapon)
+
+    return attack_sequence
 
 
 def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: str) -> EntityState | None:
@@ -64,6 +318,16 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
     session.combat.opening_attacker = opening_attacker
 
 
+def _schedule_next_combat_round(session: ClientSession) -> None:
+    try:
+        now = asyncio.get_running_loop().time()
+    except RuntimeError:
+        session.combat.next_round_monotonic = None
+        return
+
+    session.combat.next_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+
+
 def get_engaged_entity(session: ClientSession) -> EntityState | None:
     clear_combat_if_invalid(session)
 
@@ -74,24 +338,51 @@ def get_engaged_entity(session: ClientSession) -> EntityState | None:
     return session.entities.get(target_id)
 
 
+def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) -> EntityState | None:
+    current_room_id = session.player.current_room_id
+    for candidate in list_room_entities(session, current_room_id):
+        if candidate.entity_id == defeated_entity_id:
+            continue
+        if not candidate.is_alive:
+            continue
+
+        session.combat.engaged_entity_id = candidate.entity_id
+        session.combat.opening_attacker = None
+        _schedule_next_combat_round(session)
+        return candidate
+
+    end_combat(session)
+    return None
+
+
 def initialize_session_entities(session: ClientSession) -> None:
     if session.entities:
         return
 
-    session.entity_spawn_counter += 1
-    scout = EntityState(
-        entity_id=f"scout-{uuid.uuid4().hex[:8]}",
-        name="Hall Scout",
-        room_id="hall",
-        hit_points=55,
-        max_hit_points=55,
-        attack_damage=8,
-        attacks_per_round=1,
-        coin_reward=20,
-        spawn_sequence=session.entity_spawn_counter,
-        is_aggro=True,
-    )
-    session.entities[scout.entity_id] = scout
+    for scout_index in range(2):
+        session.entity_spawn_counter += 1
+        scout_name = "Hall Scout" if scout_index == 0 else f"Hall Scout {scout_index + 1}"
+        scout = EntityState(
+            entity_id=f"scout-{uuid.uuid4().hex[:8]}",
+            name=scout_name,
+            room_id="hall",
+            hit_points=550,
+            max_hit_points=550,
+            attack_damage=8,
+            attacks_per_round=1,
+            hit_roll_modifier=2,
+            off_hand_attack_damage=6,
+            off_hand_attacks_per_round=1,
+            off_hand_hit_roll_modifier=1,
+            off_hand_attack_verb="stab",
+            off_hand_weapon_name="dagger",
+            coin_reward=20,
+            spawn_sequence=session.entity_spawn_counter,
+            is_aggro=True,
+            attack_verb="slash",
+            pronoun_possessive="his",
+        )
+        session.entities[scout.entity_id] = scout
 
 
 def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None:
@@ -155,7 +446,7 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     combat_result = resolve_combat_round(session)
 
     if combat_result is None:
-        session.combat.next_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+        _schedule_next_combat_round(session)
         return display_force_prompt(session)
 
     return [combat_result, display_force_prompt(session)]
@@ -185,54 +476,85 @@ def _append_newline_if_needed(parts: list[dict]) -> None:
         parts.append({"text": "\n", "fg": "bright_white", "bold": False})
 
 
-def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: list[dict]) -> None:
-    from display import build_part
+def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
+    attack_sequence = _build_player_attack_sequence(session, allow_off_hand)
 
-    attack_damage = get_player_attack_damage(session)
-    attacks_per_round = get_player_attacks_per_round(session)
-    held_weapon_name = get_held_weapon_name(session)
-
-    for _ in range(attacks_per_round):
+    for weapon in attack_sequence:
         if not entity.is_alive:
             break
 
         _append_newline_if_needed(parts)
-        entity.hit_points = max(0, entity.hit_points - attack_damage)
 
-        attack_parts = [
-            build_part("You hit ", "bright_white"),
-            build_part(entity.name, "bright_red", True),
-        ]
-        if held_weapon_name is not None:
-            attack_parts.extend([
-                build_part(" with ", "bright_white"),
-                build_part(held_weapon_name, "bright_cyan", True),
-            ])
+        hit_modifier = _get_player_hit_modifier(weapon)
+        if not _roll_hit(hit_modifier, entity.armor_class):
+            miss_weapon_name = weapon.name if weapon is not None else None
+            miss_verb = _resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
+            parts.extend(_build_player_attack_parts(
+                entity_name=entity.name,
+                weapon_name=miss_weapon_name,
+                attack_verb=miss_verb,
+                damage=0,
+                target_max_hp=entity.max_hit_points,
+            ))
+            continue
 
-        attack_parts.extend([
-            build_part(" for ", "bright_white"),
-            build_part(str(attack_damage), "bright_yellow", True),
-            build_part(" damage", "bright_white"),
-            build_part(f" ({entity.hit_points}/{entity.max_hit_points} HP).", "bright_white"),
-        ])
-        parts.extend(attack_parts)
+        rolled_damage, weapon_name, attack_verb = _roll_player_damage(session, weapon)
+        entity.hit_points = max(0, entity.hit_points - rolled_damage)
+        parts.extend(_build_player_attack_parts(
+            entity_name=entity.name,
+            weapon_name=weapon_name,
+            attack_verb=attack_verb,
+            damage=rolled_damage,
+            target_max_hp=entity.max_hit_points,
+        ))
+
+        if entity.hit_points <= 0:
+            entity.is_alive = False
+            break
 
 
-def _apply_entity_attacks(session: ClientSession, entity: EntityState, parts: list[dict]) -> None:
-    from display import build_part
-
+def _apply_entity_attacks(session: ClientSession, entity: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
     status = session.status
 
     for _ in range(max(1, entity.attacks_per_round)):
         _append_newline_if_needed(parts)
-        status.hit_points = max(0, status.hit_points - entity.attack_damage)
-        parts.extend([
-            build_part(entity.name, "bright_red", True),
-            build_part(" hits you for ", "bright_white"),
-            build_part(str(entity.attack_damage), "bright_yellow", True),
-            build_part(" damage", "bright_white"),
-            build_part(f" ({status.hit_points} HP).", "bright_white"),
-        ])
+
+        if not _roll_hit(entity.hit_roll_modifier, PLAYER_ARMOR_CLASS):
+            parts.extend(_build_entity_attack_parts(
+                entity=entity,
+                attack_verb=entity.attack_verb,
+                damage=0,
+            ))
+            continue
+
+        attack_damage = max(0, entity.attack_damage)
+        status.hit_points = max(0, status.hit_points - attack_damage)
+        parts.extend(_build_entity_attack_parts(
+            entity=entity,
+            attack_verb=entity.attack_verb,
+            damage=attack_damage,
+        ))
+
+    if allow_off_hand:
+        off_hand_swings = max(0, entity.off_hand_attacks_per_round)
+        for _ in range(off_hand_swings):
+            _append_newline_if_needed(parts)
+
+            if not _roll_hit(entity.off_hand_hit_roll_modifier, PLAYER_ARMOR_CLASS):
+                parts.extend(_build_entity_attack_parts(
+                    entity=entity,
+                    attack_verb=entity.off_hand_attack_verb,
+                    damage=0,
+                ))
+                continue
+
+            off_hand_damage = max(0, entity.off_hand_attack_damage)
+            status.hit_points = max(0, status.hit_points - off_hand_damage)
+            parts.extend(_build_entity_attack_parts(
+                entity=entity,
+                attack_verb=entity.off_hand_attack_verb,
+                damage=off_hand_damage,
+            ))
 
 
 def resolve_combat_round(session: ClientSession) -> dict | None:
@@ -252,15 +574,15 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     parts: list[dict] = []
     status = session.status
     opening_attacker = session.combat.opening_attacker
+    is_opening_round = opening_attacker is not None
 
     if opening_attacker == OPENING_ATTACKER_ENTITY:
-        _apply_entity_attacks(session, entity, parts)
+        _apply_entity_attacks(session, entity, parts, allow_off_hand=False)
     else:
-        _apply_player_attacks(session, entity, parts)
+        _apply_player_attacks(session, entity, parts, allow_off_hand=not is_opening_round)
 
     if entity.hit_points <= 0:
         entity.is_alive = False
-        end_combat(session)
         status.coins += entity.coin_reward
 
         _append_newline_if_needed(parts)
@@ -272,12 +594,21 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
             build_part(".", "bright_white"),
         ])
 
+        next_target = _engage_next_room_target(session, entity.entity_id)
+        if next_target is not None:
+            _append_newline_if_needed(parts)
+            parts.extend([
+                build_part("You turn to ", "bright_white"),
+                build_part(next_target.name, "bright_red", True),
+                build_part(".", "bright_white"),
+            ])
+
         return display_combat_round_result(session, parts)
 
     if opening_attacker is not None:
         session.combat.opening_attacker = None
     else:
-        _apply_entity_attacks(session, entity, parts)
+        _apply_entity_attacks(session, entity, parts, allow_off_hand=True)
 
     if status.hit_points <= 0:
         end_combat(session)
@@ -297,5 +628,5 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
         return display_combat_round_result(session, parts)
 
-    session.combat.next_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+    _schedule_next_combat_round(session)
     return display_combat_round_result(session, parts)

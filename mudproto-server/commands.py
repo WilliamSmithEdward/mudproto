@@ -7,6 +7,7 @@ from combat import (
     resolve_combat_round,
     spawn_dummy,
 )
+from equipment import HAND_MAIN, HAND_OFF, equip_item, remove_item, resolve_equipment_selector
 import random
 
 from display import (
@@ -176,6 +177,36 @@ def try_adjust_stat(
     ])
 
 
+def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, str | None]:
+    if not args:
+        return None, None, "Usage: equip <selector> [main|off]"
+
+    normalized = [arg.strip().lower() for arg in args if arg.strip()]
+    hand_aliases = {
+        "main": HAND_MAIN,
+        "mainhand": HAND_MAIN,
+        "main_hand": HAND_MAIN,
+        "off": HAND_OFF,
+        "offhand": HAND_OFF,
+        "off_hand": HAND_OFF,
+    }
+
+    hand: str | None = None
+    selector_parts: list[str] = []
+    for token in normalized:
+        mapped_hand = hand_aliases.get(token)
+        if mapped_hand is not None:
+            hand = mapped_hand
+            continue
+        selector_parts.append(token)
+
+    selector = "".join(selector_parts).strip()
+    if not selector:
+        return None, None, "Usage: equip <selector> [main|off]"
+
+    return hand, selector, None
+
+
 def execute_command(session: ClientSession, command_text: str) -> OutboundResult:
     verb, args = parse_command(command_text)
 
@@ -212,8 +243,49 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_room(session, room)
 
-    if verb in {"equipment", "eq", "equi", "equip"}:
+    if verb in {"equipment", "eq", "equi", "eqp"}:
         return display_equipment(session)
+
+    if verb == "equip":
+        if not args:
+            return display_equipment(session)
+
+        hand, selector, parse_error = _parse_hand_and_selector(args)
+        if parse_error is not None:
+            return display_error(parse_error, session)
+
+        item, resolve_error = resolve_equipment_selector(session, selector)
+        if resolve_error is not None or item is None:
+            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+
+        equipped, equip_result = equip_item(session, item, hand)
+        if not equipped:
+            return display_error(equip_result, session)
+
+        hand_label = "main hand" if equip_result == HAND_MAIN else "off hand"
+        return display_command_result(session, [
+            build_part("You equip ", "bright_white"),
+            build_part(item.name, "bright_cyan", True),
+            build_part(" in your ", "bright_white"),
+            build_part(hand_label, "bright_yellow", True),
+            build_part(".", "bright_white"),
+        ])
+
+    if verb in {"remove", "rem"}:
+        if not args:
+            return display_error("Usage: rem <selector>", session)
+
+        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        item, resolve_error = resolve_equipment_selector(session, selector)
+        if resolve_error is not None or item is None:
+            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+
+        remove_item(session, item)
+        return display_command_result(session, [
+            build_part("You remove ", "bright_white"),
+            build_part(item.name, "bright_yellow", True),
+            build_part(".", "bright_white"),
+        ])
 
     if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
         return try_move(session, verb)

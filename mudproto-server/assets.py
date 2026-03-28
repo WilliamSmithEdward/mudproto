@@ -39,11 +39,24 @@ def load_equipment_templates() -> list[dict]:
             raise ValueError(f"Equipment asset '{template_id}' must include a non-empty slot.")
 
         template_ids.add(template_id)
+        raw_keywords = raw_template.get("keywords", [])
+        if raw_keywords is None:
+            raw_keywords = []
+        if not isinstance(raw_keywords, list):
+            raise ValueError(f"Equipment asset '{template_id}' keywords must be a list.")
+
         normalized_templates.append({
             "template_id": template_id,
             "name": name,
             "slot": slot,
             "description": str(raw_template.get("description", "")),
+            "keywords": [str(keyword).strip().lower() for keyword in raw_keywords if str(keyword).strip()],
+            "weapon_type": str(raw_template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
+            "preferred_hand": str(raw_template.get("preferred_hand", "main_hand")).strip().lower() or "main_hand",
+            "damage_dice_count": int(raw_template.get("damage_dice_count", 0)),
+            "damage_dice_sides": int(raw_template.get("damage_dice_sides", 0)),
+            "damage_roll_modifier": int(raw_template.get("damage_roll_modifier", 0)),
+            "hit_roll_modifier": int(raw_template.get("hit_roll_modifier", 0)),
             "attack_damage_bonus": int(raw_template.get("attack_damage_bonus", 0)),
             "attacks_per_round_bonus": int(raw_template.get("attacks_per_round_bonus", 0)),
             "grant_to_new_players": bool(raw_template.get("grant_to_new_players", False)),

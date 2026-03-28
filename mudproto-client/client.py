@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import sys
 from datetime import datetime, timezone
 
@@ -100,8 +101,42 @@ def write_line(text: str) -> None:
     sys.stdout.flush()
 
 
+def _condition_to_fg(condition_name: str | None) -> str | None:
+    if condition_name is None:
+        return None
+
+    normalized = condition_name.strip().lower()
+    if normalized in {"awful", "very poor", "poor"}:
+        return "bright_red"
+    if normalized in {"average", "fair"}:
+        return "bright_yellow"
+    if normalized in {"good", "very good", "perfect"}:
+        return "bright_green"
+    return None
+
+
+def _style_prompt_text(prompt_text: str) -> str:
+    me_match = re.search(r"\[Me:([^\]]+)\]", prompt_text)
+    npc_match = re.search(r"\[NPC:([^\]]+)\]", prompt_text)
+
+    me_fg = _condition_to_fg(me_match.group(1) if me_match else None)
+    npc_fg = _condition_to_fg(npc_match.group(1) if npc_match else None)
+
+    styled = prompt_text
+    if me_fg is not None and me_match is not None:
+        styled = styled.replace(me_match.group(0), style_text(me_match.group(0), me_fg, True), 1)
+    if npc_fg is not None and npc_match is not None:
+        styled = styled.replace(npc_match.group(0), style_text(npc_match.group(0), npc_fg, True), 1)
+
+    hp_match = re.match(r"(\d+)H", prompt_text)
+    if hp_match is not None and me_fg is not None:
+        styled = styled.replace(hp_match.group(0), style_text(hp_match.group(0), me_fg, True), 1)
+
+    return styled
+
+
 def write_prompt(prompt_text: str) -> None:
-    sys.stdout.write(prompt_text)
+    sys.stdout.write(_style_prompt_text(prompt_text))
     sys.stdout.flush()
 
 
@@ -143,26 +178,18 @@ async def receive_loop(websocket) -> None:
             try:
                 response = json.loads(response_text)
             except json.JSONDecodeError:
-                write_line("Received non-JSON response from server.")
                 continue
 
             if response.get("type") == "display":
                 render_display_message(response)
             elif response.get("type") == "noop":
                 pass
-            else:
-                write_line(json.dumps(response, ensure_ascii=False))
 
     except websockets.ConnectionClosed:
         write_line("\nConnection closed by server.")
 
 
 async def input_loop(websocket) -> None:
-    write_line("Type input and press Enter.")
-    write_line("Local client commands:")
-    write_line("  /quit")
-    write_line("Everything else is sent to the server as generic input.")
-
     while True:
         user_input = await asyncio.to_thread(input, "")
 

@@ -1,9 +1,12 @@
-from equipment import get_equipped_weapon, get_player_attack_damage, get_player_attacks_per_round, list_equipment
+from equipment import get_equipped_main_hand, get_equipped_off_hand, get_held_weapon, list_equipment
 from models import ClientSession
 from protocol import build_response
-from sessions import get_remaining_lag_seconds, is_session_lagged
-from combat import list_room_entities
+from sessions import is_session_lagged
+from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_entities
 from world import Room, get_room
+
+
+PLAYER_REFERENCE_MAX_HP = 575
 
 
 def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
@@ -37,7 +40,18 @@ def build_prompt_text(session: ClientSession) -> str:
         exit_letters = "None"
 
     status = session.status
-    return f"{status.hit_points}H {status.vigor}V {status.extra_lives}X {status.coins}C Exits:{exit_letters}> "
+    me_condition, _ = get_health_condition(status.hit_points, PLAYER_REFERENCE_MAX_HP)
+
+    engaged_entity = get_engaged_entity(session)
+    npc_segment = ""
+    if engaged_entity is not None:
+        npc_condition, _ = get_entity_condition(engaged_entity)
+        npc_segment = f" [NPC:{npc_condition.title()}]"
+
+    return (
+        f"{status.hit_points}H {status.vigor}V {status.extra_lives}X {status.coins}C "
+        f"[Me:{me_condition.title()}]{npc_segment} Exits:{exit_letters}>"
+    )
 
 
 def build_display(
@@ -105,9 +119,7 @@ def display_force_prompt(session: ClientSession) -> dict:
 
 def display_connected(session: ClientSession) -> dict:
     return build_display([
-        build_part("Connection established. ", "bright_green", True),
-        build_part("Client ID: ", "bright_white"),
-        build_part(session.client_id, "bright_yellow")
+        build_part("Connection established.", "bright_green", True)
     ])
 
 
@@ -130,56 +142,85 @@ def display_pong(session: ClientSession) -> dict:
 
 
 def display_whoami(session: ClientSession) -> dict:
-    remaining_lag = round(get_remaining_lag_seconds(session), 3)
-    queued_count = len(session.command_queue)
     prompt_after, prompt_text = resolve_prompt(session, True)
+    me_condition, me_condition_color = get_health_condition(session.status.hit_points, PLAYER_REFERENCE_MAX_HP)
+    engaged_entity = get_engaged_entity(session)
 
-    return build_display([
-        build_part("Client ID: ", "bright_white"),
-        build_part(session.client_id, "bright_yellow"),
-        build_part(" | Room: ", "bright_white"),
+    parts = [
+        build_part("You are in ", "bright_white"),
         build_part(session.player.current_room_id, "bright_green", True),
-        build_part(" | Connected: ", "bright_white"),
-        build_part(session.connected_at, "bright_cyan"),
-        build_part(" | Last Message: ", "bright_white"),
-        build_part(str(session.last_message_at), "bright_magenta"),
-        build_part(" | Lag: ", "bright_white"),
-        build_part(str(remaining_lag), "bright_yellow", True),
-        build_part(" | Queued: ", "bright_white"),
-        build_part(str(queued_count), "bright_yellow", True)
-    ], prompt_after=prompt_after, prompt_text=prompt_text)
+        build_part(". Condition: ", "bright_white"),
+        build_part(me_condition, me_condition_color, True),
+    ]
+
+    if engaged_entity is not None:
+        npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
+        parts.extend([
+            build_part(". Engaged with ", "bright_white"),
+            build_part(engaged_entity.name, "bright_red", True),
+            build_part(" (", "bright_white"),
+            build_part(npc_condition, npc_condition_color, True),
+            build_part(").", "bright_white"),
+        ])
+
+    return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)
 
 
 def display_equipment(session: ClientSession) -> dict:
     prompt_after, prompt_text = resolve_prompt(session, True)
-    held_weapon = get_equipped_weapon(session)
-    attack_damage = get_player_attack_damage(session)
-    attacks_per_round = get_player_attacks_per_round(session)
+    main_hand = get_equipped_main_hand(session)
+    off_hand = get_equipped_off_hand(session)
+    held_weapon = get_held_weapon(session)
 
     parts = [
         build_part("Equipment", "bright_white", True),
         build_part("\n"),
-        build_part("Held weapon: ", "bright_white"),
+        build_part("Main hand: ", "bright_white"),
     ]
 
-    if held_weapon is None:
+    if main_hand is None:
         parts.append(build_part("None", "bright_yellow", True))
     else:
         parts.extend([
-            build_part(held_weapon.name, "bright_cyan", True),
+            build_part(main_hand.name, "bright_cyan", True),
             build_part(" [", "bright_white"),
-            build_part(held_weapon.template_id, "bright_magenta"),
+            build_part(main_hand.template_id, "bright_magenta"),
             build_part("]", "bright_white"),
         ])
 
     parts.extend([
         build_part("\n"),
-        build_part("Attack profile: ", "bright_white"),
-        build_part(str(attack_damage), "bright_yellow", True),
-        build_part(" damage x ", "bright_white"),
-        build_part(str(attacks_per_round), "bright_yellow", True),
-        build_part(" attack(s)/round", "bright_white"),
+        build_part("Off hand: ", "bright_white"),
     ])
+
+    if off_hand is None:
+        parts.append(build_part("None", "bright_yellow", True))
+    else:
+        parts.extend([
+            build_part(off_hand.name, "bright_cyan", True),
+            build_part(" [", "bright_white"),
+            build_part(off_hand.template_id, "bright_magenta"),
+            build_part("]", "bright_white"),
+        ])
+
+    if held_weapon is not None:
+        parts.extend([
+            build_part("\n"),
+            build_part("Held weapon profile: ", "bright_white"),
+            build_part(f"{held_weapon.damage_dice_count}d{held_weapon.damage_dice_sides}", "bright_yellow", True),
+            build_part(" +", "bright_white"),
+            build_part(str(held_weapon.damage_roll_modifier), "bright_yellow", True),
+            build_part(" damage mod | +", "bright_white"),
+            build_part(str(held_weapon.hit_roll_modifier), "bright_yellow", True),
+            build_part(" hit mod", "bright_white"),
+            build_part(" | type: ", "bright_white"),
+            build_part(held_weapon.weapon_type, "bright_cyan", True),
+        ])
+    else:
+        parts.extend([
+            build_part("\n"),
+            build_part("Held weapon profile: unarmed", "bright_white"),
+        ])
 
     equipment_items = list_equipment(session)
     if equipment_items:
@@ -191,22 +232,29 @@ def display_equipment(session: ClientSession) -> dict:
 
         for item in equipment_items:
             slot_label = item.slot.capitalize()
-            is_held_weapon = held_weapon is not None and item.item_id == held_weapon.item_id
+            hand_label = None
+            if main_hand is not None and item.item_id == main_hand.item_id:
+                hand_label = "main hand"
+            elif off_hand is not None and item.item_id == off_hand.item_id:
+                hand_label = "off hand"
+
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
                 build_part(item.name, "bright_magenta", True),
                 build_part(f" ({slot_label}", "bright_white"),
             ])
-            if is_held_weapon:
+            if hand_label is not None:
                 parts.extend([
-                    build_part(", held", "bright_cyan", True),
+                    build_part(f", {hand_label}", "bright_cyan", True),
                 ])
             parts.extend([
                 build_part(")", "bright_white"),
                 build_part(" [", "bright_white"),
                 build_part(item.item_id, "bright_yellow"),
                 build_part("]", "bright_white"),
+                build_part(" | keys: ", "bright_white"),
+                build_part(".".join(item.keywords) if item.keywords else "none", "bright_cyan"),
             ])
 
     return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)
@@ -234,11 +282,7 @@ def display_queue_ack(session: ClientSession, command_text: str) -> dict:
     mark_prompt_pending(session)
     return build_display([
         build_part("Queued: ", "bright_yellow", True),
-        build_part(f'"{command_text}"', "bright_white"),
-        build_part(" | Remaining lag: ", "bright_white"),
-        build_part(str(round(get_remaining_lag_seconds(session), 3)), "bright_yellow", True),
-        build_part(" | Queue depth: ", "bright_white"),
-        build_part(str(len(session.command_queue)), "bright_magenta", True)
+        build_part(f'"{command_text}"', "bright_white")
     ])
 
 
@@ -285,11 +329,14 @@ def display_room(session: ClientSession, room: Room) -> dict:
         ])
 
         for entity in entities:
+            condition_text, condition_color = get_entity_condition(entity)
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
                 build_part(entity.name, "bright_magenta", True),
-                build_part(f" ({entity.hit_points}/{entity.max_hit_points} HP)", "bright_white"),
+                build_part(" (", "bright_white"),
+                build_part(condition_text, condition_color, True),
+                build_part(" condition)", "bright_white"),
             ])
 
     return build_display(parts, prompt_after=prompt_after, prompt_text=prompt_text)
