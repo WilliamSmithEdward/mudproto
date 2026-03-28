@@ -215,6 +215,11 @@ def flee(session: ClientSession) -> dict:
     return room_display
 
 
+def _append_newline_if_needed(parts: list[dict]) -> None:
+    if parts:
+        parts.append({"text": "\n", "fg": "bright_white", "bold": False})
+
+
 def resolve_combat_round(session: ClientSession) -> dict | None:
     from display import build_part, display_combat_round_result
 
@@ -236,6 +241,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         if not entity.is_alive:
             break
 
+        _append_newline_if_needed(parts)
         entity.hit_points = max(0, entity.hit_points - player.attack_damage)
         parts.extend([
             build_part("You hit ", "bright_white"),
@@ -244,7 +250,6 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
             build_part(str(player.attack_damage), "bright_yellow", True),
             build_part(" damage", "bright_white"),
             build_part(f" ({entity.hit_points}/{entity.max_hit_points} HP).", "bright_white"),
-            build_part("\n"),
         ])
 
     if entity.hit_points <= 0:
@@ -253,6 +258,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         session.next_combat_round_monotonic = None
         player.coins += entity.coin_reward
 
+        _append_newline_if_needed(parts)
         parts.extend([
             build_part(entity.name, "bright_red", True),
             build_part(" is destroyed. ", "bright_white"),
@@ -264,6 +270,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         return display_combat_round_result(session, parts)
 
     for _ in range(max(1, entity.attacks_per_round)):
+        _append_newline_if_needed(parts)
         player.hit_points = max(0, player.hit_points - entity.attack_damage)
         parts.extend([
             build_part(entity.name, "bright_red", True),
@@ -271,26 +278,26 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
             build_part(str(entity.attack_damage), "bright_yellow", True),
             build_part(" damage", "bright_white"),
             build_part(f" ({player.hit_points} HP).", "bright_white"),
-            build_part("\n"),
         ])
 
     if player.hit_points <= 0:
+        session.engaged_entity_id = None
+        session.next_combat_round_monotonic = None
+
+        _append_newline_if_needed(parts)
         if player.extra_lives > 0:
             player.extra_lives -= 1
             player.hit_points = 575
             player.vigor = 119
-            session.engaged_entity_id = None
-            session.next_combat_round_monotonic = None
             parts.extend([
                 build_part("You collapse, then recover using an extra life. Combat ends.", "bright_magenta", True),
             ])
         else:
-            session.engaged_entity_id = None
-            session.next_combat_round_monotonic = None
             parts.extend([
                 build_part("You collapse. Combat ends.", "bright_red", True),
             ])
-            return display_combat_round_result(session, parts)
+
+        return display_combat_round_result(session, parts)
 
     session.next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
     return display_combat_round_result(session, parts)
