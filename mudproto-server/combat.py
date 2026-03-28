@@ -1,12 +1,10 @@
 import asyncio
-import random
 import uuid
 
 from models import ClientSession, EntityState
 
 
 COMBAT_ROUND_INTERVAL_SECONDS = 2.5
-FLEE_SUCCESS_CHANCE = 0.5
 
 
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
@@ -48,8 +46,22 @@ def clear_combat_if_invalid(session: ClientSession) -> None:
 
     entity = session.entities.get(target_id)
     if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
-        session.combat.engaged_entity_id = None
-        session.combat.next_round_monotonic = None
+        end_combat(session)
+
+
+def end_combat(session: ClientSession) -> None:
+    session.combat.engaged_entity_id = None
+    session.combat.next_round_monotonic = None
+
+
+def get_engaged_entity(session: ClientSession) -> EntityState | None:
+    clear_combat_if_invalid(session)
+
+    target_id = session.combat.engaged_entity_id
+    if target_id is None:
+        return None
+
+    return session.entities.get(target_id)
 
 
 def initialize_session_entities(session: ClientSession) -> None:
@@ -85,35 +97,6 @@ def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None
             return entity
 
     return None
-
-
-def build_auto_aggro_notice(entity: EntityState) -> list[dict]:
-    from display import build_part
-
-    return [
-        build_part("\n"),
-        build_part("\n"),
-        build_part(entity.name, "bright_red", True),
-        build_part(" notices you and attacks!", "bright_white"),
-    ]
-
-
-def build_auto_aggro_outbound(session: ClientSession, room_display: dict) -> list[dict]:
-    from display import display_force_prompt
-
-    auto_entity = maybe_auto_engage_current_room(session)
-    if auto_entity is None:
-        return [room_display]
-
-    room_display["payload"]["prompt_after"] = False
-    room_display["payload"]["prompt_text"] = None
-    room_display["payload"]["parts"].extend(build_auto_aggro_notice(auto_entity))
-
-    combat_result = resolve_combat_round(session)
-    if combat_result is None:
-        return [room_display, display_force_prompt(session)]
-
-    return [room_display, combat_result, display_force_prompt(session)]
 
 
 def spawn_dummy(session: ClientSession) -> dict:
@@ -174,12 +157,11 @@ def disengage(session: ClientSession) -> dict | list[dict]:
 
     clear_combat_if_invalid(session)
 
-    if session.combat.engaged_entity_id is None:
+    entity = get_engaged_entity(session)
+    if entity is None:
         return display_error("You are not engaged with anything.", session)
 
-    entity = session.entities.get(session.combat.engaged_entity_id)
-    session.combat.engaged_entity_id = None
-    session.combat.next_round_monotonic = None
+    end_combat(session)
 
     target_name = entity.name if entity is not None else "your target"
     return display_command_result(session, [
@@ -187,52 +169,6 @@ def disengage(session: ClientSession) -> dict | list[dict]:
         build_part(target_name, "bright_yellow", True),
         build_part(".", "bright_white"),
     ])
-
-
-def flee(session: ClientSession) -> dict | list[dict]:
-    from display import build_part, display_command_result, display_error, display_room
-    from world import get_room
-
-    clear_combat_if_invalid(session)
-    if session.combat.engaged_entity_id is None:
-        return display_error("You are not engaged with anything.", session)
-
-    current_room = get_room(session.player.current_room_id)
-    if current_room is None:
-        return display_error(f"Current room not found: {session.player.current_room_id}", session)
-
-    exits = list(current_room.exits.items())
-    if not exits:
-        return display_error("There is nowhere to flee.", session)
-
-    if random.random() >= FLEE_SUCCESS_CHANCE:
-        entity = session.entities.get(session.combat.engaged_entity_id)
-        target_name = entity.name if entity is not None else "your attacker"
-        return display_command_result(session, [
-            build_part("You try to flee from ", "bright_white"),
-            build_part(target_name, "bright_red", True),
-            build_part(", but fail.", "bright_white"),
-        ])
-
-    flee_direction, next_room_id = random.choice(exits)
-    next_room = get_room(next_room_id)
-    if next_room is None:
-        return display_error(f"Destination room not found: {next_room_id}", session)
-
-    session.player.current_room_id = next_room.room_id
-    session.combat.engaged_entity_id = None
-    session.combat.next_round_monotonic = None
-
-    room_display = display_room(session, next_room)
-    room_display["payload"]["parts"] = [
-        build_part("You flee ", "bright_white"),
-        build_part(flee_direction, "bright_yellow", True),
-        build_part(".", "bright_white"),
-        build_part("\n"),
-        build_part("\n"),
-    ] + room_display["payload"]["parts"]
-
-    return build_auto_aggro_outbound(session, room_display)
 
 
 def _append_newline_if_needed(parts: list[dict]) -> None:
@@ -275,8 +211,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
     if entity.hit_points <= 0:
         entity.is_alive = False
-        session.combat.engaged_entity_id = None
-        session.combat.next_round_monotonic = None
+        end_combat(session)
         status.coins += entity.coin_reward
 
         _append_newline_if_needed(parts)
@@ -302,8 +237,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         ])
 
     if status.hit_points <= 0:
-        session.combat.engaged_entity_id = None
-        session.combat.next_round_monotonic = None
+        end_combat(session)
 
         _append_newline_if_needed(parts)
         if status.extra_lives > 0:

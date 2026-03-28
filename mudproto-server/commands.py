@@ -1,11 +1,14 @@
 from combat import (
     begin_attack,
     disengage,
-    flee,
+    end_combat,
+    get_engaged_entity,
     maybe_auto_engage_current_room,
     resolve_combat_round,
     spawn_dummy,
 )
+import random
+
 from display import (
     build_part,
     display_command_result,
@@ -23,6 +26,7 @@ from world import get_room
 
 OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]
+FLEE_SUCCESS_CHANCE = 0.5
 
 DIRECTION_ALIASES = {
     "n": "north",
@@ -69,6 +73,46 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
     return [room_display, combat_result, display_force_prompt(session)]
 
 
+def flee(session: ClientSession) -> OutboundResult:
+    entity = get_engaged_entity(session)
+    if entity is None:
+        return display_error("You are not engaged with anything.", session)
+
+    current_room = get_room(session.player.current_room_id)
+    if current_room is None:
+        return display_error(f"Current room not found: {session.player.current_room_id}", session)
+
+    exits = list(current_room.exits.items())
+    if not exits:
+        return display_error("There is nowhere to flee.", session)
+
+    if random.random() >= FLEE_SUCCESS_CHANCE:
+        return display_command_result(session, [
+            build_part("You try to flee from ", "bright_white"),
+            build_part(entity.name, "bright_red", True),
+            build_part(", but fail.", "bright_white"),
+        ])
+
+    flee_direction, next_room_id = random.choice(exits)
+    next_room = get_room(next_room_id)
+    if next_room is None:
+        return display_error(f"Destination room not found: {next_room_id}", session)
+
+    session.player.current_room_id = next_room.room_id
+    end_combat(session)
+
+    room_display = display_room(session, next_room)
+    room_display["payload"]["parts"] = [
+        build_part("You flee ", "bright_white"),
+        build_part(flee_direction, "bright_yellow", True),
+        build_part(".", "bright_white"),
+        build_part("\n"),
+        build_part("\n"),
+    ] + room_display["payload"]["parts"]
+
+    return build_auto_aggro_outbound(session, room_display)
+
+
 
 def try_move(session: ClientSession, direction: str) -> OutboundResult:
     if session.combat.engaged_entity_id is not None:
@@ -89,8 +133,7 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
         return display_error(f"Destination room not found: {next_room_id}", session)
 
     session.player.current_room_id = next_room.room_id
-    session.combat.engaged_entity_id = None
-    session.combat.next_round_monotonic = None
+    end_combat(session)
 
     room_display = display_room(session, next_room)
     return build_auto_aggro_outbound(session, room_display)
