@@ -1351,11 +1351,8 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
         if not entity.is_alive:
             continue
 
-        if entity.skill_lag_rounds_remaining > 0:
-            continue
-
-        if _entity_try_use_skill(session, entity, parts):
-            continue
+        # Skills are additive and do not consume the entity's melee turn.
+        _entity_try_use_skill(session, entity, parts)
 
         for _ in range(max(1, entity.attacks_per_round)):
             _append_newline_if_needed(parts)
