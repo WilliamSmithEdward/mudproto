@@ -13,7 +13,6 @@
     "hit_roll_modifier": 2,
     "attack_damage_bonus": 0,
     "attacks_per_round_bonus": 0,
-    "grant_to_new_players": true,
     "equip_on_grant": true
   },
   {
@@ -30,7 +29,6 @@
     "hit_roll_modifier": 1,
     "attack_damage_bonus": 0,
     "attacks_per_round_bonus": 0,
-    "grant_to_new_players": true,
     "equip_on_grant": true
   },
   {
@@ -47,7 +45,6 @@
     "hit_roll_modifier": 1,
     "attack_damage_bonus": 0,
     "attacks_per_round_bonus": 0,
-    "grant_to_new_players": false,
     "equip_on_grant": false
   },
   {
@@ -58,7 +55,6 @@
     "description": "A reinforced jacket worn by front-line trainees.",
     "keywords": ["vanguard", "jacket", "chest"],
     "armor_class_bonus": 2,
-    "grant_to_new_players": false,
     "equip_on_grant": true
   },
   {
@@ -69,7 +65,6 @@
     "description": "Heavy boots built for marching and impact.",
     "keywords": ["vanguard", "boots", "feet"],
     "armor_class_bonus": 1,
-    "grant_to_new_players": false,
     "equip_on_grant": true
   },
   {
@@ -80,7 +75,6 @@
     "description": "A rune-lined robe favored by novice arcanists.",
     "keywords": ["arcanist", "robe", "chest"],
     "armor_class_bonus": 1,
-    "grant_to_new_players": false,
     "equip_on_grant": true
   },
   {
@@ -91,7 +85,6 @@
     "description": "Light hand wraps that steady precise gestures.",
     "keywords": ["arcanist", "wraps", "hands"],
     "armor_class_bonus": 1,
-    "grant_to_new_players": false,
     "equip_on_grant": true
   },
   {
@@ -102,7 +95,6 @@
     "description": "A simple brass ring used for slot testing.",
     "keywords": ["amber", "ring", "test"],
     "armor_class_bonus": 0,
-    "grant_to_new_players": true,
     "equip_on_grant": false
   },
   {
@@ -113,7 +105,6 @@
     "description": "A polished silver ring used for multi-slot testing.",
     "keywords": ["azure", "ring", "test"],
     "armor_class_bonus": 0,
-    "grant_to_new_players": true,
     "equip_on_grant": false
   },
   {
@@ -124,7 +115,6 @@
     "description": "A padded vest used to test occupied chest-slot behavior.",
     "keywords": ["practice", "vest", "chest", "test"],
     "armor_class_bonus": 0,
-    "grant_to_new_players": true,
     "equip_on_grant": false
   },
   {
@@ -135,7 +125,6 @@
     "description": "A padded cloak used to test occupied back-slot behavior.",
     "keywords": ["practice", "cloak", "back", "test"],
     "armor_class_bonus": 0,
-    "grant_to_new_players": true,
     "equip_on_grant": false
   }
 ]
