@@ -1193,6 +1193,40 @@ def _process_battle_round_support_effects(session: ClientSession) -> None:
             session.active_support_effects.remove(effect)
 
 
+def process_non_combat_support_round(session: ClientSession) -> bool:
+    has_battle_round_effect = any(effect.support_mode == "battle_rounds" for effect in session.active_support_effects)
+    if not has_battle_round_effect:
+        session.next_non_combat_support_round_monotonic = None
+        return False
+
+    if get_engaged_entity(session) is not None:
+        session.next_non_combat_support_round_monotonic = None
+        return False
+
+    try:
+        now = asyncio.get_running_loop().time()
+    except RuntimeError:
+        return False
+
+    due_at = session.next_non_combat_support_round_monotonic
+    if due_at is None:
+        session.next_non_combat_support_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+        return False
+
+    if now < due_at:
+        return False
+
+    _process_battle_round_support_effects(session)
+
+    has_remaining_battle_round = any(effect.support_mode == "battle_rounds" for effect in session.active_support_effects)
+    if has_remaining_battle_round:
+        session.next_non_combat_support_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+    else:
+        session.next_non_combat_support_round_monotonic = None
+
+    return True
+
+
 def initialize_session_entities(session: ClientSession) -> None:
     if session.entities:
         return

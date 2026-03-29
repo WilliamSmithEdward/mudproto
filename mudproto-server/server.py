@@ -5,7 +5,7 @@ import uuid
 from websockets.asyncio.server import ServerConnection
 import websockets
 
-from combat import initialize_session_entities, process_game_hour_tick, resolve_combat_round
+from combat import initialize_session_entities, process_game_hour_tick, process_non_combat_support_round, resolve_combat_round
 from commands import dispatch_message, execute_command
 from display import (
     display_connected,
@@ -69,6 +69,8 @@ async def command_scheduler_loop(session) -> None:
                     [combat_result, display_force_prompt(session)],
                 )
                 continue
+
+            process_non_combat_support_round(session)
 
             if is_session_lagged(session):
                 continue
