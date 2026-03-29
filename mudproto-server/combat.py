@@ -4,7 +4,7 @@ import re
 import uuid
 
 from equipment import get_equipped_main_hand, get_equipped_off_hand
-from models import ActiveSupportEffectState, ClientSession, EntityState, EquipmentItemState
+from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
 
 
 COMBAT_ROUND_INTERVAL_SECONDS = 2.5
@@ -37,6 +37,17 @@ def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState
 
     entities.sort(key=lambda item: item.spawn_sequence)
     return entities
+
+
+def list_room_corpses(session: ClientSession, room_id: str) -> list[CorpseState]:
+    corpses: list[CorpseState] = []
+
+    for corpse in session.corpses.values():
+        if corpse.room_id == room_id:
+            corpses.append(corpse)
+
+    corpses.sort(key=lambda item: item.spawn_sequence)
+    return corpses
 
 
 def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str]:
@@ -282,6 +293,16 @@ def _entity_name_keywords(name: str) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
 
 
+def _corpse_keywords(corpse: CorpseState) -> set[str]:
+    keywords = _entity_name_keywords(corpse.source_name)
+    keywords.add("corpse")
+    return keywords
+
+
+def _corpse_item_keywords(item: LootItemState) -> set[str]:
+    return {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+
+
 def resolve_room_entity_selector(
     session: ClientSession,
     room_id: str,
@@ -369,6 +390,162 @@ def resolve_room_entity_selector(
         return None, f"Multiple matches found. Try: {suggestions}"
 
     return matches[0], None
+
+
+def resolve_room_corpse_selector(
+    session: ClientSession,
+    room_id: str,
+    selector_text: str,
+) -> tuple[CorpseState | None, str | None]:
+    normalized = selector_text.strip().lower()
+    if not normalized:
+        return None, "Provide a corpse selector."
+
+    room_corpses = list_room_corpses(session, room_id)
+    if not room_corpses:
+        return None, "There are no corpses here."
+
+    if "." not in normalized:
+        if normalized == "corpse":
+            if len(room_corpses) == 1:
+                return room_corpses[0], None
+            return None, "Multiple corpses found. Try: 1.corpse, 2.corpse"
+
+        exact_match: CorpseState | None = None
+        partial_match: CorpseState | None = None
+        for corpse in room_corpses:
+            corpse_name = f"{corpse.source_name} corpse".lower()
+            if corpse_name == normalized:
+                exact_match = corpse
+                break
+            if normalized in corpse_name and partial_match is None:
+                partial_match = corpse
+        if exact_match is not None:
+            return exact_match, None
+        if partial_match is not None:
+            return partial_match, None
+        return None, f"No corpse matching '{selector_text}' is here."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, "Provide a corpse selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, "Provide at least one selector keyword after the index."
+
+    matches: list[CorpseState] = []
+    for corpse in room_corpses:
+        keywords = _corpse_keywords(corpse)
+        if all(keyword in keywords for keyword in parts):
+            matches.append(corpse)
+
+    if not matches:
+        return None, f"No corpse matching '{selector_text}' is here."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} corpse match(es) found for '{selector_text}'."
+        return matches[requested_index - 1], None
+
+    if len(matches) > 1:
+        suggestions = ", ".join(f"{idx + 1}.{'.'.join(parts)}" for idx, _ in enumerate(matches[:3]))
+        return None, f"Multiple corpse matches found. Try: {suggestions}"
+
+    return matches[0], None
+
+
+def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tuple[LootItemState | None, str | None]:
+    normalized = selector_text.strip().lower()
+    if not normalized:
+        return None, "Provide an item selector."
+
+    items = list(corpse.loot_items.values())
+    if not items:
+        return None, "That corpse has no lootable items."
+
+    items.sort(key=lambda item: item.name.lower())
+
+    if "." not in normalized:
+        exact_match: LootItemState | None = None
+        partial_match: LootItemState | None = None
+        for item in items:
+            item_name = item.name.lower()
+            if item_name == normalized:
+                exact_match = item
+                break
+            if normalized in item_name and partial_match is None:
+                partial_match = item
+        if exact_match is not None:
+            return exact_match, None
+        if partial_match is not None:
+            return partial_match, None
+        return None, f"No item matching '{selector_text}' is on that corpse."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, "Provide an item selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, "Provide at least one selector keyword after the index."
+
+    matches: list[LootItemState] = []
+    for item in items:
+        keywords = _corpse_item_keywords(item)
+        if all(keyword in keywords for keyword in parts):
+            matches.append(item)
+
+    if not matches:
+        return None, f"No item matching '{selector_text}' is on that corpse."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} item match(es) found for '{selector_text}'."
+        return matches[requested_index - 1], None
+
+    if len(matches) > 1:
+        suggestions = ", ".join(f"{idx + 1}.{'.'.join(parts)}" for idx, _ in enumerate(matches[:3]))
+        return None, f"Multiple item matches found. Try: {suggestions}"
+
+    return matches[0], None
+
+
+def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> CorpseState:
+    session.corpse_spawn_counter += 1
+    corpse_id = f"corpse-{uuid.uuid4().hex[:8]}"
+    loot_items = {
+        item.item_id: LootItemState(
+            item_id=item.item_id,
+            name=item.name,
+            description=item.description,
+            keywords=list(item.keywords),
+        )
+        for item in entity.loot_items
+    }
+    corpse = CorpseState(
+        corpse_id=corpse_id,
+        source_entity_id=entity.entity_id,
+        source_name=entity.name,
+        room_id=entity.room_id,
+        coins=max(0, entity.coin_reward),
+        loot_items=loot_items,
+        spawn_sequence=session.corpse_spawn_counter,
+    )
+    session.corpses[corpse_id] = corpse
+    return corpse
 
 
 def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: str) -> EntityState | None:
@@ -627,7 +804,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
 
         if entity.hit_points <= 0:
             entity.is_alive = False
-            status.coins += entity.coin_reward
+            spawn_corpse_for_entity(session, entity)
             parts.extend([
                 build_part("\n"),
                 build_part(_with_article(entity.name, capitalize=True)),
@@ -709,6 +886,20 @@ def initialize_session_entities(session: ClientSession) -> None:
             off_hand_attack_verb="stab",
             off_hand_weapon_name="dagger",
             coin_reward=20,
+            loot_items=[
+                LootItemState(
+                    item_id=f"loot-{uuid.uuid4().hex[:8]}",
+                    name="Scout Dagger",
+                    description="A worn dagger carried by a hall scout.",
+                    keywords=["scout", "dagger", "blade"],
+                ),
+                LootItemState(
+                    item_id=f"loot-{uuid.uuid4().hex[:8]}",
+                    name="Patrol Token",
+                    description="A stamped token marked with hall patrol insignia.",
+                    keywords=["patrol", "token", "badge"],
+                ),
+            ],
             spawn_sequence=session.entity_spawn_counter,
             is_aggro=True,
             attack_verb="slash",
@@ -938,7 +1129,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
     if entity.hit_points <= 0:
         entity.is_alive = False
-        status.coins += entity.coin_reward
+        spawn_corpse_for_entity(session, entity)
 
         _append_newline_if_needed(parts)
         parts.extend([

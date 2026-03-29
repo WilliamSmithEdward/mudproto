@@ -6,7 +6,9 @@ from combat import (
     end_combat,
     get_engaged_entity,
     maybe_auto_engage_current_room,
+    resolve_corpse_item_selector,
     resolve_combat_round,
+    resolve_room_corpse_selector,
     spawn_dummy,
 )
 from assets import load_spells
@@ -246,6 +248,10 @@ def _parse_cast_spell(
     return spell_name, None, None
 
 
+def _build_corpse_label(source_name: str) -> str:
+    return f"{source_name} corpse"
+
+
 def _find_spell_by_name(spell_name: str) -> dict | None:
     normalized = spell_name.strip().lower()
     if not normalized:
@@ -385,6 +391,141 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error(f"Current room not found: {session.player.current_room_id}", session)
 
         return display_room(session, room)
+
+    if verb in {"ex", "exa", "exam", "exami", "examin", "examine"}:
+        selector_text = " ".join(args).strip()
+        if not selector_text:
+            return display_error("Usage: examine <corpse selector>", session)
+
+        corpse, resolve_error = resolve_room_corpse_selector(
+            session,
+            session.player.current_room_id,
+            selector_text,
+        )
+        if corpse is None:
+            return display_error(resolve_error or f"No corpse matching '{selector_text}' is here.", session)
+
+        parts = [
+            build_part("You examine ", "bright_white"),
+            build_part(_build_corpse_label(corpse.source_name), "bright_yellow", True),
+            build_part(".", "bright_white"),
+        ]
+
+        parts.extend([
+            build_part("\n"),
+            build_part("Coins: ", "bright_white"),
+            build_part(str(corpse.coins), "bright_cyan", True),
+        ])
+
+        loot_items = list(corpse.loot_items.values())
+        loot_items.sort(key=lambda item: item.name.lower())
+        if loot_items:
+            parts.extend([
+                build_part("\n"),
+                build_part("Items:", "bright_white", True),
+            ])
+            for index, loot_item in enumerate(loot_items, start=1):
+                parts.extend([
+                    build_part("\n"),
+                    build_part(f" - {index}. ", "bright_white"),
+                    build_part(loot_item.name, "bright_magenta", True),
+                ])
+        else:
+            parts.extend([
+                build_part("\n"),
+                build_part("No lootable items remain.", "bright_white"),
+            ])
+
+        return display_command_result(session, parts)
+
+    if verb == "get":
+        if len(args) < 2:
+            return display_error("Usage: get <item|all|coins> <corpse selector>", session)
+
+        corpse_selector = args[-1].strip()
+        if "corpse" not in corpse_selector.lower():
+            return display_error("Usage: get <item|all|coins> <corpse selector>", session)
+
+        item_selector = " ".join(args[:-1]).strip()
+        if not item_selector:
+            return display_error("Usage: get <item|all|coins> <corpse selector>", session)
+
+        corpse, resolve_error = resolve_room_corpse_selector(
+            session,
+            session.player.current_room_id,
+            corpse_selector,
+        )
+        if corpse is None:
+            return display_error(resolve_error or f"No corpse matching '{corpse_selector}' is here.", session)
+
+        normalized_item_selector = item_selector.lower()
+
+        if normalized_item_selector == "all":
+            taken_coins = max(0, corpse.coins)
+            taken_items = list(corpse.loot_items.values())
+            taken_items.sort(key=lambda item: item.name.lower())
+
+            if taken_coins <= 0 and not taken_items:
+                return display_error("There is nothing to loot from that corpse.", session)
+
+            corpse.coins = 0
+            if taken_coins > 0:
+                session.status.coins += taken_coins
+
+            for item in taken_items:
+                session.inventory_items[item.item_id] = item
+                corpse.loot_items.pop(item.item_id, None)
+
+            parts = [
+                build_part("You loot ", "bright_white"),
+                build_part(_build_corpse_label(corpse.source_name), "bright_yellow", True),
+                build_part(".", "bright_white"),
+            ]
+            if taken_coins > 0:
+                parts.extend([
+                    build_part("\n"),
+                    build_part("Coins +", "bright_white"),
+                    build_part(str(taken_coins), "bright_cyan", True),
+                ])
+            for item in taken_items:
+                parts.extend([
+                    build_part("\n"),
+                    build_part("You take ", "bright_white"),
+                    build_part(item.name, "bright_magenta", True),
+                    build_part(".", "bright_white"),
+                ])
+
+            return display_command_result(session, parts)
+
+        if normalized_item_selector in {"coin", "coins"}:
+            if corpse.coins <= 0:
+                return display_error("That corpse has no coins left.", session)
+
+            taken_coins = corpse.coins
+            corpse.coins = 0
+            session.status.coins += taken_coins
+            return display_command_result(session, [
+                build_part("You take ", "bright_white"),
+                build_part(str(taken_coins), "bright_cyan", True),
+                build_part(" coins from ", "bright_white"),
+                build_part(_build_corpse_label(corpse.source_name), "bright_yellow", True),
+                build_part(".", "bright_white"),
+            ])
+
+        item, item_error = resolve_corpse_item_selector(corpse, item_selector)
+        if item is None:
+            return display_error(item_error or f"No item matching '{item_selector}' is on that corpse.", session)
+
+        corpse.loot_items.pop(item.item_id, None)
+        session.inventory_items[item.item_id] = item
+
+        return display_command_result(session, [
+            build_part("You take ", "bright_white"),
+            build_part(item.name, "bright_magenta", True),
+            build_part(" from ", "bright_white"),
+            build_part(_build_corpse_label(corpse.source_name), "bright_yellow", True),
+            build_part(".", "bright_white"),
+        ])
 
     if verb in {"equipment", "eq", "equi", "eqp"}:
         return display_equipment(session)

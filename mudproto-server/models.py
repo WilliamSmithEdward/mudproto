@@ -29,7 +29,7 @@ class PlayerStatus:
     vigor: int = 119
     mana: int = 160
     extra_lives: int = 1
-    coins: int = 4030
+    coins: int = 0
 
 
 @dataclass
@@ -77,6 +77,25 @@ class EquipmentState:
 
 
 @dataclass
+class LootItemState:
+    item_id: str
+    name: str
+    description: str = ""
+    keywords: list[str] = field(default_factory=list)
+
+
+@dataclass
+class CorpseState:
+    corpse_id: str
+    source_entity_id: str
+    source_name: str
+    room_id: str
+    coins: int = 0
+    loot_items: dict[str, LootItemState] = field(default_factory=dict)
+    spawn_sequence: int = 0
+
+
+@dataclass
 class EntityState:
     entity_id: str
     name: str
@@ -93,6 +112,7 @@ class EntityState:
     off_hand_attack_verb: str = "hit"
     off_hand_weapon_name: str = "off-hand"
     coin_reward: int = 0
+    loot_items: list[LootItemState] = field(default_factory=list)
     is_alive: bool = True
     spawn_sequence: int = 0
     is_aggro: bool = False
@@ -158,5 +178,8 @@ class ClientSession:
     prompt_pending_after_lag: bool = False
     entities: dict[str, EntityState] = field(default_factory=dict)
     entity_spawn_counter: int = 0
+    corpses: dict[str, CorpseState] = field(default_factory=dict)
+    corpse_spawn_counter: int = 0
+    inventory_items: dict[str, LootItemState] = field(default_factory=dict)
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     next_game_tick_monotonic: Optional[float] = None

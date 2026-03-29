@@ -4,7 +4,7 @@ from equipment import get_equipped_main_hand, get_equipped_off_hand, get_held_we
 from models import ClientSession
 from protocol import build_response
 from sessions import is_session_lagged
-from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_entities
+from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_corpses, list_room_entities
 from world import Room, get_room
 
 
@@ -366,6 +366,21 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(" (", "bright_white"),
                 build_part(condition_text, condition_color, True),
                 build_part(" condition)", "bright_white"),
+            ])
+
+    corpses = list_room_corpses(session, room.room_id)
+    if corpses:
+        parts.extend([
+            build_part("\n"),
+            build_part("\n"),
+            build_part("Corpses:", "bright_white", True),
+        ])
+
+        for corpse in corpses:
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(f"{corpse.source_name} corpse", bold=True),
             ])
 
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
