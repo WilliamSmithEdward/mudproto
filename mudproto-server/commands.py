@@ -1391,6 +1391,45 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error("Usage: rem <selector>", session)
 
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
+        if selector.startswith("all.") and len(selector) > 4:
+            item_selector = selector[4:]
+            selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
+            if not selector_tokens:
+                return display_error("Usage: rem all.<item>", session)
+
+            worn_items = list_worn_items(session)
+            matches = []
+            seen_item_ids: set[str] = set()
+            for _, worn_item in worn_items:
+                if worn_item.item_id in seen_item_ids:
+                    continue
+                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", worn_item.name.lower()) if token}
+                if selector_tokens.issubset(item_keywords):
+                    matches.append(worn_item)
+                seen_item_ids.add(worn_item.item_id)
+
+            if not matches:
+                return display_error(f"No equipped item matches '{item_selector}'.", session)
+
+            removed_names: list[str] = []
+            for worn_item in matches:
+                if unequip_item(session, worn_item):
+                    removed_names.append(worn_item.name)
+
+            if not removed_names:
+                return display_error(f"No equipped item matches '{item_selector}'.", session)
+
+            parts = [
+                build_part("You remove all matching equipped items.", "bright_white"),
+            ]
+            for item_name in removed_names:
+                parts.extend([
+                    build_part("\n"),
+                    build_part(" - ", "bright_white"),
+                    build_part(item_name, "bright_yellow", True),
+                ])
+            return display_command_result(session, parts)
+
         if selector == "all":
             worn_items = list_worn_items(session)
             if not worn_items:
