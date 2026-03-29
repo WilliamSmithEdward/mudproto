@@ -21,7 +21,8 @@
     ],
     "starting_spell_ids": [
       "spell.spark",
-      "spell.mending.light"
+      "spell.mending.light",
+      "spell.ember.lance"
     ],
     "is_default": true
   }
