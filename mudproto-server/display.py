@@ -227,12 +227,14 @@ def display_equipment(session: ClientSession) -> dict:
 def display_inventory(session: ClientSession) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
     equipment_items = list_inventory_items(session)
+    misc_items = list(session.inventory_items.values())
+    misc_items.sort(key=lambda item: item.name.lower())
 
     parts = [
         build_part("Inventory", "bright_white", True),
     ]
 
-    if not equipment_items:
+    if not equipment_items and not misc_items:
         parts.extend([
             build_part("\n"),
             build_part(" - empty", "bright_yellow", True),
@@ -245,8 +247,6 @@ def display_inventory(session: ClientSession) -> dict:
                 build_part(item.name, "bright_magenta", True),
             ])
 
-    misc_items = list(session.inventory_items.values())
-    misc_items.sort(key=lambda item: item.name.lower())
     for item in misc_items:
         parts.extend([
             build_part("\n"),

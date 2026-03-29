@@ -34,6 +34,23 @@
     "equip_on_grant": true
   },
   {
+    "template_id": "weapon.scout-dagger",
+    "name": "Scout Dagger",
+    "slot": "weapon",
+    "description": "A worn dagger taken from a hall scout.",
+    "keywords": ["scout", "dagger"],
+    "weapon_type": "dagger",
+    "preferred_hand": "off_hand",
+    "damage_dice_count": 2,
+    "damage_dice_sides": 3,
+    "damage_roll_modifier": 0,
+    "hit_roll_modifier": 1,
+    "attack_damage_bonus": 0,
+    "attacks_per_round_bonus": 0,
+    "grant_to_new_players": false,
+    "equip_on_grant": false
+  },
+  {
     "template_id": "armor.vanguard-jacket",
     "name": "Vanguard Jacket",
     "slot": "armor",

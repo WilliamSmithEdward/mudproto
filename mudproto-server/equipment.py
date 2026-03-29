@@ -230,6 +230,8 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
     previous_main_id = session.equipment.equipped_main_hand_id
     previous_off_id = session.equipment.equipped_off_hand_id
 
+    _clear_item_slot_references(session, item.item_id)
+
     if target_hand == HAND_MAIN:
         session.equipment.equipped_main_hand_id = item.item_id
         if session.equipment.equipped_off_hand_id == item.item_id:
@@ -245,7 +247,6 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
             _clear_item_slot_references(session, previous_off_id)
             _move_equipped_item_to_inventory(session, previous_off_id)
 
-    _clear_item_slot_references(session, item.item_id)
     session.equipment.equipped_items[item.item_id] = item
     session.equipment.items.pop(item.item_id, None)
 

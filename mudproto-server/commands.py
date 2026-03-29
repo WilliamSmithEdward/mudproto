@@ -12,10 +12,11 @@ from combat import (
     resolve_room_corpse_selector,
     spawn_dummy,
 )
-from assets import load_spells
+from assets import load_equipment_templates, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, unequip_item, wear_item
 import random
 import re
+import uuid
 
 from display import (
     build_part,
@@ -30,7 +31,7 @@ from display import (
     display_room,
     display_whoami,
 )
-from models import ClientSession
+from models import ClientSession, EquipmentItemState
 from sessions import apply_lag, enqueue_command, is_session_lagged
 from world import get_room
 
@@ -291,6 +292,53 @@ def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
         return matches[requested_index - 1], None
 
     return matches[0], None
+
+
+def _find_equipment_template_for_loot_name(loot_name: str) -> dict | None:
+    normalized_loot_name = loot_name.strip().lower()
+    if not normalized_loot_name:
+        return None
+
+    loot_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_loot_name) if token}
+    for template in load_equipment_templates():
+        template_name = str(template.get("name", "")).strip().lower()
+        if template_name == normalized_loot_name:
+            return template
+
+        keywords = [str(keyword).strip().lower() for keyword in template.get("keywords", [])]
+        if keywords and all(keyword in loot_tokens for keyword in keywords):
+            return template
+
+    return None
+
+
+def _promote_misc_item_to_equipment(session: ClientSession, misc_item) -> EquipmentItemState | None:
+    template = _find_equipment_template_for_loot_name(misc_item.name)
+    if template is None:
+        return None
+
+    item_id = f"item-{uuid.uuid4().hex[:8]}"
+    promoted = EquipmentItemState(
+        item_id=item_id,
+        template_id=str(template.get("template_id", "")).strip(),
+        name=str(template.get("name", misc_item.name)).strip() or misc_item.name,
+        slot=str(template.get("slot", "")).strip(),
+        description=str(template.get("description", "")),
+        keywords=list(template.get("keywords", [])),
+        weapon_type=str(template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
+        preferred_hand=str(template.get("preferred_hand", "main_hand")).strip().lower() or "main_hand",
+        damage_dice_count=int(template.get("damage_dice_count", 0)),
+        damage_dice_sides=int(template.get("damage_dice_sides", 0)),
+        damage_roll_modifier=int(template.get("damage_roll_modifier", 0)),
+        hit_roll_modifier=int(template.get("hit_roll_modifier", 0)),
+        attack_damage_bonus=int(template.get("attack_damage_bonus", 0)),
+        attacks_per_round_bonus=int(template.get("attacks_per_round_bonus", 0)),
+        armor_class_bonus=int(template.get("armor_class_bonus", 0)),
+        wear_slot=str(template.get("wear_slot", "")).strip().lower(),
+    )
+    session.inventory_items.pop(misc_item.item_id, None)
+    session.equipment.items[promoted.item_id] = promoted
+    return promoted
 
 
 def _find_spell_by_name(spell_name: str) -> dict | None:
@@ -768,7 +816,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         selector = "".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
-            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+            misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
+            if misc_item is None:
+                return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
+
+            promoted = _promote_misc_item_to_equipment(session, misc_item)
+            if promoted is None:
+                return display_error(f"{misc_item.name} cannot be wielded.", session)
+            item = promoted
 
         equipped, equip_result = equip_item(session, item, HAND_MAIN)
         if not equipped:
@@ -787,7 +842,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         selector = "".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
-            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+            misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
+            if misc_item is None:
+                return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
+
+            promoted = _promote_misc_item_to_equipment(session, misc_item)
+            if promoted is None:
+                return display_error(f"{misc_item.name} cannot be held.", session)
+            item = promoted
 
         equipped, equip_result = equip_item(session, item, HAND_OFF)
         if not equipped:
