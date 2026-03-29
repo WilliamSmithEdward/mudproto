@@ -156,6 +156,7 @@ def load_spells() -> list[dict]:
 
         mana_cost = int(raw_spell.get("mana_cost", 0))
         spell_type = str(raw_spell.get("spell_type", "damage")).strip().lower() or "damage"
+        cast_type = str(raw_spell.get("cast_type", "")).strip().lower()
         dice_count = int(raw_spell.get("damage_dice_count", 0))
         dice_sides = int(raw_spell.get("damage_dice_sides", 0))
         damage_modifier = int(raw_spell.get("damage_modifier", 0))
@@ -163,10 +164,15 @@ def load_spells() -> list[dict]:
         support_amount = int(raw_spell.get("support_amount", 0))
         duration_hours = int(raw_spell.get("duration_hours", 0))
 
+        if not cast_type:
+            cast_type = "self" if spell_type == "support" else "target"
+
         if mana_cost < 0:
             raise ValueError(f"Spell asset '{spell_id}' mana_cost must be zero or greater.")
         if spell_type not in {"damage", "support"}:
             raise ValueError(f"Spell asset '{spell_id}' spell_type must be 'damage' or 'support'.")
+        if cast_type not in {"self", "target", "aoe"}:
+            raise ValueError(f"Spell asset '{spell_id}' cast_type must be one of: self, target, aoe.")
         if dice_count < 0:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_count must be zero or greater.")
         if dice_sides < 0:
@@ -191,6 +197,7 @@ def load_spells() -> list[dict]:
             "description": str(raw_spell.get("description", "")).strip(),
             "mana_cost": mana_cost,
             "spell_type": spell_type,
+            "cast_type": cast_type,
             "damage_dice_count": dice_count,
             "damage_dice_sides": dice_sides,
             "damage_modifier": damage_modifier,

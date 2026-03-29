@@ -349,12 +349,13 @@ def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) ->
     return None
 
 
-def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
+def cast_spell(session: ClientSession, spell: dict, target_name: str | None = None) -> tuple[dict, bool]:
     from display import build_part, display_command_result, display_error
 
     spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
     mana_cost = max(0, int(spell.get("mana_cost", 0)))
     spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
+    cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
 
     dice_count = max(0, int(spell.get("damage_dice_count", 0)))
     dice_sides = max(0, int(spell.get("damage_dice_sides", 0)))
@@ -371,7 +372,12 @@ def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
             session,
         ), False
 
+    if cast_type not in {"self", "target", "aoe"}:
+        return display_error(f"Spell '{spell_name}' has unsupported cast_type '{cast_type}'.", session), False
+
     if spell_type == "support":
+        if cast_type != "self":
+            return display_error(f"Support spell '{spell_name}' must be cast_type 'self'.", session), False
         if support_effect not in {"heal", "vigor", "mana"}:
             return display_error(
                 f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
@@ -425,9 +431,31 @@ def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
         return display_error(f"Spell '{spell_name}' has unsupported spell_type '{spell_type}'.", session), False
 
     clear_combat_if_invalid(session)
-    entity = get_engaged_entity(session)
-    if entity is None:
-        return display_error("You must be engaged in combat to cast damage spells.", session), False
+
+    damage_targets: list[EntityState] = []
+    if cast_type == "target":
+        entity: EntityState | None = None
+        if target_name:
+            entity = find_room_entity_by_name(session, session.player.current_room_id, target_name)
+            if entity is None:
+                return display_error(f"No target named '{target_name}' is here.", session), False
+        else:
+            entity = get_engaged_entity(session)
+            if entity is None:
+                return display_error("Target spell requires a target: cast 'spell' <target>", session), False
+        damage_targets.append(entity)
+    elif cast_type == "aoe":
+        for entity in list_room_entities(session, session.player.current_room_id):
+            if not entity.is_alive:
+                continue
+            if entity.is_ally:
+                continue
+            damage_targets.append(entity)
+
+        if not damage_targets:
+            return display_error("No valid hostile targets in the room.", session), False
+    else:
+        return display_error(f"Damage spell '{spell_name}' cannot be cast as '{cast_type}'.", session), False
 
     status.mana -= mana_cost
 
@@ -437,54 +465,60 @@ def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
             rolled_damage += random.randint(1, dice_sides)
     total_damage = max(0, rolled_damage + damage_modifier)
 
-    article = _article(entity.name)
-    target_name = f"{article} {entity.name}"
     parts = [
         build_part("You cast "),
         build_part(spell_name),
-        build_part(" on "),
-        build_part(target_name),
         build_part(". "),
         build_part("Mana -"),
         build_part(str(mana_cost)),
         build_part("."),
     ]
 
-    if total_damage > 0:
-        entity.hit_points = max(0, entity.hit_points - total_damage)
-        parts.extend([
-            build_part(" "),
-            build_part(spell_name),
-            build_part(" hits for "),
-            build_part(str(total_damage)),
-            build_part(" damage."),
-        ])
-    else:
-        parts.extend([
-            build_part(" "),
-            build_part(spell_name),
-            build_part(" fizzles harmlessly."),
-        ])
+    for index, entity in enumerate(damage_targets):
+        if index > 0:
+            parts.append(build_part(" "))
 
-    if entity.hit_points <= 0:
-        entity.is_alive = False
-        status.coins += entity.coin_reward
-        parts.extend([
-            build_part(" "),
-            build_part(entity.name),
-            build_part(" is destroyed. Coins +"),
-            build_part(str(entity.coin_reward)),
-            build_part("."),
-        ])
+        article = _article(entity.name)
+        named_target = f"{article} {entity.name}"
 
-        next_target = _engage_next_room_target(session, entity.entity_id)
-        if next_target is not None:
+        if total_damage > 0:
+            entity.hit_points = max(0, entity.hit_points - total_damage)
             parts.extend([
-                build_part(" "),
-                build_part("You turn to "),
-                build_part(next_target.name),
+                build_part(spell_name),
+                build_part(" hits "),
+                build_part(named_target),
+                build_part(" for "),
+                build_part(str(total_damage)),
+                build_part(" damage."),
+            ])
+        else:
+            parts.extend([
+                build_part(spell_name),
+                build_part(" fizzles against "),
+                build_part(named_target),
                 build_part("."),
             ])
+
+        if entity.hit_points <= 0:
+            entity.is_alive = False
+            status.coins += entity.coin_reward
+            parts.extend([
+                build_part(" "),
+                build_part(entity.name),
+                build_part(" is destroyed. Coins +"),
+                build_part(str(entity.coin_reward)),
+                build_part("."),
+            ])
+
+            if session.combat.engaged_entity_id == entity.entity_id:
+                next_target = _engage_next_room_target(session, entity.entity_id)
+                if next_target is not None:
+                    parts.extend([
+                        build_part(" "),
+                        build_part("You turn to "),
+                        build_part(next_target.name),
+                        build_part("."),
+                    ])
 
     return display_command_result(session, parts), True
 

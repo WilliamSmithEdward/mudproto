@@ -215,18 +215,19 @@ def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, s
     return hand, selector, None
 
 
-def _parse_cast_spell_name(command_text: str, args: list[str]) -> tuple[str | None, str | None]:
-    quoted_match = re.match(r"^cast\s+(['\"])(.+?)\1\s*$", command_text.strip(), re.IGNORECASE)
+def _parse_cast_spell(command_text: str, args: list[str]) -> tuple[str | None, str | None, str | None]:
+    quoted_match = re.match(r"^cast\s+(['\"])(.+?)\1(?:\s+(.+))?\s*$", command_text.strip(), re.IGNORECASE)
     if quoted_match is not None:
         spell_name = quoted_match.group(2).strip()
+        target_name = (quoted_match.group(3) or "").strip() or None
         if spell_name:
-            return spell_name, None
+            return spell_name, target_name, None
 
     spell_name = " ".join(args).strip()
     if not spell_name:
-        return None, "Usage: cast 'spell name'"
+        return None, None, "Usage: cast 'spell name' [target]"
 
-    return spell_name, None
+    return spell_name, None, None
 
 
 def _find_spell_by_name(spell_name: str) -> dict | None:
@@ -290,6 +291,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             spell_name = str(spell.get("name", "Spell"))
             mana_cost = int(spell.get("mana_cost", 0))
             spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
+            cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
             dice_count = int(spell.get("damage_dice_count", 0))
             dice_sides = int(spell.get("damage_dice_sides", 0))
             damage_modifier = int(spell.get("damage_modifier", 0))
@@ -304,6 +306,8 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 build_part(spell_name, "bright_cyan", True),
                 build_part(" | cost: ", "bright_white"),
                 build_part(f"{mana_cost}M", "bright_yellow", True),
+                build_part(" | cast: ", "bright_white"),
+                build_part(cast_type, "bright_yellow", True),
             ])
 
             if spell_type == "support":
@@ -328,15 +332,15 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         return display_command_result(session, parts)
 
     if verb == "cast":
-        spell_name, parse_error = _parse_cast_spell_name(command_text, args)
+        spell_name, target_name, parse_error = _parse_cast_spell(command_text, args)
         if parse_error is not None or spell_name is None:
-            return display_error(parse_error or "Usage: cast 'spell name'", session)
+            return display_error(parse_error or "Usage: cast 'spell name' [target]", session)
 
         spell = _find_spell_by_name(spell_name)
         if spell is None:
             return display_error(f"Unknown spell: {spell_name}", session)
 
-        response, cast_applied = cast_spell(session, spell)
+        response, cast_applied = cast_spell(session, spell, target_name)
         if cast_applied:
             if session.combat.engaged_entity_id is not None:
                 session.combat.skip_melee_rounds = max(1, session.combat.skip_melee_rounds)

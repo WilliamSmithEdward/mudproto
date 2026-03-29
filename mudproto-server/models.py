@@ -94,6 +94,7 @@ class EntityState:
     is_alive: bool = True
     spawn_sequence: int = 0
     is_aggro: bool = False
+    is_ally: bool = False
     pronoun_possessive: str = "its"
     attack_verb: str = "hit"
 
