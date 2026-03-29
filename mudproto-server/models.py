@@ -75,6 +75,7 @@ class EquipmentItemState:
 @dataclass
 class EquipmentState:
     items: dict[str, EquipmentItemState] = field(default_factory=dict)
+    equipped_items: dict[str, EquipmentItemState] = field(default_factory=dict)
     equipped_main_hand_id: Optional[str] = None
     equipped_off_hand_id: Optional[str] = None
     worn_item_ids: dict[str, str] = field(default_factory=dict)

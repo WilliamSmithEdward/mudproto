@@ -15,6 +15,7 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
     from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
 
     existing_template_ids = {item.template_id for item in session.equipment.items.values()}
+    existing_template_ids.update(item.template_id for item in session.equipment.equipped_items.values())
     template_id = str(template.get("template_id", "")).strip()
     if not template_id or template_id in existing_template_ids:
         return

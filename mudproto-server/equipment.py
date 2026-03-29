@@ -37,14 +37,14 @@ def get_equipped_main_hand(session: ClientSession) -> EquipmentItemState | None:
     item_id = session.equipment.equipped_main_hand_id
     if item_id is None:
         return None
-    return session.equipment.items.get(item_id)
+    return session.equipment.equipped_items.get(item_id)
 
 
 def get_equipped_off_hand(session: ClientSession) -> EquipmentItemState | None:
     item_id = session.equipment.equipped_off_hand_id
     if item_id is None:
         return None
-    return session.equipment.items.get(item_id)
+    return session.equipment.equipped_items.get(item_id)
 
 
 def get_held_weapon(session: ClientSession) -> EquipmentItemState | None:
@@ -67,7 +67,7 @@ def get_worn_item_for_slot(session: ClientSession, wear_slot: str) -> EquipmentI
     item_id = session.equipment.worn_item_ids.get(normalized_slot)
     if item_id is None:
         return None
-    return session.equipment.items.get(item_id)
+    return session.equipment.equipped_items.get(item_id)
 
 
 def list_worn_items(session: ClientSession) -> list[tuple[str, EquipmentItemState]]:
@@ -83,7 +83,7 @@ def list_worn_items(session: ClientSession) -> list[tuple[str, EquipmentItemStat
 
     for wear_slot in sorted(session.equipment.worn_item_ids.keys()):
         item_id = session.equipment.worn_item_ids[wear_slot]
-        item = session.equipment.items.get(item_id)
+        item = session.equipment.equipped_items.get(item_id)
         if item is None:
             continue
         worn.append((wear_slot, item))
@@ -95,11 +95,32 @@ def get_player_armor_class(session: ClientSession) -> int:
     armor_bonus = 0
     for wear_slot, item_id in session.equipment.worn_item_ids.items():
         if wear_slot and item_id:
-            item = session.equipment.items.get(item_id)
+            item = session.equipment.equipped_items.get(item_id)
             if item is None:
                 continue
             armor_bonus += max(0, item.armor_class_bonus)
     return BASE_PLAYER_ARMOR_CLASS + armor_bonus
+
+
+def _move_equipped_item_to_inventory(session: ClientSession, item_id: str) -> None:
+    equipped_item = session.equipment.equipped_items.pop(item_id, None)
+    if equipped_item is not None:
+        session.equipment.items[item_id] = equipped_item
+
+
+def _clear_item_slot_references(session: ClientSession, item_id: str) -> None:
+    if session.equipment.equipped_main_hand_id == item_id:
+        session.equipment.equipped_main_hand_id = None
+    if session.equipment.equipped_off_hand_id == item_id:
+        session.equipment.equipped_off_hand_id = None
+
+    worn_slots_to_clear = [
+        wear_slot
+        for wear_slot, worn_item_id in session.equipment.worn_item_ids.items()
+        if worn_item_id == item_id
+    ]
+    for wear_slot in worn_slots_to_clear:
+        session.equipment.worn_item_ids.pop(wear_slot, None)
 
 
 def _name_keywords(name: str) -> set[str]:
@@ -165,6 +186,36 @@ def resolve_equipment_selector(session: ClientSession, selector: str) -> tuple[E
     return matches[0], None
 
 
+def resolve_equipped_selector(session: ClientSession, selector: str) -> tuple[EquipmentItemState | None, str | None]:
+    requested_index, keywords, parse_error = _parse_selector(selector)
+    if parse_error is not None:
+        return None, parse_error
+
+    equipped_items: list[EquipmentItemState] = []
+    seen_ids: set[str] = set()
+    for _, item in list_worn_items(session):
+        if item.item_id in seen_ids:
+            continue
+        equipped_items.append(item)
+        seen_ids.add(item.item_id)
+
+    matches: list[EquipmentItemState] = []
+    for item in equipped_items:
+        item_keywords = get_item_keywords(item)
+        if all(keyword in item_keywords for keyword in keywords):
+            matches.append(item)
+
+    if not matches:
+        return None, f"No equipped item matches '{selector}'."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} match(es) found for '{selector}'."
+        return matches[requested_index - 1], None
+
+    return matches[0], None
+
+
 def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | None = None) -> tuple[bool, str]:
     if item.slot != "weapon":
         return False, f"{item.name} cannot be equipped as a weapon."
@@ -173,14 +224,30 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
     if target_hand not in {HAND_MAIN, HAND_OFF}:
         return False, "Hand must be main or off."
 
+    if item.item_id not in session.equipment.items:
+        return False, f"{item.name} is not in your inventory."
+
+    previous_main_id = session.equipment.equipped_main_hand_id
+    previous_off_id = session.equipment.equipped_off_hand_id
+
     if target_hand == HAND_MAIN:
         session.equipment.equipped_main_hand_id = item.item_id
         if session.equipment.equipped_off_hand_id == item.item_id:
             session.equipment.equipped_off_hand_id = None
+        if previous_main_id is not None and previous_main_id != item.item_id:
+            _clear_item_slot_references(session, previous_main_id)
+            _move_equipped_item_to_inventory(session, previous_main_id)
     else:
         session.equipment.equipped_off_hand_id = item.item_id
         if session.equipment.equipped_main_hand_id == item.item_id:
             session.equipment.equipped_main_hand_id = None
+        if previous_off_id is not None and previous_off_id != item.item_id:
+            _clear_item_slot_references(session, previous_off_id)
+            _move_equipped_item_to_inventory(session, previous_off_id)
+
+    _clear_item_slot_references(session, item.item_id)
+    session.equipment.equipped_items[item.item_id] = item
+    session.equipment.items.pop(item.item_id, None)
 
     return True, target_hand
 
@@ -195,43 +262,33 @@ def wear_item(session: ClientSession, item: EquipmentItemState) -> tuple[bool, s
     if wear_slot not in DEFAULT_WEAR_SLOTS:
         return False, f"{item.name} uses unsupported wear slot '{wear_slot}'."
 
+    if item.item_id not in session.equipment.items:
+        return False, f"{item.name} is not in your inventory."
+
+    current_item_id = session.equipment.worn_item_ids.get(wear_slot)
+    if current_item_id is not None and current_item_id != item.item_id:
+        _clear_item_slot_references(session, current_item_id)
+        _move_equipped_item_to_inventory(session, current_item_id)
+
+    _clear_item_slot_references(session, item.item_id)
     session.equipment.worn_item_ids[wear_slot] = item.item_id
+    session.equipment.equipped_items[item.item_id] = item
+    session.equipment.items.pop(item.item_id, None)
     return True, wear_slot
 
 
 def unequip_item(session: ClientSession, item: EquipmentItemState) -> bool:
-    changed = False
+    item_id = item.item_id
+    if item_id not in session.equipment.equipped_items:
+        return False
 
-    if session.equipment.equipped_main_hand_id == item.item_id:
-        session.equipment.equipped_main_hand_id = None
-        changed = True
-    if session.equipment.equipped_off_hand_id == item.item_id:
-        session.equipment.equipped_off_hand_id = None
-        changed = True
-
-    worn_slots_to_clear = [
-        wear_slot
-        for wear_slot, item_id in session.equipment.worn_item_ids.items()
-        if item_id == item.item_id
-    ]
-    for wear_slot in worn_slots_to_clear:
-        session.equipment.worn_item_ids.pop(wear_slot, None)
-        changed = True
-
-    return changed
+    _clear_item_slot_references(session, item_id)
+    _move_equipped_item_to_inventory(session, item_id)
+    return True
 
 
 def remove_item(session: ClientSession, item: EquipmentItemState) -> None:
-    session.equipment.items.pop(item.item_id, None)
-    if session.equipment.equipped_main_hand_id == item.item_id:
-        session.equipment.equipped_main_hand_id = None
-    if session.equipment.equipped_off_hand_id == item.item_id:
-        session.equipment.equipped_off_hand_id = None
-
-    worn_slots_to_clear = [
-        wear_slot
-        for wear_slot, item_id in session.equipment.worn_item_ids.items()
-        if item_id == item.item_id
-    ]
-    for wear_slot in worn_slots_to_clear:
-        session.equipment.worn_item_ids.pop(wear_slot, None)
+    item_id = item.item_id
+    _clear_item_slot_references(session, item_id)
+    session.equipment.equipped_items.pop(item_id, None)
+    session.equipment.items.pop(item_id, None)

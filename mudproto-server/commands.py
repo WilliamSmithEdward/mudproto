@@ -13,7 +13,7 @@ from combat import (
     spawn_dummy,
 )
 from assets import load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, list_worn_items, remove_item, resolve_equipment_selector, unequip_item, wear_item
+from equipment import HAND_MAIN, HAND_OFF, equip_item, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, unequip_item, wear_item
 import random
 import re
 
@@ -811,7 +811,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not selector:
             return display_error("Usage: drop <selector>", session)
 
-        coin_drop_match = re.match(r"^(\d+)\*coins$", selector)
+        coin_drop_match = re.match(r"^(\d+)\*coins?$", selector)
         if coin_drop_match is not None:
             drop_amount = int(coin_drop_match.group(1))
             if drop_amount <= 0:
@@ -907,9 +907,9 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 ])
             return display_command_result(session, parts)
 
-        item, resolve_error = resolve_equipment_selector(session, selector)
+        item, resolve_error = resolve_equipped_selector(session, selector)
         if resolve_error is not None or item is None:
-            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+            return display_error(resolve_error or "Unable to resolve equipped item selector.", session)
 
         was_equipped = unequip_item(session, item)
         if not was_equipped:
