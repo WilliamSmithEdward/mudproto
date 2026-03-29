@@ -82,9 +82,7 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
     parts = [
         build_part(f"{status.hit_points}H", me_condition_color, True),
-        build_part(f" {status.vigor}V {status.mana}M {status.coins}C [Me:", "bright_white"),
-        build_part(me_condition.title(), me_condition_color, True),
-        build_part("]", "bright_white"),
+        build_part(f" {status.vigor}V {status.mana}M {status.coins}C", "bright_white"),
     ]
 
     tick_seconds_remaining = _get_tick_seconds_remaining(session)
@@ -94,6 +92,12 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
             build_part(f"{tick_seconds_remaining}s", "bright_yellow", True),
             build_part("]", "bright_white"),
         ])
+
+    parts.extend([
+        build_part(" [Me:", "bright_white"),
+        build_part(me_condition.title(), me_condition_color, True),
+        build_part("]", "bright_white"),
+    ])
 
     engaged_entity = get_engaged_entity(session)
     if engaged_entity is not None:

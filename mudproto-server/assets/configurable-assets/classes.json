@@ -14,7 +14,9 @@
     "starting_spell_ids": [
       "spell.spark",
       "spell.mending.light",
-      "spell.ember.lance"
+      "spell.ember.lance",
+      "spell.healing.light",
+      "spell.regeneration.ward"
     ],
     "starting_skill_ids": [
       "skill.guard.breath",

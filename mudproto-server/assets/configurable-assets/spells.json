@@ -60,8 +60,8 @@
     "support_context": "Ambient ether gathers around you, restoring your arcane focus."
   },
   {
-    "spell_id": "spell.restoration.surge",
-    "name": "Restoration Surge",
+    "spell_id": "spell.healing.light",
+    "name": "Healing Light",
     "description": "A sudden restorative pulse that immediately heals your wounds.",
     "spell_type": "support",
     "cast_type": "self",
