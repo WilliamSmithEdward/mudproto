@@ -199,6 +199,28 @@ def wear_item(session: ClientSession, item: EquipmentItemState) -> tuple[bool, s
     return True, wear_slot
 
 
+def unequip_item(session: ClientSession, item: EquipmentItemState) -> bool:
+    changed = False
+
+    if session.equipment.equipped_main_hand_id == item.item_id:
+        session.equipment.equipped_main_hand_id = None
+        changed = True
+    if session.equipment.equipped_off_hand_id == item.item_id:
+        session.equipment.equipped_off_hand_id = None
+        changed = True
+
+    worn_slots_to_clear = [
+        wear_slot
+        for wear_slot, item_id in session.equipment.worn_item_ids.items()
+        if item_id == item.item_id
+    ]
+    for wear_slot in worn_slots_to_clear:
+        session.equipment.worn_item_ids.pop(wear_slot, None)
+        changed = True
+
+    return changed
+
+
 def remove_item(session: ClientSession, item: EquipmentItemState) -> None:
     session.equipment.items.pop(item.item_id, None)
     if session.equipment.equipped_main_hand_id == item.item_id:

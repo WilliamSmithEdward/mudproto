@@ -5,6 +5,7 @@ from combat import (
     disengage,
     end_combat,
     get_engaged_entity,
+    list_room_corpses,
     maybe_auto_engage_current_room,
     resolve_corpse_item_selector,
     resolve_combat_round,
@@ -12,7 +13,7 @@ from combat import (
     spawn_dummy,
 )
 from assets import load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, remove_item, resolve_equipment_selector, wear_item
+from equipment import HAND_MAIN, HAND_OFF, equip_item, list_worn_items, remove_item, resolve_equipment_selector, unequip_item, wear_item
 import random
 import re
 
@@ -491,6 +492,50 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         return display_command_result(session, parts)
 
     if verb == "get":
+        if len(args) == 1 and args[0].strip().lower() == "all":
+            corpses = list_room_corpses(session, session.player.current_room_id)
+            if not corpses:
+                return display_error("There are no corpses here to loot.", session)
+
+            total_coins = 0
+            looted_items: list[str] = []
+
+            for corpse in corpses:
+                corpse_coins = max(0, corpse.coins)
+                total_coins += corpse_coins
+                corpse.coins = 0
+
+                corpse_items = list(corpse.loot_items.values())
+                corpse_items.sort(key=lambda item: item.name.lower())
+                for item in corpse_items:
+                    session.inventory_items[item.item_id] = item
+                    corpse.loot_items.pop(item.item_id, None)
+                    looted_items.append(item.name)
+
+            if total_coins <= 0 and not looted_items:
+                return display_error("There is nothing to loot from corpses in this room.", session)
+
+            session.status.coins += total_coins
+
+            parts = [
+                build_part("You loot all corpses in the room.", "bright_white"),
+            ]
+            if total_coins > 0:
+                parts.extend([
+                    build_part("\n"),
+                    build_part("Coins +", "bright_white"),
+                    build_part(str(total_coins), "bright_cyan", True),
+                ])
+            for item_name in looted_items:
+                parts.extend([
+                    build_part("\n"),
+                    build_part("You take ", "bright_white"),
+                    build_part(item_name, "bright_magenta", True),
+                    build_part(".", "bright_white"),
+                ])
+
+            return display_command_result(session, parts)
+
         if len(args) < 2:
             return display_error("Usage: get <item|all|coins> <corpse selector>", session)
 
@@ -766,6 +811,49 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not selector:
             return display_error("Usage: drop <selector>", session)
 
+        coin_drop_match = re.match(r"^(\d+)\*coins$", selector)
+        if coin_drop_match is not None:
+            drop_amount = int(coin_drop_match.group(1))
+            if drop_amount <= 0:
+                return display_error("Coin drop amount must be greater than zero.", session)
+            if session.status.coins < drop_amount:
+                return display_error(
+                    f"You only have {session.status.coins} coins.",
+                    session,
+                )
+
+            session.status.coins -= drop_amount
+            return display_command_result(session, [
+                build_part("You drop ", "bright_white"),
+                build_part(str(drop_amount), "bright_cyan", True),
+                build_part(" coins.", "bright_white"),
+            ])
+
+        if selector == "all":
+            equipment_items = list(session.equipment.items.values())
+            misc_items = list(session.inventory_items.values())
+
+            if not equipment_items and not misc_items:
+                return display_error("You have nothing to drop.", session)
+
+            dropped_count = 0
+            for item in equipment_items:
+                remove_item(session, item)
+                dropped_count += 1
+
+            for item in misc_items:
+                session.inventory_items.pop(item.item_id, None)
+                dropped_count += 1
+
+            return display_command_result(session, [
+                build_part("You drop all carried items.", "bright_white"),
+                build_part("\n"),
+                build_part("Items dropped: ", "bright_white"),
+                build_part(str(dropped_count), "bright_yellow", True),
+                build_part("\n"),
+                build_part("Coins unchanged.", "bright_white"),
+            ])
+
         item, resolve_error = resolve_equipment_selector(session, selector)
         if item is not None and resolve_error is None:
             remove_item(session, item)
@@ -791,15 +879,46 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error("Usage: rem <selector>", session)
 
         selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        if selector == "all":
+            worn_items = list_worn_items(session)
+            if not worn_items:
+                return display_error("You have nothing to remove.", session)
+
+            removed_names: list[str] = []
+            seen_item_ids: set[str] = set()
+            for _, worn_item in worn_items:
+                if worn_item.item_id in seen_item_ids:
+                    continue
+                if unequip_item(session, worn_item):
+                    removed_names.append(worn_item.name)
+                seen_item_ids.add(worn_item.item_id)
+
+            if not removed_names:
+                return display_error("You have nothing to remove.", session)
+
+            parts = [
+                build_part("You remove all equipped items and place them in your inventory.", "bright_white"),
+            ]
+            for item_name in removed_names:
+                parts.extend([
+                    build_part("\n"),
+                    build_part(" - ", "bright_white"),
+                    build_part(item_name, "bright_yellow", True),
+                ])
+            return display_command_result(session, parts)
+
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
             return display_error(resolve_error or "Unable to resolve equipment selector.", session)
 
-        remove_item(session, item)
+        was_equipped = unequip_item(session, item)
+        if not was_equipped:
+            return display_error(f"{item.name} is not currently worn or held.", session)
+
         return display_command_result(session, [
             build_part("You remove ", "bright_white"),
             build_part(item.name, "bright_yellow", True),
-            build_part(".", "bright_white"),
+            build_part(" and place it in your inventory.", "bright_white"),
         ])
 
     if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
