@@ -988,7 +988,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, parts)
 
-    if verb in {"skills", "sk", "ski", "skil"}:
+    if verb in {"skills", "sk", "ski", "skil", "skill"} and not args:
         skills = _list_known_skills(session)
         if not skills:
             return display_command_result(session, [
@@ -1027,7 +1027,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
     # Try to resolve unknown verb as a shorthand skill invocation (e.g., 'jab scout' instead of 'skill jab scout')
     known_skills = _list_known_skills(session)
-    if verb not in {"skill", "skl", "use"} and known_skills:
+    if verb not in {"skill", "sk", "ski", "skil", "skl", "use", "skills"} and known_skills:
         for cut in range(len(args) + 1, 0, -1):
             candidate_verb_args = [verb] + args[:cut-1]
             candidate_skill_name = " ".join(candidate_verb_args).strip()
@@ -1038,7 +1038,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 args = candidate_verb_args + (args[cut-1:] if args[cut-1:] else [])
                 break
 
-    if verb in {"skill", "skl", "use"}:
+    if verb in {"skill", "sk", "ski", "skil", "skl", "use"}:
         if not known_skills:
             return display_error("You do not know any skills.", session)
 
