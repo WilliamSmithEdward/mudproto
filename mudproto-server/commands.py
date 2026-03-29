@@ -1246,6 +1246,65 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if parse_error is not None or selector is None:
             return display_error(parse_error or "Usage: wear <selector> [location]", session)
 
+        if selector.startswith("all.") and len(selector) > 4:
+            item_selector = selector[4:]
+            selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
+            if not selector_tokens:
+                return display_error("Usage: wear all.<item>", session)
+
+            wearable_items = []
+            for item in session.equipment.items.values():
+                if item.slot.strip().lower() != "armor":
+                    continue
+                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+                if selector_tokens.issubset(item_keywords):
+                    wearable_items.append(item)
+
+            # Promote matching wearable misc loot into equipment inventory.
+            for misc_item in list(session.inventory_items.values()):
+                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", misc_item.name.lower()) if token}
+                if not selector_tokens.issubset(item_keywords):
+                    continue
+
+                template = _find_equipment_template_for_loot_name(misc_item.name)
+                if template is None:
+                    continue
+                if str(template.get("slot", "")).strip().lower() != "armor":
+                    continue
+
+                promoted = _promote_misc_item_to_equipment(session, misc_item)
+                if promoted is not None and promoted.slot.strip().lower() == "armor":
+                    wearable_items.append(promoted)
+
+            wearable_items.sort(key=lambda item: (len(item.wear_slots) if item.wear_slots else 1, item.name.lower(), item.item_id))
+
+            if not wearable_items:
+                return display_error(f"No wearable inventory item matches '{item_selector}'.", session)
+
+            worn_results: list[tuple[str, str]] = []
+            for item in wearable_items:
+                worn, wear_result = wear_item(session, item)
+                if worn:
+                    worn_results.append((item.name, wear_result))
+
+            if not worn_results:
+                return display_error("You cannot wear any additional matching items right now.", session)
+
+            parts = [
+                build_part("You wear all matching items.", "bright_white"),
+            ]
+            for item_name, slot_name in worn_results:
+                parts.extend([
+                    build_part("\n"),
+                    build_part(" - ", "bright_white"),
+                    build_part(item_name, "bright_cyan", True),
+                    build_part(" on your ", "bright_white"),
+                    build_part(slot_name, "bright_yellow", True),
+                    build_part(".", "bright_white"),
+                ])
+
+            return display_command_result(session, parts)
+
         if selector == "all":
             wearable_items = [
                 item
