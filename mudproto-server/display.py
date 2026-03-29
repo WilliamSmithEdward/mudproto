@@ -1,6 +1,6 @@
 import asyncio
 
-from equipment import get_equipped_main_hand, get_equipped_off_hand, get_held_weapon, list_equipment
+from equipment import list_inventory_items, list_worn_items
 from models import ClientSession
 from protocol import build_response
 from sessions import is_session_lagged
@@ -200,94 +200,59 @@ def display_whoami(session: ClientSession) -> dict:
 
 def display_equipment(session: ClientSession) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
-    main_hand = get_equipped_main_hand(session)
-    off_hand = get_equipped_off_hand(session)
-    held_weapon = get_held_weapon(session)
+    worn_items = list_worn_items(session)
 
     parts = [
-        build_part("Equipment", "bright_white", True),
-        build_part("\n"),
-        build_part("Main hand: ", "bright_white"),
+        build_part("Worn Equipment", "bright_white", True),
     ]
 
-    if main_hand is None:
-        parts.append(build_part("None", "bright_yellow", True))
-    else:
-        parts.extend([
-            build_part(main_hand.name, "bright_cyan", True),
-            build_part(" [", "bright_white"),
-            build_part(main_hand.template_id, "bright_magenta"),
-            build_part("]", "bright_white"),
-        ])
-
-    parts.extend([
-        build_part("\n"),
-        build_part("Off hand: ", "bright_white"),
-    ])
-
-    if off_hand is None:
-        parts.append(build_part("None", "bright_yellow", True))
-    else:
-        parts.extend([
-            build_part(off_hand.name, "bright_cyan", True),
-            build_part(" [", "bright_white"),
-            build_part(off_hand.template_id, "bright_magenta"),
-            build_part("]", "bright_white"),
-        ])
-
-    if held_weapon is not None:
+    if not worn_items:
         parts.extend([
             build_part("\n"),
-            build_part("Held weapon profile: ", "bright_white"),
-            build_part(f"{held_weapon.damage_dice_count}d{held_weapon.damage_dice_sides}", "bright_yellow", True),
-            build_part(" +", "bright_white"),
-            build_part(str(held_weapon.damage_roll_modifier), "bright_yellow", True),
-            build_part(" damage mod | +", "bright_white"),
-            build_part(str(held_weapon.hit_roll_modifier), "bright_yellow", True),
-            build_part(" hit mod", "bright_white"),
-            build_part(" | type: ", "bright_white"),
-            build_part(held_weapon.weapon_type, "bright_cyan", True),
+            build_part(" - nothing", "bright_yellow", True),
         ])
     else:
-        parts.extend([
-            build_part("\n"),
-            build_part("Held weapon profile: unarmed", "bright_white"),
-        ])
-
-    equipment_items = list_equipment(session)
-    if equipment_items:
-        parts.extend([
-            build_part("\n"),
-            build_part("\n"),
-            build_part("Owned equipment:", "bright_white", True),
-        ])
-
-        for item in equipment_items:
-            slot_label = item.slot.capitalize()
-            hand_label = None
-            if main_hand is not None and item.item_id == main_hand.item_id:
-                hand_label = "main hand"
-            elif off_hand is not None and item.item_id == off_hand.item_id:
-                hand_label = "off hand"
-
+        for wear_slot, item in worn_items:
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
+                build_part(wear_slot, "bright_cyan", True),
+                build_part(": ", "bright_white"),
                 build_part(item.name, "bright_magenta", True),
-                build_part(f" ({slot_label}", "bright_white"),
             ])
-            if hand_label is not None:
-                parts.extend([
-                    build_part(f", {hand_label}", "bright_cyan", True),
-                ])
+
+    return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
+
+
+def display_inventory(session: ClientSession) -> dict:
+    prompt_after, prompt_parts = resolve_prompt(session, True)
+    equipment_items = list_inventory_items(session)
+
+    parts = [
+        build_part("Inventory", "bright_white", True),
+    ]
+
+    if not equipment_items:
+        parts.extend([
+            build_part("\n"),
+            build_part(" - empty", "bright_yellow", True),
+        ])
+    else:
+        for index, item in enumerate(equipment_items, start=1):
             parts.extend([
-                build_part(")", "bright_white"),
-                build_part(" [", "bright_white"),
-                build_part(item.item_id, "bright_yellow"),
-                build_part("]", "bright_white"),
-                build_part(" | keys: ", "bright_white"),
-                build_part(".".join(item.keywords) if item.keywords else "none", "bright_cyan"),
+                build_part("\n"),
+                build_part(f" - {index}. ", "bright_white"),
+                build_part(item.name, "bright_magenta", True),
             ])
+
+    misc_items = list(session.inventory_items.values())
+    misc_items.sort(key=lambda item: item.name.lower())
+    for item in misc_items:
+        parts.extend([
+            build_part("\n"),
+            build_part(" - ", "bright_white"),
+            build_part(item.name, "bright_yellow", True),
+        ])
 
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 

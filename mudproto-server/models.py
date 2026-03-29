@@ -68,6 +68,8 @@ class EquipmentItemState:
     hit_roll_modifier: int = 0
     attack_damage_bonus: int = 0
     attacks_per_round_bonus: int = 0
+    armor_class_bonus: int = 0
+    wear_slot: str = ""
 
 
 @dataclass
@@ -75,6 +77,7 @@ class EquipmentState:
     items: dict[str, EquipmentItemState] = field(default_factory=dict)
     equipped_main_hand_id: Optional[str] = None
     equipped_off_hand_id: Optional[str] = None
+    worn_item_ids: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -123,43 +126,7 @@ class EntityState:
 
 
 def _build_default_equipment_state() -> EquipmentState:
-    from assets import load_starting_equipment_templates
-
-    items: dict[str, EquipmentItemState] = {}
-    equipped_main_hand_id: Optional[str] = None
-    equipped_off_hand_id: Optional[str] = None
-
-    for template in load_starting_equipment_templates():
-        item_id = f"item-{uuid.uuid4().hex[:8]}"
-        item = EquipmentItemState(
-            item_id=item_id,
-            template_id=template["template_id"],
-            name=template["name"],
-            slot=template["slot"],
-            description=template["description"],
-            keywords=template["keywords"],
-            weapon_type=template["weapon_type"],
-            preferred_hand=template["preferred_hand"],
-            damage_dice_count=template["damage_dice_count"],
-            damage_dice_sides=template["damage_dice_sides"],
-            damage_roll_modifier=template["damage_roll_modifier"],
-            hit_roll_modifier=template["hit_roll_modifier"],
-            attack_damage_bonus=template["attack_damage_bonus"],
-            attacks_per_round_bonus=template["attacks_per_round_bonus"],
-        )
-        items[item_id] = item
-
-        if template["equip_on_grant"] and item.slot == "weapon":
-            if item.preferred_hand == "off_hand" and equipped_off_hand_id is None:
-                equipped_off_hand_id = item_id
-            elif equipped_main_hand_id is None:
-                equipped_main_hand_id = item_id
-
-    return EquipmentState(
-        items=items,
-        equipped_main_hand_id=equipped_main_hand_id,
-        equipped_off_hand_id=equipped_off_hand_id,
-    )
+    return EquipmentState()
 
 
 @dataclass

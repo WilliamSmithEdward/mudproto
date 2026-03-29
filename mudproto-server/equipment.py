@@ -5,12 +5,32 @@ from models import ClientSession, EquipmentItemState
 
 HAND_MAIN = "main_hand"
 HAND_OFF = "off_hand"
+BASE_PLAYER_ARMOR_CLASS = 10
+
+DEFAULT_WEAR_SLOTS = {
+    "head",
+    "neck",
+    "shoulders",
+    "chest",
+    "back",
+    "arms",
+    "hands",
+    "waist",
+    "legs",
+    "feet",
+    "ring",
+    "trinket",
+}
 
 
 def list_equipment(session: ClientSession) -> list[EquipmentItemState]:
     equipment_items = list(session.equipment.items.values())
     equipment_items.sort(key=lambda item: (item.name.lower(), item.item_id))
     return equipment_items
+
+
+def list_inventory_items(session: ClientSession) -> list[EquipmentItemState]:
+    return list_equipment(session)
 
 
 def get_equipped_main_hand(session: ClientSession) -> EquipmentItemState | None:
@@ -37,6 +57,49 @@ def get_held_weapon(session: ClientSession) -> EquipmentItemState | None:
         return off_hand
 
     return None
+
+
+def get_worn_item_for_slot(session: ClientSession, wear_slot: str) -> EquipmentItemState | None:
+    normalized_slot = wear_slot.strip().lower()
+    if not normalized_slot:
+        return None
+
+    item_id = session.equipment.worn_item_ids.get(normalized_slot)
+    if item_id is None:
+        return None
+    return session.equipment.items.get(item_id)
+
+
+def list_worn_items(session: ClientSession) -> list[tuple[str, EquipmentItemState]]:
+    worn: list[tuple[str, EquipmentItemState]] = []
+
+    main_hand = get_equipped_main_hand(session)
+    if main_hand is not None:
+        worn.append(("main hand", main_hand))
+
+    off_hand = get_equipped_off_hand(session)
+    if off_hand is not None:
+        worn.append(("off hand", off_hand))
+
+    for wear_slot in sorted(session.equipment.worn_item_ids.keys()):
+        item_id = session.equipment.worn_item_ids[wear_slot]
+        item = session.equipment.items.get(item_id)
+        if item is None:
+            continue
+        worn.append((wear_slot, item))
+
+    return worn
+
+
+def get_player_armor_class(session: ClientSession) -> int:
+    armor_bonus = 0
+    for wear_slot, item_id in session.equipment.worn_item_ids.items():
+        if wear_slot and item_id:
+            item = session.equipment.items.get(item_id)
+            if item is None:
+                continue
+            armor_bonus += max(0, item.armor_class_bonus)
+    return BASE_PLAYER_ARMOR_CLASS + armor_bonus
 
 
 def _name_keywords(name: str) -> set[str]:
@@ -122,9 +185,31 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
     return True, target_hand
 
 
+def wear_item(session: ClientSession, item: EquipmentItemState) -> tuple[bool, str]:
+    if item.slot != "armor":
+        return False, f"{item.name} cannot be worn."
+
+    wear_slot = item.wear_slot.strip().lower()
+    if not wear_slot:
+        return False, f"{item.name} has no wear slot configured."
+    if wear_slot not in DEFAULT_WEAR_SLOTS:
+        return False, f"{item.name} uses unsupported wear slot '{wear_slot}'."
+
+    session.equipment.worn_item_ids[wear_slot] = item.item_id
+    return True, wear_slot
+
+
 def remove_item(session: ClientSession, item: EquipmentItemState) -> None:
     session.equipment.items.pop(item.item_id, None)
     if session.equipment.equipped_main_hand_id == item.item_id:
         session.equipment.equipped_main_hand_id = None
     if session.equipment.equipped_off_hand_id == item.item_id:
         session.equipment.equipped_off_hand_id = None
+
+    worn_slots_to_clear = [
+        wear_slot
+        for wear_slot, item_id in session.equipment.worn_item_ids.items()
+        if item_id == item.item_id
+    ]
+    for wear_slot in worn_slots_to_clear:
+        session.equipment.worn_item_ids.pop(wear_slot, None)

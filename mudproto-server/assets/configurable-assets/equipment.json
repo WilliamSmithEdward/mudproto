@@ -32,5 +32,49 @@
     "attacks_per_round_bonus": 0,
     "grant_to_new_players": true,
     "equip_on_grant": true
+  },
+  {
+    "template_id": "armor.vanguard-jacket",
+    "name": "Vanguard Jacket",
+    "slot": "armor",
+    "wear_slot": "chest",
+    "description": "A reinforced jacket worn by front-line trainees.",
+    "keywords": ["vanguard", "jacket", "chest"],
+    "armor_class_bonus": 2,
+    "grant_to_new_players": false,
+    "equip_on_grant": true
+  },
+  {
+    "template_id": "armor.vanguard-boots",
+    "name": "Vanguard Boots",
+    "slot": "armor",
+    "wear_slot": "feet",
+    "description": "Heavy boots built for marching and impact.",
+    "keywords": ["vanguard", "boots", "feet"],
+    "armor_class_bonus": 1,
+    "grant_to_new_players": false,
+    "equip_on_grant": true
+  },
+  {
+    "template_id": "armor.arcanist-robe",
+    "name": "Arcanist Robe",
+    "slot": "armor",
+    "wear_slot": "chest",
+    "description": "A rune-lined robe favored by novice arcanists.",
+    "keywords": ["arcanist", "robe", "chest"],
+    "armor_class_bonus": 1,
+    "grant_to_new_players": false,
+    "equip_on_grant": true
+  },
+  {
+    "template_id": "armor.arcanist-wraps",
+    "name": "Arcanist Wraps",
+    "slot": "armor",
+    "wear_slot": "hands",
+    "description": "Light hand wraps that steady precise gestures.",
+    "keywords": ["arcanist", "wraps", "hands"],
+    "armor_class_bonus": 1,
+    "grant_to_new_players": false,
+    "equip_on_grant": true
   }
 ]

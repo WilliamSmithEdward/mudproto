@@ -12,6 +12,8 @@ connected_clients: dict[str, ClientSession] = {}
 
 
 def _grant_starting_equipment_from_template(session: ClientSession, template: dict) -> None:
+    from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
+
     existing_template_ids = {item.template_id for item in session.equipment.items.values()}
     template_id = str(template.get("template_id", "")).strip()
     if not template_id or template_id in existing_template_ids:
@@ -34,14 +36,21 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         hit_roll_modifier=int(template.get("hit_roll_modifier", 0)),
         attack_damage_bonus=int(template.get("attack_damage_bonus", 0)),
         attacks_per_round_bonus=int(template.get("attacks_per_round_bonus", 0)),
+        armor_class_bonus=int(template.get("armor_class_bonus", 0)),
+        wear_slot=str(template.get("wear_slot", "")).strip().lower(),
     )
     session.equipment.items[item_id] = item
 
-    if bool(template.get("equip_on_grant", False)) and item.slot == "weapon":
-        if item.preferred_hand == "off_hand" and session.equipment.equipped_off_hand_id is None:
-            session.equipment.equipped_off_hand_id = item_id
-        elif session.equipment.equipped_main_hand_id is None:
-            session.equipment.equipped_main_hand_id = item_id
+    if not bool(template.get("equip_on_grant", False)):
+        return
+
+    if item.slot == "weapon":
+        target_hand = HAND_OFF if item.preferred_hand == HAND_OFF else HAND_MAIN
+        equip_item(session, item, target_hand)
+        return
+
+    if item.slot == "armor":
+        wear_item(session, item)
 
 
 def _apply_default_player_class(session: ClientSession) -> None:

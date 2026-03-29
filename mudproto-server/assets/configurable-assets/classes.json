@@ -5,7 +5,9 @@
     "description": "A disciplined front-line fighter trained in steel and endurance.",
     "starting_equipment_template_ids": [
       "weapon.training-sword",
-      "weapon.training-dagger"
+      "weapon.training-dagger",
+      "armor.vanguard-jacket",
+      "armor.vanguard-boots"
     ],
     "starting_spell_ids": [
       "spell.second.wind"
@@ -17,7 +19,9 @@
     "name": "Arcanist",
     "description": "A student of focused destructive and restorative magic.",
     "starting_equipment_template_ids": [
-      "weapon.training-dagger"
+      "weapon.training-dagger",
+      "armor.arcanist-robe",
+      "armor.arcanist-wraps"
     ],
     "starting_spell_ids": [
       "spell.spark",

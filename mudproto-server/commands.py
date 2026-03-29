@@ -12,7 +12,7 @@ from combat import (
     spawn_dummy,
 )
 from assets import load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, remove_item, resolve_equipment_selector
+from equipment import HAND_MAIN, HAND_OFF, equip_item, remove_item, resolve_equipment_selector, wear_item
 import random
 import re
 
@@ -23,6 +23,7 @@ from display import (
     display_error,
     display_force_prompt,
     display_hello,
+    display_inventory,
     display_pong,
     display_prompt,
     display_room,
@@ -250,6 +251,45 @@ def _parse_cast_spell(
 
 def _build_corpse_label(source_name: str) -> str:
     return f"{source_name} corpse"
+
+
+def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
+    normalized = selector.strip().lower()
+    if not normalized:
+        return None, "Provide an inventory selector."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, "Provide an inventory selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, "Provide at least one selector keyword after the index."
+
+    misc_items = list(session.inventory_items.values())
+    misc_items.sort(key=lambda item: item.name.lower())
+
+    matches = []
+    for item in misc_items:
+        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+        if all(keyword in keywords for keyword in parts):
+            matches.append(item)
+
+    if not matches:
+        return None, f"No inventory item matches '{selector}'."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} match(es) found for '{selector}'."
+        return matches[requested_index - 1], None
+
+    return matches[0], None
 
 
 def _find_spell_by_name(spell_name: str) -> dict | None:
@@ -542,6 +582,9 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     if verb in {"equipment", "eq", "equi", "eqp"}:
         return display_equipment(session)
 
+    if verb in {"inventory", "inv", "i"}:
+        return display_inventory(session)
+
     if verb in {"spell", "spells"}:
         spells = _list_known_spells(session)
         if not spells:
@@ -655,6 +698,93 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             build_part(hand_label, "bright_yellow", True),
             build_part(".", "bright_white"),
         ])
+
+    if verb in {"wield", "wiel", "wie", "wi"}:
+        if not args:
+            return display_error("Usage: wield <selector>", session)
+
+        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        item, resolve_error = resolve_equipment_selector(session, selector)
+        if resolve_error is not None or item is None:
+            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+
+        equipped, equip_result = equip_item(session, item, HAND_MAIN)
+        if not equipped:
+            return display_error(equip_result, session)
+
+        return display_command_result(session, [
+            build_part("You wield ", "bright_white"),
+            build_part(item.name, "bright_cyan", True),
+            build_part(".", "bright_white"),
+        ])
+
+    if verb in {"hold", "hol", "ho"}:
+        if not args:
+            return display_error("Usage: hold <selector>", session)
+
+        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        item, resolve_error = resolve_equipment_selector(session, selector)
+        if resolve_error is not None or item is None:
+            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+
+        equipped, equip_result = equip_item(session, item, HAND_OFF)
+        if not equipped:
+            return display_error(equip_result, session)
+
+        return display_command_result(session, [
+            build_part("You hold ", "bright_white"),
+            build_part(item.name, "bright_cyan", True),
+            build_part(" in your off hand.", "bright_white"),
+        ])
+
+    if verb in {"wear", "wea", "we", "puton"}:
+        if not args:
+            return display_error("Usage: wear <selector>", session)
+
+        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        item, resolve_error = resolve_equipment_selector(session, selector)
+        if resolve_error is not None or item is None:
+            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+
+        worn, wear_result = wear_item(session, item)
+        if not worn:
+            return display_error(wear_result, session)
+
+        return display_command_result(session, [
+            build_part("You wear ", "bright_white"),
+            build_part(item.name, "bright_cyan", True),
+            build_part(" on your ", "bright_white"),
+            build_part(wear_result, "bright_yellow", True),
+            build_part(".", "bright_white"),
+        ])
+
+    if verb in {"drop", "dro", "dr"}:
+        if not args:
+            return display_error("Usage: drop <selector>", session)
+
+        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        if not selector:
+            return display_error("Usage: drop <selector>", session)
+
+        item, resolve_error = resolve_equipment_selector(session, selector)
+        if item is not None and resolve_error is None:
+            remove_item(session, item)
+            return display_command_result(session, [
+                build_part("You drop ", "bright_white"),
+                build_part(item.name, "bright_yellow", True),
+                build_part(".", "bright_white"),
+            ])
+
+        misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
+        if misc_item is not None:
+            session.inventory_items.pop(misc_item.item_id, None)
+            return display_command_result(session, [
+                build_part("You drop ", "bright_white"),
+                build_part(misc_item.name, "bright_yellow", True),
+                build_part(".", "bright_white"),
+            ])
+
+        return display_error(misc_error or resolve_error or "Unable to resolve inventory selector.", session)
 
     if verb in {"remove", "rem"}:
         if not args:

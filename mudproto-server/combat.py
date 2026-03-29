@@ -3,14 +3,13 @@ import random
 import re
 import uuid
 
-from equipment import get_equipped_main_hand, get_equipped_off_hand
+from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
 
 
 COMBAT_ROUND_INTERVAL_SECONDS = 2.5
 OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
-PLAYER_ARMOR_CLASS = 10
 HIT_ROLL_DICE_SIDES = 20
 PLAYER_REFERENCE_MAX_HP = 575
 PLAYER_REFERENCE_MAX_VIGOR = 119
@@ -1037,6 +1036,7 @@ def _list_room_attackers(session: ClientSession, primary_entity: EntityState) ->
 
 def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], parts: list[dict], allow_off_hand: bool) -> None:
     status = session.status
+    player_armor_class = get_player_armor_class(session)
 
     for entity in attackers:
         if not entity.is_alive:
@@ -1045,7 +1045,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
         for _ in range(max(1, entity.attacks_per_round)):
             _append_newline_if_needed(parts)
 
-            if not _roll_hit(entity.hit_roll_modifier, PLAYER_ARMOR_CLASS):
+            if not _roll_hit(entity.hit_roll_modifier, player_armor_class):
                 parts.extend(_build_entity_attack_parts(
                     entity=entity,
                     attack_verb=entity.attack_verb,
@@ -1066,7 +1066,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
             for _ in range(off_hand_swings):
                 _append_newline_if_needed(parts)
 
-                if not _roll_hit(entity.off_hand_hit_roll_modifier, PLAYER_ARMOR_CLASS):
+                if not _roll_hit(entity.off_hand_hit_roll_modifier, player_armor_class):
                     parts.extend(_build_entity_attack_parts(
                         entity=entity,
                         attack_verb=entity.off_hand_attack_verb,

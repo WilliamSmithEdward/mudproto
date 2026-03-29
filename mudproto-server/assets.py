@@ -42,6 +42,11 @@ def load_equipment_templates() -> list[dict]:
             raise ValueError(f"Equipment asset '{template_id}' must include a non-empty name.")
         if not isinstance(slot, str) or not slot.strip():
             raise ValueError(f"Equipment asset '{template_id}' must include a non-empty slot.")
+        normalized_slot = slot.strip().lower()
+        if normalized_slot not in {"weapon", "armor"}:
+            raise ValueError(
+                f"Equipment asset '{template_id}' slot must be 'weapon' or 'armor'."
+            )
 
         template_ids.add(template_id)
         raw_keywords = raw_template.get("keywords", [])
@@ -50,10 +55,19 @@ def load_equipment_templates() -> list[dict]:
         if not isinstance(raw_keywords, list):
             raise ValueError(f"Equipment asset '{template_id}' keywords must be a list.")
 
+        wear_slot = str(raw_template.get("wear_slot", "")).strip().lower()
+        armor_class_bonus = int(raw_template.get("armor_class_bonus", 0))
+        if normalized_slot == "armor" and not wear_slot:
+            raise ValueError(f"Equipment asset '{template_id}' armor items must define wear_slot.")
+        if normalized_slot == "weapon" and wear_slot:
+            raise ValueError(f"Equipment asset '{template_id}' weapons cannot define wear_slot.")
+        if armor_class_bonus < 0:
+            raise ValueError(f"Equipment asset '{template_id}' armor_class_bonus must be zero or greater.")
+
         normalized_templates.append({
             "template_id": template_id,
             "name": name,
-            "slot": slot,
+            "slot": normalized_slot,
             "description": str(raw_template.get("description", "")),
             "keywords": [str(keyword).strip().lower() for keyword in raw_keywords if str(keyword).strip()],
             "weapon_type": str(raw_template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
@@ -64,6 +78,8 @@ def load_equipment_templates() -> list[dict]:
             "hit_roll_modifier": int(raw_template.get("hit_roll_modifier", 0)),
             "attack_damage_bonus": int(raw_template.get("attack_damage_bonus", 0)),
             "attacks_per_round_bonus": int(raw_template.get("attacks_per_round_bonus", 0)),
+            "armor_class_bonus": armor_class_bonus,
+            "wear_slot": wear_slot,
             "grant_to_new_players": bool(raw_template.get("grant_to_new_players", False)),
             "equip_on_grant": bool(raw_template.get("equip_on_grant", False)),
         })
