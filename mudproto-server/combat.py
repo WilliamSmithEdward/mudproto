@@ -117,29 +117,29 @@ def _build_player_attack_parts(
     parts: list[dict] = []
     if severity == "miss":
         parts.extend([
-            build_part("You miss ", "bright_white"),
-            build_part(named, "bright_red", True),
-            build_part(" with your ", "bright_white"),
-            build_part(attack_verb, "bright_cyan", True),
-            build_part(".", "bright_white"),
+            build_part("You miss "),
+            build_part(named),
+            build_part(" with your "),
+            build_part(attack_verb),
+            build_part("."),
         ])
         return parts
 
     if severity in {"barely", "normal", "hard", "extreme"}:
         if severity == "barely":
-            parts.append(build_part("You barely ", "bright_white"))
+            parts.append(build_part("You barely "))
         else:
-            parts.append(build_part("You ", "bright_white"))
+            parts.append(build_part("You "))
         parts.extend([
-            build_part(attack_verb, "bright_cyan", True),
-            build_part(" ", "bright_white"),
-            build_part(named, "bright_red", True),
+            build_part(attack_verb),
+            build_part(" "),
+            build_part(named),
         ])
         if severity == "hard":
-            parts.append(build_part(" hard", "bright_white"))
+            parts.append(build_part(" hard"))
         elif severity == "extreme":
-            parts.append(build_part(" extremely hard", "bright_white"))
-        parts.append(build_part(".", "bright_white"))
+            parts.append(build_part(" extremely hard"))
+        parts.append(build_part("."))
         return parts
 
     top_label = {
@@ -148,11 +148,11 @@ def _build_player_attack_parts(
         "obliterate": "obliterate",
     }[severity]
     parts.extend([
-        build_part(f"You {top_label} ", "bright_white"),
-        build_part(named, "bright_red", True),
-        build_part(" with your ", "bright_white"),
-        build_part(verb_noun, "bright_cyan", True),
-        build_part(".", "bright_white"),
+        build_part(f"You {top_label} "),
+        build_part(named),
+        build_part(" with your "),
+        build_part(verb_noun),
+        build_part("."),
     ])
     return parts
 
@@ -171,32 +171,32 @@ def _build_entity_attack_parts(
     parts: list[dict] = []
     if severity == "miss":
         parts.extend([
-            build_part(entity.name, "bright_red", True),
-            build_part(" misses you.", "bright_white"),
+            build_part(entity.name),
+            build_part(" misses you."),
         ])
         return parts
 
     if severity == "barely":
         parts.extend([
-            build_part(entity.name, "bright_red", True),
-            build_part(" barely ", "bright_white"),
-            build_part(_to_third_person(attack_verb), "bright_red", True),
-            build_part(" you.", "bright_white"),
+            build_part(entity.name),
+            build_part(" barely "),
+            build_part(_to_third_person(attack_verb)),
+            build_part(" you."),
         ])
         return parts
 
     if severity in {"normal", "hard", "extreme"}:
         parts.extend([
-            build_part(entity.name, "bright_red", True),
-            build_part(" ", "bright_white"),
-            build_part(_to_third_person(attack_verb), "bright_red", True),
-            build_part(" you", "bright_white"),
+            build_part(entity.name),
+            build_part(" "),
+            build_part(_to_third_person(attack_verb)),
+            build_part(" you"),
         ])
         if severity == "hard":
-            parts.append(build_part(" hard", "bright_white"))
+            parts.append(build_part(" hard"))
         elif severity == "extreme":
-            parts.append(build_part(" extremely hard", "bright_white"))
-        parts.append(build_part(".", "bright_white"))
+            parts.append(build_part(" extremely hard"))
+        parts.append(build_part("."))
         return parts
 
     top_verb = {
@@ -206,10 +206,10 @@ def _build_entity_attack_parts(
     }[severity]
     pronoun = entity.pronoun_possessive.strip().lower() or "its"
     parts.extend([
-        build_part(entity.name, "bright_red", True),
-        build_part(f" {top_verb} you with {pronoun} ", "bright_white"),
-        build_part(verb_noun, "bright_red", True),
-        build_part(".", "bright_white"),
+        build_part(entity.name),
+        build_part(f" {top_verb} you with {pronoun} "),
+        build_part(verb_noun),
+        build_part("."),
     ])
     return parts
 
@@ -353,7 +353,7 @@ def initialize_session_entities(session: ClientSession) -> None:
 
     for scout_index in range(2):
         session.entity_spawn_counter += 1
-        scout_name = "Hall Scout" if scout_index == 0 else f"Hall Scout {scout_index + 1}"
+        scout_name = "Hall Scout"
         scout = EntityState(
             entity_id=f"scout-{uuid.uuid4().hex[:8]}",
             name=scout_name,
