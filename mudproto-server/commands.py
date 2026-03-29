@@ -776,8 +776,9 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if len(args) == 1 and args[0].strip().lower() == "all":
             corpses = list_room_corpses(session, session.player.current_room_id)
             room_id = session.player.current_room_id
+            room_items = _list_room_ground_items(session, room_id)
             room_coin_pile = max(0, int(session.room_coin_piles.get(room_id, 0)))
-            if not corpses and room_coin_pile <= 0:
+            if not corpses and room_coin_pile <= 0 and not room_items:
                 return display_error("There is nothing to loot in this room.", session)
 
             total_coins = room_coin_pile
@@ -785,6 +786,11 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
             if room_coin_pile > 0:
                 session.room_coin_piles[room_id] = 0
+
+            for item in room_items:
+                session.room_ground_items.get(room_id, {}).pop(item.item_id, None)
+                session.inventory_items[item.item_id] = item
+                looted_items.append(item.name)
 
             for corpse in corpses:
                 corpse_coins = max(0, corpse.coins)
@@ -799,12 +805,12 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     looted_items.append(item.name)
 
             if total_coins <= 0 and not looted_items:
-                return display_error("There is nothing to loot from corpses in this room.", session)
+                return display_error("There is nothing to loot in this room.", session)
 
             session.status.coins += total_coins
 
             parts = [
-                build_part("You loot all corpses in the room.", "bright_white"),
+                build_part("You loot everything in the room.", "bright_white"),
             ]
             if total_coins > 0:
                 parts.extend([
@@ -1184,6 +1190,41 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if parse_error is not None or selector is None:
             return display_error(parse_error or "Usage: wear <selector> [location]", session)
 
+        if selector == "all":
+            wearable_items = [
+                item
+                for item in session.equipment.items.values()
+                if item.slot.strip().lower() == "armor"
+            ]
+            wearable_items.sort(key=lambda item: (len(item.wear_slots) if item.wear_slots else 1, item.name.lower(), item.item_id))
+
+            if not wearable_items:
+                return display_error("You have nothing wearable in your inventory.", session)
+
+            worn_results: list[tuple[str, str]] = []
+            for item in wearable_items:
+                worn, wear_result = wear_item(session, item)
+                if worn:
+                    worn_results.append((item.name, wear_result))
+
+            if not worn_results:
+                return display_error("You cannot wear any additional items right now.", session)
+
+            parts = [
+                build_part("You wear everything you can.", "bright_white"),
+            ]
+            for item_name, slot_name in worn_results:
+                parts.extend([
+                    build_part("\n"),
+                    build_part(" - ", "bright_white"),
+                    build_part(item_name, "bright_cyan", True),
+                    build_part(" on your ", "bright_white"),
+                    build_part(slot_name, "bright_yellow", True),
+                    build_part(".", "bright_white"),
+                ])
+
+            return display_command_result(session, parts)
+
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
             return display_error(resolve_error or "Unable to resolve equipment selector.", session)
@@ -1296,8 +1337,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 build_part("\n"),
                 build_part("Items dropped: ", "bright_white"),
                 build_part(str(dropped_count), "bright_yellow", True),
-                build_part("\n"),
-                build_part("Coins unchanged.", "bright_white"),
             ])
 
         item, resolve_error = resolve_equipment_selector(session, selector)
