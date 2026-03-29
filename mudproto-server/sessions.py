@@ -72,6 +72,14 @@ def _apply_default_player_class(session: ClientSession) -> None:
         session.known_spell_ids.append(str(spell_id).strip())
         known_spell_ids.add(normalized_spell_id)
 
+    known_skill_ids = {skill_id.strip().lower() for skill_id in session.known_skill_ids if skill_id.strip()}
+    for skill_id in player_class.get("starting_skill_ids", []):
+        normalized_skill_id = str(skill_id).strip().lower()
+        if not normalized_skill_id or normalized_skill_id in known_skill_ids:
+            continue
+        session.known_skill_ids.append(str(skill_id).strip())
+        known_skill_ids.add(normalized_skill_id)
+
 
 def get_connection_count() -> int:
     return len(connected_clients)

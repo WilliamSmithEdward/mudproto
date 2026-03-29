@@ -9,6 +9,7 @@ CONFIGURABLE_ASSET_ROOT = SERVER_ROOT / "assets" / "configurable-assets"
 EQUIPMENT_FILE = CONFIGURABLE_ASSET_ROOT / "equipment.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
+SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 PLAYER_CLASSES_FILE = CONFIGURABLE_ASSET_ROOT / "classes.json"
 
 
@@ -263,6 +264,105 @@ def get_spell_by_id(spell_id: str) -> dict | None:
 
 
 @lru_cache(maxsize=1)
+def load_skills() -> list[dict]:
+    raw_skills = _read_json_asset(SKILLS_FILE)
+    if not isinstance(raw_skills, list):
+        raise ValueError(f"Skill asset file must contain a list: {SKILLS_FILE}")
+
+    skill_ids: set[str] = set()
+    skill_names: set[str] = set()
+    normalized_skills: list[dict] = []
+
+    for raw_skill in raw_skills:
+        if not isinstance(raw_skill, dict):
+            raise ValueError("Skill asset entries must be objects.")
+
+        skill_id = raw_skill.get("skill_id")
+        name = raw_skill.get("name")
+
+        if not isinstance(skill_id, str) or not skill_id.strip():
+            raise ValueError("Skill asset entries must include a non-empty string skill_id.")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"Skill asset '{skill_id}' must include a non-empty name.")
+        if skill_id in skill_ids:
+            raise ValueError(f"Duplicate skill_id in skill assets: {skill_id}")
+
+        normalized_name = name.strip().lower()
+        if normalized_name in skill_names:
+            raise ValueError(f"Duplicate skill name in skill assets: {name}")
+
+        skill_type = str(raw_skill.get("skill_type", "damage")).strip().lower() or "damage"
+        cast_type = str(raw_skill.get("cast_type", "")).strip().lower()
+        if not cast_type:
+            cast_type = "self" if skill_type == "support" else "target"
+
+        dice_count = int(raw_skill.get("damage_dice_count", 0))
+        dice_sides = int(raw_skill.get("damage_dice_sides", 0))
+        damage_modifier = int(raw_skill.get("damage_modifier", 0))
+        damage_context = str(raw_skill.get("damage_context", "")).strip()
+        support_effect = str(raw_skill.get("support_effect", "")).strip().lower()
+        support_amount = int(raw_skill.get("support_amount", 0))
+        support_context = str(raw_skill.get("support_context", "")).strip()
+        lag_rounds = int(raw_skill.get("lag_rounds", 0))
+        cooldown_rounds = int(raw_skill.get("cooldown_rounds", 0))
+
+        if skill_type not in {"damage", "support"}:
+            raise ValueError(f"Skill asset '{skill_id}' skill_type must be 'damage' or 'support'.")
+        if cast_type not in {"self", "target", "aoe"}:
+            raise ValueError(f"Skill asset '{skill_id}' cast_type must be one of: self, target, aoe.")
+        if dice_count < 0:
+            raise ValueError(f"Skill asset '{skill_id}' damage_dice_count must be zero or greater.")
+        if dice_sides < 0:
+            raise ValueError(f"Skill asset '{skill_id}' damage_dice_sides must be zero or greater.")
+        if support_amount < 0:
+            raise ValueError(f"Skill asset '{skill_id}' support_amount must be zero or greater.")
+        if lag_rounds < 0:
+            raise ValueError(f"Skill asset '{skill_id}' lag_rounds must be zero or greater.")
+        if cooldown_rounds < 0:
+            raise ValueError(f"Skill asset '{skill_id}' cooldown_rounds must be zero or greater.")
+
+        if skill_type == "support":
+            if support_effect not in {"heal", "vigor", "mana"}:
+                raise ValueError(
+                    f"Skill asset '{skill_id}' support_effect must be one of: heal, vigor, mana."
+                )
+            if not support_context:
+                raise ValueError(f"Skill asset '{skill_id}' support skills must define support_context.")
+        else:
+            if not damage_context:
+                raise ValueError(f"Skill asset '{skill_id}' damage skills must define damage_context.")
+
+        skill_ids.add(skill_id)
+        skill_names.add(normalized_name)
+        normalized_skills.append({
+            "skill_id": skill_id.strip(),
+            "name": name.strip(),
+            "description": str(raw_skill.get("description", "")).strip(),
+            "skill_type": skill_type,
+            "cast_type": cast_type,
+            "damage_dice_count": dice_count,
+            "damage_dice_sides": dice_sides,
+            "damage_modifier": damage_modifier,
+            "damage_context": damage_context,
+            "support_effect": support_effect,
+            "support_amount": support_amount,
+            "support_context": support_context,
+            "lag_rounds": lag_rounds,
+            "cooldown_rounds": cooldown_rounds,
+        })
+
+    return normalized_skills
+
+
+def get_skill_by_id(skill_id: str) -> dict | None:
+    normalized = skill_id.strip().lower()
+    for skill in load_skills():
+        if str(skill.get("skill_id", "")).strip().lower() == normalized:
+            return skill
+    return None
+
+
+@lru_cache(maxsize=1)
 def load_player_classes() -> list[dict]:
     raw_classes = _read_json_asset(PLAYER_CLASSES_FILE)
     if not isinstance(raw_classes, list):
@@ -292,12 +392,15 @@ def load_player_classes() -> list[dict]:
 
         raw_equipment_ids = raw_class.get("starting_equipment_template_ids", [])
         raw_spell_ids = raw_class.get("starting_spell_ids", [])
+        raw_skill_ids = raw_class.get("starting_skill_ids", [])
         if not isinstance(raw_equipment_ids, list):
             raise ValueError(
                 f"Player class '{class_id}' starting_equipment_template_ids must be a list."
             )
         if not isinstance(raw_spell_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_spell_ids must be a list.")
+        if not isinstance(raw_skill_ids, list):
+            raise ValueError(f"Player class '{class_id}' starting_skill_ids must be a list.")
 
         equipment_ids: list[str] = []
         seen_equipment_ids: set[str] = set()
@@ -329,6 +432,20 @@ def load_player_classes() -> list[dict]:
             seen_spell_ids.add(normalized_spell_id)
             spell_ids.append(spell_id)
 
+        skill_ids: list[str] = []
+        seen_skill_ids: set[str] = set()
+        for raw_skill_id in raw_skill_ids:
+            skill_id = str(raw_skill_id).strip()
+            if not skill_id:
+                continue
+            normalized_skill_id = skill_id.lower()
+            if normalized_skill_id in seen_skill_ids:
+                continue
+            if get_skill_by_id(skill_id) is None:
+                raise ValueError(f"Player class '{class_id}' references unknown skill: {skill_id}")
+            seen_skill_ids.add(normalized_skill_id)
+            skill_ids.append(skill_id)
+
         class_ids.add(normalized_class_id)
         class_names.add(normalized_class_name)
         normalized_classes.append({
@@ -337,6 +454,7 @@ def load_player_classes() -> list[dict]:
             "description": str(raw_class.get("description", "")).strip(),
             "starting_equipment_template_ids": equipment_ids,
             "starting_spell_ids": spell_ids,
+            "starting_skill_ids": skill_ids,
             "is_default": bool(raw_class.get("is_default", False)),
         })
 

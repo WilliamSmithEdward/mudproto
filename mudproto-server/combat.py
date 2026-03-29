@@ -3,6 +3,7 @@ import random
 import re
 import uuid
 
+from assets import get_skill_by_id
 from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
 
@@ -597,6 +598,283 @@ def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) ->
     return None
 
 
+def _decrement_cooldowns(cooldowns: dict[str, int]) -> None:
+    for key in list(cooldowns.keys()):
+        remaining = int(cooldowns.get(key, 0))
+        if remaining <= 1:
+            cooldowns.pop(key, None)
+        else:
+            cooldowns[key] = remaining - 1
+
+
+def _process_combat_round_timers(session: ClientSession, entities: list[EntityState]) -> None:
+    _decrement_cooldowns(session.combat.skill_cooldowns)
+
+    for entity in entities:
+        _decrement_cooldowns(entity.skill_cooldowns)
+        if entity.skill_lag_rounds_remaining > 0:
+            entity.skill_lag_rounds_remaining -= 1
+
+
+def _roll_skill_damage(skill: dict) -> int:
+    dice_count = max(0, int(skill.get("damage_dice_count", 0)))
+    dice_sides = max(0, int(skill.get("damage_dice_sides", 0)))
+    damage_modifier = int(skill.get("damage_modifier", 0))
+
+    rolled_damage = 0
+    if dice_count > 0 and dice_sides > 0:
+        for _ in range(dice_count):
+            rolled_damage += random.randint(1, dice_sides)
+    return max(0, rolled_damage + damage_modifier)
+
+
+def _set_player_skill_cooldown(session: ClientSession, skill: dict) -> None:
+    cooldown_rounds = max(0, int(skill.get("cooldown_rounds", 0)))
+    if cooldown_rounds > 0:
+        skill_id = str(skill.get("skill_id", "")).strip()
+        if skill_id:
+            session.combat.skill_cooldowns[skill_id] = cooldown_rounds
+
+
+def _set_entity_skill_cooldown(entity: EntityState, skill: dict) -> None:
+    cooldown_rounds = max(0, int(skill.get("cooldown_rounds", 0)))
+    if cooldown_rounds > 0:
+        skill_id = str(skill.get("skill_id", "")).strip()
+        if skill_id:
+            entity.skill_cooldowns[skill_id] = cooldown_rounds
+
+
+def _apply_player_skill_lag(session: ClientSession, skill: dict) -> None:
+    lag_rounds = max(0, int(skill.get("lag_rounds", 0)))
+    if lag_rounds > 0:
+        session.combat.skip_melee_rounds = max(session.combat.skip_melee_rounds, lag_rounds)
+
+
+def _apply_entity_skill_lag(entity: EntityState, skill: dict) -> None:
+    lag_rounds = max(0, int(skill.get("lag_rounds", 0)))
+    if lag_rounds > 0:
+        entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, lag_rounds)
+
+
+def use_skill(session: ClientSession, skill: dict, target_name: str | None = None) -> tuple[dict, bool]:
+    from display import build_part, display_command_result, display_error
+
+    skill_id = str(skill.get("skill_id", "")).strip()
+    skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
+    skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
+    cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+    damage_context = str(skill.get("damage_context", "")).strip()
+    support_effect = str(skill.get("support_effect", "")).strip().lower()
+    support_amount = max(0, int(skill.get("support_amount", 0)))
+    support_context = str(skill.get("support_context", "")).strip()
+
+    if skill_id and session.combat.skill_cooldowns.get(skill_id, 0) > 0:
+        return display_error(
+            f"{skill_name} is on cooldown for {session.combat.skill_cooldowns[skill_id]} more round(s).",
+            session,
+        ), False
+
+    if cast_type not in {"self", "target", "aoe"}:
+        return display_error(f"Skill '{skill_name}' has unsupported cast_type '{cast_type}'.", session), False
+    if skill_type not in {"damage", "support"}:
+        return display_error(f"Skill '{skill_name}' has unsupported skill_type '{skill_type}'.", session), False
+
+    parts = [
+        build_part("You use "),
+        build_part(skill_name),
+        build_part("."),
+    ]
+
+    if skill_type == "support":
+        if cast_type != "self":
+            return display_error(f"Support skill '{skill_name}' must be cast_type 'self'.", session), False
+        if support_effect not in {"heal", "vigor", "mana"}:
+            return display_error(
+                f"Skill '{skill_name}' has unsupported support_effect '{support_effect}'.",
+                session,
+            ), False
+
+        if support_effect == "heal":
+            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + support_amount)
+        elif support_effect == "vigor":
+            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + support_amount)
+        else:
+            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + support_amount)
+
+        if support_context:
+            parts.extend([
+                build_part("\n"),
+                build_part(support_context),
+            ])
+
+        _set_player_skill_cooldown(session, skill)
+        _apply_player_skill_lag(session, skill)
+        return display_command_result(session, parts), True
+
+    clear_combat_if_invalid(session)
+
+    damage_targets: list[EntityState] = []
+    if cast_type == "target":
+        entity: EntityState | None = None
+        if target_name:
+            entity, resolve_error = resolve_room_entity_selector(
+                session,
+                session.player.current_room_id,
+                target_name,
+                living_only=True,
+            )
+            if entity is None:
+                return display_error(resolve_error or f"No target named '{target_name}' is here.", session), False
+        else:
+            entity = get_engaged_entity(session)
+            if entity is None:
+                return display_error("Target skill requires a target: skill <name> <target>", session), False
+        damage_targets.append(entity)
+    elif cast_type == "aoe":
+        for entity in list_room_entities(session, session.player.current_room_id):
+            if entity.is_alive and not entity.is_ally:
+                damage_targets.append(entity)
+        if not damage_targets:
+            return display_error("No valid hostile targets in the room.", session), False
+    else:
+        return display_error(f"Damage skill '{skill_name}' cannot be cast as '{cast_type}'.", session), False
+
+    total_damage = _roll_skill_damage(skill)
+
+    for entity in damage_targets:
+        parts.append(build_part("\n"))
+        named_target = _with_article(entity.name, capitalize=True)
+        resolved_context = damage_context.replace("[a/an]", named_target)
+        if resolved_context and not resolved_context.endswith("."):
+            resolved_context += "."
+
+        if total_damage > 0:
+            entity.hit_points = max(0, entity.hit_points - total_damage)
+            if resolved_context:
+                parts.append(build_part(resolved_context))
+            else:
+                parts.extend([
+                    build_part(named_target),
+                    build_part(" is struck by "),
+                    build_part(skill_name),
+                    build_part("."),
+                ])
+        else:
+            parts.extend([
+                build_part(named_target),
+                build_part(" avoids "),
+                build_part(skill_name),
+                build_part("."),
+            ])
+
+        if entity.hit_points <= 0:
+            entity.is_alive = False
+            spawn_corpse_for_entity(session, entity)
+            parts.extend([
+                build_part("\n"),
+                build_part(_with_article(entity.name, capitalize=True)),
+                build_part(" is destroyed."),
+            ])
+
+            if session.combat.engaged_entity_id == entity.entity_id:
+                previous_engaged_id = session.combat.engaged_entity_id
+                next_target = _engage_next_room_target(session, entity.entity_id)
+                if next_target is not None and session.combat.engaged_entity_id != previous_engaged_id:
+                    parts.extend([
+                        build_part("\n"),
+                        build_part("You turn to "),
+                        build_part(_with_article(next_target.name)),
+                        build_part("."),
+                    ])
+
+    _set_player_skill_cooldown(session, skill)
+    _apply_player_skill_lag(session, skill)
+    return display_command_result(session, parts), True
+
+
+def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
+    from display import build_part
+
+    if not entity.skill_ids:
+        return False
+
+    if random.random() >= 0.35:
+        return False
+
+    available_skills: list[dict] = []
+    for skill_id in entity.skill_ids:
+        skill = get_skill_by_id(skill_id)
+        if skill is None:
+            continue
+        normalized_skill_id = str(skill.get("skill_id", "")).strip()
+        if normalized_skill_id and entity.skill_cooldowns.get(normalized_skill_id, 0) > 0:
+            continue
+        available_skills.append(skill)
+
+    if not available_skills:
+        return False
+
+    skill = random.choice(available_skills)
+    skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
+    skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
+    cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+
+    _append_newline_if_needed(parts)
+    parts.extend([
+        build_part(_with_article(entity.name, capitalize=True)),
+        build_part(" uses "),
+        build_part(skill_name),
+        build_part("."),
+    ])
+
+    if skill_type == "support" and cast_type == "self":
+        support_effect = str(skill.get("support_effect", "")).strip().lower()
+        support_amount = max(0, int(skill.get("support_amount", 0)))
+        support_context = str(skill.get("support_context", "")).strip()
+
+        if support_effect == "heal":
+            entity.hit_points = min(entity.max_hit_points, entity.hit_points + support_amount)
+        if support_context:
+            _append_newline_if_needed(parts)
+            parts.append(build_part(support_context))
+
+        _set_entity_skill_cooldown(entity, skill)
+        _apply_entity_skill_lag(entity, skill)
+        return True
+
+    if skill_type == "damage" and cast_type in {"target", "aoe"}:
+        total_damage = _roll_skill_damage(skill)
+        damage_context = str(skill.get("damage_context", "")).strip()
+
+        if total_damage > 0:
+            session.status.hit_points = max(0, session.status.hit_points - total_damage)
+
+        _append_newline_if_needed(parts)
+        if damage_context:
+            resolved_context = damage_context.replace("[a/an]", "you")
+            if not resolved_context.endswith("."):
+                resolved_context += "."
+            parts.append(build_part(resolved_context))
+        elif total_damage > 0:
+            parts.extend([
+                build_part("You are hit by "),
+                build_part(skill_name),
+                build_part("."),
+            ])
+        else:
+            parts.extend([
+                build_part("You avoid "),
+                build_part(skill_name),
+                build_part("."),
+            ])
+
+        _set_entity_skill_cooldown(entity, skill)
+        _apply_entity_skill_lag(entity, skill)
+        return True
+
+    return False
+
+
 def cast_spell(session: ClientSession, spell: dict, target_name: str | None = None) -> tuple[dict, bool]:
     from display import build_part, display_command_result, display_error
 
@@ -889,6 +1167,7 @@ def initialize_session_entities(session: ClientSession) -> None:
             is_aggro=True,
             attack_verb="slash",
             pronoun_possessive="his",
+            skill_ids=["skill.jab", "skill.overhead.crack"],
         )
         session.entities[scout.entity_id] = scout
 
@@ -1042,6 +1321,12 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
         if not entity.is_alive:
             continue
 
+        if entity.skill_lag_rounds_remaining > 0:
+            continue
+
+        if _entity_try_use_skill(session, entity, parts):
+            continue
+
         for _ in range(max(1, entity.attacks_per_round)):
             _append_newline_if_needed(parts)
 
@@ -1104,6 +1389,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
     room_attackers = _list_room_attackers(session, entity)
+    _process_combat_round_timers(session, room_attackers)
 
     if opening_attacker == OPENING_ATTACKER_ENTITY:
         _apply_entity_attacks(session, room_attackers, parts, allow_off_hand=False)

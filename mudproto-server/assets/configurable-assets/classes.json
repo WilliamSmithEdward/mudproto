@@ -12,6 +12,9 @@
     "starting_spell_ids": [
       "spell.second.wind"
     ],
+    "starting_skill_ids": [
+      "skill.jab"
+    ],
     "is_default": false
   },
   {
@@ -27,6 +30,10 @@
       "spell.spark",
       "spell.mending.light",
       "spell.ember.lance"
+    ],
+    "starting_skill_ids": [
+      "skill.guard.breath",
+      "skill.jab"
     ],
     "is_default": true
   }

@@ -11,8 +11,9 @@ from combat import (
     resolve_combat_round,
     resolve_room_corpse_selector,
     spawn_dummy,
+    use_skill,
 )
-from assets import load_equipment_templates, load_spells
+from assets import load_equipment_templates, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, unequip_item, wear_item
 import random
 import re
@@ -249,6 +250,37 @@ def _parse_cast_spell(
         return None, None, "Usage: cast 'spell name' [target]"
 
     return spell_name, None, None
+
+
+def _parse_skill_use(
+    command_text: str,
+    args: list[str],
+    verb: str,
+) -> tuple[str | None, str | None, str | None]:
+    escaped_verb = re.escape(verb.strip())
+    quoted_match = re.match(
+        rf"^{escaped_verb}\s+(['\"])(.+?)\1(?:\s+(.+))?\s*$",
+        command_text.strip(),
+        re.IGNORECASE,
+    )
+    if quoted_match is not None:
+        skill_name = quoted_match.group(2).strip()
+        target_name = (quoted_match.group(3) or "").strip() or None
+        if skill_name:
+            return skill_name, target_name, None
+
+    skill_name = " ".join(args).strip()
+    if (
+        len(skill_name) >= 2
+        and skill_name[0] in {"'", '"'}
+        and skill_name[-1] == skill_name[0]
+    ):
+        skill_name = skill_name[1:-1].strip()
+
+    if not skill_name:
+        return None, None, "Usage: skill 'skill name' [target]"
+
+    return skill_name, None, None
 
 
 def _build_corpse_label(source_name: str) -> str:
@@ -497,6 +529,73 @@ def _resolve_spell_by_name(spell_name: str, spells: list[dict] | None = None) ->
         return None, f"Multiple spell matches found. Be more specific: {names}"
 
     return None, f"Unknown spell: {spell_name}"
+
+
+def _list_known_skills(session: ClientSession) -> list[dict]:
+    known_ids = {skill_id.strip().lower() for skill_id in session.known_skill_ids if skill_id.strip()}
+    if not known_ids:
+        return []
+
+    return [
+        skill
+        for skill in load_skills()
+        if str(skill.get("skill_id", "")).strip().lower() in known_ids
+    ]
+
+
+def _resolve_skill_by_name(skill_name: str, skills: list[dict] | None = None) -> tuple[dict | None, str | None]:
+    normalized = skill_name.strip().lower()
+    if not normalized:
+        return None, "Usage: skill 'skill name' [target]"
+
+    def _tokenize(value: str) -> list[str]:
+        return [token for token in value.strip().lower().split() if token]
+
+    query_tokens = _tokenize(normalized)
+    query_joined = "".join(query_tokens)
+
+    exact_matches: list[dict] = []
+    partial_matches: list[dict] = []
+
+    for skill in (skills if skills is not None else load_skills()):
+        name = str(skill.get("name", "")).strip()
+        skill_normalized = name.lower()
+        if not skill_normalized:
+            continue
+
+        if skill_normalized == normalized:
+            exact_matches.append(skill)
+            continue
+
+        name_tokens = _tokenize(skill_normalized)
+        initials = "".join(token[0] for token in name_tokens if token)
+
+        token_prefix_match = False
+        if query_tokens and len(query_tokens) <= len(name_tokens):
+            token_prefix_match = all(
+                name_tokens[index].startswith(query_tokens[index])
+                for index in range(len(query_tokens))
+            )
+
+        joined_prefix_match = bool(query_joined) and initials.startswith(query_joined)
+        substring_match = normalized in skill_normalized
+
+        if token_prefix_match or joined_prefix_match or substring_match:
+            partial_matches.append(skill)
+
+    if len(exact_matches) == 1:
+        return exact_matches[0], None
+    if len(exact_matches) > 1:
+        names = ", ".join(str(skill.get("name", "Skill")) for skill in exact_matches[:3])
+        return None, f"Multiple exact skill matches found: {names}"
+
+    if len(partial_matches) == 1:
+        return partial_matches[0], None
+    if len(partial_matches) > 1:
+        names = ", ".join(str(skill.get("name", "Skill")) for skill in partial_matches[:3])
+        return None, f"Multiple skill matches found. Be more specific: {names}"
+
+    return None, f"Unknown skill: {skill_name}"
 
 
 def execute_command(session: ClientSession, command_text: str) -> OutboundResult:
@@ -850,6 +949,88 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 ])
 
         return display_command_result(session, parts)
+
+    if verb in {"skills", "sk", "ski", "skil"}:
+        skills = _list_known_skills(session)
+        if not skills:
+            return display_command_result(session, [
+                build_part("You do not know any skills.", "bright_white"),
+            ])
+
+        parts = [build_part("Skills", "bright_white", True)]
+        for skill in skills:
+            skill_name = str(skill.get("name", "Skill"))
+            skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
+            cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+            lag_rounds = int(skill.get("lag_rounds", 0))
+            cooldown_rounds = int(skill.get("cooldown_rounds", 0))
+            description = str(skill.get("description", "")).strip()
+
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(skill_name, "bright_cyan", True),
+                build_part(" | type: ", "bright_white"),
+                build_part(skill_type, "bright_yellow", True),
+                build_part(" | cast: ", "bright_white"),
+                build_part(cast_type, "bright_yellow", True),
+                build_part(" | lag: ", "bright_white"),
+                build_part(f"{lag_rounds}r", "bright_yellow", True),
+                build_part(" | cd: ", "bright_white"),
+                build_part(f"{cooldown_rounds}r", "bright_yellow", True),
+            ])
+            if description:
+                parts.extend([
+                    build_part(" | ", "bright_white"),
+                    build_part(description, "bright_white"),
+                ])
+
+        return display_command_result(session, parts)
+
+    # Try to resolve unknown verb as a shorthand skill invocation (e.g., 'jab scout' instead of 'skill jab scout')
+    known_skills = _list_known_skills(session)
+    if verb not in {"skill", "skl", "use"} and known_skills:
+        for cut in range(len(args) + 1, 0, -1):
+            candidate_verb_args = [verb] + args[:cut-1]
+            candidate_skill_name = " ".join(candidate_verb_args).strip()
+            candidate_target_name = " ".join(args[cut-1:]).strip() or None
+            candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
+            if candidate_skill is not None:
+                verb = "skill"
+                args = candidate_verb_args + (args[cut-1:] if args[cut-1:] else [])
+                break
+
+    if verb in {"skill", "skl", "use"}:
+        if not known_skills:
+            return display_error("You do not know any skills.", session)
+
+        skill_name, target_name, parse_error = _parse_skill_use(command_text, args, verb)
+        if parse_error is not None or skill_name is None:
+            return display_error(parse_error or "Usage: skill 'skill name' [target]", session)
+
+        # For unquoted input, resolve by trying longest-to-shortest splits so
+        # `skill jab scout` can map to skill `jab` with target `scout`.
+        if target_name is None and len(args) > 1:
+            for cut in range(len(args), 0, -1):
+                candidate_skill_name = " ".join(args[:cut]).strip()
+                candidate_target_name = " ".join(args[cut:]).strip() or None
+                candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
+                if candidate_skill is not None:
+                    skill_name = candidate_skill_name
+                    target_name = candidate_target_name
+                    break
+
+        skill, resolve_error = _resolve_skill_by_name(skill_name, known_skills)
+        if skill is None:
+            return display_error(resolve_error or f"Unknown skill: {skill_name}", session)
+
+        response, skill_applied = use_skill(session, skill, target_name)
+        if skill_applied and session.combat.engaged_entity_id is not None:
+            try:
+                apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
+            except RuntimeError:
+                pass
+        return response
 
     if verb in {"cast", "c", "ca", "cas"}:
         spell_name, target_name, parse_error = _parse_cast_spell(command_text, args, verb)

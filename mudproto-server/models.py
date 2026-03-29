@@ -39,6 +39,7 @@ class CombatState:
     next_round_monotonic: Optional[float] = None
     opening_attacker: Optional[str] = None
     skip_melee_rounds: int = 0
+    skill_cooldowns: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -124,6 +125,9 @@ class EntityState:
     is_ally: bool = False
     pronoun_possessive: str = "its"
     attack_verb: str = "hit"
+    skill_ids: list[str] = field(default_factory=list)
+    skill_cooldowns: dict[str, int] = field(default_factory=dict)
+    skill_lag_rounds_remaining: int = 0
 
 
 def _build_default_equipment_state() -> EquipmentState:
@@ -153,5 +157,6 @@ class ClientSession:
     room_ground_items: dict[str, dict[str, LootItemState]] = field(default_factory=dict)
     inventory_items: dict[str, LootItemState] = field(default_factory=dict)
     known_spell_ids: list[str] = field(default_factory=list)
+    known_skill_ids: list[str] = field(default_factory=list)
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     next_game_tick_monotonic: Optional[float] = None

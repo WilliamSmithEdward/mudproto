@@ -76,6 +76,8 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
         parts.extend([
             build_part(" [NPC:", "bright_white"),
+            build_part(engaged_entity.name, "bright_yellow", True),
+            build_part(" - ", "bright_white"),
             build_part(npc_condition.title(), npc_condition_color, True),
             build_part("]", "bright_white"),
         ])

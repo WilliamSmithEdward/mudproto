@@ -1,0 +1,40 @@
+[
+  {
+    "skill_id": "skill.jab",
+    "name": "Jab",
+    "description": "A quick probing strike.",
+    "skill_type": "damage",
+    "cast_type": "target",
+    "damage_dice_count": 1,
+    "damage_dice_sides": 8,
+    "damage_modifier": 2,
+    "damage_context": "[a/an] is snapped backward by a sharp jab.",
+    "lag_rounds": 0,
+    "cooldown_rounds": 1
+  },
+  {
+    "skill_id": "skill.overhead.crack",
+    "name": "Overhead Crack",
+    "description": "A heavy overhead blow that leaves the attacker open.",
+    "skill_type": "damage",
+    "cast_type": "target",
+    "damage_dice_count": 2,
+    "damage_dice_sides": 8,
+    "damage_modifier": 2,
+    "damage_context": "[a/an] takes a crushing overhead strike.",
+    "lag_rounds": 1,
+    "cooldown_rounds": 3
+  },
+  {
+    "skill_id": "skill.guard.breath",
+    "name": "Guard Breath",
+    "description": "Steady breath and reset posture to recover.",
+    "skill_type": "support",
+    "cast_type": "self",
+    "support_effect": "heal",
+    "support_amount": 10,
+    "support_context": "A measured breath steadies your posture and closes shallow wounds.",
+    "lag_rounds": 0,
+    "cooldown_rounds": 4
+  }
+]
