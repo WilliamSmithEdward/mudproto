@@ -305,6 +305,10 @@ def load_npc_templates() -> list[dict]:
         if not isinstance(raw_skill_ids, list):
             raise ValueError(f"NPC '{npc_id}' skill_ids must be a list.")
 
+        skill_use_chance = float(raw_npc.get("skill_use_chance", 0.35))
+        if skill_use_chance < 0.0 or skill_use_chance > 1.0:
+            raise ValueError(f"NPC '{npc_id}' skill_use_chance must be between 0.0 and 1.0.")
+
         npc_ids.add(npc_id)
         normalized_npcs.append({
             "npc_id": npc_id,
@@ -325,6 +329,9 @@ def load_npc_templates() -> list[dict]:
             "is_ally": bool(raw_npc.get("is_ally", False)),
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
             "attack_verb": str(raw_npc.get("attack_verb", "hit")).strip().lower() or "hit",
+            "main_hand_weapon_template_id": str(raw_npc.get("main_hand_weapon_template_id", "")).strip(),
+            "off_hand_weapon_template_id": str(raw_npc.get("off_hand_weapon_template_id", "")).strip(),
+            "skill_use_chance": skill_use_chance,
             "skill_ids": [str(skill_id).strip() for skill_id in raw_skill_ids if str(skill_id).strip()],
             "loot_items": normalized_loot_items,
         })

@@ -126,6 +126,9 @@ class EntityState:
     is_ally: bool = False
     pronoun_possessive: str = "its"
     attack_verb: str = "hit"
+    main_hand_weapon_template_id: str = ""
+    off_hand_weapon_template_id: str = ""
+    skill_use_chance: float = 0.35
     skill_ids: list[str] = field(default_factory=list)
     skill_cooldowns: dict[str, int] = field(default_factory=dict)
     skill_lag_rounds_remaining: int = 0

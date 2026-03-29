@@ -19,19 +19,10 @@
       "is_ally": false,
       "pronoun_possessive": "his",
       "attack_verb": "slash",
-      "skill_ids": ["skill.jab", "skill.overhead.crack"],
-      "loot_items": [
-        {
-          "name": "Scout Dagger",
-          "description": "A worn dagger carried by a hall scout.",
-          "keywords": ["scout", "dagger", "blade"]
-        },
-        {
-          "name": "Patrol Token",
-          "description": "A stamped token marked with hall patrol insignia.",
-          "keywords": ["patrol", "token", "badge"]
-        }
-      ]
+      "main_hand_weapon_template_id": "weapon.training-sword",
+      "off_hand_weapon_template_id": "weapon.scout-dagger",
+      "skill_use_chance": 0.35,
+      "skill_ids": ["skill.jab", "skill.overhead.crack"]
     }
   ]
 }
