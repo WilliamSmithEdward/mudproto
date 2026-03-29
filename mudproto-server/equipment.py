@@ -26,6 +26,39 @@ WEAR_SLOT_OPTIONS = {
     "ring": ["left_hand", "right_hand"],
 }
 
+WEAR_LOCATION_ALIASES = {
+    "left": "left_hand",
+    "left hand": "left_hand",
+    "lefthand": "left_hand",
+    "right": "right_hand",
+    "right hand": "right_hand",
+    "righthand": "right_hand",
+}
+
+
+def _get_supported_wear_slot_keys() -> set[str]:
+    supported = set(DEFAULT_WEAR_SLOTS)
+    for concrete_slots in WEAR_SLOT_OPTIONS.values():
+        supported.update(concrete_slots)
+    return supported
+
+
+def resolve_wear_slot_alias(location: str) -> str | None:
+    normalized = re.sub(r"[._]+", " ", location.strip().lower())
+    normalized = re.sub(r"\s+", " ", normalized)
+    if not normalized:
+        return None
+
+    alias_match = WEAR_LOCATION_ALIASES.get(normalized)
+    if alias_match is not None:
+        return alias_match
+
+    candidate = normalized.replace(" ", "_")
+    if candidate in _get_supported_wear_slot_keys():
+        return candidate
+
+    return None
+
 
 def _get_wear_slot_keys(wear_slot: str) -> list[str]:
     return list(WEAR_SLOT_OPTIONS.get(wear_slot, [wear_slot]))
@@ -304,13 +337,20 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
     return True, target_hand
 
 
-def wear_item(session: ClientSession, item: EquipmentItemState) -> tuple[bool, str]:
+def wear_item(session: ClientSession, item: EquipmentItemState, target_wear_slot: str | None = None) -> tuple[bool, str]:
     if item.slot != "armor":
         return False, f"{item.name} cannot be worn."
 
     wear_slot_candidates, slot_error = _resolve_item_wear_slot_candidates(item)
     if slot_error is not None:
         return False, slot_error
+
+    if target_wear_slot is not None:
+        normalized_target_slot = target_wear_slot.strip().lower()
+        if normalized_target_slot not in wear_slot_candidates:
+            allowed = ", ".join(_normalize_wear_slot_label(slot) for slot in wear_slot_candidates)
+            return False, f"{item.name} cannot be worn on your {_normalize_wear_slot_label(normalized_target_slot)}. Available slots: {allowed}."
+        wear_slot_candidates = [normalized_target_slot]
 
     if item.item_id not in session.equipment.items:
         return False, f"{item.name} is not in your inventory."

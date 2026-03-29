@@ -14,7 +14,7 @@ from combat import (
     use_skill,
 )
 from assets import load_equipment_templates, load_skills, load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, unequip_item, wear_item
+from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
 import random
 import re
 import uuid
@@ -219,6 +219,36 @@ def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, s
         return None, None, "Usage: equip <selector> [main|off]"
 
     return hand, selector, None
+
+
+def _parse_wear_selector_and_location(args: list[str]) -> tuple[str | None, str | None, str | None]:
+    if not args:
+        return None, None, "Usage: wear <selector> [location]"
+
+    normalized = [arg.strip().lower() for arg in args if arg.strip()]
+    if not normalized:
+        return None, None, "Usage: wear <selector> [location]"
+
+    selector_tokens = normalized
+    wear_location: str | None = None
+
+    # Try longest suffix first so both `right hand` and `right.hand` work.
+    for suffix_len in (2, 1):
+        if len(normalized) <= suffix_len:
+            continue
+        candidate_suffix = normalized[-suffix_len:]
+        candidate_location = resolve_wear_slot_alias(" ".join(candidate_suffix))
+        if candidate_location is None:
+            continue
+        wear_location = candidate_location
+        selector_tokens = normalized[:-suffix_len]
+        break
+
+    selector = ".".join(selector_tokens).strip(".")
+    if not selector:
+        return None, None, "Usage: wear <selector> [location]"
+
+    return selector, wear_location, None
 
 
 def _parse_cast_spell(
@@ -1148,14 +1178,17 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
     if verb in {"wear", "wea", "we", "puton"}:
         if not args:
-            return display_error("Usage: wear <selector>", session)
+            return display_error("Usage: wear <selector> [location]", session)
 
-        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
+        selector, wear_location, parse_error = _parse_wear_selector_and_location(args)
+        if parse_error is not None or selector is None:
+            return display_error(parse_error or "Usage: wear <selector> [location]", session)
+
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
             return display_error(resolve_error or "Unable to resolve equipment selector.", session)
 
-        worn, wear_result = wear_item(session, item)
+        worn, wear_result = wear_item(session, item, wear_location)
         if not worn:
             return display_error(wear_result, session)
 
