@@ -301,7 +301,19 @@ def _find_spell_by_name(spell_name: str) -> dict | None:
     return None
 
 
-def _resolve_spell_by_name(spell_name: str) -> tuple[dict | None, str | None]:
+def _list_known_spells(session: ClientSession) -> list[dict]:
+    known_ids = {spell_id.strip().lower() for spell_id in session.known_spell_ids if spell_id.strip()}
+    if not known_ids:
+        return []
+
+    return [
+        spell
+        for spell in load_spells()
+        if str(spell.get("spell_id", "")).strip().lower() in known_ids
+    ]
+
+
+def _resolve_spell_by_name(spell_name: str, spells: list[dict] | None = None) -> tuple[dict | None, str | None]:
     normalized = spell_name.strip().lower()
     if not normalized:
         return None, "Usage: cast 'spell name' [target]"
@@ -315,7 +327,7 @@ def _resolve_spell_by_name(spell_name: str) -> tuple[dict | None, str | None]:
     exact_matches: list[dict] = []
     partial_matches: list[dict] = []
 
-    for spell in load_spells():
+    for spell in (spells if spells is not None else load_spells()):
         name = str(spell.get("name", "")).strip()
         spell_normalized = name.lower()
         if not spell_normalized:
@@ -531,10 +543,10 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         return display_equipment(session)
 
     if verb in {"spell", "spells"}:
-        spells = load_spells()
+        spells = _list_known_spells(session)
         if not spells:
             return display_command_result(session, [
-                build_part("No spells are available.", "bright_white"),
+                build_part("You do not know any spells.", "bright_white"),
             ])
 
         parts = [
@@ -601,9 +613,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if parse_error is not None or spell_name is None:
             return display_error(parse_error or "Usage: cast 'spell name' [target]", session)
 
-        spell, resolve_error = _resolve_spell_by_name(spell_name)
+        known_spells = _list_known_spells(session)
+        if not known_spells:
+            return display_error("You do not know any spells.", session)
+
+        spell, resolve_error = _resolve_spell_by_name(spell_name, known_spells)
         if spell is None:
-            return display_error(resolve_error or f"Unknown spell: {spell_name}", session)
+            return display_error(resolve_error or f"You do not know spell: {spell_name}", session)
 
         response, cast_applied = cast_spell(session, spell, target_name)
         if cast_applied:

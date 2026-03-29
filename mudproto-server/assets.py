@@ -6,9 +6,10 @@ from pathlib import Path
 SERVER_ROOT = Path(__file__).resolve().parent
 DEFAULT_ASSET_ROOT = SERVER_ROOT / "assets" / "default-assets"
 CONFIGURABLE_ASSET_ROOT = SERVER_ROOT / "assets" / "configurable-assets"
-TRAINING_EQUIPMENT_FILE = DEFAULT_ASSET_ROOT / "training-equipment.json"
+EQUIPMENT_FILE = CONFIGURABLE_ASSET_ROOT / "equipment.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
+PLAYER_CLASSES_FILE = CONFIGURABLE_ASSET_ROOT / "classes.json"
 
 
 def _read_json_asset(path: Path) -> object:
@@ -18,9 +19,9 @@ def _read_json_asset(path: Path) -> object:
 
 @lru_cache(maxsize=1)
 def load_equipment_templates() -> list[dict]:
-    raw_templates = _read_json_asset(TRAINING_EQUIPMENT_FILE)
+    raw_templates = _read_json_asset(EQUIPMENT_FILE)
     if not isinstance(raw_templates, list):
-        raise ValueError(f"Equipment asset file must contain a list: {TRAINING_EQUIPMENT_FILE}")
+        raise ValueError(f"Equipment asset file must contain a list: {EQUIPMENT_FILE}")
 
     template_ids: set[str] = set()
     normalized_templates: list[dict] = []
@@ -76,6 +77,14 @@ def load_starting_equipment_templates() -> list[dict]:
         for template in load_equipment_templates()
         if template["grant_to_new_players"]
     ]
+
+
+def get_equipment_template_by_id(template_id: str) -> dict | None:
+    normalized = template_id.strip().lower()
+    for template in load_equipment_templates():
+        if str(template.get("template_id", "")).strip().lower() == normalized:
+            return template
+    return None
 
 
 @lru_cache(maxsize=1)
@@ -227,3 +236,116 @@ def load_spells() -> list[dict]:
         })
 
     return normalized_spells
+
+
+def get_spell_by_id(spell_id: str) -> dict | None:
+    normalized = spell_id.strip().lower()
+    for spell in load_spells():
+        if str(spell.get("spell_id", "")).strip().lower() == normalized:
+            return spell
+    return None
+
+
+@lru_cache(maxsize=1)
+def load_player_classes() -> list[dict]:
+    raw_classes = _read_json_asset(PLAYER_CLASSES_FILE)
+    if not isinstance(raw_classes, list):
+        raise ValueError(f"Player class asset file must contain a list: {PLAYER_CLASSES_FILE}")
+
+    class_ids: set[str] = set()
+    class_names: set[str] = set()
+    normalized_classes: list[dict] = []
+
+    for raw_class in raw_classes:
+        if not isinstance(raw_class, dict):
+            raise ValueError("Player class entries must be objects.")
+
+        class_id = raw_class.get("class_id")
+        name = raw_class.get("name")
+        if not isinstance(class_id, str) or not class_id.strip():
+            raise ValueError("Player class entries must include a non-empty string class_id.")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"Player class '{class_id}' must include a non-empty name.")
+
+        normalized_class_id = class_id.strip().lower()
+        normalized_class_name = name.strip().lower()
+        if normalized_class_id in class_ids:
+            raise ValueError(f"Duplicate class_id in player classes: {class_id}")
+        if normalized_class_name in class_names:
+            raise ValueError(f"Duplicate class name in player classes: {name}")
+
+        raw_equipment_ids = raw_class.get("starting_equipment_template_ids", [])
+        raw_spell_ids = raw_class.get("starting_spell_ids", [])
+        if not isinstance(raw_equipment_ids, list):
+            raise ValueError(
+                f"Player class '{class_id}' starting_equipment_template_ids must be a list."
+            )
+        if not isinstance(raw_spell_ids, list):
+            raise ValueError(f"Player class '{class_id}' starting_spell_ids must be a list.")
+
+        equipment_ids: list[str] = []
+        seen_equipment_ids: set[str] = set()
+        for raw_template_id in raw_equipment_ids:
+            template_id = str(raw_template_id).strip()
+            if not template_id:
+                continue
+            normalized_template_id = template_id.lower()
+            if normalized_template_id in seen_equipment_ids:
+                continue
+            if get_equipment_template_by_id(template_id) is None:
+                raise ValueError(
+                    f"Player class '{class_id}' references unknown equipment template: {template_id}"
+                )
+            seen_equipment_ids.add(normalized_template_id)
+            equipment_ids.append(template_id)
+
+        spell_ids: list[str] = []
+        seen_spell_ids: set[str] = set()
+        for raw_spell_id in raw_spell_ids:
+            spell_id = str(raw_spell_id).strip()
+            if not spell_id:
+                continue
+            normalized_spell_id = spell_id.lower()
+            if normalized_spell_id in seen_spell_ids:
+                continue
+            if get_spell_by_id(spell_id) is None:
+                raise ValueError(f"Player class '{class_id}' references unknown spell: {spell_id}")
+            seen_spell_ids.add(normalized_spell_id)
+            spell_ids.append(spell_id)
+
+        class_ids.add(normalized_class_id)
+        class_names.add(normalized_class_name)
+        normalized_classes.append({
+            "class_id": class_id.strip(),
+            "name": name.strip(),
+            "description": str(raw_class.get("description", "")).strip(),
+            "starting_equipment_template_ids": equipment_ids,
+            "starting_spell_ids": spell_ids,
+            "is_default": bool(raw_class.get("is_default", False)),
+        })
+
+    if not normalized_classes:
+        raise ValueError("At least one player class must be defined.")
+
+    default_class_count = sum(1 for player_class in normalized_classes if player_class["is_default"])
+    if default_class_count == 0:
+        raise ValueError("One player class must set is_default to true.")
+    if default_class_count > 1:
+        raise ValueError("Only one player class can set is_default to true.")
+
+    return normalized_classes
+
+
+def get_player_class_by_id(class_id: str) -> dict | None:
+    normalized = class_id.strip().lower()
+    for player_class in load_player_classes():
+        if str(player_class.get("class_id", "")).strip().lower() == normalized:
+            return player_class
+    return None
+
+
+def get_default_player_class() -> dict:
+    for player_class in load_player_classes():
+        if bool(player_class.get("is_default", False)):
+            return player_class
+    raise ValueError("No default player class is configured.")

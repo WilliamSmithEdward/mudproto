@@ -1,0 +1,28 @@
+[
+  {
+    "class_id": "class.vanguard",
+    "name": "Vanguard",
+    "description": "A disciplined front-line fighter trained in steel and endurance.",
+    "starting_equipment_template_ids": [
+      "weapon.training-sword",
+      "weapon.training-dagger"
+    ],
+    "starting_spell_ids": [
+      "spell.second.wind"
+    ],
+    "is_default": false
+  },
+  {
+    "class_id": "class.arcanist",
+    "name": "Arcanist",
+    "description": "A student of focused destructive and restorative magic.",
+    "starting_equipment_template_ids": [
+      "weapon.training-dagger"
+    ],
+    "starting_spell_ids": [
+      "spell.spark",
+      "spell.mending.light"
+    ],
+    "is_default": true
+  }
+]

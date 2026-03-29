@@ -15,6 +15,7 @@ class QueuedCommand:
 @dataclass
 class PlayerState:
     current_room_id: str = "start"
+    class_id: str = ""
 
 
 @dataclass
@@ -181,5 +182,6 @@ class ClientSession:
     corpses: dict[str, CorpseState] = field(default_factory=dict)
     corpse_spawn_counter: int = 0
     inventory_items: dict[str, LootItemState] = field(default_factory=dict)
+    known_spell_ids: list[str] = field(default_factory=list)
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     next_game_tick_monotonic: Optional[float] = None
