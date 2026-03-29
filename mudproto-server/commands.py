@@ -1091,7 +1091,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 session,
             )
 
-        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
             misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
@@ -1124,7 +1124,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 session,
             )
 
-        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
             misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
@@ -1150,7 +1150,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not args:
             return display_error("Usage: wear <selector>", session)
 
-        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
             return display_error(resolve_error or "Unable to resolve equipment selector.", session)
@@ -1171,7 +1171,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not args:
             return display_error("Usage: drop <selector>", session)
 
-        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         if not selector:
             return display_error("Usage: drop <selector>", session)
 
@@ -1295,7 +1295,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not args:
             return display_error("Usage: rem <selector>", session)
 
-        selector = "".join(arg.strip().lower() for arg in args if arg.strip())
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         if selector == "all":
             worn_items = list_worn_items(session)
             if not worn_items:
