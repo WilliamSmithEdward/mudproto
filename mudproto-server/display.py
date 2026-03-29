@@ -230,6 +230,23 @@ def display_inventory(session: ClientSession) -> dict:
     misc_items = list(session.inventory_items.values())
     misc_items.sort(key=lambda item: item.name.lower())
 
+    def _stack_counts(names: list[str]) -> list[tuple[str, int]]:
+        counts: dict[str, int] = {}
+        display_names: dict[str, str] = {}
+        order: list[str] = []
+
+        for name in names:
+            normalized = name.strip().lower()
+            if not normalized:
+                continue
+            if normalized not in counts:
+                counts[normalized] = 0
+                display_names[normalized] = name
+                order.append(normalized)
+            counts[normalized] += 1
+
+        return [(display_names[key], counts[key]) for key in order]
+
     parts = [
         build_part("Inventory", "bright_white", True),
     ]
@@ -240,19 +257,31 @@ def display_inventory(session: ClientSession) -> dict:
             build_part(" - empty", "bright_yellow", True),
         ])
     else:
-        for index, item in enumerate(equipment_items, start=1):
+        equipment_stacks = _stack_counts([item.name for item in equipment_items])
+        for item_name, count in equipment_stacks:
             parts.extend([
                 build_part("\n"),
-                build_part(f" - {index}. ", "bright_white"),
-                build_part(item.name, "bright_magenta", True),
+                build_part(" - ", "bright_white"),
+                build_part(item_name, "bright_magenta", True),
             ])
+            if count > 1:
+                parts.extend([
+                    build_part(" ", "bright_white"),
+                    build_part(f"[{count}]", "bright_cyan", True),
+                ])
 
-    for item in misc_items:
+    misc_stacks = _stack_counts([item.name for item in misc_items])
+    for item_name, count in misc_stacks:
         parts.extend([
             build_part("\n"),
             build_part(" - ", "bright_white"),
-            build_part(item.name, "bright_yellow", True),
+            build_part(item_name, "bright_yellow", True),
         ])
+        if count > 1:
+            parts.extend([
+                build_part(" ", "bright_white"),
+                build_part(f"[{count}]", "bright_cyan", True),
+            ])
 
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 

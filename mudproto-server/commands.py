@@ -13,7 +13,7 @@ from combat import (
     spawn_dummy,
 )
 from assets import load_equipment_templates, load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, unequip_item, wear_item
+from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, unequip_item, wear_item
 import random
 import re
 import uuid
@@ -813,6 +813,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not args:
             return display_error("Usage: wield <selector>", session)
 
+        current_main = get_equipped_main_hand(session)
+        if current_main is not None:
+            return display_error(
+                f"Your main hand is already occupied by {current_main.name}. Remove it first.",
+                session,
+            )
+
         selector = "".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
@@ -838,6 +845,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     if verb in {"hold", "hol", "ho"}:
         if not args:
             return display_error("Usage: hold <selector>", session)
+
+        current_off = get_equipped_off_hand(session)
+        if current_off is not None:
+            return display_error(
+                f"Your off hand is already occupied by {current_off.name}. Remove it first.",
+                session,
+            )
 
         selector = "".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
