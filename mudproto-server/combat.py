@@ -285,12 +285,18 @@ def resolve_room_entity_selector(
     if not normalized:
         return None, "Provide a target selector."
 
-    room_entities = [
+    all_room_entities = [
         entity
         for entity in session.entities.values()
-        if entity.room_id == room_id and (entity.is_alive or not living_only)
+        if entity.room_id == room_id
     ]
-    room_entities.sort(key=lambda item: item.spawn_sequence)
+    all_room_entities.sort(key=lambda item: item.spawn_sequence)
+
+    room_entities = [
+        entity
+        for entity in all_room_entities
+        if entity.is_alive or not living_only
+    ]
 
     # Backward-compatible free text lookup for plain names.
     if "." not in normalized:
@@ -323,6 +329,12 @@ def resolve_room_entity_selector(
     if not parts:
         return None, "Provide at least one selector keyword after the index."
 
+    all_matches: list[EntityState] = []
+    for entity in all_room_entities:
+        keywords = _entity_name_keywords(entity.name)
+        if all(keyword in keywords for keyword in parts):
+            all_matches.append(entity)
+
     matches: list[EntityState] = []
     for entity in room_entities:
         keywords = _entity_name_keywords(entity.name)
@@ -330,10 +342,16 @@ def resolve_room_entity_selector(
             matches.append(entity)
 
     if not matches:
+        if living_only and all_matches:
+            return None, "All matching targets are dead."
         return None, f"No target named '{selector_text}' is here."
 
     if requested_index is not None:
         if requested_index > len(matches):
+            if living_only and requested_index <= len(all_matches):
+                indexed_target = all_matches[requested_index - 1]
+                if not indexed_target.is_alive:
+                    return None, f"{indexed_target.name} is already dead."
             living_label = " living" if living_only else ""
             return None, f"Only {len(matches)}{living_label} match(es) found for '{selector_text}'."
         return matches[requested_index - 1], None
