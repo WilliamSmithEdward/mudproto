@@ -994,6 +994,50 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not selector:
             return display_error("Usage: drop <selector>", session)
 
+        if selector.startswith("all.") and len(selector) > 4:
+            item_selector = selector[4:]
+            selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
+            if not selector_tokens:
+                return display_error("Usage: drop all.<item>", session)
+
+            equipment_matches = []
+            for item in list(session.equipment.items.values()):
+                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+                if selector_tokens.issubset(item_keywords):
+                    equipment_matches.append(item)
+
+            misc_matches = []
+            for item in list(session.inventory_items.values()):
+                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+                if selector_tokens.issubset(item_keywords):
+                    misc_matches.append(item)
+
+            if not equipment_matches and not misc_matches:
+                return display_error(f"No inventory item matches '{item_selector}'.", session)
+
+            dropped_names: list[str] = []
+
+            for item in equipment_matches:
+                remove_item(session, item)
+                _add_item_to_room_ground(session, session.player.current_room_id, item)
+                dropped_names.append(item.name)
+
+            for item in misc_matches:
+                session.inventory_items.pop(item.item_id, None)
+                _add_item_to_room_ground(session, session.player.current_room_id, item)
+                dropped_names.append(item.name)
+
+            parts = [
+                build_part("You drop all matching items.", "bright_white"),
+            ]
+            for item_name in dropped_names:
+                parts.extend([
+                    build_part("\n"),
+                    build_part(" - ", "bright_white"),
+                    build_part(item_name, "bright_yellow", True),
+                ])
+            return display_command_result(session, parts)
+
         coin_drop_match = re.match(r"^(\d+)\*coins?$", selector)
         if coin_drop_match is not None:
             drop_amount = int(coin_drop_match.group(1))
