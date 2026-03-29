@@ -346,7 +346,7 @@ def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
             matches.append(item)
 
     if not matches:
-        return None, f"No inventory item matches '{selector}'."
+        return None, f"{selector} doesn't exist in inventory."
 
     if requested_index is not None:
         if requested_index > len(matches):
@@ -354,6 +354,60 @@ def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
         return matches[requested_index - 1], None
 
     return matches[0], None
+
+
+def _resolve_wear_inventory_selector(session: ClientSession, selector: str) -> tuple[EquipmentItemState | None, str | None]:
+    normalized = selector.strip().lower()
+    if not normalized:
+        return None, "Provide an inventory selector."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, "Provide an inventory selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, "Provide at least one selector keyword after the index."
+
+    matches: list[tuple[str, object]] = []
+
+    for item in session.equipment.items.values():
+        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+        if all(keyword in keywords for keyword in parts):
+            matches.append((item.name.lower(), item))
+
+    for misc_item in session.inventory_items.values():
+        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", misc_item.name.lower()) if token}
+        if all(keyword in keywords for keyword in parts):
+            matches.append((misc_item.name.lower(), misc_item))
+
+    matches.sort(key=lambda entry: entry[0])
+
+    if not matches:
+        return None, f"No inventory item matches '{selector}'."
+
+    selected_match: object
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"{selector} doesn't exist in inventory."
+        selected_match = matches[requested_index - 1][1]
+    else:
+        selected_match = matches[0][1]
+
+    if isinstance(selected_match, EquipmentItemState):
+        return selected_match, None
+
+    promoted = _promote_misc_item_to_equipment(session, selected_match)
+    if promoted is None:
+        return None, f"{selected_match.name} cannot be worn."
+
+    return promoted, None
 
 
 def _list_room_ground_items(session: ClientSession, room_id: str):
@@ -1239,18 +1293,12 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
             return display_command_result(session, parts)
 
-        item, resolve_error = resolve_equipment_selector(session, selector)
+        item, resolve_error = _resolve_wear_inventory_selector(session, selector)
         if resolve_error is not None or item is None:
-            misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
-            if misc_item is None:
-                return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
+            return display_error(resolve_error or "Unable to resolve inventory selector.", session)
 
-            promoted = _promote_misc_item_to_equipment(session, misc_item)
-            if promoted is None:
-                return display_error(f"{misc_item.name} cannot be worn.", session)
-            if promoted.slot.strip().lower() != "armor":
-                return display_error(f"{promoted.name} cannot be worn.", session)
-            item = promoted
+        if item.slot.strip().lower() != "armor":
+            return display_error(f"{item.name} cannot be worn.", session)
 
         worn, wear_result = wear_item(session, item, wear_location)
         if not worn:
