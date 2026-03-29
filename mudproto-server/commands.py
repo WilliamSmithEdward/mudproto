@@ -1593,17 +1593,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             build_part("You wait.", "bright_white")
         ])
 
-    if verb == "heavy":
-        response = display_command_result(session, [
-            build_part("You use ", "bright_white"),
-            build_part("a heavy skill", "bright_red", True),
-            build_part(". Lag applied for ", "bright_white"),
-            build_part("3.0", "bright_yellow", True),
-            build_part(" seconds.", "bright_white")
-        ])
-        apply_lag(session, 3.0)
-        return response
-
     if verb == "say":
         spoken_text = " ".join(args).strip()
         if not spoken_text:
