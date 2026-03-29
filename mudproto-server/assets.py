@@ -8,6 +8,7 @@ DEFAULT_ASSET_ROOT = SERVER_ROOT / "assets" / "default-assets"
 CONFIGURABLE_ASSET_ROOT = SERVER_ROOT / "assets" / "configurable-assets"
 TRAINING_EQUIPMENT_FILE = DEFAULT_ASSET_ROOT / "training-equipment.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
+SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 
 
 def _read_json_asset(path: Path) -> object:
@@ -123,3 +124,58 @@ def load_rooms() -> list[dict]:
         })
 
     return normalized_rooms
+
+
+@lru_cache(maxsize=1)
+def load_spells() -> list[dict]:
+    raw_spells = _read_json_asset(SPELLS_FILE)
+    if not isinstance(raw_spells, list):
+        raise ValueError(f"Spell asset file must contain a list: {SPELLS_FILE}")
+
+    spell_ids: set[str] = set()
+    spell_names: set[str] = set()
+    normalized_spells: list[dict] = []
+
+    for raw_spell in raw_spells:
+        if not isinstance(raw_spell, dict):
+            raise ValueError("Spell asset entries must be objects.")
+
+        spell_id = raw_spell.get("spell_id")
+        name = raw_spell.get("name")
+
+        if not isinstance(spell_id, str) or not spell_id.strip():
+            raise ValueError("Spell asset entries must include a non-empty string spell_id.")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"Spell asset '{spell_id}' must include a non-empty name.")
+        if spell_id in spell_ids:
+            raise ValueError(f"Duplicate spell_id in spell assets: {spell_id}")
+
+        normalized_name = name.strip().lower()
+        if normalized_name in spell_names:
+            raise ValueError(f"Duplicate spell name in spell assets: {name}")
+
+        mana_cost = int(raw_spell.get("mana_cost", 0))
+        dice_count = int(raw_spell.get("damage_dice_count", 0))
+        dice_sides = int(raw_spell.get("damage_dice_sides", 0))
+        damage_modifier = int(raw_spell.get("damage_modifier", 0))
+
+        if mana_cost < 0:
+            raise ValueError(f"Spell asset '{spell_id}' mana_cost must be zero or greater.")
+        if dice_count < 0:
+            raise ValueError(f"Spell asset '{spell_id}' damage_dice_count must be zero or greater.")
+        if dice_sides < 0:
+            raise ValueError(f"Spell asset '{spell_id}' damage_dice_sides must be zero or greater.")
+
+        spell_ids.add(spell_id)
+        spell_names.add(normalized_name)
+        normalized_spells.append({
+            "spell_id": spell_id.strip(),
+            "name": name.strip(),
+            "description": str(raw_spell.get("description", "")).strip(),
+            "mana_cost": mana_cost,
+            "damage_dice_count": dice_count,
+            "damage_dice_sides": dice_sides,
+            "damage_modifier": damage_modifier,
+        })
+
+    return normalized_spells

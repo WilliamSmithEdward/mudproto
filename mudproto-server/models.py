@@ -27,6 +27,7 @@ class PlayerCombatState:
 class PlayerStatus:
     hit_points: int = 575
     vigor: int = 119
+    mana: int = 160
     extra_lives: int = 1
     coins: int = 4030
 

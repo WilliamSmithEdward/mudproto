@@ -1,5 +1,6 @@
 from combat import (
     begin_attack,
+    cast_spell_on_engaged_target,
     disengage,
     end_combat,
     get_engaged_entity,
@@ -7,8 +8,10 @@ from combat import (
     resolve_combat_round,
     spawn_dummy,
 )
+from assets import load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, remove_item, resolve_equipment_selector
 import random
+import re
 
 from display import (
     build_part,
@@ -61,12 +64,16 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
     if auto_entity is None:
         return room_display
 
-    room_display["payload"]["parts"].extend([
-        build_part("\n"),
-        build_part("\n"),
-        build_part(auto_entity.name, "bright_red", True),
-        build_part(" notices you and attacks!", "bright_white"),
-    ])
+    payload = room_display.get("payload") if isinstance(room_display, dict) else None
+    if isinstance(payload, dict):
+        parts = payload.get("parts")
+        if isinstance(parts, list):
+            parts.extend([
+                build_part("\n"),
+                build_part("\n"),
+                build_part(auto_entity.name, "bright_red", True),
+                build_part(" notices you and attacks!", "bright_white"),
+            ])
 
     combat_result = resolve_combat_round(session)
     if combat_result is None:
@@ -207,6 +214,28 @@ def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, s
     return hand, selector, None
 
 
+def _parse_cast_spell_name(command_text: str, args: list[str]) -> tuple[str | None, str | None]:
+    quoted_match = re.match(r"^cast\s+(['\"])(.+?)\1\s*$", command_text.strip(), re.IGNORECASE)
+    if quoted_match is not None:
+        spell_name = quoted_match.group(2).strip()
+        if spell_name:
+            return spell_name, None
+
+    spell_name = " ".join(args).strip()
+    if not spell_name:
+        return None, "Usage: cast 'spell name'"
+
+    return spell_name, None
+
+
+def _find_spell_by_name(spell_name: str) -> dict | None:
+    normalized = spell_name.strip().lower()
+    for spell in load_spells():
+        if str(spell.get("name", "")).strip().lower() == normalized:
+            return spell
+    return None
+
+
 def execute_command(session: ClientSession, command_text: str) -> OutboundResult:
     verb, args = parse_command(command_text)
 
@@ -246,13 +275,59 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     if verb in {"equipment", "eq", "equi", "eqp"}:
         return display_equipment(session)
 
+    if verb in {"spell", "spells"}:
+        spells = load_spells()
+        if not spells:
+            return display_command_result(session, [
+                build_part("No spells are available.", "bright_white"),
+            ])
+
+        parts = [
+            build_part("Spells", "bright_white", True),
+        ]
+        for spell in spells:
+            spell_name = str(spell.get("name", "Spell"))
+            mana_cost = int(spell.get("mana_cost", 0))
+            dice_count = int(spell.get("damage_dice_count", 0))
+            dice_sides = int(spell.get("damage_dice_sides", 0))
+            damage_modifier = int(spell.get("damage_modifier", 0))
+            description = str(spell.get("description", "")).strip()
+
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(spell_name, "bright_cyan", True),
+                build_part(" | cost: ", "bright_white"),
+                build_part(f"{mana_cost}M", "bright_yellow", True),
+                build_part(" | dmg: ", "bright_white"),
+                build_part(f"{dice_count}d{dice_sides}+{damage_modifier}", "bright_yellow", True),
+            ])
+            if description:
+                parts.extend([
+                    build_part(" | ", "bright_white"),
+                    build_part(description, "bright_white"),
+                ])
+
+        return display_command_result(session, parts)
+
+    if verb == "cast":
+        spell_name, parse_error = _parse_cast_spell_name(command_text, args)
+        if parse_error is not None or spell_name is None:
+            return display_error(parse_error or "Usage: cast 'spell name'", session)
+
+        spell = _find_spell_by_name(spell_name)
+        if spell is None:
+            return display_error(f"Unknown spell: {spell_name}", session)
+
+        return cast_spell_on_engaged_target(session, spell)
+
     if verb == "equip":
         if not args:
             return display_equipment(session)
 
         hand, selector, parse_error = _parse_hand_and_selector(args)
-        if parse_error is not None:
-            return display_error(parse_error, session)
+        if parse_error is not None or selector is None:
+            return display_error(parse_error or "Usage: equip <selector> [main|off]", session)
 
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:

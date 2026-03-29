@@ -347,6 +347,87 @@ def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) ->
     return None
 
 
+def cast_spell_on_engaged_target(session: ClientSession, spell: dict) -> dict:
+    from display import build_part, display_command_result, display_error
+
+    clear_combat_if_invalid(session)
+    entity = get_engaged_entity(session)
+    if entity is None:
+        return display_error("You must be engaged in combat to cast damage spells.", session)
+
+    spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
+    mana_cost = max(0, int(spell.get("mana_cost", 0)))
+    dice_count = max(0, int(spell.get("damage_dice_count", 0)))
+    dice_sides = max(0, int(spell.get("damage_dice_sides", 0)))
+    damage_modifier = int(spell.get("damage_modifier", 0))
+
+    status = session.status
+    if status.mana < mana_cost:
+        return display_error(
+            f"Not enough mana for {spell_name}. Need {mana_cost}M, have {status.mana}M.",
+            session,
+        )
+
+    status.mana -= mana_cost
+
+    rolled_damage = 0
+    if dice_count > 0 and dice_sides > 0:
+        for _ in range(dice_count):
+            rolled_damage += random.randint(1, dice_sides)
+    total_damage = max(0, rolled_damage + damage_modifier)
+
+    article = _article(entity.name)
+    target_name = f"{article} {entity.name}"
+    parts = [
+        build_part("You cast "),
+        build_part(spell_name),
+        build_part(" on "),
+        build_part(target_name),
+        build_part(". "),
+        build_part("Mana -"),
+        build_part(str(mana_cost)),
+        build_part("."),
+    ]
+
+    if total_damage > 0:
+        entity.hit_points = max(0, entity.hit_points - total_damage)
+        parts.extend([
+            build_part(" "),
+            build_part(spell_name),
+            build_part(" hits for "),
+            build_part(str(total_damage)),
+            build_part(" damage."),
+        ])
+    else:
+        parts.extend([
+            build_part(" "),
+            build_part(spell_name),
+            build_part(" fizzles harmlessly."),
+        ])
+
+    if entity.hit_points <= 0:
+        entity.is_alive = False
+        status.coins += entity.coin_reward
+        parts.extend([
+            build_part(" "),
+            build_part(entity.name),
+            build_part(" is destroyed. Coins +"),
+            build_part(str(entity.coin_reward)),
+            build_part("."),
+        ])
+
+        next_target = _engage_next_room_target(session, entity.entity_id)
+        if next_target is not None:
+            parts.extend([
+                build_part(" "),
+                build_part("You turn to "),
+                build_part(next_target.name),
+                build_part("."),
+            ])
+
+    return display_command_result(session, parts)
+
+
 def initialize_session_entities(session: ClientSession) -> None:
     if session.entities:
         return

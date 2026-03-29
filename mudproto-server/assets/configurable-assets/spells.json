@@ -1,0 +1,20 @@
+[
+  {
+    "spell_id": "spell.spark",
+    "name": "Spark",
+    "description": "A focused bolt of crackling force.",
+    "mana_cost": 12,
+    "damage_dice_count": 2,
+    "damage_dice_sides": 8,
+    "damage_modifier": 4
+  },
+  {
+    "spell_id": "spell.ember.lance",
+    "name": "Ember Lance",
+    "description": "A narrow lance of burning embers.",
+    "mana_cost": 18,
+    "damage_dice_count": 3,
+    "damage_dice_sides": 7,
+    "damage_modifier": 5
+  }
+]
