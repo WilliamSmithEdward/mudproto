@@ -401,7 +401,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         ]
         for spell in spells:
             spell_name = str(spell.get("name", "Spell"))
-            mana_cost = int(spell.get("mana_cost", 0))
             spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
             cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
             dice_count = int(spell.get("damage_dice_count", 0))
@@ -416,8 +415,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
                 build_part(spell_name, "bright_cyan", True),
-                build_part(" | cost: ", "bright_white"),
-                build_part(f"{mana_cost}M", "bright_yellow", True),
                 build_part(" | cast: ", "bright_white"),
                 build_part(cast_type, "bright_yellow", True),
             ])

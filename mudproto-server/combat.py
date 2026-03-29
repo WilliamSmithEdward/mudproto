@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 import uuid
 
 from equipment import get_equipped_main_hand, get_equipped_off_hand
@@ -269,25 +270,74 @@ def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) 
     return attack_sequence
 
 
-def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: str) -> EntityState | None:
-    normalized = search_text.strip().lower()
+def _entity_name_keywords(name: str) -> set[str]:
+    return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
+
+
+def resolve_room_entity_selector(
+    session: ClientSession,
+    room_id: str,
+    selector_text: str,
+) -> tuple[EntityState | None, str | None]:
+    normalized = selector_text.strip().lower()
     if not normalized:
-        return None
+        return None, "Provide a target selector."
 
-    exact_match: EntityState | None = None
-    partial_match: EntityState | None = None
+    # Backward-compatible free text lookup for plain names.
+    if "." not in normalized:
+        exact_match: EntityState | None = None
+        partial_match: EntityState | None = None
+        for entity in list_room_entities(session, room_id):
+            entity_name = entity.name.lower()
+            if entity_name == normalized:
+                exact_match = entity
+                break
+            if normalized in entity_name and partial_match is None:
+                partial_match = entity
+        if exact_match is not None:
+            return exact_match, None
+        if partial_match is not None:
+            return partial_match, None
+        return None, f"No target named '{selector_text}' is here."
 
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, "Provide a target selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, "Provide at least one selector keyword after the index."
+
+    matches: list[EntityState] = []
     for entity in list_room_entities(session, room_id):
-        entity_name = entity.name.lower()
+        keywords = _entity_name_keywords(entity.name)
+        if all(keyword in keywords for keyword in parts):
+            matches.append(entity)
 
-        if entity_name == normalized:
-            exact_match = entity
-            break
+    if not matches:
+        return None, f"No target named '{selector_text}' is here."
 
-        if normalized in entity_name and partial_match is None:
-            partial_match = entity
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} match(es) found for '{selector_text}'."
+        return matches[requested_index - 1], None
 
-    return exact_match or partial_match
+    if len(matches) > 1:
+        suggestions = ", ".join(f"{idx + 1}.{'.'.join(parts)}" for idx, _ in enumerate(matches[:3]))
+        return None, f"Multiple matches found. Try: {suggestions}"
+
+    return matches[0], None
+
+
+def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: str) -> EntityState | None:
+    entity, _ = resolve_room_entity_selector(session, room_id, search_text)
+    return entity
 
 
 def clear_combat_if_invalid(session: ClientSession) -> None:
@@ -414,9 +464,6 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         parts = [
             build_part("You cast "),
             build_part(spell_name),
-            build_part(". "),
-            build_part("Mana -"),
-            build_part(str(mana_cost)),
             build_part(". Support effect: "),
             build_part(support_effect),
             build_part(" +"),
@@ -437,9 +484,9 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     if cast_type == "target":
         entity: EntityState | None = None
         if target_name:
-            entity = find_room_entity_by_name(session, session.player.current_room_id, target_name)
+            entity, resolve_error = resolve_room_entity_selector(session, session.player.current_room_id, target_name)
             if entity is None:
-                return display_error(f"No target named '{target_name}' is here.", session), False
+                return display_error(resolve_error or f"No target named '{target_name}' is here.", session), False
         else:
             entity = get_engaged_entity(session)
             if entity is None:
@@ -469,9 +516,6 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     parts = [
         build_part("You cast "),
         build_part(spell_name),
-        build_part(". "),
-        build_part("Mana -"),
-        build_part(str(mana_cost)),
         build_part("."),
     ]
 
@@ -628,10 +672,10 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     from display import display_error, display_force_prompt
 
     clear_combat_if_invalid(session)
-    entity = find_room_entity_by_name(session, session.player.current_room_id, target_name)
+    entity, resolve_error = resolve_room_entity_selector(session, session.player.current_room_id, target_name)
 
     if entity is None:
-        return display_error(f"No target named '{target_name}' is here.", session)
+        return display_error(resolve_error or f"No target named '{target_name}' is here.", session)
 
     start_combat(session, entity.entity_id, OPENING_ATTACKER_PLAYER)
     combat_result = resolve_combat_round(session)
