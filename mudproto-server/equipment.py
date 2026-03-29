@@ -1,5 +1,6 @@
 import re
 
+from assets import load_wear_slot_config
 from models import ClientSession, EquipmentItemState
 
 
@@ -7,33 +8,10 @@ HAND_MAIN = "main_hand"
 HAND_OFF = "off_hand"
 BASE_PLAYER_ARMOR_CLASS = 10
 
-DEFAULT_WEAR_SLOTS = {
-    "head",
-    "neck",
-    "shoulders",
-    "chest",
-    "back",
-    "arms",
-    "hands",
-    "waist",
-    "legs",
-    "feet",
-    "ring",
-    "trinket",
-}
-
-WEAR_SLOT_OPTIONS = {
-    "ring": ["left_hand", "right_hand"],
-}
-
-WEAR_LOCATION_ALIASES = {
-    "left": "left_hand",
-    "left hand": "left_hand",
-    "lefthand": "left_hand",
-    "right": "right_hand",
-    "right hand": "right_hand",
-    "righthand": "right_hand",
-}
+_WEAR_SLOT_CONFIG = load_wear_slot_config()
+DEFAULT_WEAR_SLOTS = set(_WEAR_SLOT_CONFIG.get("wear_slots", []))
+WEAR_SLOT_OPTIONS = dict(_WEAR_SLOT_CONFIG.get("slot_options", {}))
+WEAR_LOCATION_ALIASES = dict(_WEAR_SLOT_CONFIG.get("location_aliases", {}))
 
 
 def _get_supported_wear_slot_keys() -> set[str]:

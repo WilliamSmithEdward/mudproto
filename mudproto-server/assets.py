@@ -11,11 +11,70 @@ ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 PLAYER_CLASSES_FILE = CONFIGURABLE_ASSET_ROOT / "classes.json"
+WEAR_SLOTS_FILE = CONFIGURABLE_ASSET_ROOT / "wear_slots.json"
 
 
 def _read_json_asset(path: Path) -> object:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+@lru_cache(maxsize=1)
+def load_wear_slot_config() -> dict:
+    raw_config = _read_json_asset(WEAR_SLOTS_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Wear slots asset file must contain an object: {WEAR_SLOTS_FILE}")
+
+    raw_wear_slots = raw_config.get("wear_slots", [])
+    if raw_wear_slots is None:
+        raw_wear_slots = []
+    if not isinstance(raw_wear_slots, list):
+        raise ValueError("Wear slots config field 'wear_slots' must be a list.")
+
+    wear_slots = [str(slot).strip().lower() for slot in raw_wear_slots if str(slot).strip()]
+    if not wear_slots:
+        raise ValueError("Wear slots config must include at least one entry in 'wear_slots'.")
+
+    raw_slot_options = raw_config.get("slot_options", {})
+    if raw_slot_options is None:
+        raw_slot_options = {}
+    if not isinstance(raw_slot_options, dict):
+        raise ValueError("Wear slots config field 'slot_options' must be an object.")
+
+    slot_options: dict[str, list[str]] = {}
+    for slot_name, raw_options in raw_slot_options.items():
+        normalized_slot_name = str(slot_name).strip().lower()
+        if not normalized_slot_name:
+            raise ValueError("Wear slots config has an empty slot_options key.")
+        if not isinstance(raw_options, list):
+            raise ValueError(f"Wear slots config slot_options['{normalized_slot_name}'] must be a list.")
+
+        normalized_options = [str(option).strip().lower() for option in raw_options if str(option).strip()]
+        if not normalized_options:
+            raise ValueError(
+                f"Wear slots config slot_options['{normalized_slot_name}'] must include at least one slot."
+            )
+        slot_options[normalized_slot_name] = normalized_options
+
+    raw_location_aliases = raw_config.get("location_aliases", {})
+    if raw_location_aliases is None:
+        raw_location_aliases = {}
+    if not isinstance(raw_location_aliases, dict):
+        raise ValueError("Wear slots config field 'location_aliases' must be an object.")
+
+    location_aliases: dict[str, str] = {}
+    for alias, target_slot in raw_location_aliases.items():
+        normalized_alias = str(alias).strip().lower()
+        normalized_target = str(target_slot).strip().lower()
+        if not normalized_alias or not normalized_target:
+            raise ValueError("Wear slots config has an empty location alias or target slot.")
+        location_aliases[normalized_alias] = normalized_target
+
+    return {
+        "wear_slots": wear_slots,
+        "slot_options": slot_options,
+        "location_aliases": location_aliases,
+    }
 
 
 @lru_cache(maxsize=1)

@@ -438,8 +438,10 @@ def _promote_misc_item_to_equipment(session: ClientSession, misc_item) -> Equipm
         attack_damage_bonus=int(template.get("attack_damage_bonus", 0)),
         attacks_per_round_bonus=int(template.get("attacks_per_round_bonus", 0)),
         armor_class_bonus=int(template.get("armor_class_bonus", 0)),
-        wear_slot=str(template.get("wear_slot", "")).strip().lower(),
+        wear_slots=[str(slot).strip().lower() for slot in template.get("wear_slots", []) if str(slot).strip()],
     )
+    if promoted.wear_slots:
+        promoted.wear_slot = promoted.wear_slots[0]
     session.inventory_items.pop(misc_item.item_id, None)
     session.equipment.items[promoted.item_id] = promoted
     return promoted
@@ -1196,6 +1198,18 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 for item in session.equipment.items.values()
                 if item.slot.strip().lower() == "armor"
             ]
+
+            # Promote wearable misc loot into equipment inventory first.
+            for misc_item in list(session.inventory_items.values()):
+                template = _find_equipment_template_for_loot_name(misc_item.name)
+                if template is None:
+                    continue
+                if str(template.get("slot", "")).strip().lower() != "armor":
+                    continue
+                promoted = _promote_misc_item_to_equipment(session, misc_item)
+                if promoted is not None and promoted.slot.strip().lower() == "armor":
+                    wearable_items.append(promoted)
+
             wearable_items.sort(key=lambda item: (len(item.wear_slots) if item.wear_slots else 1, item.name.lower(), item.item_id))
 
             if not wearable_items:
@@ -1227,7 +1241,16 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
-            return display_error(resolve_error or "Unable to resolve equipment selector.", session)
+            misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
+            if misc_item is None:
+                return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
+
+            promoted = _promote_misc_item_to_equipment(session, misc_item)
+            if promoted is None:
+                return display_error(f"{misc_item.name} cannot be worn.", session)
+            if promoted.slot.strip().lower() != "armor":
+                return display_error(f"{promoted.name} cannot be worn.", session)
+            item = promoted
 
         worn, wear_result = wear_item(session, item, wear_location)
         if not worn:

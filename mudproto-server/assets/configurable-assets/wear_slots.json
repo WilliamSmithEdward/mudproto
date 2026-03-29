@@ -1,0 +1,27 @@
+{
+  "wear_slots": [
+    "head",
+    "neck",
+    "shoulders",
+    "chest",
+    "back",
+    "arms",
+    "hands",
+    "waist",
+    "legs",
+    "feet",
+    "ring",
+    "trinket"
+  ],
+  "slot_options": {
+    "ring": ["left_hand", "right_hand"]
+  },
+  "location_aliases": {
+    "left": "left_hand",
+    "left hand": "left_hand",
+    "lefthand": "left_hand",
+    "right": "right_hand",
+    "right hand": "right_hand",
+    "righthand": "right_hand"
+  }
+}
