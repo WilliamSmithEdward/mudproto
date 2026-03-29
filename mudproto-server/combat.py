@@ -1562,17 +1562,9 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         end_combat(session)
 
         _append_newline_if_needed(parts)
-        if status.extra_lives > 0:
-            status.extra_lives -= 1
-            status.hit_points = 575
-            status.vigor = 119
-            parts.extend([
-                build_part("You collapse, then recover using an extra life. Combat ends.", "bright_magenta", True),
-            ])
-        else:
-            parts.extend([
-                build_part("You collapse. Combat ends.", "bright_red", True),
-            ])
+        parts.extend([
+            build_part("You collapse. Combat ends.", "bright_red", True),
+        ])
 
         return display_combat_round_result(session, parts)
 

@@ -82,7 +82,7 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
     parts = [
         build_part(f"{status.hit_points}H", me_condition_color, True),
-        build_part(f" {status.vigor}V {status.mana}M {status.extra_lives}X {status.coins}C [Me:", "bright_white"),
+        build_part(f" {status.vigor}V {status.mana}M {status.coins}C [Me:", "bright_white"),
         build_part(me_condition.title(), me_condition_color, True),
         build_part("]", "bright_white"),
     ]
