@@ -26,7 +26,8 @@
     "spell_type": "support",
     "mana_cost": 10,
     "support_effect": "vigor",
-    "support_amount": 24
+    "support_amount": 8,
+    "duration_hours": 3
   },
   {
     "spell_id": "spell.mending.light",
@@ -35,7 +36,8 @@
     "spell_type": "support",
     "mana_cost": 16,
     "support_effect": "heal",
-    "support_amount": 40
+    "support_amount": 14,
+    "duration_hours": 3
   },
   {
     "spell_id": "spell.clarity",
@@ -44,6 +46,7 @@
     "spell_type": "support",
     "mana_cost": 6,
     "support_effect": "mana",
-    "support_amount": 18
+    "support_amount": 6,
+    "duration_hours": 4
   }
 ]

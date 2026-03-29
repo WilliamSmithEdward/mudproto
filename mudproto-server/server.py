@@ -5,7 +5,7 @@ import uuid
 from websockets.asyncio.server import ServerConnection
 import websockets
 
-from combat import initialize_session_entities, resolve_combat_round
+from combat import initialize_session_entities, process_game_hour_tick, resolve_combat_round
 from commands import dispatch_message, execute_command
 from display import (
     display_connected,
@@ -27,6 +27,9 @@ from world import get_room
 
 
 COMMAND_SCHEDULER_INTERVAL_SECONDS = 0.1
+GAME_TICK_INTERVAL_SECONDS = 60.0
+
+next_game_tick_monotonic: float | None = None
 
 
 async def send_json(websocket: ServerConnection, message: dict) -> None:
@@ -92,9 +95,32 @@ async def command_scheduler_loop(session) -> None:
             pass
 
 
+async def game_tick_loop() -> None:
+    global next_game_tick_monotonic
+
+    try:
+        next_game_tick_monotonic = asyncio.get_running_loop().time() + GAME_TICK_INTERVAL_SECONDS
+
+        while True:
+            for session in list(connected_clients.values()):
+                session.next_game_tick_monotonic = next_game_tick_monotonic
+
+            sleep_seconds = max(0.0, next_game_tick_monotonic - asyncio.get_running_loop().time())
+            await asyncio.sleep(sleep_seconds)
+
+            for session in list(connected_clients.values()):
+                process_game_hour_tick(session)
+
+            next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
+
+    except asyncio.CancelledError:
+        raise
+
+
 async def handle_connection(websocket: ServerConnection) -> None:
     client_id = str(uuid.uuid4())
     session = register_client(client_id, websocket)
+    session.next_game_tick_monotonic = next_game_tick_monotonic
     initialize_session_entities(session)
     session.scheduler_task = asyncio.create_task(command_scheduler_loop(session))
 
@@ -145,9 +171,18 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
 
 async def main():
-    async with websockets.serve(handle_connection, "localhost", 8765):
-        print("Server listening on ws://localhost:8765")
-        await asyncio.Future()
+    tick_task = asyncio.create_task(game_tick_loop())
+
+    try:
+        async with websockets.serve(handle_connection, "localhost", 8765):
+            print("Server listening on ws://localhost:8765")
+            await asyncio.Future()
+    finally:
+        tick_task.cancel()
+        try:
+            await tick_task
+        except asyncio.CancelledError:
+            pass
 
 
 if __name__ == "__main__":

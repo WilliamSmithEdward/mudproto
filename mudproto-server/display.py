@@ -1,3 +1,5 @@
+import asyncio
+
 from equipment import get_equipped_main_hand, get_equipped_off_hand, get_held_weapon, list_equipment
 from models import ClientSession
 from protocol import build_response
@@ -15,6 +17,18 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
         "fg": fg,
         "bold": bold
     }
+
+
+def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
+    if session.next_game_tick_monotonic is None:
+        return None
+
+    try:
+        now = asyncio.get_running_loop().time()
+    except RuntimeError:
+        return None
+
+    return max(0, int(session.next_game_tick_monotonic - now))
 
 
 def build_prompt_parts(session: ClientSession) -> list[dict]:
@@ -48,6 +62,14 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
         build_part(me_condition.title(), me_condition_color, True),
         build_part("]", "bright_white"),
     ]
+
+    tick_seconds_remaining = _get_tick_seconds_remaining(session)
+    if tick_seconds_remaining is not None:
+        parts.extend([
+            build_part(" [Tick:", "bright_white"),
+            build_part(f"{tick_seconds_remaining}s", "bright_yellow", True),
+            build_part("]", "bright_white"),
+        ])
 
     engaged_entity = get_engaged_entity(session)
     if engaged_entity is not None:

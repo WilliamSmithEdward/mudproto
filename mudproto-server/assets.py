@@ -161,6 +161,7 @@ def load_spells() -> list[dict]:
         damage_modifier = int(raw_spell.get("damage_modifier", 0))
         support_effect = str(raw_spell.get("support_effect", "")).strip().lower()
         support_amount = int(raw_spell.get("support_amount", 0))
+        duration_hours = int(raw_spell.get("duration_hours", 0))
 
         if mana_cost < 0:
             raise ValueError(f"Spell asset '{spell_id}' mana_cost must be zero or greater.")
@@ -172,11 +173,15 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_sides must be zero or greater.")
         if support_amount < 0:
             raise ValueError(f"Spell asset '{spell_id}' support_amount must be zero or greater.")
+        if duration_hours < 0:
+            raise ValueError(f"Spell asset '{spell_id}' duration_hours must be zero or greater.")
 
         if spell_type == "support" and support_effect not in {"heal", "vigor", "mana"}:
             raise ValueError(
                 f"Spell asset '{spell_id}' support_effect must be one of: heal, vigor, mana."
             )
+        if spell_type == "support" and duration_hours <= 0:
+            raise ValueError(f"Spell asset '{spell_id}' support spells must have duration_hours > 0.")
 
         spell_ids.add(spell_id)
         spell_names.add(normalized_name)
@@ -191,6 +196,7 @@ def load_spells() -> list[dict]:
             "damage_modifier": damage_modifier,
             "support_effect": support_effect,
             "support_amount": support_amount,
+            "duration_hours": duration_hours,
         })
 
     return normalized_spells

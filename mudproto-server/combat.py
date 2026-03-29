@@ -3,7 +3,7 @@ import random
 import uuid
 
 from equipment import get_equipped_main_hand, get_equipped_off_hand
-from models import ClientSession, EntityState, EquipmentItemState
+from models import ActiveSupportEffectState, ClientSession, EntityState, EquipmentItemState
 
 
 COMBAT_ROUND_INTERVAL_SECONDS = 2.5
@@ -361,6 +361,8 @@ def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
     damage_modifier = int(spell.get("damage_modifier", 0))
     support_effect = str(spell.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(spell.get("support_amount", 0)))
+    duration_hours = max(0, int(spell.get("duration_hours", 0)))
+    spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
 
     status = session.status
     if status.mana < mana_cost:
@@ -369,50 +371,53 @@ def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
             session,
         ), False
 
-    status.mana -= mana_cost
-
     if spell_type == "support":
+        if support_effect not in {"heal", "vigor", "mana"}:
+            return display_error(
+                f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
+                session,
+            ), False
+        if duration_hours <= 0:
+            return display_error(
+                f"Spell '{spell_name}' must have duration_hours > 0.",
+                session,
+            ), False
+
+        status.mana -= mana_cost
+
+        refreshed = False
+        for active_effect in session.active_support_effects:
+            if active_effect.spell_id != spell_id:
+                continue
+            active_effect.support_effect = support_effect
+            active_effect.support_amount = support_amount
+            active_effect.remaining_hours = duration_hours
+            refreshed = True
+            break
+
+        if not refreshed:
+            session.active_support_effects.append(ActiveSupportEffectState(
+                spell_id=spell_id,
+                spell_name=spell_name,
+                support_effect=support_effect,
+                support_amount=support_amount,
+                remaining_hours=duration_hours,
+            ))
+
         parts = [
             build_part("You cast "),
             build_part(spell_name),
             build_part(". "),
             build_part("Mana -"),
             build_part(str(mana_cost)),
-            build_part("."),
+            build_part(". Support effect: "),
+            build_part(support_effect),
+            build_part(" +"),
+            build_part(str(support_amount)),
+            build_part("/hour for "),
+            build_part(str(duration_hours)),
+            build_part(" game hour(s)."),
         ]
-
-        if support_effect == "heal":
-            before = status.hit_points
-            status.hit_points = min(PLAYER_REFERENCE_MAX_HP, status.hit_points + support_amount)
-            parts.extend([
-                build_part(" "),
-                build_part("HP +"),
-                build_part(str(status.hit_points - before)),
-                build_part("."),
-            ])
-        elif support_effect == "vigor":
-            before = status.vigor
-            status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, status.vigor + support_amount)
-            parts.extend([
-                build_part(" "),
-                build_part("Vigor +"),
-                build_part(str(status.vigor - before)),
-                build_part("."),
-            ])
-        elif support_effect == "mana":
-            before = status.mana
-            status.mana = min(PLAYER_REFERENCE_MAX_MANA, status.mana + support_amount)
-            parts.extend([
-                build_part(" "),
-                build_part("Mana +"),
-                build_part(str(status.mana - before)),
-                build_part("."),
-            ])
-        else:
-            return display_error(
-                f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
-                session,
-            ), False
 
         return display_command_result(session, parts), True
 
@@ -423,6 +428,8 @@ def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
     entity = get_engaged_entity(session)
     if entity is None:
         return display_error("You must be engaged in combat to cast damage spells.", session), False
+
+    status.mana -= mana_cost
 
     rolled_damage = 0
     if dice_count > 0 and dice_sides > 0:
@@ -480,6 +487,25 @@ def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
             ])
 
     return display_command_result(session, parts), True
+
+
+def process_game_hour_tick(session: ClientSession) -> list[str]:
+    expired_spell_names: list[str] = []
+
+    for effect in list(session.active_support_effects):
+        if effect.support_effect == "heal":
+            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + effect.support_amount)
+        elif effect.support_effect == "vigor":
+            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + effect.support_amount)
+        elif effect.support_effect == "mana":
+            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + effect.support_amount)
+
+        effect.remaining_hours -= 1
+        if effect.remaining_hours <= 0:
+            session.active_support_effects.remove(effect)
+            expired_spell_names.append(effect.spell_name)
+
+    return expired_spell_names
 
 
 def initialize_session_entities(session: ClientSession) -> None:
@@ -719,7 +745,10 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     if opening_attacker == OPENING_ATTACKER_ENTITY:
         _apply_entity_attacks(session, room_attackers, parts, allow_off_hand=False)
     else:
-        _apply_player_attacks(session, entity, parts, allow_off_hand=not is_opening_round)
+        if session.combat.skip_melee_rounds > 0:
+            session.combat.skip_melee_rounds -= 1
+        else:
+            _apply_player_attacks(session, entity, parts, allow_off_hand=not is_opening_round)
 
     if entity.hit_points <= 0:
         entity.is_alive = False

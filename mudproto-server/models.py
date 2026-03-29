@@ -37,6 +37,16 @@ class CombatState:
     engaged_entity_id: Optional[str] = None
     next_round_monotonic: Optional[float] = None
     opening_attacker: Optional[str] = None
+    skip_melee_rounds: int = 0
+
+
+@dataclass
+class ActiveSupportEffectState:
+    spell_id: str
+    spell_name: str
+    support_effect: str
+    support_amount: int
+    remaining_hours: int
 
 
 @dataclass
@@ -145,3 +155,5 @@ class ClientSession:
     prompt_pending_after_lag: bool = False
     entities: dict[str, EntityState] = field(default_factory=dict)
     entity_spawn_counter: int = 0
+    active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
+    next_game_tick_monotonic: Optional[float] = None

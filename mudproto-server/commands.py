@@ -295,6 +295,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             damage_modifier = int(spell.get("damage_modifier", 0))
             support_effect = str(spell.get("support_effect", "")).strip().lower()
             support_amount = int(spell.get("support_amount", 0))
+            duration_hours = int(spell.get("duration_hours", 0))
             description = str(spell.get("description", "")).strip()
 
             parts.extend([
@@ -309,6 +310,8 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 parts.extend([
                     build_part(" | support: ", "bright_white"),
                     build_part(f"{support_effect}+{support_amount}", "bright_yellow", True),
+                    build_part(" | duration: ", "bright_white"),
+                    build_part(f"{duration_hours}h", "bright_yellow", True),
                 ])
             else:
                 parts.extend([
@@ -335,6 +338,8 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         response, cast_applied = cast_spell(session, spell)
         if cast_applied:
+            if session.combat.engaged_entity_id is not None:
+                session.combat.skip_melee_rounds = max(1, session.combat.skip_melee_rounds)
             try:
                 apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
             except RuntimeError:
