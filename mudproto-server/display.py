@@ -165,7 +165,7 @@ def display_whoami(session: ClientSession) -> dict:
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
         parts.extend([
             build_part(". Engaged with ", "bright_white"),
-            build_part(engaged_entity.name, "bright_red", True),
+            build_part(engaged_entity.name, bold=True),
             build_part(" (", "bright_white"),
             build_part(npc_condition, npc_condition_color, True),
             build_part(").", "bright_white"),
@@ -340,7 +340,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
-                build_part(entity.name, "bright_magenta", True),
+                build_part(entity.name, bold=True),
                 build_part(" (", "bright_white"),
                 build_part(condition_text, condition_color, True),
                 build_part(" condition)", "bright_white"),

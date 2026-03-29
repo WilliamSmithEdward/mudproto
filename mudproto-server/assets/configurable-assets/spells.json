@@ -3,6 +3,7 @@
     "spell_id": "spell.spark",
     "name": "Spark",
     "description": "A focused bolt of crackling force.",
+    "spell_type": "damage",
     "mana_cost": 12,
     "damage_dice_count": 2,
     "damage_dice_sides": 8,
@@ -12,9 +13,37 @@
     "spell_id": "spell.ember.lance",
     "name": "Ember Lance",
     "description": "A narrow lance of burning embers.",
+    "spell_type": "damage",
     "mana_cost": 18,
     "damage_dice_count": 3,
     "damage_dice_sides": 7,
     "damage_modifier": 5
+  },
+  {
+    "spell_id": "spell.second.wind",
+    "name": "Second Wind",
+    "description": "Channel calm focus to recover vigor.",
+    "spell_type": "support",
+    "mana_cost": 10,
+    "support_effect": "vigor",
+    "support_amount": 24
+  },
+  {
+    "spell_id": "spell.mending.light",
+    "name": "Mending Light",
+    "description": "Seal wounds with a gentle restorative pulse.",
+    "spell_type": "support",
+    "mana_cost": 16,
+    "support_effect": "heal",
+    "support_amount": 40
+  },
+  {
+    "spell_id": "spell.clarity",
+    "name": "Clarity",
+    "description": "Draw ambient ether to replenish mana reserves.",
+    "spell_type": "support",
+    "mana_cost": 6,
+    "support_effect": "mana",
+    "support_amount": 18
   }
 ]

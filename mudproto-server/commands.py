@@ -1,6 +1,7 @@
 from combat import (
     begin_attack,
-    cast_spell_on_engaged_target,
+    COMBAT_ROUND_INTERVAL_SECONDS,
+    cast_spell,
     disengage,
     end_combat,
     get_engaged_entity,
@@ -71,7 +72,7 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
             parts.extend([
                 build_part("\n"),
                 build_part("\n"),
-                build_part(auto_entity.name, "bright_red", True),
+                build_part(auto_entity.name),
                 build_part(" notices you and attacks!", "bright_white"),
             ])
 
@@ -98,7 +99,7 @@ def flee(session: ClientSession) -> OutboundResult:
     if random.random() >= FLEE_SUCCESS_CHANCE:
         return display_command_result(session, [
             build_part("You try to flee from ", "bright_white"),
-            build_part(entity.name, "bright_red", True),
+            build_part(entity.name),
             build_part(", but fail.", "bright_white"),
         ])
 
@@ -288,9 +289,12 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         for spell in spells:
             spell_name = str(spell.get("name", "Spell"))
             mana_cost = int(spell.get("mana_cost", 0))
+            spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
             dice_count = int(spell.get("damage_dice_count", 0))
             dice_sides = int(spell.get("damage_dice_sides", 0))
             damage_modifier = int(spell.get("damage_modifier", 0))
+            support_effect = str(spell.get("support_effect", "")).strip().lower()
+            support_amount = int(spell.get("support_amount", 0))
             description = str(spell.get("description", "")).strip()
 
             parts.extend([
@@ -299,9 +303,19 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 build_part(spell_name, "bright_cyan", True),
                 build_part(" | cost: ", "bright_white"),
                 build_part(f"{mana_cost}M", "bright_yellow", True),
-                build_part(" | dmg: ", "bright_white"),
-                build_part(f"{dice_count}d{dice_sides}+{damage_modifier}", "bright_yellow", True),
             ])
+
+            if spell_type == "support":
+                parts.extend([
+                    build_part(" | support: ", "bright_white"),
+                    build_part(f"{support_effect}+{support_amount}", "bright_yellow", True),
+                ])
+            else:
+                parts.extend([
+                    build_part(" | dmg: ", "bright_white"),
+                    build_part(f"{dice_count}d{dice_sides}+{damage_modifier}", "bright_yellow", True),
+                ])
+
             if description:
                 parts.extend([
                     build_part(" | ", "bright_white"),
@@ -319,7 +333,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if spell is None:
             return display_error(f"Unknown spell: {spell_name}", session)
 
-        return cast_spell_on_engaged_target(session, spell)
+        response, cast_applied = cast_spell(session, spell)
+        if cast_applied:
+            try:
+                apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
+            except RuntimeError:
+                pass
+        return response
 
     if verb == "equip":
         if not args:

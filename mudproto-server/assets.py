@@ -155,16 +155,28 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Duplicate spell name in spell assets: {name}")
 
         mana_cost = int(raw_spell.get("mana_cost", 0))
+        spell_type = str(raw_spell.get("spell_type", "damage")).strip().lower() or "damage"
         dice_count = int(raw_spell.get("damage_dice_count", 0))
         dice_sides = int(raw_spell.get("damage_dice_sides", 0))
         damage_modifier = int(raw_spell.get("damage_modifier", 0))
+        support_effect = str(raw_spell.get("support_effect", "")).strip().lower()
+        support_amount = int(raw_spell.get("support_amount", 0))
 
         if mana_cost < 0:
             raise ValueError(f"Spell asset '{spell_id}' mana_cost must be zero or greater.")
+        if spell_type not in {"damage", "support"}:
+            raise ValueError(f"Spell asset '{spell_id}' spell_type must be 'damage' or 'support'.")
         if dice_count < 0:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_count must be zero or greater.")
         if dice_sides < 0:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_sides must be zero or greater.")
+        if support_amount < 0:
+            raise ValueError(f"Spell asset '{spell_id}' support_amount must be zero or greater.")
+
+        if spell_type == "support" and support_effect not in {"heal", "vigor", "mana"}:
+            raise ValueError(
+                f"Spell asset '{spell_id}' support_effect must be one of: heal, vigor, mana."
+            )
 
         spell_ids.add(spell_id)
         spell_names.add(normalized_name)
@@ -173,9 +185,12 @@ def load_spells() -> list[dict]:
             "name": name.strip(),
             "description": str(raw_spell.get("description", "")).strip(),
             "mana_cost": mana_cost,
+            "spell_type": spell_type,
             "damage_dice_count": dice_count,
             "damage_dice_sides": dice_sides,
             "damage_modifier": damage_modifier,
+            "support_effect": support_effect,
+            "support_amount": support_amount,
         })
 
     return normalized_spells

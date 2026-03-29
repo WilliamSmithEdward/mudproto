@@ -12,6 +12,8 @@ OPENING_ATTACKER_ENTITY = "entity"
 PLAYER_ARMOR_CLASS = 10
 HIT_ROLL_DICE_SIDES = 20
 PLAYER_REFERENCE_MAX_HP = 575
+PLAYER_REFERENCE_MAX_VIGOR = 119
+PLAYER_REFERENCE_MAX_MANA = 160
 
 WEAPON_TYPE_TO_VERB = {
     "unarmed": "hit",
@@ -347,28 +349,80 @@ def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) ->
     return None
 
 
-def cast_spell_on_engaged_target(session: ClientSession, spell: dict) -> dict:
+def cast_spell(session: ClientSession, spell: dict) -> tuple[dict, bool]:
     from display import build_part, display_command_result, display_error
-
-    clear_combat_if_invalid(session)
-    entity = get_engaged_entity(session)
-    if entity is None:
-        return display_error("You must be engaged in combat to cast damage spells.", session)
 
     spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
     mana_cost = max(0, int(spell.get("mana_cost", 0)))
+    spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
+
     dice_count = max(0, int(spell.get("damage_dice_count", 0)))
     dice_sides = max(0, int(spell.get("damage_dice_sides", 0)))
     damage_modifier = int(spell.get("damage_modifier", 0))
+    support_effect = str(spell.get("support_effect", "")).strip().lower()
+    support_amount = max(0, int(spell.get("support_amount", 0)))
 
     status = session.status
     if status.mana < mana_cost:
         return display_error(
             f"Not enough mana for {spell_name}. Need {mana_cost}M, have {status.mana}M.",
             session,
-        )
+        ), False
 
     status.mana -= mana_cost
+
+    if spell_type == "support":
+        parts = [
+            build_part("You cast "),
+            build_part(spell_name),
+            build_part(". "),
+            build_part("Mana -"),
+            build_part(str(mana_cost)),
+            build_part("."),
+        ]
+
+        if support_effect == "heal":
+            before = status.hit_points
+            status.hit_points = min(PLAYER_REFERENCE_MAX_HP, status.hit_points + support_amount)
+            parts.extend([
+                build_part(" "),
+                build_part("HP +"),
+                build_part(str(status.hit_points - before)),
+                build_part("."),
+            ])
+        elif support_effect == "vigor":
+            before = status.vigor
+            status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, status.vigor + support_amount)
+            parts.extend([
+                build_part(" "),
+                build_part("Vigor +"),
+                build_part(str(status.vigor - before)),
+                build_part("."),
+            ])
+        elif support_effect == "mana":
+            before = status.mana
+            status.mana = min(PLAYER_REFERENCE_MAX_MANA, status.mana + support_amount)
+            parts.extend([
+                build_part(" "),
+                build_part("Mana +"),
+                build_part(str(status.mana - before)),
+                build_part("."),
+            ])
+        else:
+            return display_error(
+                f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
+                session,
+            ), False
+
+        return display_command_result(session, parts), True
+
+    if spell_type != "damage":
+        return display_error(f"Spell '{spell_name}' has unsupported spell_type '{spell_type}'.", session), False
+
+    clear_combat_if_invalid(session)
+    entity = get_engaged_entity(session)
+    if entity is None:
+        return display_error("You must be engaged in combat to cast damage spells.", session), False
 
     rolled_damage = 0
     if dice_count > 0 and dice_sides > 0:
@@ -425,7 +479,7 @@ def cast_spell_on_engaged_target(session: ClientSession, spell: dict) -> dict:
                 build_part("."),
             ])
 
-    return display_command_result(session, parts)
+    return display_command_result(session, parts), True
 
 
 def initialize_session_entities(session: ClientSession) -> None:
@@ -501,7 +555,7 @@ def spawn_dummy(session: ClientSession) -> dict:
 
     return display_command_result(session, [
         build_part("Spawned ", "bright_white"),
-        build_part(entity.name, "bright_magenta", True),
+        build_part(entity.name, bold=True),
         build_part(" in this room.", "bright_white"),
     ])
 
@@ -539,7 +593,7 @@ def disengage(session: ClientSession) -> dict | list[dict]:
     target_name = entity.name if entity is not None else "your target"
     return display_command_result(session, [
         build_part("You disengage from ", "bright_white"),
-        build_part(target_name, "bright_yellow", True),
+        build_part(target_name, bold=True),
         build_part(".", "bright_white"),
     ])
 
@@ -673,7 +727,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
         _append_newline_if_needed(parts)
         parts.extend([
-            build_part(entity.name, "bright_red", True),
+            build_part(entity.name),
             build_part(" is destroyed. ", "bright_white"),
             build_part("Coins +", "bright_white"),
             build_part(str(entity.coin_reward), "bright_yellow", True),
@@ -685,7 +739,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
             _append_newline_if_needed(parts)
             parts.extend([
                 build_part("You turn to ", "bright_white"),
-                build_part(next_target.name, "bright_red", True),
+                build_part(next_target.name),
                 build_part(".", "bright_white"),
             ])
 
