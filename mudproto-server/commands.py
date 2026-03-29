@@ -1084,13 +1084,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not args:
             return display_error("Usage: wield <selector>", session)
 
-        current_main = get_equipped_main_hand(session)
-        if current_main is not None:
-            return display_error(
-                f"Your main hand is already occupied by {current_main.name}. Remove it first.",
-                session,
-            )
-
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
@@ -1102,6 +1095,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if promoted is None:
                 return display_error(f"{misc_item.name} cannot be wielded.", session)
             item = promoted
+
+        current_main = get_equipped_main_hand(session)
+        if current_main is not None:
+            return display_error(
+                f"Your main hand is already occupied by {current_main.name}. Remove it first.",
+                session,
+            )
 
         equipped, equip_result = equip_item(session, item, HAND_MAIN)
         if not equipped:
@@ -1117,13 +1117,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not args:
             return display_error("Usage: hold <selector>", session)
 
-        current_off = get_equipped_off_hand(session)
-        if current_off is not None:
-            return display_error(
-                f"Your off hand is already occupied by {current_off.name}. Remove it first.",
-                session,
-            )
-
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
@@ -1135,6 +1128,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if promoted is None:
                 return display_error(f"{misc_item.name} cannot be held.", session)
             item = promoted
+
+        current_off = get_equipped_off_hand(session)
+        if current_off is not None:
+            return display_error(
+                f"Your off hand is already occupied by {current_off.name}. Remove it first.",
+                session,
+            )
 
         equipped, equip_result = equip_item(session, item, HAND_OFF)
         if not equipped:

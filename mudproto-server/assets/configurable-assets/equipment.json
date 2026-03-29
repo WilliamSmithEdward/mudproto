@@ -93,5 +93,39 @@
     "armor_class_bonus": 1,
     "grant_to_new_players": false,
     "equip_on_grant": true
+  },
+  {
+    "template_id": "armor.test-ring-amber",
+    "name": "Amber Ring",
+    "slot": "armor",
+    "wear_slot": "ring",
+    "description": "A simple brass ring used for slot testing.",
+    "keywords": ["amber", "ring", "test"],
+    "armor_class_bonus": 0,
+    "grant_to_new_players": true,
+    "equip_on_grant": false
+  },
+  {
+    "template_id": "armor.test-ring-azure",
+    "name": "Azure Ring",
+    "slot": "armor",
+    "wear_slot": "ring",
+    "description": "A polished silver ring used for multi-slot testing.",
+    "keywords": ["azure", "ring", "test"],
+    "armor_class_bonus": 0,
+    "grant_to_new_players": true,
+    "equip_on_grant": false
+  },
+  {
+    "template_id": "armor.test-chest-vest",
+    "name": "Practice Vest",
+    "slot": "armor",
+    "wear_slot": "chest",
+    "wear_slots": ["chest", "back"],
+    "description": "A padded vest used to test occupied chest-slot behavior.",
+    "keywords": ["practice", "vest", "chest", "test"],
+    "armor_class_bonus": 0,
+    "grant_to_new_players": true,
+    "equip_on_grant": false
   }
 ]

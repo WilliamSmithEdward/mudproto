@@ -39,6 +39,7 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         attacks_per_round_bonus=int(template.get("attacks_per_round_bonus", 0)),
         armor_class_bonus=int(template.get("armor_class_bonus", 0)),
         wear_slot=str(template.get("wear_slot", "")).strip().lower(),
+        wear_slots=[str(slot).strip().lower() for slot in template.get("wear_slots", []) if str(slot).strip()],
     )
     session.equipment.items[item_id] = item
 

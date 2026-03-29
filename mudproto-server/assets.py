@@ -57,11 +57,22 @@ def load_equipment_templates() -> list[dict]:
             raise ValueError(f"Equipment asset '{template_id}' keywords must be a list.")
 
         wear_slot = str(raw_template.get("wear_slot", "")).strip().lower()
+        raw_wear_slots = raw_template.get("wear_slots", [])
+        if raw_wear_slots is None:
+            raw_wear_slots = []
+        if not isinstance(raw_wear_slots, list):
+            raise ValueError(f"Equipment asset '{template_id}' wear_slots must be a list.")
+        wear_slots = [str(slot).strip().lower() for slot in raw_wear_slots if str(slot).strip()]
+        if wear_slot and wear_slot not in wear_slots:
+            wear_slots.insert(0, wear_slot)
+
         armor_class_bonus = int(raw_template.get("armor_class_bonus", 0))
-        if normalized_slot == "armor" and not wear_slot:
-            raise ValueError(f"Equipment asset '{template_id}' armor items must define wear_slot.")
+        if normalized_slot == "armor" and not wear_slots:
+            raise ValueError(f"Equipment asset '{template_id}' armor items must define wear_slot or wear_slots.")
         if normalized_slot == "weapon" and wear_slot:
             raise ValueError(f"Equipment asset '{template_id}' weapons cannot define wear_slot.")
+        if normalized_slot == "weapon" and wear_slots:
+            raise ValueError(f"Equipment asset '{template_id}' weapons cannot define wear_slots.")
         if armor_class_bonus < 0:
             raise ValueError(f"Equipment asset '{template_id}' armor_class_bonus must be zero or greater.")
 
@@ -80,20 +91,12 @@ def load_equipment_templates() -> list[dict]:
             "attack_damage_bonus": int(raw_template.get("attack_damage_bonus", 0)),
             "attacks_per_round_bonus": int(raw_template.get("attacks_per_round_bonus", 0)),
             "armor_class_bonus": armor_class_bonus,
-            "wear_slot": wear_slot,
-            "grant_to_new_players": bool(raw_template.get("grant_to_new_players", False)),
+            "wear_slot": wear_slots[0] if wear_slots else "",
+            "wear_slots": wear_slots,
             "equip_on_grant": bool(raw_template.get("equip_on_grant", False)),
         })
 
     return normalized_templates
-
-
-def load_starting_equipment_templates() -> list[dict]:
-    return [
-        template
-        for template in load_equipment_templates()
-        if template["grant_to_new_players"]
-    ]
 
 
 def get_equipment_template_by_id(template_id: str) -> dict | None:

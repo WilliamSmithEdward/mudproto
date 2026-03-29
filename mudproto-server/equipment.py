@@ -22,6 +22,48 @@ DEFAULT_WEAR_SLOTS = {
     "trinket",
 }
 
+WEAR_SLOT_OPTIONS = {
+    "ring": ["left_hand", "right_hand"],
+}
+
+
+def _get_wear_slot_keys(wear_slot: str) -> list[str]:
+    return list(WEAR_SLOT_OPTIONS.get(wear_slot, [wear_slot]))
+
+
+def _normalize_wear_slot_label(slot_key: str) -> str:
+    return slot_key.replace("_", " ")
+
+
+def _resolve_item_wear_slot_candidates(item: EquipmentItemState) -> tuple[list[str], str | None]:
+    raw_candidates = [slot.strip().lower() for slot in item.wear_slots if slot.strip()]
+    if not raw_candidates:
+        wear_slot = item.wear_slot.strip().lower()
+        if wear_slot:
+            raw_candidates = [wear_slot]
+
+    if not raw_candidates:
+        return [], f"{item.name} has no wear slot configured."
+
+    resolved_candidates: list[str] = []
+    seen: set[str] = set()
+
+    for slot in raw_candidates:
+        if slot in DEFAULT_WEAR_SLOTS:
+            for concrete_slot in _get_wear_slot_keys(slot):
+                if concrete_slot in seen:
+                    continue
+                resolved_candidates.append(concrete_slot)
+                seen.add(concrete_slot)
+            continue
+
+        if slot in seen:
+            continue
+        resolved_candidates.append(slot)
+        seen.add(slot)
+
+    return resolved_candidates, None
+
 
 def list_equipment(session: ClientSession) -> list[EquipmentItemState]:
     equipment_items = list(session.equipment.items.values())
@@ -64,10 +106,19 @@ def get_worn_item_for_slot(session: ClientSession, wear_slot: str) -> EquipmentI
     if not normalized_slot:
         return None
 
-    item_id = session.equipment.worn_item_ids.get(normalized_slot)
-    if item_id is None:
-        return None
-    return session.equipment.equipped_items.get(item_id)
+    slot_keys = [normalized_slot]
+    if normalized_slot in DEFAULT_WEAR_SLOTS:
+        slot_keys = _get_wear_slot_keys(normalized_slot)
+
+    for slot_key in slot_keys:
+        item_id = session.equipment.worn_item_ids.get(slot_key)
+        if item_id is None:
+            continue
+        item = session.equipment.equipped_items.get(item_id)
+        if item is not None:
+            return item
+
+    return None
 
 
 def list_worn_items(session: ClientSession) -> list[tuple[str, EquipmentItemState]]:
@@ -86,7 +137,7 @@ def list_worn_items(session: ClientSession) -> list[tuple[str, EquipmentItemStat
         item = session.equipment.equipped_items.get(item_id)
         if item is None:
             continue
-        worn.append((wear_slot, item))
+        worn.append((_normalize_wear_slot_label(wear_slot), item))
 
     return worn
 
@@ -257,25 +308,31 @@ def wear_item(session: ClientSession, item: EquipmentItemState) -> tuple[bool, s
     if item.slot != "armor":
         return False, f"{item.name} cannot be worn."
 
-    wear_slot = item.wear_slot.strip().lower()
-    if not wear_slot:
-        return False, f"{item.name} has no wear slot configured."
-    if wear_slot not in DEFAULT_WEAR_SLOTS:
-        return False, f"{item.name} uses unsupported wear slot '{wear_slot}'."
+    wear_slot_candidates, slot_error = _resolve_item_wear_slot_candidates(item)
+    if slot_error is not None:
+        return False, slot_error
 
     if item.item_id not in session.equipment.items:
         return False, f"{item.name} is not in your inventory."
 
-    current_item_id = session.equipment.worn_item_ids.get(wear_slot)
-    if current_item_id is not None and current_item_id != item.item_id:
-        _clear_item_slot_references(session, current_item_id)
-        _move_equipped_item_to_inventory(session, current_item_id)
+    target_slot_key: str | None = None
+    for slot_key in wear_slot_candidates:
+        current_item_id = session.equipment.worn_item_ids.get(slot_key)
+        if current_item_id is None or current_item_id == item.item_id:
+            target_slot_key = slot_key
+            break
+
+    if target_slot_key is None:
+        slot_labels = [_normalize_wear_slot_label(slot_key) for slot_key in wear_slot_candidates]
+        if len(slot_labels) == 1:
+            return False, f"You are already wearing something on your {slot_labels[0]}."
+        return False, f"No available wear slot for {item.name}. Tried: {', '.join(slot_labels)}."
 
     _clear_item_slot_references(session, item.item_id)
-    session.equipment.worn_item_ids[wear_slot] = item.item_id
+    session.equipment.worn_item_ids[target_slot_key] = item.item_id
     session.equipment.equipped_items[item.item_id] = item
     session.equipment.items.pop(item.item_id, None)
-    return True, wear_slot
+    return True, _normalize_wear_slot_label(target_slot_key)
 
 
 def unequip_item(session: ClientSession, item: EquipmentItemState) -> bool:

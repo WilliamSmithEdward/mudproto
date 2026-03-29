@@ -71,6 +71,7 @@ class EquipmentItemState:
     attacks_per_round_bonus: int = 0
     armor_class_bonus: int = 0
     wear_slot: str = ""
+    wear_slots: list[str] = field(default_factory=list)
 
 
 @dataclass
