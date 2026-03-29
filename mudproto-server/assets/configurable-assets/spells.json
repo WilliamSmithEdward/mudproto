@@ -18,7 +18,7 @@
     "spell_type": "damage",
     "cast_type": "aoe",
     "mana_cost": 18,
-    "damage_dice_count": 8,
+    "damage_dice_count": 80,
     "damage_dice_sides": 20,
     "damage_modifier": 5,
     "damage_context": "[a/an] is singed badly."

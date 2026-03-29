@@ -492,13 +492,32 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         return display_command_result(session, parts)
 
     if verb == "get":
+        if len(args) == 1 and args[0].strip().lower() in {"coin", "coins"}:
+            room_id = session.player.current_room_id
+            room_coin_pile = max(0, int(session.room_coin_piles.get(room_id, 0)))
+            if room_coin_pile <= 0:
+                return display_error("There are no coins on the ground.", session)
+
+            session.room_coin_piles[room_id] = 0
+            session.status.coins += room_coin_pile
+            return display_command_result(session, [
+                build_part("You take ", "bright_white"),
+                build_part(str(room_coin_pile), "bright_cyan", True),
+                build_part(" coins from the room.", "bright_white"),
+            ])
+
         if len(args) == 1 and args[0].strip().lower() == "all":
             corpses = list_room_corpses(session, session.player.current_room_id)
-            if not corpses:
-                return display_error("There are no corpses here to loot.", session)
+            room_id = session.player.current_room_id
+            room_coin_pile = max(0, int(session.room_coin_piles.get(room_id, 0)))
+            if not corpses and room_coin_pile <= 0:
+                return display_error("There is nothing to loot in this room.", session)
 
-            total_coins = 0
+            total_coins = room_coin_pile
             looted_items: list[str] = []
+
+            if room_coin_pile > 0:
+                session.room_coin_piles[room_id] = 0
 
             for corpse in corpses:
                 corpse_coins = max(0, corpse.coins)
@@ -540,8 +559,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error("Usage: get <item|all|coins> <corpse selector>", session)
 
         corpse_selector = args[-1].strip()
-        if "corpse" not in corpse_selector.lower():
-            return display_error("Usage: get <item|all|coins> <corpse selector>", session)
 
         item_selector = " ".join(args[:-1]).strip()
         if not item_selector:
@@ -630,7 +647,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     if verb in {"inventory", "inv", "i"}:
         return display_inventory(session)
 
-    if verb in {"spell", "spells"}:
+    if verb in {"spell", "spells", "sp", "spe", "spel"}:
         spells = _list_known_spells(session)
         if not spells:
             return display_command_result(session, [
@@ -823,10 +840,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 )
 
             session.status.coins -= drop_amount
+            room_id = session.player.current_room_id
+            existing_pile = max(0, int(session.room_coin_piles.get(room_id, 0)))
+            session.room_coin_piles[room_id] = existing_pile + drop_amount
             return display_command_result(session, [
                 build_part("You drop ", "bright_white"),
                 build_part(str(drop_amount), "bright_cyan", True),
-                build_part(" coins.", "bright_white"),
+                build_part(" coins into a pile on the ground.", "bright_white"),
             ])
 
         if selector == "all":

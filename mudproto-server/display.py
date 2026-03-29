@@ -350,4 +350,16 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(f"{corpse.source_name} corpse", bold=True),
             ])
 
+    room_coin_amount = max(0, int(session.room_coin_piles.get(room.room_id, 0)))
+    if room_coin_amount > 0:
+        parts.extend([
+            build_part("\n"),
+            build_part("\n"),
+            build_part("Coin pile:", "bright_white", True),
+            build_part("\n"),
+            build_part(" - ", "bright_white"),
+            build_part(str(room_coin_amount), "bright_cyan", True),
+            build_part(" coins", "bright_white"),
+        ])
+
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
