@@ -385,10 +385,6 @@ def resolve_room_entity_selector(
             return None, f"Only {len(matches)}{living_label} match(es) found for '{selector_text}'."
         return matches[requested_index - 1], None
 
-    if len(matches) > 1:
-        suggestions = ", ".join(f"{idx + 1}.{'.'.join(parts)}" for idx, _ in enumerate(matches[:3]))
-        return None, f"Multiple matches found. Try: {suggestions}"
-
     return matches[0], None
 
 
@@ -407,9 +403,7 @@ def resolve_room_corpse_selector(
 
     if "." not in normalized:
         if normalized == "corpse":
-            if len(room_corpses) == 1:
-                return room_corpses[0], None
-            return None, "Multiple corpses found. Try: 1.corpse, 2.corpse"
+            return room_corpses[0], None
 
         exact_match: CorpseState | None = None
         partial_match: CorpseState | None = None
@@ -453,10 +447,6 @@ def resolve_room_corpse_selector(
         if requested_index > len(matches):
             return None, f"Only {len(matches)} corpse match(es) found for '{selector_text}'."
         return matches[requested_index - 1], None
-
-    if len(matches) > 1:
-        suggestions = ", ".join(f"{idx + 1}.{'.'.join(parts)}" for idx, _ in enumerate(matches[:3]))
-        return None, f"Multiple corpse matches found. Try: {suggestions}"
 
     return matches[0], None
 
@@ -515,10 +505,6 @@ def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tup
         if requested_index > len(matches):
             return None, f"Only {len(matches)} item match(es) found for '{selector_text}'."
         return matches[requested_index - 1], None
-
-    if len(matches) > 1:
-        suggestions = ", ".join(f"{idx + 1}.{'.'.join(parts)}" for idx, _ in enumerate(matches[:3]))
-        return None, f"Multiple item matches found. Try: {suggestions}"
 
     return matches[0], None
 

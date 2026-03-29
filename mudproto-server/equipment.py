@@ -99,10 +99,6 @@ def resolve_equipment_selector(session: ClientSession, selector: str) -> tuple[E
             return None, f"Only {len(matches)} match(es) found for '{selector}'."
         return matches[requested_index - 1], None
 
-    if len(matches) > 1:
-        suggestions = ", ".join(f"{index + 1}.{selector}" for index, _ in enumerate(matches[:3]))
-        return None, f"Multiple matches found. Try: {suggestions}"
-
     return matches[0], None
 
 
