@@ -177,18 +177,19 @@ def _build_entity_attack_parts(
 
     verb_noun = _to_third_person(attack_verb)
     severity = _choose_severity(damage, PLAYER_REFERENCE_MAX_HP)
+    subject = _with_article(entity.name, capitalize=True)
 
     parts: list[dict] = []
     if severity == "miss":
         parts.extend([
-            build_part(entity.name),
+            build_part(subject),
             build_part(" misses you."),
         ])
         return parts
 
     if severity == "barely":
         parts.extend([
-            build_part(entity.name),
+            build_part(subject),
             build_part(" barely "),
             build_part(_to_third_person(attack_verb)),
             build_part(" you."),
@@ -197,7 +198,7 @@ def _build_entity_attack_parts(
 
     if severity in {"normal", "hard", "extreme"}:
         parts.extend([
-            build_part(entity.name),
+            build_part(subject),
             build_part(" "),
             build_part(_to_third_person(attack_verb)),
             build_part(" you"),
@@ -216,7 +217,7 @@ def _build_entity_attack_parts(
     }[severity]
     pronoun = entity.pronoun_possessive.strip().lower() or "its"
     parts.extend([
-        build_part(entity.name),
+        build_part(subject),
         build_part(f" {top_verb} you with {pronoun} "),
         build_part(verb_noun),
         build_part("."),
@@ -634,12 +635,13 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             ])
 
             if session.combat.engaged_entity_id == entity.entity_id:
+                previous_engaged_id = session.combat.engaged_entity_id
                 next_target = _engage_next_room_target(session, entity.entity_id)
-                if next_target is not None:
+                if next_target is not None and session.combat.engaged_entity_id != previous_engaged_id:
                     parts.extend([
                         build_part("\n"),
                         build_part("You turn to "),
-                        build_part(next_target.name),
+                        build_part(_with_article(next_target.name)),
                         build_part("."),
                     ])
 
@@ -944,12 +946,13 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
             build_part(" is destroyed.", "bright_white"),
         ])
 
+        previous_engaged_id = session.combat.engaged_entity_id
         next_target = _engage_next_room_target(session, entity.entity_id)
-        if next_target is not None:
+        if next_target is not None and session.combat.engaged_entity_id != previous_engaged_id:
             _append_newline_if_needed(parts)
             parts.extend([
                 build_part("You turn to ", "bright_white"),
-                build_part(next_target.name),
+                build_part(_with_article(next_target.name)),
                 build_part(".", "bright_white"),
             ])
 
