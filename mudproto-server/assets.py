@@ -3,8 +3,11 @@ from functools import lru_cache
 from pathlib import Path
 
 
-ASSET_ROOT = Path(__file__).resolve().parent / "assets" / "default-assets"
-TRAINING_EQUIPMENT_FILE = ASSET_ROOT / "training-equipment.json"
+SERVER_ROOT = Path(__file__).resolve().parent
+DEFAULT_ASSET_ROOT = SERVER_ROOT / "assets" / "default-assets"
+CONFIGURABLE_ASSET_ROOT = SERVER_ROOT / "assets" / "configurable-assets"
+TRAINING_EQUIPMENT_FILE = DEFAULT_ASSET_ROOT / "training-equipment.json"
+ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 
 
 def _read_json_asset(path: Path) -> object:
@@ -72,3 +75,51 @@ def load_starting_equipment_templates() -> list[dict]:
         for template in load_equipment_templates()
         if template["grant_to_new_players"]
     ]
+
+
+@lru_cache(maxsize=1)
+def load_rooms() -> list[dict]:
+    raw_rooms = _read_json_asset(ROOMS_FILE)
+    if not isinstance(raw_rooms, list):
+        raise ValueError(f"Room asset file must contain a list: {ROOMS_FILE}")
+
+    room_ids: set[str] = set()
+    normalized_rooms: list[dict] = []
+
+    for raw_room in raw_rooms:
+        if not isinstance(raw_room, dict):
+            raise ValueError("Room asset entries must be objects.")
+
+        room_id = raw_room.get("room_id")
+        title = raw_room.get("title")
+        description = raw_room.get("description")
+        exits = raw_room.get("exits", {})
+
+        if not isinstance(room_id, str) or not room_id.strip():
+            raise ValueError("Room asset entries must include a non-empty string room_id.")
+        if room_id in room_ids:
+            raise ValueError(f"Duplicate room_id in room assets: {room_id}")
+        if not isinstance(title, str) or not title.strip():
+            raise ValueError(f"Room asset '{room_id}' must include a non-empty title.")
+        if not isinstance(description, str) or not description.strip():
+            raise ValueError(f"Room asset '{room_id}' must include a non-empty description.")
+        if not isinstance(exits, dict):
+            raise ValueError(f"Room asset '{room_id}' exits must be an object.")
+
+        normalized_exits: dict[str, str] = {}
+        for direction, destination_room_id in exits.items():
+            if not isinstance(direction, str) or not direction.strip():
+                raise ValueError(f"Room asset '{room_id}' has an exit with an invalid direction.")
+            if not isinstance(destination_room_id, str) or not destination_room_id.strip():
+                raise ValueError(f"Room asset '{room_id}' exit '{direction}' has an invalid destination room id.")
+            normalized_exits[direction.strip().lower()] = destination_room_id.strip()
+
+        room_ids.add(room_id)
+        normalized_rooms.append({
+            "room_id": room_id,
+            "title": title,
+            "description": description,
+            "exits": normalized_exits,
+        })
+
+    return normalized_rooms

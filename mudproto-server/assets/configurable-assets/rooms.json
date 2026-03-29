@@ -1,0 +1,18 @@
+[
+  {
+    "room_id": "start",
+    "title": "Prototype Chamber",
+    "description": "A plain stone chamber used for early server testing.",
+    "exits": {
+      "north": "hall"
+    }
+  },
+  {
+    "room_id": "hall",
+    "title": "Northern Hall",
+    "description": "A narrow hall of cold stone extends here, quiet and still.",
+    "exits": {
+      "south": "start"
+    }
+  }
+]
