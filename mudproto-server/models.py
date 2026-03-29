@@ -150,6 +150,7 @@ class ClientSession:
     corpses: dict[str, CorpseState] = field(default_factory=dict)
     corpse_spawn_counter: int = 0
     room_coin_piles: dict[str, int] = field(default_factory=dict)
+    room_ground_items: dict[str, dict[str, LootItemState]] = field(default_factory=dict)
     inventory_items: dict[str, LootItemState] = field(default_factory=dict)
     known_spell_ids: list[str] = field(default_factory=list)
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)

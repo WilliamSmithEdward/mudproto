@@ -294,6 +294,48 @@ def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
     return matches[0], None
 
 
+def _list_room_ground_items(session: ClientSession, room_id: str):
+    room_items = list(session.room_ground_items.get(room_id, {}).values())
+    room_items.sort(key=lambda item: (item.name.lower(), item.item_id))
+    return room_items
+
+
+def _resolve_room_ground_matches(session: ClientSession, room_id: str, selector: str):
+    normalized = selector.strip().lower()
+    if not normalized:
+        return [], None, "Provide an item selector."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return [], None, "Provide an item selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return [], None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return [], None, "Provide at least one selector keyword after the index."
+
+    matches = []
+    for item in _list_room_ground_items(session, room_id):
+        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+        if all(keyword in keywords for keyword in parts):
+            matches.append(item)
+
+    if not matches:
+        return [], requested_index, f"No room item matches '{selector}'."
+
+    return matches, requested_index, None
+
+
+def _add_item_to_room_ground(session: ClientSession, room_id: str, item) -> None:
+    room_items = session.room_ground_items.setdefault(room_id, {})
+    room_items[item.item_id] = item
+
+
 def _find_equipment_template_for_loot_name(loot_name: str) -> dict | None:
     normalized_loot_name = loot_name.strip().lower()
     if not normalized_loot_name:
@@ -540,6 +582,54 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         return display_command_result(session, parts)
 
     if verb == "get":
+        if len(args) == 1:
+            single_selector = args[0].strip()
+            normalized_selector = single_selector.lower()
+
+            if normalized_selector.startswith("all.") and len(single_selector) > 4:
+                item_selector = single_selector[4:]
+                room_id = session.player.current_room_id
+                matches, _, selector_error = _resolve_room_ground_matches(session, room_id, item_selector)
+                if selector_error is not None:
+                    return display_error(selector_error, session)
+
+                for item in matches:
+                    session.room_ground_items.get(room_id, {}).pop(item.item_id, None)
+                    session.inventory_items[item.item_id] = item
+
+                parts = [
+                    build_part("You take all matching items from the room.", "bright_white"),
+                ]
+                for item in matches:
+                    parts.extend([
+                        build_part("\n"),
+                        build_part("You take ", "bright_white"),
+                        build_part(item.name, "bright_yellow", True),
+                        build_part(".", "bright_white"),
+                    ])
+                return display_command_result(session, parts)
+
+            if normalized_selector not in {"coin", "coins", "all"}:
+                room_id = session.player.current_room_id
+                matches, requested_index, selector_error = _resolve_room_ground_matches(session, room_id, single_selector)
+                if selector_error is None:
+                    selected_item = matches[0] if requested_index is None else (
+                        matches[requested_index - 1] if requested_index <= len(matches) else None
+                    )
+                    if selected_item is None:
+                        return display_error(
+                            f"Only {len(matches)} match(es) found for '{single_selector}'.",
+                            session,
+                        )
+
+                    session.room_ground_items.get(room_id, {}).pop(selected_item.item_id, None)
+                    session.inventory_items[selected_item.item_id] = selected_item
+                    return display_command_result(session, [
+                        build_part("You take ", "bright_white"),
+                        build_part(selected_item.name, "bright_yellow", True),
+                        build_part(".", "bright_white"),
+                    ])
+
         if len(args) == 1 and args[0].strip().lower() in {"coin", "coins"}:
             room_id = session.player.current_room_id
             room_coin_pile = max(0, int(session.room_coin_piles.get(room_id, 0)))
@@ -935,10 +1025,12 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             dropped_count = 0
             for item in equipment_items:
                 remove_item(session, item)
+                _add_item_to_room_ground(session, session.player.current_room_id, item)
                 dropped_count += 1
 
             for item in misc_items:
                 session.inventory_items.pop(item.item_id, None)
+                _add_item_to_room_ground(session, session.player.current_room_id, item)
                 dropped_count += 1
 
             return display_command_result(session, [
@@ -952,7 +1044,10 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         item, resolve_error = resolve_equipment_selector(session, selector)
         if item is not None and resolve_error is None:
+            dropped_item = session.equipment.items.get(item.item_id)
             remove_item(session, item)
+            if dropped_item is not None:
+                _add_item_to_room_ground(session, session.player.current_room_id, dropped_item)
             return display_command_result(session, [
                 build_part("You drop ", "bright_white"),
                 build_part(item.name, "bright_yellow", True),
@@ -962,6 +1057,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
         if misc_item is not None:
             session.inventory_items.pop(misc_item.item_id, None)
+            _add_item_to_room_ground(session, session.player.current_room_id, misc_item)
             return display_command_result(session, [
                 build_part("You drop ", "bright_white"),
                 build_part(misc_item.name, "bright_yellow", True),

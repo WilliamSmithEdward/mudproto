@@ -391,4 +391,19 @@ def display_room(session: ClientSession, room: Room) -> dict:
             build_part(" coins", "bright_white"),
         ])
 
+    room_items = list(session.room_ground_items.get(room.room_id, {}).values())
+    room_items.sort(key=lambda item: item.name.lower())
+    if room_items:
+        parts.extend([
+            build_part("\n"),
+            build_part("\n"),
+            build_part("Items on ground:", "bright_white", True),
+        ])
+        for item in room_items:
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(item.name, "bright_yellow", True),
+            ])
+
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
