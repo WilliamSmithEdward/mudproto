@@ -160,6 +160,7 @@ def load_spells() -> list[dict]:
         dice_count = int(raw_spell.get("damage_dice_count", 0))
         dice_sides = int(raw_spell.get("damage_dice_sides", 0))
         damage_modifier = int(raw_spell.get("damage_modifier", 0))
+        damage_context = str(raw_spell.get("damage_context", "")).strip()
         support_effect = str(raw_spell.get("support_effect", "")).strip().lower()
         support_amount = int(raw_spell.get("support_amount", 0))
         duration_hours = int(raw_spell.get("duration_hours", 0))
@@ -188,6 +189,8 @@ def load_spells() -> list[dict]:
             )
         if spell_type == "support" and duration_hours <= 0:
             raise ValueError(f"Spell asset '{spell_id}' support spells must have duration_hours > 0.")
+        if spell_type == "damage" and not damage_context:
+            raise ValueError(f"Spell asset '{spell_id}' damage spells must define damage_context.")
 
         spell_ids.add(spell_id)
         spell_names.add(normalized_name)
@@ -201,6 +204,7 @@ def load_spells() -> list[dict]:
             "damage_dice_count": dice_count,
             "damage_dice_sides": dice_sides,
             "damage_modifier": damage_modifier,
+            "damage_context": damage_context,
             "support_effect": support_effect,
             "support_amount": support_amount,
             "duration_hours": duration_hours,

@@ -215,8 +215,17 @@ def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, s
     return hand, selector, None
 
 
-def _parse_cast_spell(command_text: str, args: list[str]) -> tuple[str | None, str | None, str | None]:
-    quoted_match = re.match(r"^cast\s+(['\"])(.+?)\1(?:\s+(.+))?\s*$", command_text.strip(), re.IGNORECASE)
+def _parse_cast_spell(
+    command_text: str,
+    args: list[str],
+    verb: str,
+) -> tuple[str | None, str | None, str | None]:
+    escaped_verb = re.escape(verb.strip())
+    quoted_match = re.match(
+        rf"^{escaped_verb}\s+(['\"])(.+?)\1(?:\s+(.+))?\s*$",
+        command_text.strip(),
+        re.IGNORECASE,
+    )
     if quoted_match is not None:
         spell_name = quoted_match.group(2).strip()
         target_name = (quoted_match.group(3) or "").strip() or None
@@ -224,6 +233,13 @@ def _parse_cast_spell(command_text: str, args: list[str]) -> tuple[str | None, s
             return spell_name, target_name, None
 
     spell_name = " ".join(args).strip()
+    if (
+        len(spell_name) >= 2
+        and spell_name[0] in {"'", '"'}
+        and spell_name[-1] == spell_name[0]
+    ):
+        spell_name = spell_name[1:-1].strip()
+
     if not spell_name:
         return None, None, "Usage: cast 'spell name' [target]"
 
@@ -232,10 +248,106 @@ def _parse_cast_spell(command_text: str, args: list[str]) -> tuple[str | None, s
 
 def _find_spell_by_name(spell_name: str) -> dict | None:
     normalized = spell_name.strip().lower()
+    if not normalized:
+        return None
+
+    def _tokenize(value: str) -> list[str]:
+        return [token for token in value.strip().lower().split() if token]
+
+    query_tokens = _tokenize(normalized)
+    query_joined = "".join(query_tokens)
+
+    exact_matches: list[dict] = []
+    partial_matches: list[dict] = []
+
     for spell in load_spells():
-        if str(spell.get("name", "")).strip().lower() == normalized:
-            return spell
+        name = str(spell.get("name", "")).strip()
+        spell_normalized = name.lower()
+        if not spell_normalized:
+            continue
+
+        if spell_normalized == normalized:
+            exact_matches.append(spell)
+            continue
+
+        name_tokens = _tokenize(spell_normalized)
+        initials = "".join(token[0] for token in name_tokens if token)
+
+        token_prefix_match = False
+        if query_tokens and len(query_tokens) <= len(name_tokens):
+            token_prefix_match = all(
+                name_tokens[index].startswith(query_tokens[index])
+                for index in range(len(query_tokens))
+            )
+
+        joined_prefix_match = bool(query_joined) and initials.startswith(query_joined)
+        substring_match = normalized in spell_normalized
+
+        if token_prefix_match or joined_prefix_match or substring_match:
+            partial_matches.append(spell)
+
+    if len(exact_matches) == 1:
+        return exact_matches[0]
+    if len(exact_matches) > 1:
+        return None
+    if len(partial_matches) == 1:
+        return partial_matches[0]
     return None
+
+
+def _resolve_spell_by_name(spell_name: str) -> tuple[dict | None, str | None]:
+    normalized = spell_name.strip().lower()
+    if not normalized:
+        return None, "Usage: cast 'spell name' [target]"
+
+    def _tokenize(value: str) -> list[str]:
+        return [token for token in value.strip().lower().split() if token]
+
+    query_tokens = _tokenize(normalized)
+    query_joined = "".join(query_tokens)
+
+    exact_matches: list[dict] = []
+    partial_matches: list[dict] = []
+
+    for spell in load_spells():
+        name = str(spell.get("name", "")).strip()
+        spell_normalized = name.lower()
+        if not spell_normalized:
+            continue
+
+        if spell_normalized == normalized:
+            exact_matches.append(spell)
+            continue
+
+        name_tokens = _tokenize(spell_normalized)
+        initials = "".join(token[0] for token in name_tokens if token)
+
+        token_prefix_match = False
+        if query_tokens and len(query_tokens) <= len(name_tokens):
+            token_prefix_match = all(
+                name_tokens[index].startswith(query_tokens[index])
+                for index in range(len(query_tokens))
+            )
+
+        joined_prefix_match = bool(query_joined) and initials.startswith(query_joined)
+        substring_match = normalized in spell_normalized
+
+        if token_prefix_match or joined_prefix_match or substring_match:
+            partial_matches.append(spell)
+
+    if len(exact_matches) == 1:
+        return exact_matches[0], None
+    if len(exact_matches) > 1:
+        names = ", ".join(str(spell.get("name", "Spell")) for spell in exact_matches[:3])
+        return None, f"Multiple exact spell matches found: {names}"
+
+    if len(partial_matches) == 1:
+        return partial_matches[0], None
+    if len(partial_matches) > 1:
+        names = ", ".join(str(spell.get("name", "Spell")) for spell in partial_matches[:3])
+        return None, f"Multiple spell matches found. Be more specific: {names}"
+
+    return None, f"Unknown spell: {spell_name}"
 
 
 def execute_command(session: ClientSession, command_text: str) -> OutboundResult:
@@ -331,14 +443,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, parts)
 
-    if verb == "cast":
-        spell_name, target_name, parse_error = _parse_cast_spell(command_text, args)
+    if verb in {"cast", "c", "ca", "cas"}:
+        spell_name, target_name, parse_error = _parse_cast_spell(command_text, args, verb)
         if parse_error is not None or spell_name is None:
             return display_error(parse_error or "Usage: cast 'spell name' [target]", session)
 
-        spell = _find_spell_by_name(spell_name)
+        spell, resolve_error = _resolve_spell_by_name(spell_name)
         if spell is None:
-            return display_error(f"Unknown spell: {spell_name}", session)
+            return display_error(resolve_error or f"Unknown spell: {spell_name}", session)
 
         response, cast_applied = cast_spell(session, spell, target_name)
         if cast_applied:

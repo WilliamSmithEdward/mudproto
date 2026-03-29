@@ -360,6 +360,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     dice_count = max(0, int(spell.get("damage_dice_count", 0)))
     dice_sides = max(0, int(spell.get("damage_dice_sides", 0)))
     damage_modifier = int(spell.get("damage_modifier", 0))
+    damage_context = str(spell.get("damage_context", "")).strip()
     support_effect = str(spell.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(spell.get("support_amount", 0)))
     duration_hours = max(0, int(spell.get("duration_hours", 0)))
@@ -475,27 +476,30 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     ]
 
     for index, entity in enumerate(damage_targets):
-        if index > 0:
-            parts.append(build_part(" "))
+        parts.append(build_part("\n"))
 
         article = _article(entity.name)
         named_target = f"{article} {entity.name}"
+        resolved_context = damage_context.replace("[a/an]", named_target)
+        if resolved_context and not resolved_context.endswith("."):
+            resolved_context += "."
 
         if total_damage > 0:
             entity.hit_points = max(0, entity.hit_points - total_damage)
-            parts.extend([
-                build_part(spell_name),
-                build_part(" hits "),
-                build_part(named_target),
-                build_part(" for "),
-                build_part(str(total_damage)),
-                build_part(" damage."),
-            ])
+            if resolved_context:
+                parts.append(build_part(resolved_context))
+            else:
+                parts.extend([
+                    build_part(named_target),
+                    build_part(" is struck by "),
+                    build_part(spell_name),
+                    build_part("."),
+                ])
         else:
             parts.extend([
-                build_part(spell_name),
-                build_part(" fizzles against "),
                 build_part(named_target),
+                build_part(" resists "),
+                build_part(spell_name),
                 build_part("."),
             ])
 
@@ -503,7 +507,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             entity.is_alive = False
             status.coins += entity.coin_reward
             parts.extend([
-                build_part(" "),
+                build_part("\n"),
                 build_part(entity.name),
                 build_part(" is destroyed. Coins +"),
                 build_part(str(entity.coin_reward)),
@@ -514,7 +518,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 next_target = _engage_next_room_target(session, entity.entity_id)
                 if next_target is not None:
                     parts.extend([
-                        build_part(" "),
+                        build_part("\n"),
                         build_part("You turn to "),
                         build_part(next_target.name),
                         build_part("."),

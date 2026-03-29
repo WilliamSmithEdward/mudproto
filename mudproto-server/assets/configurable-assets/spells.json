@@ -8,7 +8,8 @@
     "mana_cost": 12,
     "damage_dice_count": 2,
     "damage_dice_sides": 8,
-    "damage_modifier": 4
+    "damage_modifier": 4,
+    "damage_context": "[a/an] is jolted by crackling force."
   },
   {
     "spell_id": "spell.ember.lance",
@@ -19,7 +20,8 @@
     "mana_cost": 18,
     "damage_dice_count": 3,
     "damage_dice_sides": 7,
-    "damage_modifier": 5
+    "damage_modifier": 5,
+    "damage_context": "[a/an] is singed badly."
   },
   {
     "spell_id": "spell.second.wind",
