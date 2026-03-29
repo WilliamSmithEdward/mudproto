@@ -70,5 +70,18 @@
     "support_amount": 70,
     "support_mode": "instant",
     "support_context": "A sudden wave of restorative light surges through you, mending injuries at once."
+  },
+  {
+    "spell_id": "spell.regeneration.ward",
+    "name": "Regeneration Ward",
+    "description": "A steady restorative ward that heals you each battle round.",
+    "spell_type": "support",
+    "cast_type": "self",
+    "mana_cost": 18,
+    "support_effect": "heal",
+    "support_amount": 18,
+    "support_mode": "battle_rounds",
+    "duration_rounds": 3,
+    "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle."
   }
 ]

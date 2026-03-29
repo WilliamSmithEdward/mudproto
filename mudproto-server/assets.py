@@ -164,6 +164,7 @@ def load_spells() -> list[dict]:
         support_effect = str(raw_spell.get("support_effect", "")).strip().lower()
         support_amount = int(raw_spell.get("support_amount", 0))
         duration_hours = int(raw_spell.get("duration_hours", 0))
+        duration_rounds = int(raw_spell.get("duration_rounds", 0))
         support_mode = str(raw_spell.get("support_mode", "timed")).strip().lower() or "timed"
         support_context = str(raw_spell.get("support_context", "")).strip()
 
@@ -184,8 +185,12 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Spell asset '{spell_id}' support_amount must be zero or greater.")
         if duration_hours < 0:
             raise ValueError(f"Spell asset '{spell_id}' duration_hours must be zero or greater.")
-        if support_mode not in {"timed", "instant"}:
-            raise ValueError(f"Spell asset '{spell_id}' support_mode must be 'timed' or 'instant'.")
+        if duration_rounds < 0:
+            raise ValueError(f"Spell asset '{spell_id}' duration_rounds must be zero or greater.")
+        if support_mode not in {"timed", "instant", "battle_rounds"}:
+            raise ValueError(
+                f"Spell asset '{spell_id}' support_mode must be 'timed', 'instant', or 'battle_rounds'."
+            )
 
         if spell_type == "support" and support_effect not in {"heal", "vigor", "mana"}:
             raise ValueError(
@@ -193,6 +198,8 @@ def load_spells() -> list[dict]:
             )
         if spell_type == "support" and support_mode == "timed" and duration_hours <= 0:
             raise ValueError(f"Spell asset '{spell_id}' support spells must have duration_hours > 0.")
+        if spell_type == "support" and support_mode == "battle_rounds" and duration_rounds <= 0:
+            raise ValueError(f"Spell asset '{spell_id}' support spells must have duration_rounds > 0.")
         if spell_type == "support" and not support_context:
             raise ValueError(f"Spell asset '{spell_id}' support spells must define support_context.")
         if spell_type == "damage" and not damage_context:
@@ -214,6 +221,7 @@ def load_spells() -> list[dict]:
             "support_effect": support_effect,
             "support_amount": support_amount,
             "duration_hours": duration_hours,
+            "duration_rounds": duration_rounds,
             "support_mode": support_mode,
             "support_context": support_context,
         })

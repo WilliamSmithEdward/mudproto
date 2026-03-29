@@ -409,6 +409,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             support_effect = str(spell.get("support_effect", "")).strip().lower()
             support_amount = int(spell.get("support_amount", 0))
             duration_hours = int(spell.get("duration_hours", 0))
+            duration_rounds = int(spell.get("duration_rounds", 0))
             support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
             description = str(spell.get("description", "")).strip()
 
@@ -429,6 +430,11 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     parts.extend([
                         build_part(" | duration: ", "bright_white"),
                         build_part(f"{duration_hours}h", "bright_yellow", True),
+                    ])
+                elif support_mode == "battle_rounds":
+                    parts.extend([
+                        build_part(" | duration: ", "bright_white"),
+                        build_part(f"{duration_rounds} rounds", "bright_yellow", True),
                     ])
                 else:
                     parts.extend([

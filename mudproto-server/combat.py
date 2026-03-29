@@ -442,6 +442,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     support_effect = str(spell.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(spell.get("support_amount", 0)))
     duration_hours = max(0, int(spell.get("duration_hours", 0)))
+    duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
     support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
     support_context = str(spell.get("support_context", "")).strip()
     spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
@@ -464,7 +465,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
                 session,
             ), False
-        if support_mode not in {"timed", "instant"}:
+        if support_mode not in {"timed", "instant", "battle_rounds"}:
             return display_error(
                 f"Spell '{spell_name}' has unsupported support_mode '{support_mode}'.",
                 session,
@@ -472,6 +473,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         if support_mode == "timed" and duration_hours <= 0:
             return display_error(
                 f"Spell '{spell_name}' must have duration_hours > 0.",
+                session,
+            ), False
+        if support_mode == "battle_rounds" and duration_rounds <= 0:
+            return display_error(
+                f"Spell '{spell_name}' must have duration_rounds > 0.",
                 session,
             ), False
         if not support_context:
@@ -506,9 +512,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         for active_effect in session.active_support_effects:
             if active_effect.spell_id != spell_id:
                 continue
+            active_effect.support_mode = support_mode
             active_effect.support_effect = support_effect
             active_effect.support_amount = support_amount
             active_effect.remaining_hours = duration_hours
+            active_effect.remaining_rounds = duration_rounds
             refreshed = True
             break
 
@@ -516,9 +524,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             session.active_support_effects.append(ActiveSupportEffectState(
                 spell_id=spell_id,
                 spell_name=spell_name,
+                support_mode=support_mode,
                 support_effect=support_effect,
                 support_amount=support_amount,
                 remaining_hours=duration_hours,
+                remaining_rounds=duration_rounds,
             ))
 
         parts = [
@@ -636,6 +646,9 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
     expired_spell_names: list[str] = []
 
     for effect in list(session.active_support_effects):
+        if effect.support_mode != "timed":
+            continue
+
         if effect.support_effect == "heal":
             session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + effect.support_amount)
         elif effect.support_effect == "vigor":
@@ -649,6 +662,23 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
             expired_spell_names.append(effect.spell_name)
 
     return expired_spell_names
+
+
+def _process_battle_round_support_effects(session: ClientSession) -> None:
+    for effect in list(session.active_support_effects):
+        if effect.support_mode != "battle_rounds":
+            continue
+
+        if effect.support_effect == "heal":
+            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + effect.support_amount)
+        elif effect.support_effect == "vigor":
+            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + effect.support_amount)
+        elif effect.support_effect == "mana":
+            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + effect.support_amount)
+
+        effect.remaining_rounds -= 1
+        if effect.remaining_rounds <= 0:
+            session.active_support_effects.remove(effect)
 
 
 def initialize_session_entities(session: ClientSession) -> None:
@@ -883,6 +913,8 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
         clear_combat_if_invalid(session)
         return None
+
+    _process_battle_round_support_effects(session)
 
     parts: list[dict] = []
     status = session.status

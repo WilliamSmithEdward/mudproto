@@ -44,9 +44,11 @@ class CombatState:
 class ActiveSupportEffectState:
     spell_id: str
     spell_name: str
+    support_mode: str
     support_effect: str
     support_amount: int
     remaining_hours: int
+    remaining_rounds: int = 0
 
 
 @dataclass
