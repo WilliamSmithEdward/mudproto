@@ -409,6 +409,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             support_effect = str(spell.get("support_effect", "")).strip().lower()
             support_amount = int(spell.get("support_amount", 0))
             duration_hours = int(spell.get("duration_hours", 0))
+            support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
             description = str(spell.get("description", "")).strip()
 
             parts.extend([
@@ -423,9 +424,17 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 parts.extend([
                     build_part(" | support: ", "bright_white"),
                     build_part(f"{support_effect}+{support_amount}", "bright_yellow", True),
-                    build_part(" | duration: ", "bright_white"),
-                    build_part(f"{duration_hours}h", "bright_yellow", True),
                 ])
+                if support_mode == "timed":
+                    parts.extend([
+                        build_part(" | duration: ", "bright_white"),
+                        build_part(f"{duration_hours}h", "bright_yellow", True),
+                    ])
+                else:
+                    parts.extend([
+                        build_part(" | duration: ", "bright_white"),
+                        build_part("instant", "bright_yellow", True),
+                    ])
             else:
                 parts.extend([
                     build_part(" | dmg: ", "bright_white"),

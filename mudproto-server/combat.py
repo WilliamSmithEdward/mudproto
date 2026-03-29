@@ -442,6 +442,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     support_effect = str(spell.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(spell.get("support_amount", 0)))
     duration_hours = max(0, int(spell.get("duration_hours", 0)))
+    support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
+    support_context = str(spell.get("support_context", "")).strip()
     spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
 
     status = session.status
@@ -462,13 +464,43 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
                 session,
             ), False
-        if duration_hours <= 0:
+        if support_mode not in {"timed", "instant"}:
+            return display_error(
+                f"Spell '{spell_name}' has unsupported support_mode '{support_mode}'.",
+                session,
+            ), False
+        if support_mode == "timed" and duration_hours <= 0:
             return display_error(
                 f"Spell '{spell_name}' must have duration_hours > 0.",
                 session,
             ), False
+        if not support_context:
+            return display_error(
+                f"Spell '{spell_name}' must define support_context.",
+                session,
+            ), False
 
         status.mana -= mana_cost
+
+        if support_mode == "instant":
+            parts = [
+                build_part("You cast "),
+                build_part(spell_name),
+                build_part("."),
+            ]
+
+            if support_effect == "heal":
+                status.hit_points = min(PLAYER_REFERENCE_MAX_HP, status.hit_points + support_amount)
+            elif support_effect == "vigor":
+                status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, status.vigor + support_amount)
+            else:
+                status.mana = min(PLAYER_REFERENCE_MAX_MANA, status.mana + support_amount)
+            parts.extend([
+                build_part("\n"),
+                build_part(support_context),
+            ])
+
+            return display_command_result(session, parts), True
 
         refreshed = False
         for active_effect in session.active_support_effects:
@@ -492,13 +524,9 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         parts = [
             build_part("You cast "),
             build_part(spell_name),
-            build_part(". Support effect: "),
-            build_part(support_effect),
-            build_part(" +"),
-            build_part(str(support_amount)),
-            build_part("/hour for "),
-            build_part(str(duration_hours)),
-            build_part(" game hour(s)."),
+            build_part("."),
+            build_part("\n"),
+            build_part(support_context),
         ]
 
         return display_command_result(session, parts), True

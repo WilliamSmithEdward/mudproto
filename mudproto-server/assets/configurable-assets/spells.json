@@ -32,7 +32,8 @@
     "mana_cost": 10,
     "support_effect": "vigor",
     "support_amount": 8,
-    "duration_hours": 3
+    "duration_hours": 3,
+    "support_context": "Steady focus settles over you, sharpening your breath and resolve."
   },
   {
     "spell_id": "spell.mending.light",
@@ -43,7 +44,8 @@
     "mana_cost": 16,
     "support_effect": "heal",
     "support_amount": 14,
-    "duration_hours": 3
+    "duration_hours": 3,
+    "support_context": "A gentle radiance surrounds you, easing pain and sealing your wounds."
   },
   {
     "spell_id": "spell.clarity",
@@ -54,6 +56,19 @@
     "mana_cost": 6,
     "support_effect": "mana",
     "support_amount": 6,
-    "duration_hours": 4
+    "duration_hours": 4,
+    "support_context": "Ambient ether gathers around you, restoring your arcane focus."
+  },
+  {
+    "spell_id": "spell.restoration.surge",
+    "name": "Restoration Surge",
+    "description": "A sudden restorative pulse that immediately heals your wounds.",
+    "spell_type": "support",
+    "cast_type": "self",
+    "mana_cost": 14,
+    "support_effect": "heal",
+    "support_amount": 70,
+    "support_mode": "instant",
+    "support_context": "A sudden wave of restorative light surges through you, mending injuries at once."
   }
 ]
