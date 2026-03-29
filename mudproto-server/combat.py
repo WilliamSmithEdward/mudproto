@@ -278,16 +278,25 @@ def resolve_room_entity_selector(
     session: ClientSession,
     room_id: str,
     selector_text: str,
+    *,
+    living_only: bool = False,
 ) -> tuple[EntityState | None, str | None]:
     normalized = selector_text.strip().lower()
     if not normalized:
         return None, "Provide a target selector."
 
+    room_entities = [
+        entity
+        for entity in session.entities.values()
+        if entity.room_id == room_id and (entity.is_alive or not living_only)
+    ]
+    room_entities.sort(key=lambda item: item.spawn_sequence)
+
     # Backward-compatible free text lookup for plain names.
     if "." not in normalized:
         exact_match: EntityState | None = None
         partial_match: EntityState | None = None
-        for entity in list_room_entities(session, room_id):
+        for entity in room_entities:
             entity_name = entity.name.lower()
             if entity_name == normalized:
                 exact_match = entity
@@ -315,7 +324,7 @@ def resolve_room_entity_selector(
         return None, "Provide at least one selector keyword after the index."
 
     matches: list[EntityState] = []
-    for entity in list_room_entities(session, room_id):
+    for entity in room_entities:
         keywords = _entity_name_keywords(entity.name)
         if all(keyword in keywords for keyword in parts):
             matches.append(entity)
@@ -325,7 +334,8 @@ def resolve_room_entity_selector(
 
     if requested_index is not None:
         if requested_index > len(matches):
-            return None, f"Only {len(matches)} match(es) found for '{selector_text}'."
+            living_label = " living" if living_only else ""
+            return None, f"Only {len(matches)}{living_label} match(es) found for '{selector_text}'."
         return matches[requested_index - 1], None
 
     if len(matches) > 1:
@@ -336,7 +346,7 @@ def resolve_room_entity_selector(
 
 
 def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: str) -> EntityState | None:
-    entity, _ = resolve_room_entity_selector(session, room_id, search_text)
+    entity, _ = resolve_room_entity_selector(session, room_id, search_text, living_only=True)
     return entity
 
 
@@ -484,7 +494,12 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     if cast_type == "target":
         entity: EntityState | None = None
         if target_name:
-            entity, resolve_error = resolve_room_entity_selector(session, session.player.current_room_id, target_name)
+            entity, resolve_error = resolve_room_entity_selector(
+                session,
+                session.player.current_room_id,
+                target_name,
+                living_only=True,
+            )
             if entity is None:
                 return display_error(resolve_error or f"No target named '{target_name}' is here.", session), False
         else:
@@ -672,7 +687,12 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     from display import display_error, display_force_prompt
 
     clear_combat_if_invalid(session)
-    entity, resolve_error = resolve_room_entity_selector(session, session.player.current_room_id, target_name)
+    entity, resolve_error = resolve_room_entity_selector(
+        session,
+        session.player.current_room_id,
+        target_name,
+        living_only=True,
+    )
 
     if entity is None:
         return display_error(resolve_error or f"No target named '{target_name}' is here.", session)
