@@ -645,9 +645,9 @@ def _set_entity_skill_cooldown(entity: EntityState, skill: dict) -> None:
 
 
 def _apply_player_skill_lag(session: ClientSession, skill: dict) -> None:
-    lag_rounds = max(0, int(skill.get("lag_rounds", 0)))
-    if lag_rounds > 0:
-        session.combat.skip_melee_rounds = max(session.combat.skip_melee_rounds, lag_rounds)
+    # Lag is tracked for visual feedback but doesn't skip melee rounds.
+    # Skills have lag_rounds but this doesn't prevent player melee attacks.
+    pass
 
 
 def _apply_entity_skill_lag(entity: EntityState, skill: dict) -> None:
@@ -679,11 +679,34 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     if skill_type not in {"damage", "support"}:
         return display_error(f"Skill '{skill_name}' has unsupported skill_type '{skill_type}'.", session), False
 
+    description = str(skill.get("description", "")).strip()
+    
+    target_text = ""
+    if cast_type == "target" and target_name:
+        # Find the entity to get proper article format
+        target_entity, _ = resolve_room_entity_selector(
+            session,
+            session.player.current_room_id,
+            target_name,
+            living_only=True,
+        )
+        if target_entity:
+            target_text = f" on {_with_article(target_entity.name)}"
+        else:
+            target_text = f" on {target_name}"
+    elif cast_type == "self":
+        target_text = " on yourself"
+
     parts = [
         build_part("You use "),
         build_part(skill_name),
-        build_part("."),
+        build_part(target_text + "."),
     ]
+    if description:
+        parts.extend([
+            build_part("\n"),
+            build_part(description),
+        ])
 
     if skill_type == "support":
         if cast_type != "self":
@@ -744,7 +767,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     for entity in damage_targets:
         parts.append(build_part("\n"))
         named_target = _with_article(entity.name, capitalize=True)
-        resolved_context = damage_context.replace("[a/an]", named_target)
+        resolved_context = damage_context.replace("[a/an]", named_target).replace("[verb]", "is")
         if resolved_context and not resolved_context.endswith("."):
             resolved_context += "."
 
@@ -819,13 +842,20 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
     cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
 
+    description = str(skill.get("description", "")).strip()
+    
     _append_newline_if_needed(parts)
     parts.extend([
         build_part(_with_article(entity.name, capitalize=True)),
         build_part(" uses "),
         build_part(skill_name),
-        build_part("."),
+        build_part(" on you!"),
     ])
+    if description:
+        parts.extend([
+            build_part(" "),
+            build_part(description),
+        ])
 
     if skill_type == "support" and cast_type == "self":
         support_effect = str(skill.get("support_effect", "")).strip().lower()
@@ -851,7 +881,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
         _append_newline_if_needed(parts)
         if damage_context:
-            resolved_context = damage_context.replace("[a/an]", "you")
+            resolved_context = damage_context.replace("[a/an]", "you").replace("[verb]", "are")
             if not resolved_context.endswith("."):
                 resolved_context += "."
             parts.append(build_part(resolved_context))

@@ -8,7 +8,7 @@
     "damage_dice_count": 1,
     "damage_dice_sides": 8,
     "damage_modifier": 2,
-    "damage_context": "[a/an] is snapped backward by a sharp jab.",
+    "damage_context": "[a/an] [verb] snapped backward by a sharp jab.",
     "lag_rounds": 0,
     "cooldown_rounds": 1
   },
@@ -21,7 +21,7 @@
     "damage_dice_count": 2,
     "damage_dice_sides": 8,
     "damage_modifier": 2,
-    "damage_context": "[a/an] takes a crushing overhead strike.",
+    "damage_context": "[a/an] [verb] taken by a crushing overhead strike.",
     "lag_rounds": 1,
     "cooldown_rounds": 3
   },

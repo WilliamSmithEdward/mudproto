@@ -11,6 +11,30 @@ from world import Room, get_room
 PLAYER_REFERENCE_MAX_HP = 575
 
 
+def _capitalize_after_newlines(text: str) -> str:
+    """Capitalize the first letter after each newline in text."""
+    if not text:
+        return text
+    
+    result = []
+    capitalize_next = False
+    for i, char in enumerate(text):
+        if i == 0:
+            # Capitalize the very first character
+            result.append(char.upper() if char.isalpha() else char)
+        elif char == "\n":
+            result.append(char)
+            capitalize_next = True
+        elif capitalize_next and char.isalpha():
+            result.append(char.upper())
+            capitalize_next = False
+        else:
+            result.append(char)
+            capitalize_next = False
+    
+    return "".join(result)
+
+
 def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     return {
         "text": text,
@@ -75,9 +99,9 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
     if engaged_entity is not None:
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
         parts.extend([
-            build_part(" [NPC:", "bright_white"),
+            build_part(" [", "bright_white"),
             build_part(engaged_entity.name, "bright_yellow", True),
-            build_part(" - ", "bright_white"),
+            build_part(":", "bright_white"),
             build_part(npc_condition.title(), npc_condition_color, True),
             build_part("]", "bright_white"),
         ])
@@ -94,8 +118,29 @@ def build_display(
     prompt_parts: list[dict] | None = None,
     starts_on_new_line: bool = False
 ) -> dict:
+    # Capitalize first letter after newlines in the full text
+    full_text = "".join(p.get("text", "") for p in parts)
+    capitalized_text = _capitalize_after_newlines(full_text)
+    
+    # Rebuild parts with capitalized text, maintaining original formatting
+    offset = 0
+    new_parts = []
+    for part in parts:
+        original_text = part.get("text", "")
+        text_len = len(original_text)
+        if text_len > 0:
+            capitalized_portion = capitalized_text[offset:offset + text_len]
+            offset += text_len
+            new_parts.append({
+                "text": capitalized_portion,
+                "fg": part.get("fg", "bright_white"),
+                "bold": part.get("bold", False)
+            })
+        else:
+            new_parts.append(part)
+    
     return build_response("display", {
-        "parts": parts,
+        "parts": new_parts,
         "blank_lines_before": blank_lines_before,
         "prompt_after": prompt_after,
         "prompt_parts": prompt_parts,
