@@ -11,6 +11,12 @@
     "room_id": "hall",
     "title": "Northern Hall",
     "description": "A narrow hall of cold stone extends here, quiet and still.",
+    "npcs": [
+      {
+        "npc_id": "npc.hall-scout",
+        "count": 2
+      }
+    ],
     "exits": {
       "south": "start"
     }

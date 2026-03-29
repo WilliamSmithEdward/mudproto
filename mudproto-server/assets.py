@@ -12,6 +12,7 @@ SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 PLAYER_CLASSES_FILE = CONFIGURABLE_ASSET_ROOT / "classes.json"
 WEAR_SLOTS_FILE = CONFIGURABLE_ASSET_ROOT / "wear_slots.json"
+NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
 
 
 def _read_json_asset(path: Path) -> object:
@@ -182,6 +183,7 @@ def load_rooms() -> list[dict]:
         title = raw_room.get("title")
         description = raw_room.get("description")
         exits = raw_room.get("exits", {})
+        room_npcs = raw_room.get("npcs", [])
 
         if not isinstance(room_id, str) or not room_id.strip():
             raise ValueError("Room asset entries must include a non-empty string room_id.")
@@ -193,6 +195,10 @@ def load_rooms() -> list[dict]:
             raise ValueError(f"Room asset '{room_id}' must include a non-empty description.")
         if not isinstance(exits, dict):
             raise ValueError(f"Room asset '{room_id}' exits must be an object.")
+        if room_npcs is None:
+            room_npcs = []
+        if not isinstance(room_npcs, list):
+            raise ValueError(f"Room asset '{room_id}' npcs must be a list.")
 
         normalized_exits: dict[str, str] = {}
         for direction, destination_room_id in exits.items():
@@ -202,15 +208,136 @@ def load_rooms() -> list[dict]:
                 raise ValueError(f"Room asset '{room_id}' exit '{direction}' has an invalid destination room id.")
             normalized_exits[direction.strip().lower()] = destination_room_id.strip()
 
+        normalized_npcs: list[dict] = []
+        for raw_npc_spawn in room_npcs:
+            if not isinstance(raw_npc_spawn, dict):
+                raise ValueError(f"Room asset '{room_id}' npc spawn entries must be objects.")
+
+            npc_id = raw_npc_spawn.get("npc_id")
+            if not isinstance(npc_id, str) or not npc_id.strip():
+                raise ValueError(f"Room asset '{room_id}' npc spawn entries must include npc_id.")
+
+            spawn_count = int(raw_npc_spawn.get("count", 1))
+            if spawn_count <= 0:
+                raise ValueError(f"Room asset '{room_id}' npc '{npc_id}' count must be 1 or greater.")
+
+            normalized_npcs.append({
+                "npc_id": npc_id.strip(),
+                "count": spawn_count,
+            })
+
         room_ids.add(room_id)
         normalized_rooms.append({
             "room_id": room_id,
             "title": title,
             "description": description,
             "exits": normalized_exits,
+            "npcs": normalized_npcs,
         })
 
     return normalized_rooms
+
+
+@lru_cache(maxsize=1)
+def load_npc_templates() -> list[dict]:
+    raw_config = _read_json_asset(NPCS_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"NPC asset file must contain an object: {NPCS_FILE}")
+
+    raw_npcs = raw_config.get("npcs", [])
+    if raw_npcs is None:
+        raw_npcs = []
+    if not isinstance(raw_npcs, list):
+        raise ValueError("NPC asset field 'npcs' must be a list.")
+
+    normalized_npcs: list[dict] = []
+    npc_ids: set[str] = set()
+
+    for raw_npc in raw_npcs:
+        if not isinstance(raw_npc, dict):
+            raise ValueError("NPC entries must be objects.")
+
+        npc_id = str(raw_npc.get("npc_id", "")).strip()
+        if not npc_id:
+            raise ValueError("NPC entries must include npc_id.")
+        if npc_id in npc_ids:
+            raise ValueError(f"Duplicate npc_id in npc assets: {npc_id}")
+
+        name = str(raw_npc.get("name", "")).strip()
+        if not name:
+            raise ValueError(f"NPC '{npc_id}' must define name.")
+
+        max_hit_points = int(raw_npc.get("max_hit_points", raw_npc.get("hit_points", 1)))
+        hit_points = int(raw_npc.get("hit_points", max_hit_points))
+        if max_hit_points <= 0:
+            raise ValueError(f"NPC '{npc_id}' max_hit_points must be greater than zero.")
+        if hit_points <= 0:
+            raise ValueError(f"NPC '{npc_id}' hit_points must be greater than zero.")
+
+        raw_loot_items = raw_npc.get("loot_items", [])
+        if raw_loot_items is None:
+            raw_loot_items = []
+        if not isinstance(raw_loot_items, list):
+            raise ValueError(f"NPC '{npc_id}' loot_items must be a list.")
+
+        normalized_loot_items: list[dict] = []
+        for raw_loot_item in raw_loot_items:
+            if not isinstance(raw_loot_item, dict):
+                raise ValueError(f"NPC '{npc_id}' loot items must be objects.")
+            loot_name = str(raw_loot_item.get("name", "")).strip()
+            if not loot_name:
+                raise ValueError(f"NPC '{npc_id}' loot items must include name.")
+            raw_loot_keywords = raw_loot_item.get("keywords", [])
+            if raw_loot_keywords is None:
+                raw_loot_keywords = []
+            if not isinstance(raw_loot_keywords, list):
+                raise ValueError(f"NPC '{npc_id}' loot item '{loot_name}' keywords must be a list.")
+
+            normalized_loot_items.append({
+                "name": loot_name,
+                "description": str(raw_loot_item.get("description", "")),
+                "keywords": [str(keyword).strip().lower() for keyword in raw_loot_keywords if str(keyword).strip()],
+            })
+
+        raw_skill_ids = raw_npc.get("skill_ids", [])
+        if raw_skill_ids is None:
+            raw_skill_ids = []
+        if not isinstance(raw_skill_ids, list):
+            raise ValueError(f"NPC '{npc_id}' skill_ids must be a list.")
+
+        npc_ids.add(npc_id)
+        normalized_npcs.append({
+            "npc_id": npc_id,
+            "name": name,
+            "hit_points": hit_points,
+            "max_hit_points": max_hit_points,
+            "attack_damage": int(raw_npc.get("attack_damage", 1)),
+            "attacks_per_round": int(raw_npc.get("attacks_per_round", 1)),
+            "hit_roll_modifier": int(raw_npc.get("hit_roll_modifier", 0)),
+            "armor_class": int(raw_npc.get("armor_class", 10)),
+            "off_hand_attack_damage": int(raw_npc.get("off_hand_attack_damage", 0)),
+            "off_hand_attacks_per_round": int(raw_npc.get("off_hand_attacks_per_round", 0)),
+            "off_hand_hit_roll_modifier": int(raw_npc.get("off_hand_hit_roll_modifier", 0)),
+            "off_hand_attack_verb": str(raw_npc.get("off_hand_attack_verb", "hit")).strip().lower() or "hit",
+            "off_hand_weapon_name": str(raw_npc.get("off_hand_weapon_name", "off-hand")).strip() or "off-hand",
+            "coin_reward": max(0, int(raw_npc.get("coin_reward", 0))),
+            "is_aggro": bool(raw_npc.get("is_aggro", False)),
+            "is_ally": bool(raw_npc.get("is_ally", False)),
+            "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
+            "attack_verb": str(raw_npc.get("attack_verb", "hit")).strip().lower() or "hit",
+            "skill_ids": [str(skill_id).strip() for skill_id in raw_skill_ids if str(skill_id).strip()],
+            "loot_items": normalized_loot_items,
+        })
+
+    return normalized_npcs
+
+
+def get_npc_template_by_id(npc_id: str) -> dict | None:
+    normalized = npc_id.strip().lower()
+    for npc in load_npc_templates():
+        if str(npc.get("npc_id", "")).strip().lower() == normalized:
+            return npc
+    return None
 
 
 @lru_cache(maxsize=1)

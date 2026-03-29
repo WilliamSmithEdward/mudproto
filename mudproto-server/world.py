@@ -9,6 +9,7 @@ class Room:
     title: str
     description: str
     exits: dict[str, str] = field(default_factory=dict)
+    npcs: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -25,6 +26,7 @@ def build_default_world() -> WorldState:
             title=room_data["title"],
             description=room_data["description"],
             exits=room_data["exits"],
+            npcs=room_data.get("npcs", []),
         )
         world.rooms[room.room_id] = room
 

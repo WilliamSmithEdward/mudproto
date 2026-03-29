@@ -1,0 +1,37 @@
+{
+  "npcs": [
+    {
+      "npc_id": "npc.hall-scout",
+      "name": "Hall Scout",
+      "hit_points": 550,
+      "max_hit_points": 550,
+      "attack_damage": 8,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 10,
+      "off_hand_attack_damage": 6,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 1,
+      "off_hand_attack_verb": "stab",
+      "off_hand_weapon_name": "dagger",
+      "coin_reward": 20,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "attack_verb": "slash",
+      "skill_ids": ["skill.jab", "skill.overhead.crack"],
+      "loot_items": [
+        {
+          "name": "Scout Dagger",
+          "description": "A worn dagger carried by a hall scout.",
+          "keywords": ["scout", "dagger", "blade"]
+        },
+        {
+          "name": "Patrol Token",
+          "description": "A stamped token marked with hall patrol insignia.",
+          "keywords": ["patrol", "token", "badge"]
+        }
+      ]
+    }
+  ]
+}

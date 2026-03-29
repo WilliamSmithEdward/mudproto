@@ -3,9 +3,10 @@ import random
 import re
 import uuid
 
-from assets import get_skill_by_id
+from assets import get_npc_template_by_id, get_skill_by_id
 from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
+from world import WORLD
 
 
 COMBAT_ROUND_INTERVAL_SECONDS = 2.5
@@ -1161,45 +1162,54 @@ def initialize_session_entities(session: ClientSession) -> None:
     if session.entities:
         return
 
-    for scout_index in range(2):
-        session.entity_spawn_counter += 1
-        scout_name = "Hall Scout"
-        scout = EntityState(
-            entity_id=f"scout-{uuid.uuid4().hex[:8]}",
-            name=scout_name,
-            room_id="hall",
-            hit_points=550,
-            max_hit_points=550,
-            attack_damage=8,
-            attacks_per_round=1,
-            hit_roll_modifier=2,
-            off_hand_attack_damage=6,
-            off_hand_attacks_per_round=1,
-            off_hand_hit_roll_modifier=1,
-            off_hand_attack_verb="stab",
-            off_hand_weapon_name="dagger",
-            coin_reward=20,
-            loot_items=[
-                LootItemState(
-                    item_id=f"loot-{uuid.uuid4().hex[:8]}",
-                    name="Scout Dagger",
-                    description="A worn dagger carried by a hall scout.",
-                    keywords=["scout", "dagger", "blade"],
-                ),
-                LootItemState(
-                    item_id=f"loot-{uuid.uuid4().hex[:8]}",
-                    name="Patrol Token",
-                    description="A stamped token marked with hall patrol insignia.",
-                    keywords=["patrol", "token", "badge"],
-                ),
-            ],
-            spawn_sequence=session.entity_spawn_counter,
-            is_aggro=True,
-            attack_verb="slash",
-            pronoun_possessive="his",
-            skill_ids=["skill.jab", "skill.overhead.crack"],
-        )
-        session.entities[scout.entity_id] = scout
+    for room in WORLD.rooms.values():
+        for npc_spawn in room.npcs:
+            npc_id = str(npc_spawn.get("npc_id", "")).strip()
+            if not npc_id:
+                continue
+
+            template = get_npc_template_by_id(npc_id)
+            if template is None:
+                continue
+
+            spawn_count = max(1, int(npc_spawn.get("count", 1)))
+            for _ in range(spawn_count):
+                session.entity_spawn_counter += 1
+
+                loot_items: list[LootItemState] = []
+                for loot_template in template.get("loot_items", []):
+                    loot_items.append(LootItemState(
+                        item_id=f"loot-{uuid.uuid4().hex[:8]}",
+                        name=str(loot_template.get("name", "Loot")).strip() or "Loot",
+                        description=str(loot_template.get("description", "")),
+                        keywords=list(loot_template.get("keywords", [])),
+                    ))
+
+                entity = EntityState(
+                    entity_id=f"npc-{uuid.uuid4().hex[:8]}",
+                    name=str(template.get("name", "NPC")).strip() or "NPC",
+                    room_id=room.room_id,
+                    hit_points=int(template.get("hit_points", 1)),
+                    max_hit_points=int(template.get("max_hit_points", template.get("hit_points", 1))),
+                    attack_damage=int(template.get("attack_damage", 1)),
+                    attacks_per_round=max(1, int(template.get("attacks_per_round", 1))),
+                    hit_roll_modifier=int(template.get("hit_roll_modifier", 0)),
+                    armor_class=int(template.get("armor_class", 10)),
+                    off_hand_attack_damage=max(0, int(template.get("off_hand_attack_damage", 0))),
+                    off_hand_attacks_per_round=max(0, int(template.get("off_hand_attacks_per_round", 0))),
+                    off_hand_hit_roll_modifier=int(template.get("off_hand_hit_roll_modifier", 0)),
+                    off_hand_attack_verb=str(template.get("off_hand_attack_verb", "hit")).strip().lower() or "hit",
+                    off_hand_weapon_name=str(template.get("off_hand_weapon_name", "off-hand")).strip() or "off-hand",
+                    coin_reward=max(0, int(template.get("coin_reward", 0))),
+                    loot_items=loot_items,
+                    spawn_sequence=session.entity_spawn_counter,
+                    is_aggro=bool(template.get("is_aggro", False)),
+                    is_ally=bool(template.get("is_ally", False)),
+                    pronoun_possessive=str(template.get("pronoun_possessive", "its")).strip().lower() or "its",
+                    attack_verb=str(template.get("attack_verb", "hit")).strip().lower() or "hit",
+                    skill_ids=[str(skill_id).strip() for skill_id in template.get("skill_ids", []) if str(skill_id).strip()],
+                )
+                session.entities[entity.entity_id] = entity
 
 
 def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None:
