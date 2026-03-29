@@ -83,6 +83,13 @@ def _article(name: str) -> str:
     return "an" if name.strip().lower()[:1] in "aeiou" else "a"
 
 
+def _with_article(name: str, *, capitalize: bool = False) -> str:
+    article = _article(name)
+    if capitalize:
+        article = article.capitalize()
+    return f"{article} {name}"
+
+
 def _choose_severity(damage: int, target_max_hp: int) -> str:
     if damage <= 0:
         return "miss"
@@ -593,8 +600,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     for index, entity in enumerate(damage_targets):
         parts.append(build_part("\n"))
 
-        article = _article(entity.name)
-        named_target = f"{article} {entity.name}"
+        named_target = _with_article(entity.name, capitalize=True)
         resolved_context = damage_context.replace("[a/an]", named_target)
         if resolved_context and not resolved_context.endswith("."):
             resolved_context += "."
@@ -623,10 +629,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             status.coins += entity.coin_reward
             parts.extend([
                 build_part("\n"),
-                build_part(entity.name),
-                build_part(" is destroyed. Coins +"),
-                build_part(str(entity.coin_reward)),
-                build_part("."),
+                build_part(_with_article(entity.name, capitalize=True)),
+                build_part(" is destroyed."),
             ])
 
             if session.combat.engaged_entity_id == entity.entity_id:
@@ -936,11 +940,8 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
         _append_newline_if_needed(parts)
         parts.extend([
-            build_part(entity.name),
-            build_part(" is destroyed. ", "bright_white"),
-            build_part("Coins +", "bright_white"),
-            build_part(str(entity.coin_reward), "bright_yellow", True),
-            build_part(".", "bright_white"),
+            build_part(_with_article(entity.name, capitalize=True)),
+            build_part(" is destroyed.", "bright_white"),
         ])
 
         next_target = _engage_next_room_target(session, entity.entity_id)
