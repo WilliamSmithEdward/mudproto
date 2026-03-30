@@ -63,7 +63,8 @@ class EquipmentItemState:
     description: str = ""
     keywords: list[str] = field(default_factory=list)
     weapon_type: str = "unarmed"
-    preferred_hand: str = "main_hand"
+    can_hold: bool = False
+    weight: int = 0
     damage_dice_count: int = 0
     damage_dice_sides: int = 0
     damage_roll_modifier: int = 0

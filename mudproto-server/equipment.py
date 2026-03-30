@@ -278,11 +278,27 @@ def resolve_equipped_selector(session: ClientSession, selector: str) -> tuple[Eq
     return matches[0], None
 
 
+def can_player_wield(session: ClientSession, item: EquipmentItemState) -> tuple[bool, str]:
+    """Return (True, '') or (False, reason) for can_hold weapons based on weight vs STR."""
+    if not item.can_hold:
+        return True, ""
+    weight = max(0, item.weight)
+    required_str = weight
+    player_str = int(session.player.attributes.get("str", 0))
+    if player_str >= required_str:
+        return True, ""
+    return False, f"{item.name} is too heavy to wield (requires {required_str} STR, you have {player_str})."
+
+
 def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | None = None) -> tuple[bool, str]:
     if item.slot != "weapon":
         return False, f"{item.name} cannot be equipped as a weapon."
 
-    target_hand = (hand or item.preferred_hand or HAND_MAIN).strip().lower()
+    can_wield, wield_error = can_player_wield(session, item)
+    if not can_wield:
+        return False, wield_error
+
+    target_hand = (hand or HAND_MAIN).strip().lower()
     if target_hand not in {HAND_MAIN, HAND_OFF}:
         return False, "Hand must be main or off."
 

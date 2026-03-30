@@ -6,7 +6,8 @@
     "description": "A blunted practice sword issued to new recruits.",
     "keywords": ["training", "sword"],
     "weapon_type": "sword",
-    "preferred_hand": "main_hand",
+    "can_hold": true,
+    "weight": 8,
     "damage_dice_count": 3,
     "damage_dice_sides": 5,
     "damage_roll_modifier": 1,
@@ -22,7 +23,8 @@
     "description": "A lightweight practice dagger for off-hand drills.",
     "keywords": ["training", "dagger"],
     "weapon_type": "dagger",
-    "preferred_hand": "off_hand",
+    "can_hold": false,
+    "weight": 3,
     "damage_dice_count": 2,
     "damage_dice_sides": 4,
     "damage_roll_modifier": 0,
@@ -38,7 +40,8 @@
     "description": "A worn dagger taken from a hall scout.",
     "keywords": ["scout", "dagger"],
     "weapon_type": "dagger",
-    "preferred_hand": "off_hand",
+    "can_hold": false,
+    "weight": 3,
     "damage_dice_count": 2,
     "damage_dice_sides": 3,
     "damage_roll_modifier": 0,
@@ -54,6 +57,7 @@
     "wear_slots": ["chest"],
     "description": "A reinforced jacket worn by front-line trainees.",
     "keywords": ["vanguard", "jacket", "chest"],
+    "weight": 10,
     "armor_class_bonus": 2,
     "equip_on_grant": true
   },
@@ -64,6 +68,7 @@
     "wear_slots": ["feet"],
     "description": "Heavy boots built for marching and impact.",
     "keywords": ["vanguard", "boots", "feet"],
+    "weight": 6,
     "armor_class_bonus": 1,
     "equip_on_grant": true
   },
@@ -74,6 +79,7 @@
     "wear_slots": ["chest"],
     "description": "A rune-lined robe favored by novice arcanists.",
     "keywords": ["arcanist", "robe", "chest"],
+    "weight": 4,
     "armor_class_bonus": 1,
     "equip_on_grant": true
   },
@@ -84,6 +90,7 @@
     "wear_slots": ["hands"],
     "description": "Light hand wraps that steady precise gestures.",
     "keywords": ["arcanist", "wraps", "hands"],
+    "weight": 1,
     "armor_class_bonus": 1,
     "equip_on_grant": true
   },
@@ -94,6 +101,7 @@
     "wear_slots": ["ring"],
     "description": "A simple brass ring used for slot testing.",
     "keywords": ["amber", "ring", "test"],
+    "weight": 0,
     "armor_class_bonus": 0,
     "equip_on_grant": false
   },
@@ -104,6 +112,7 @@
     "wear_slots": ["ring"],
     "description": "A polished silver ring used for multi-slot testing.",
     "keywords": ["azure", "ring", "test"],
+    "weight": 0,
     "armor_class_bonus": 0,
     "equip_on_grant": false
   },
@@ -114,6 +123,7 @@
     "wear_slots": ["chest"],
     "description": "A padded vest used to test occupied chest-slot behavior.",
     "keywords": ["practice", "vest", "chest", "test"],
+    "weight": 3,
     "armor_class_bonus": 0,
     "equip_on_grant": false
   },
@@ -124,6 +134,7 @@
     "wear_slots": ["back"],
     "description": "A padded cloak used to test occupied back-slot behavior.",
     "keywords": ["practice", "cloak", "back", "test"],
+    "weight": 2,
     "armor_class_bonus": 0,
     "equip_on_grant": false
   }

@@ -80,7 +80,8 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         description=str(template.get("description", "")),
         keywords=list(template.get("keywords", [])),
         weapon_type=str(template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
-        preferred_hand=str(template.get("preferred_hand", "main_hand")).strip().lower() or "main_hand",
+        can_hold=bool(template.get("can_hold", False)),
+        weight=max(0, int(template.get("weight", 0))),
         damage_dice_count=int(template.get("damage_dice_count", 0)),
         damage_dice_sides=int(template.get("damage_dice_sides", 0)),
         damage_roll_modifier=int(template.get("damage_roll_modifier", 0)),
@@ -99,7 +100,7 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
 
     if item.slot == "weapon":
         main_occupied = session.equipment.equipped_main_hand_id is not None
-        target_hand = HAND_OFF if (item.preferred_hand == HAND_OFF and main_occupied) else HAND_MAIN
+        target_hand = HAND_OFF if main_occupied else HAND_MAIN
         equip_item(session, item, target_hand)
         return
 
