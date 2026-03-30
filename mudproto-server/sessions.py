@@ -246,7 +246,8 @@ def register_authenticated_character_session(session: ClientSession) -> None:
 
 
 async def _offline_character_loop(character_key: str, session: ClientSession) -> None:
-    from combat import end_combat, get_engaged_entity, process_game_hour_tick, resolve_combat_round
+    from combat import end_combat, get_engaged_entity, resolve_combat_round
+    from ticks import process_game_hour_tick
 
     safe_hours = 0
     previous_hit_points = session.status.hit_points

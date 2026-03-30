@@ -1155,28 +1155,6 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     return display_command_result(session, parts), True
 
 
-def process_game_hour_tick(session: ClientSession) -> list[str]:
-    expired_spell_names: list[str] = []
-
-    for effect in list(session.active_support_effects):
-        if effect.support_mode != "timed":
-            continue
-
-        if effect.support_effect == "heal":
-            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + effect.support_amount)
-        elif effect.support_effect == "vigor":
-            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + effect.support_amount)
-        elif effect.support_effect == "mana":
-            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + effect.support_amount)
-
-        effect.remaining_hours -= 1
-        if effect.remaining_hours <= 0:
-            session.active_support_effects.remove(effect)
-            expired_spell_names.append(effect.spell_name)
-
-    return expired_spell_names
-
-
 def _process_battle_round_support_effects(session: ClientSession) -> None:
     for effect in list(session.active_support_effects):
         if effect.support_mode != "battle_rounds":

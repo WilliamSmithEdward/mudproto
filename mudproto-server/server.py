@@ -5,7 +5,7 @@ import uuid
 from websockets.asyncio.server import ServerConnection
 import websockets
 
-from combat import initialize_session_entities, process_game_hour_tick, process_non_combat_support_round, resolve_combat_round
+from combat import initialize_session_entities, process_non_combat_support_round, resolve_combat_round
 from commands import dispatch_message, execute_command, initial_auth_prompt
 from display import (
     display_connected,
@@ -30,6 +30,7 @@ from sessions import (
     register_client,
     touch_session,
 )
+from ticks import process_game_hour_tick
 from world import get_room
 next_game_tick_monotonic: float | None = None
 
@@ -59,9 +60,15 @@ async def command_scheduler_loop(session) -> None:
             if session.client_id not in connected_clients:
                 break
 
+            now = asyncio.get_running_loop().time()
+            while session.next_game_tick_monotonic is not None and now >= session.next_game_tick_monotonic:
+                process_game_hour_tick(session)
+                if session.is_authenticated:
+                    save_player_state(session)
+                session.next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
+
             combat_result = None
             if session.combat.next_round_monotonic is not None:
-                now = asyncio.get_running_loop().time()
                 if now >= session.combat.next_round_monotonic:
                     combat_result = resolve_combat_round(session)
 
@@ -106,16 +113,8 @@ async def game_tick_loop() -> None:
         next_game_tick_monotonic = asyncio.get_running_loop().time() + GAME_TICK_INTERVAL_SECONDS
 
         while True:
-            for session in list(connected_clients.values()):
-                session.next_game_tick_monotonic = next_game_tick_monotonic
-
             sleep_seconds = max(0.0, next_game_tick_monotonic - asyncio.get_running_loop().time())
             await asyncio.sleep(sleep_seconds)
-
-            for session in list(connected_clients.values()):
-                process_game_hour_tick(session)
-                if session.is_authenticated:
-                    save_player_state(session)
 
             next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
@@ -127,6 +126,8 @@ async def handle_connection(websocket: ServerConnection) -> None:
     client_id = str(uuid.uuid4())
     session = register_client(client_id, websocket)
     session.next_game_tick_monotonic = next_game_tick_monotonic
+    if session.next_game_tick_monotonic is None:
+        session.next_game_tick_monotonic = asyncio.get_running_loop().time() + GAME_TICK_INTERVAL_SECONDS
     initialize_session_entities(session)
     session.scheduler_task = asyncio.create_task(command_scheduler_loop(session))
 

@@ -1,0 +1,34 @@
+{
+  "resources": {
+    "hit_points": {
+      "attribute_id": "con",
+      "min_amount": 1,
+      "percent_by_attribute": [
+        { "min": 0, "percent": 0.01 },
+        { "min": 8, "percent": 0.015 },
+        { "min": 12, "percent": 0.02 },
+        { "min": 16, "percent": 0.03 }
+      ]
+    },
+    "vigor": {
+      "attribute_id": "dex",
+      "min_amount": 1,
+      "percent_by_attribute": [
+        { "min": 0, "percent": 0.015 },
+        { "min": 8, "percent": 0.02 },
+        { "min": 12, "percent": 0.03 },
+        { "min": 16, "percent": 0.04 }
+      ]
+    },
+    "mana": {
+      "attribute_id": "wis",
+      "min_amount": 1,
+      "percent_by_attribute": [
+        { "min": 0, "percent": 0.01 },
+        { "min": 8, "percent": 0.015 },
+        { "min": 12, "percent": 0.025 },
+        { "min": 16, "percent": 0.035 }
+      ]
+    }
+  }
+}

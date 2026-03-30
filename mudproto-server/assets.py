@@ -14,6 +14,7 @@ PLAYER_CLASSES_FILE = CONFIGURABLE_ASSET_ROOT / "classes.json"
 WEAR_SLOTS_FILE = CONFIGURABLE_ASSET_ROOT / "wear_slots.json"
 NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
 ATTRIBUTES_FILE = CONFIGURABLE_ASSET_ROOT / "attributes.json"
+REGENERATION_FILE = CONFIGURABLE_ASSET_ROOT / "regeneration.json"
 
 
 def _read_json_asset(path: Path) -> object:
@@ -382,6 +383,83 @@ def load_attributes() -> list[dict]:
         raise ValueError("At least one attribute must be configured.")
 
     return normalized_attributes
+
+
+@lru_cache(maxsize=1)
+def load_regeneration_config() -> dict:
+    raw_config = _read_json_asset(REGENERATION_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Regeneration asset file must contain an object: {REGENERATION_FILE}")
+
+    raw_resources = raw_config.get("resources", {})
+    if not isinstance(raw_resources, dict):
+        raise ValueError("Regeneration config field 'resources' must be an object.")
+
+    expected_resources = {"hit_points", "vigor", "mana"}
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
+
+    normalized_resources: dict[str, dict] = {}
+    for resource_key in expected_resources:
+        raw_resource = raw_resources.get(resource_key)
+        if not isinstance(raw_resource, dict):
+            raise ValueError(f"Regeneration config must include object for resource '{resource_key}'.")
+
+        attribute_id = str(raw_resource.get("attribute_id", "")).strip().lower()
+        if not attribute_id:
+            raise ValueError(f"Regeneration config for '{resource_key}' must define attribute_id.")
+        if attribute_id not in configured_attribute_ids:
+            raise ValueError(
+                f"Regeneration config for '{resource_key}' references unknown attribute_id '{attribute_id}'."
+            )
+
+        min_amount = int(raw_resource.get("min_amount", 0))
+        if min_amount < 0:
+            raise ValueError(f"Regeneration config for '{resource_key}' min_amount must be >= 0.")
+
+        raw_mapping = raw_resource.get("percent_by_attribute", [])
+        if not isinstance(raw_mapping, list) or not raw_mapping:
+            raise ValueError(
+                f"Regeneration config for '{resource_key}' must include non-empty percent_by_attribute list."
+            )
+
+        normalized_mapping: list[dict] = []
+        for raw_entry in raw_mapping:
+            if not isinstance(raw_entry, dict):
+                raise ValueError(
+                    f"Regeneration config for '{resource_key}' percent_by_attribute entries must be objects."
+                )
+
+            min_attribute = int(raw_entry.get("min", 0))
+            percent = float(raw_entry.get("percent", 0.0))
+            if percent < 0.0:
+                raise ValueError(
+                    f"Regeneration config for '{resource_key}' percent values must be >= 0.0."
+                )
+
+            normalized_mapping.append({
+                "min": min_attribute,
+                "percent": percent,
+            })
+
+        normalized_mapping.sort(key=lambda entry: int(entry["min"]))
+        normalized_resources[resource_key] = {
+            "attribute_id": attribute_id,
+            "min_amount": min_amount,
+            "percent_by_attribute": normalized_mapping,
+        }
+
+    for resource_key in raw_resources.keys():
+        normalized_resource_key = str(resource_key).strip().lower()
+        if normalized_resource_key not in expected_resources:
+            raise ValueError(f"Regeneration config contains unknown resource '{resource_key}'.")
+
+    return {
+        "resources": normalized_resources,
+    }
 
 
 @lru_cache(maxsize=1)
