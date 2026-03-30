@@ -98,7 +98,8 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         return
 
     if item.slot == "weapon":
-        target_hand = HAND_OFF if item.preferred_hand == HAND_OFF else HAND_MAIN
+        main_occupied = session.equipment.equipped_main_hand_id is not None
+        target_hand = HAND_OFF if (item.preferred_hand == HAND_OFF and main_occupied) else HAND_MAIN
         equip_item(session, item, target_hand)
         return
 
