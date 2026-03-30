@@ -247,13 +247,16 @@ def register_authenticated_character_session(session: ClientSession) -> None:
 
 async def _offline_character_loop(character_key: str, session: ClientSession) -> None:
     from combat import end_combat, get_engaged_entity, resolve_combat_round
-    from ticks import process_game_hour_tick
+    from battle_round_ticks import process_non_combat_support_round
+    from game_hour_ticks import process_game_hour_tick
 
     safe_hours = 0
     previous_hit_points = session.status.hit_points
     next_flee_attempt_monotonic = 0.0
     loop = asyncio.get_running_loop()
-    next_hour_tick_monotonic = loop.time() + GAME_TICK_INTERVAL_SECONDS
+    next_hour_tick_monotonic = session.next_game_tick_monotonic
+    if next_hour_tick_monotonic is None:
+        next_hour_tick_monotonic = loop.time() + GAME_TICK_INTERVAL_SECONDS
 
     try:
         while True:
@@ -270,6 +273,8 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
             if session.combat.next_round_monotonic is not None and now >= session.combat.next_round_monotonic:
                 resolve_combat_round(session)
 
+            process_non_combat_support_round(session)
+
             engaged = get_engaged_entity(session) is not None
             if engaged and now >= next_flee_attempt_monotonic:
                 from commands import flee
@@ -277,9 +282,11 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
                 flee(session)
                 next_flee_attempt_monotonic = now + OFFLINE_FLEE_INTERVAL_SECONDS
 
-            if now >= next_hour_tick_monotonic:
+            while now >= next_hour_tick_monotonic:
                 process_game_hour_tick(session)
                 save_player_state(session)
+                next_hour_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
+                session.next_game_tick_monotonic = next_hour_tick_monotonic
 
                 hp_now = session.status.hit_points
                 took_damage = hp_now < previous_hit_points
@@ -291,8 +298,6 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
                     safe_hours = 0
 
                 previous_hit_points = hp_now
-                while next_hour_tick_monotonic <= now:
-                    next_hour_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
                 if safe_hours >= OFFLINE_SAFE_HOURS_TO_DISCONNECT:
                     session.disconnected_by_server = True

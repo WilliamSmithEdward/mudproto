@@ -5,7 +5,8 @@ import uuid
 from websockets.asyncio.server import ServerConnection
 import websockets
 
-from combat import initialize_session_entities, process_non_combat_support_round, resolve_combat_round
+from battle_round_ticks import process_non_combat_support_round
+from combat import initialize_session_entities, resolve_combat_round
 from commands import dispatch_message, execute_command, initial_auth_prompt
 from display import (
     display_connected,
@@ -30,7 +31,7 @@ from sessions import (
     register_client,
     touch_session,
 )
-from ticks import process_game_hour_tick
+from game_hour_ticks import process_game_hour_tick
 from world import get_room
 next_game_tick_monotonic: float | None = None
 

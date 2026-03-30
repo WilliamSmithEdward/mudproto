@@ -1,6 +1,5 @@
 from combat import (
     begin_attack,
-    COMBAT_ROUND_INTERVAL_SECONDS,
     cast_spell,
     disengage,
     end_combat,
@@ -27,6 +26,7 @@ from player_state_db import (
 import random
 import re
 import uuid
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
 
 from display import (
     build_part,
