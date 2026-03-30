@@ -14,6 +14,7 @@ from display import (
     display_prompt,
     display_room,
 )
+from player_state_db import save_player_state
 from protocol import validate_message
 from settings import (
     COMMAND_SCHEDULER_INTERVAL_SECONDS,
@@ -113,6 +114,7 @@ async def game_tick_loop() -> None:
 
             for session in list(connected_clients.values()):
                 process_game_hour_tick(session)
+                save_player_state(session)
 
             next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 

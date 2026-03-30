@@ -19,10 +19,10 @@
   "session": {
     "max_queued_commands": 5
   },
-  "player": {
-    "reference_max_hp": 575,
-    "reference_max_vigor": 119,
-    "reference_max_mana": 160
+  "database": {
+    "directory": "DB",
+    "filename": "mudproto.sqlite3",
+    "player_key": "default"
   },
   "assets": {
     "configurable_asset_directory": "configuration/assets"
