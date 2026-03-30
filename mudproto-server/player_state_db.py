@@ -1,5 +1,7 @@
 import json
 import sqlite3
+import hashlib
+import secrets
 from datetime import datetime, timezone
 
 from models import ActiveSupportEffectState, ClientSession, EquipmentItemState, LootItemState
@@ -21,6 +23,20 @@ def initialize_player_state_db() -> None:
     with _connect() as connection:
         connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS characters (
+                character_key TEXT PRIMARY KEY,
+                character_name TEXT NOT NULL,
+                password_salt TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                class_id TEXT NOT NULL,
+                login_room_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
             CREATE TABLE IF NOT EXISTS player_state (
                 player_key TEXT PRIMARY KEY,
                 state_json TEXT NOT NULL,
@@ -29,6 +45,153 @@ def initialize_player_state_db() -> None:
             """
         )
         connection.commit()
+
+
+def normalize_character_name(raw_name: str) -> str | None:
+    stripped = raw_name.strip()
+    if not stripped:
+        return None
+
+    if not stripped.isalpha():
+        return None
+
+    return stripped.title()
+
+
+def _character_key(character_name: str) -> str:
+    return character_name.strip().lower()
+
+
+def _hash_password(password: str, salt: str) -> str:
+    return hashlib.sha256(f"{salt}:{password}".encode("utf-8")).hexdigest()
+
+
+def get_character_by_name(character_name: str) -> dict | None:
+    normalized_name = normalize_character_name(character_name)
+    if normalized_name is None:
+        return None
+
+    initialize_player_state_db()
+    key = _character_key(normalized_name)
+    with _connect() as connection:
+        row = connection.execute(
+            """
+            SELECT character_key, character_name, class_id, login_room_id
+            FROM characters
+            WHERE character_key = ?
+            """,
+            (key,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return {
+        "character_key": str(row["character_key"]),
+        "character_name": str(row["character_name"]),
+        "class_id": str(row["class_id"]),
+        "login_room_id": str(row["login_room_id"]),
+    }
+
+
+def character_exists(character_name: str) -> bool:
+    return get_character_by_name(character_name) is not None
+
+
+def create_character(
+    *,
+    character_name: str,
+    password: str,
+    class_id: str,
+    login_room_id: str,
+) -> dict:
+    normalized_name = normalize_character_name(character_name)
+    if normalized_name is None:
+        raise ValueError("Character name must be alpha-only.")
+
+    if not password.strip():
+        raise ValueError("Password cannot be empty.")
+
+    character_key = _character_key(normalized_name)
+    salt = secrets.token_hex(16)
+    password_hash = _hash_password(password, salt)
+    now_iso = _utc_now_iso()
+
+    initialize_player_state_db()
+    with _connect() as connection:
+        existing = connection.execute(
+            "SELECT 1 FROM characters WHERE character_key = ?",
+            (character_key,),
+        ).fetchone()
+        if existing is not None:
+            raise ValueError("Character already exists.")
+
+        connection.execute(
+            """
+            INSERT INTO characters(
+                character_key,
+                character_name,
+                password_salt,
+                password_hash,
+                class_id,
+                login_room_id,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                character_key,
+                normalized_name,
+                salt,
+                password_hash,
+                class_id.strip(),
+                login_room_id.strip(),
+                now_iso,
+                now_iso,
+            ),
+        )
+        connection.commit()
+
+    return {
+        "character_key": character_key,
+        "character_name": normalized_name,
+        "class_id": class_id.strip(),
+        "login_room_id": login_room_id.strip(),
+    }
+
+
+def verify_character_credentials(character_name: str, password: str) -> dict | None:
+    normalized_name = normalize_character_name(character_name)
+    if normalized_name is None:
+        return None
+
+    key = _character_key(normalized_name)
+    initialize_player_state_db()
+    with _connect() as connection:
+        row = connection.execute(
+            """
+            SELECT character_key, character_name, password_salt, password_hash, class_id, login_room_id
+            FROM characters
+            WHERE character_key = ?
+            """,
+            (key,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    expected_hash = str(row["password_hash"])
+    computed_hash = _hash_password(password, str(row["password_salt"]))
+    if computed_hash != expected_hash:
+        return None
+
+    return {
+        "character_key": str(row["character_key"]),
+        "character_name": str(row["character_name"]),
+        "class_id": str(row["class_id"]),
+        "login_room_id": str(row["login_room_id"]),
+    }
 
 
 def _serialize_equipment_item(item: EquipmentItemState) -> dict:
@@ -153,8 +316,9 @@ def _serialize_session(session: ClientSession) -> dict:
     }
 
 
-def save_player_state(session: ClientSession, player_key: str = DEFAULT_PLAYER_STATE_KEY) -> None:
+def save_player_state(session: ClientSession, player_key: str | None = None) -> None:
     initialize_player_state_db()
+    resolved_player_key = (player_key or session.player_state_key or DEFAULT_PLAYER_STATE_KEY).strip()
     state_json = json.dumps(_serialize_session(session), separators=(",", ":"))
 
     with _connect() as connection:
@@ -166,18 +330,19 @@ def save_player_state(session: ClientSession, player_key: str = DEFAULT_PLAYER_S
                 state_json=excluded.state_json,
                 updated_at=excluded.updated_at
             """,
-            (player_key, state_json, _utc_now_iso()),
+            (resolved_player_key, state_json, _utc_now_iso()),
         )
         connection.commit()
 
 
-def load_player_state(session: ClientSession, player_key: str = DEFAULT_PLAYER_STATE_KEY) -> bool:
+def load_player_state(session: ClientSession, player_key: str | None = None) -> bool:
     initialize_player_state_db()
+    resolved_player_key = (player_key or session.player_state_key or DEFAULT_PLAYER_STATE_KEY).strip()
 
     with _connect() as connection:
         row = connection.execute(
             "SELECT state_json FROM player_state WHERE player_key = ?",
-            (player_key,),
+            (resolved_player_key,),
         ).fetchone()
 
     if row is None:

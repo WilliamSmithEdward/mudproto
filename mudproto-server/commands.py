@@ -13,8 +13,17 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from assets import load_equipment_templates, load_skills, load_spells
+from assets import get_player_class_by_id, load_equipment_templates, load_player_classes, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
+from player_state_db import (
+    character_exists,
+    create_character,
+    get_character_by_name,
+    load_player_state,
+    normalize_character_name,
+    save_player_state,
+    verify_character_credentials,
+)
 import random
 import re
 import uuid
@@ -34,7 +43,7 @@ from display import (
 )
 from models import ClientSession, EquipmentItemState
 from settings import FLEE_SUCCESS_CHANCE
-from sessions import apply_lag, enqueue_command, is_session_lagged
+from sessions import apply_lag, apply_player_class, enqueue_command, is_session_lagged
 from world import get_room
 
 OutboundMessage = dict[str, object]
@@ -59,6 +68,168 @@ def parse_command(command_text: str) -> tuple[str, list[str]]:
     verb = parts[0].lower()
     args = parts[1:]
     return verb, args
+
+
+def initial_auth_prompt(session: ClientSession) -> OutboundMessage:
+    return display_command_result(session, [
+        build_part("Enter an existing character name (letters only) or type ", "bright_white"),
+        build_part("start", "bright_yellow", True),
+        build_part(" to create a new character.", "bright_white"),
+    ])
+
+
+def _build_class_prompt(session: ClientSession) -> OutboundMessage:
+    classes = load_player_classes()
+    parts: list[dict] = [
+        build_part("Choose a class by id or name:", "bright_white"),
+    ]
+    for player_class in classes:
+        parts.extend([
+            build_part("\n"),
+            build_part(" - ", "bright_white"),
+            build_part(str(player_class.get("class_id", "")), "bright_cyan", True),
+            build_part(" (", "bright_white"),
+            build_part(str(player_class.get("name", "")), "bright_yellow", True),
+            build_part(")", "bright_white"),
+        ])
+    return display_command_result(session, parts)
+
+
+def _resolve_class_selection(selection: str) -> dict | None:
+    normalized = selection.strip().lower()
+    if not normalized:
+        return None
+
+    by_id = get_player_class_by_id(normalized)
+    if by_id is not None:
+        return by_id
+
+    for player_class in load_player_classes():
+        if str(player_class.get("name", "")).strip().lower() == normalized:
+            return player_class
+
+    return None
+
+
+def _complete_login(session: ClientSession, character_record: dict, *, is_new_character: bool) -> OutboundResult:
+    character_key = str(character_record.get("character_key", "")).strip()
+    character_name = str(character_record.get("character_name", "")).strip()
+    class_id = str(character_record.get("class_id", "")).strip()
+    login_room_id = str(character_record.get("login_room_id", "")).strip() or "start"
+
+    session.player_state_key = character_key
+    session.authenticated_character_name = character_name
+    session.pending_character_name = ""
+    session.pending_password = ""
+
+    loaded_state = load_player_state(session, player_key=character_key)
+    if not loaded_state:
+        apply_player_class(session, class_id)
+    elif class_id:
+        session.player.class_id = class_id
+
+    session.player.current_room_id = login_room_id
+    session.is_authenticated = True
+    session.auth_stage = "authenticated"
+
+    if not loaded_state or is_new_character:
+        save_player_state(session, player_key=character_key)
+
+    login_room = get_room(session.player.current_room_id)
+    if login_room is None:
+        session.player.current_room_id = "start"
+        login_room = get_room("start")
+
+    if login_room is None:
+        return display_error("Login room is not configured.", session)
+
+    room_display = display_room(session, login_room)
+    payload = room_display.get("payload") if isinstance(room_display, dict) else None
+    if isinstance(payload, dict):
+        parts = payload.get("parts")
+        if isinstance(parts, list):
+            greeting = "Character created" if is_new_character else "Welcome back"
+            parts[:0] = [
+                build_part(f"{greeting}, ", "bright_white"),
+                build_part(character_name, "bright_green", True),
+                build_part(".", "bright_white"),
+                build_part("\n"),
+                build_part("\n"),
+            ]
+
+    return build_auto_aggro_outbound(session, room_display)
+
+
+def _process_auth_input(session: ClientSession, input_text: str) -> OutboundResult:
+    lowered = input_text.strip().lower()
+
+    if session.auth_stage == "awaiting_character_or_start":
+        if lowered == "start":
+            session.auth_stage = "awaiting_new_character_name"
+            return display_command_result(session, [
+                build_part("Enter a new character name (letters only).", "bright_white"),
+            ])
+
+        normalized_name = normalize_character_name(input_text)
+        if normalized_name is None:
+            return display_error("Character names must contain letters only.", session)
+
+        character_record = get_character_by_name(normalized_name)
+        if character_record is None:
+            return display_error(f"Character '{normalized_name}' does not exist.", session)
+
+        session.pending_character_name = str(character_record.get("character_name", normalized_name))
+        session.auth_stage = "awaiting_existing_password"
+        return display_command_result(session, [
+            build_part("Character found. Enter your password.", "bright_white"),
+        ])
+
+    if session.auth_stage == "awaiting_existing_password":
+        if not input_text.strip():
+            return display_error("Password cannot be empty.", session)
+
+        character_record = verify_character_credentials(session.pending_character_name, input_text)
+        if character_record is None:
+            return display_error("Invalid password.", session)
+
+        return _complete_login(session, character_record, is_new_character=False)
+
+    if session.auth_stage == "awaiting_new_character_name":
+        normalized_name = normalize_character_name(input_text)
+        if normalized_name is None:
+            return display_error("Character names must contain letters only.", session)
+        if character_exists(normalized_name):
+            return display_error(f"Character '{normalized_name}' already exists.", session)
+
+        session.pending_character_name = normalized_name
+        session.auth_stage = "awaiting_new_character_password"
+        return display_command_result(session, [
+            build_part("Enter a password for your character.", "bright_white"),
+        ])
+
+    if session.auth_stage == "awaiting_new_character_password":
+        if not input_text.strip():
+            return display_error("Password cannot be empty.", session)
+
+        session.pending_password = input_text
+        session.auth_stage = "awaiting_new_character_class"
+        return _build_class_prompt(session)
+
+    if session.auth_stage == "awaiting_new_character_class":
+        selected_class = _resolve_class_selection(input_text)
+        if selected_class is None:
+            return display_error("Unknown class selection.", session)
+
+        created = create_character(
+            character_name=session.pending_character_name,
+            password=session.pending_password,
+            class_id=str(selected_class.get("class_id", "")).strip(),
+            login_room_id="start",
+        )
+        return _complete_login(session, created, is_new_character=True)
+
+    session.auth_stage = "awaiting_character_or_start"
+    return initial_auth_prompt(session)
 
 
 def normalize_direction(direction: str) -> str:
@@ -1661,6 +1832,9 @@ async def process_input_message(message: dict, session: ClientSession) -> Outbou
     input_text = input_text.strip()
     if not input_text:
         return display_prompt(session)
+
+    if not session.is_authenticated:
+        return _process_auth_input(session, input_text)
 
     if input_text.startswith("/"):
         command_line = input_text[1:].strip()

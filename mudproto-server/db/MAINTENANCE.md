@@ -7,6 +7,7 @@ This server persists player state in SQLite.
 - Primary key: `player_key`
 - Default player key: `default`
 - Player settings table: `player_settings`
+- Character auth table: `characters`
 
 ## Initialization
 
@@ -35,6 +36,7 @@ sqlite3 DB/mudproto.sqlite3
 SELECT player_key, updated_at FROM player_state;
 SELECT json_extract(state_json, '$.player.current_room_id') AS room FROM player_state WHERE player_key='default';
 SELECT setting_key, setting_value, updated_at FROM player_settings;
+SELECT character_key, character_name, class_id, login_room_id FROM characters ORDER BY character_name;
 ```
 
 ## Player Settings In DB
@@ -49,6 +51,17 @@ Update example:
 
 ```powershell
 sqlite3 DB/mudproto.sqlite3 "UPDATE player_settings SET setting_value=650, updated_at=datetime('now') WHERE setting_key='reference_max_hp';"
+```
+
+## Character Login Room
+
+Character login room is stored in `characters.login_room_id` and is used when that character connects.
+This is intentionally separate from the last room saved in `player_state`.
+
+Update example:
+
+```powershell
+sqlite3 DB/mudproto.sqlite3 "UPDATE characters SET login_room_id='start', updated_at=datetime('now') WHERE character_key='alice';"
 ```
 
 ## Vacuum / Optimize

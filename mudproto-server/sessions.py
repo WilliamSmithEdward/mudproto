@@ -1,9 +1,8 @@
 import asyncio
 import uuid
 
-from assets import get_default_player_class, get_equipment_template_by_id
+from assets import get_default_player_class, get_equipment_template_by_id, get_player_class_by_id
 from models import ClientSession, QueuedCommand
-from player_state_db import load_player_state
 from protocol import utc_now_iso
 from settings import MAX_QUEUED_COMMANDS
 
@@ -55,8 +54,13 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         wear_item(session, item)
 
 
-def _apply_default_player_class(session: ClientSession) -> None:
+def apply_player_class(session: ClientSession, class_id: str | None = None) -> None:
     player_class = get_default_player_class()
+    if class_id is not None:
+        matched_class = get_player_class_by_id(class_id)
+        if matched_class is not None:
+            player_class = matched_class
+
     session.player.class_id = str(player_class.get("class_id", "")).strip()
 
     for template_id in player_class.get("starting_equipment_template_ids", []):
@@ -92,11 +96,6 @@ def register_client(client_id: str, websocket) -> ClientSession:
         websocket=websocket,
         connected_at=utc_now_iso()
     )
-    loaded = load_player_state(session)
-    if not loaded:
-        _apply_default_player_class(session)
-    elif not session.player.class_id.strip():
-        _apply_default_player_class(session)
     connected_clients[client_id] = session
     return session
 

@@ -6,7 +6,7 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from combat import initialize_session_entities, process_game_hour_tick, process_non_combat_support_round, resolve_combat_round
-from commands import dispatch_message, execute_command
+from commands import dispatch_message, execute_command, initial_auth_prompt
 from display import (
     display_connected,
     display_error,
@@ -114,7 +114,8 @@ async def game_tick_loop() -> None:
 
             for session in list(connected_clients.values()):
                 process_game_hour_tick(session)
-                save_player_state(session)
+                if session.is_authenticated:
+                    save_player_state(session)
 
             next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
@@ -134,10 +135,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
     try:
         await send_json(session.websocket, display_connected(session))
-
-        starting_room = get_room(session.player.current_room_id)
-        if starting_room is not None:
-            await send_json(session.websocket, display_room(session, starting_room))
+        await send_json(session.websocket, initial_auth_prompt(session))
 
         async for message_text in session.websocket:
             touch_session(session)

@@ -54,6 +54,9 @@ def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
 
 
 def build_prompt_parts(session: ClientSession) -> list[dict]:
+    if not session.is_authenticated:
+        return [build_part("> ", "bright_white")]
+
     room = get_room(session.player.current_room_id)
     exit_letters = ""
 

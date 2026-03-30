@@ -165,3 +165,9 @@ class ClientSession:
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     next_game_tick_monotonic: Optional[float] = None
     next_non_combat_support_round_monotonic: Optional[float] = None
+    is_authenticated: bool = False
+    auth_stage: str = "awaiting_character_or_start"
+    authenticated_character_name: str = ""
+    player_state_key: str = ""
+    pending_character_name: str = ""
+    pending_password: str = ""
