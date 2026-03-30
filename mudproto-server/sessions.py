@@ -1,7 +1,8 @@
 import asyncio
+import random
 import uuid
 
-from assets import get_default_player_class, get_equipment_template_by_id, get_player_class_by_id
+from assets import load_attributes, get_default_player_class, get_equipment_template_by_id, get_player_class_by_id
 from models import ClientSession, QueuedCommand
 from player_state_db import save_player_state
 from protocol import utc_now_iso
@@ -14,6 +15,48 @@ offline_character_tasks: dict[str, asyncio.Task] = {}
 OFFLINE_LOOP_SLEEP_SECONDS = 0.5
 OFFLINE_FLEE_INTERVAL_SECONDS = 2.0
 OFFLINE_SAFE_HOURS_TO_DISCONNECT = 5
+
+
+def ensure_player_attributes(session: ClientSession) -> None:
+    configured_attribute_ids = [
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    ]
+
+    current_ranges: dict[str, dict[str, int]] = {}
+    if session.player.class_id.strip():
+        player_class = get_player_class_by_id(session.player.class_id)
+        if player_class is not None:
+            raw_ranges = player_class.get("attribute_ranges", {})
+            if isinstance(raw_ranges, dict):
+                for attribute_id in configured_attribute_ids:
+                    raw_range = raw_ranges.get(attribute_id, {})
+                    if isinstance(raw_range, dict):
+                        current_ranges[attribute_id] = {
+                            "min": int(raw_range.get("min", 0)),
+                            "max": int(raw_range.get("max", 0)),
+                        }
+
+    merged: dict[str, int] = {}
+    for attribute_id in configured_attribute_ids:
+        if attribute_id in session.player.attributes:
+            merged[attribute_id] = int(session.player.attributes[attribute_id])
+            continue
+
+        attribute_range = current_ranges.get(attribute_id)
+        if attribute_range is None:
+            merged[attribute_id] = 0
+            continue
+
+        merged[attribute_id] = int(attribute_range.get("min", 0))
+
+    for attribute_id, value in session.player.attributes.items():
+        if attribute_id in merged:
+            continue
+        merged[attribute_id] = int(value)
+
+    session.player.attributes = merged
 
 
 def _grant_starting_equipment_from_template(session: ClientSession, template: dict) -> None:
@@ -61,7 +104,7 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         wear_item(session, item)
 
 
-def apply_player_class(session: ClientSession, class_id: str | None = None) -> None:
+def apply_player_class(session: ClientSession, class_id: str | None = None, *, roll_attributes: bool = False) -> None:
     player_class = get_default_player_class()
     if class_id is not None:
         matched_class = get_player_class_by_id(class_id)
@@ -69,6 +112,27 @@ def apply_player_class(session: ClientSession, class_id: str | None = None) -> N
             player_class = matched_class
 
     session.player.class_id = str(player_class.get("class_id", "")).strip()
+
+    if roll_attributes:
+        raw_ranges = player_class.get("attribute_ranges", {})
+        rolled_attributes: dict[str, int] = {}
+        if isinstance(raw_ranges, dict):
+            for attribute in load_attributes():
+                attribute_id = str(attribute.get("attribute_id", "")).strip().lower()
+                if not attribute_id:
+                    continue
+
+                raw_range = raw_ranges.get(attribute_id, {})
+                if not isinstance(raw_range, dict):
+                    continue
+
+                min_value = int(raw_range.get("min", 0))
+                max_value = int(raw_range.get("max", 0))
+                rolled_attributes[attribute_id] = random.randint(min_value, max_value)
+
+        session.player.attributes = rolled_attributes
+    else:
+        ensure_player_attributes(session)
 
     for template_id in player_class.get("starting_equipment_template_ids", []):
         template = get_equipment_template_by_id(str(template_id))

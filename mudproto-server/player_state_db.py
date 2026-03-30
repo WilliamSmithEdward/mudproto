@@ -285,6 +285,7 @@ def _serialize_session(session: ClientSession) -> dict:
         "player": {
             "current_room_id": session.player.current_room_id,
             "class_id": session.player.class_id,
+            "attributes": {key: int(value) for key, value in session.player.attributes.items()},
         },
         "player_combat": {
             "attack_damage": int(session.player_combat.attack_damage),
@@ -359,6 +360,13 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
         if room_id:
             session.player.current_room_id = room_id
         session.player.class_id = class_id
+        raw_attributes = raw_player.get("attributes", {})
+        if isinstance(raw_attributes, dict):
+            session.player.attributes = {
+                str(attribute_id).strip().lower(): int(value)
+                for attribute_id, value in raw_attributes.items()
+                if str(attribute_id).strip()
+            }
 
     raw_player_combat = raw_state.get("player_combat", {})
     if isinstance(raw_player_combat, dict):

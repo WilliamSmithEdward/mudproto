@@ -13,7 +13,7 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from assets import get_player_class_by_id, load_equipment_templates, load_player_classes, load_skills, load_spells
+from assets import get_player_class_by_id, load_attributes, load_equipment_templates, load_player_classes, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
     character_exists,
@@ -43,7 +43,7 @@ from display import (
 )
 from models import ClientSession, EquipmentItemState
 from settings import FLEE_SUCCESS_CHANCE
-from sessions import apply_lag, apply_player_class, enqueue_command, is_session_lagged
+from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged
 from sessions import (
     get_active_character_session,
     hydrate_session_from_active_character,
@@ -138,8 +138,12 @@ def _complete_login(session: ClientSession, character_record: dict, *, is_new_ch
         elif class_id:
             session.player.class_id = class_id
 
+        ensure_player_attributes(session)
+
         # On fresh login (not session resume), always spawn at configured login room.
         session.player.current_room_id = login_room_id
+    else:
+        ensure_player_attributes(session)
 
     session.is_authenticated = True
     session.is_connected = True
@@ -1161,6 +1165,28 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
     if verb in {"inventory", "inv", "i"}:
         return display_inventory(session)
+
+    if verb in {"attributes", "attribute", "attr", "attrs", "stats", "stat"}:
+        configured_attributes = load_attributes()
+        parts = [
+            build_part("Attributes", "bright_white", True),
+        ]
+
+        for attribute in configured_attributes:
+            attribute_id = str(attribute.get("attribute_id", "")).strip().lower()
+            name = str(attribute.get("name", attribute_id)).strip() or attribute_id
+            value = int(session.player.attributes.get(attribute_id, 0))
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(name, "bright_cyan", True),
+                build_part(" (", "bright_white"),
+                build_part(attribute_id, "bright_yellow", True),
+                build_part("): ", "bright_white"),
+                build_part(str(value), "bright_green", True),
+            ])
+
+        return display_command_result(session, parts)
 
     if verb in {"spell", "spells", "sp", "spe", "spel"}:
         spells = _list_known_spells(session)

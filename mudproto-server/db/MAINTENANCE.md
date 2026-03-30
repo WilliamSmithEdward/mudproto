@@ -64,6 +64,27 @@ Update example:
 sqlite3 DB/mudproto.sqlite3 "UPDATE characters SET login_room_id='start', updated_at=datetime('now') WHERE character_key='alice';"
 ```
 
+## Configurable Attributes
+
+Base attribute definitions are configured in `configuration/assets/attributes.json`.
+
+Default shipped attributes:
+
+- Strength (`str`)
+- Wisdom (`wis`)
+- Intelligence (`int`)
+- Dexterity (`dex`)
+- Constitution (`con`)
+
+Class-specific attribute ranges are configured per class in `configuration/assets/classes.json`
+under `attribute_ranges`.
+
+When a character is created, each configured attribute is rolled from that class range.
+
+Per-character attribute values are persisted in `player_state.state_json` under:
+
+- `player.attributes`
+
 ## Vacuum / Optimize
 
 Run occasionally after many updates/deletes:

@@ -1,0 +1,22 @@
+[
+  {
+    "attribute_id": "str",
+    "name": "Strength"
+  },
+  {
+    "attribute_id": "wis",
+    "name": "Wisdom"
+  },
+  {
+    "attribute_id": "int",
+    "name": "Intelligence"
+  },
+  {
+    "attribute_id": "dex",
+    "name": "Dexterity"
+  },
+  {
+    "attribute_id": "con",
+    "name": "Constitution"
+  }
+]

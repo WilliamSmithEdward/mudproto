@@ -17,6 +17,7 @@ class QueuedCommand:
 class PlayerState:
     current_room_id: str = "start"
     class_id: str = ""
+    attributes: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass

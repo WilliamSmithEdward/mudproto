@@ -233,6 +233,15 @@ def display_whoami(session: ClientSession) -> dict:
         build_part(session.player.current_room_id, "bright_green", True),
         build_part(". Class: ", "bright_white"),
         build_part(session.player.class_id or "unassigned", "bright_cyan", True),
+        build_part(". Attributes: ", "bright_white"),
+        build_part(
+            ", ".join(
+                f"{attribute_id.upper()} {value}"
+                for attribute_id, value in sorted(session.player.attributes.items())
+            ) or "none",
+            "bright_yellow",
+            True,
+        ),
         build_part(". Condition: ", "bright_white"),
         build_part(me_condition, me_condition_color, True),
     ]

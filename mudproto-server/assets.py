@@ -13,6 +13,7 @@ SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 PLAYER_CLASSES_FILE = CONFIGURABLE_ASSET_ROOT / "classes.json"
 WEAR_SLOTS_FILE = CONFIGURABLE_ASSET_ROOT / "wear_slots.json"
 NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
+ATTRIBUTES_FILE = CONFIGURABLE_ASSET_ROOT / "attributes.json"
 
 
 def _read_json_asset(path: Path) -> object:
@@ -348,6 +349,42 @@ def get_npc_template_by_id(npc_id: str) -> dict | None:
 
 
 @lru_cache(maxsize=1)
+def load_attributes() -> list[dict]:
+    raw_attributes = _read_json_asset(ATTRIBUTES_FILE)
+    if not isinstance(raw_attributes, list):
+        raise ValueError(f"Attribute asset file must contain a list: {ATTRIBUTES_FILE}")
+
+    normalized_attributes: list[dict] = []
+    seen_ids: set[str] = set()
+
+    for raw_attribute in raw_attributes:
+        if not isinstance(raw_attribute, dict):
+            raise ValueError("Attribute entries must be objects.")
+
+        attribute_id = str(raw_attribute.get("attribute_id", "")).strip().lower()
+        name = str(raw_attribute.get("name", "")).strip()
+        if not attribute_id:
+            raise ValueError("Attribute entries must include non-empty attribute_id.")
+        if not attribute_id.isalpha():
+            raise ValueError(f"Attribute id '{attribute_id}' must be alphabetic.")
+        if attribute_id in seen_ids:
+            raise ValueError(f"Duplicate attribute_id in attributes asset: {attribute_id}")
+        if not name:
+            raise ValueError(f"Attribute '{attribute_id}' must include non-empty name.")
+
+        seen_ids.add(attribute_id)
+        normalized_attributes.append({
+            "attribute_id": attribute_id,
+            "name": name,
+        })
+
+    if not normalized_attributes:
+        raise ValueError("At least one attribute must be configured.")
+
+    return normalized_attributes
+
+
+@lru_cache(maxsize=1)
 def load_spells() -> list[dict]:
     raw_spells = _read_json_asset(SPELLS_FILE)
     if not isinstance(raw_spells, list):
@@ -567,6 +604,12 @@ def load_player_classes() -> list[dict]:
     class_names: set[str] = set()
     normalized_classes: list[dict] = []
 
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
+
     for raw_class in raw_classes:
         if not isinstance(raw_class, dict):
             raise ValueError("Player class entries must be objects.")
@@ -588,6 +631,7 @@ def load_player_classes() -> list[dict]:
         raw_equipment_ids = raw_class.get("starting_equipment_template_ids", [])
         raw_spell_ids = raw_class.get("starting_spell_ids", [])
         raw_skill_ids = raw_class.get("starting_skill_ids", [])
+        raw_attribute_ranges = raw_class.get("attribute_ranges", {})
         if not isinstance(raw_equipment_ids, list):
             raise ValueError(
                 f"Player class '{class_id}' starting_equipment_template_ids must be a list."
@@ -596,6 +640,40 @@ def load_player_classes() -> list[dict]:
             raise ValueError(f"Player class '{class_id}' starting_spell_ids must be a list.")
         if not isinstance(raw_skill_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_skill_ids must be a list.")
+        if not isinstance(raw_attribute_ranges, dict):
+            raise ValueError(f"Player class '{class_id}' attribute_ranges must be an object.")
+
+        attribute_ranges: dict[str, dict[str, int]] = {}
+        for attribute_id in configured_attribute_ids:
+            if attribute_id not in raw_attribute_ranges:
+                raise ValueError(
+                    f"Player class '{class_id}' must define attribute_ranges for '{attribute_id}'."
+                )
+
+            raw_range = raw_attribute_ranges.get(attribute_id)
+            if not isinstance(raw_range, dict):
+                raise ValueError(
+                    f"Player class '{class_id}' attribute_ranges['{attribute_id}'] must be an object."
+                )
+
+            min_value = int(raw_range.get("min", 0))
+            max_value = int(raw_range.get("max", 0))
+            if min_value > max_value:
+                raise ValueError(
+                    f"Player class '{class_id}' attribute_ranges['{attribute_id}'] has min > max."
+                )
+
+            attribute_ranges[attribute_id] = {
+                "min": min_value,
+                "max": max_value,
+            }
+
+        for attribute_id in raw_attribute_ranges.keys():
+            normalized_attribute_id = str(attribute_id).strip().lower()
+            if normalized_attribute_id not in configured_attribute_ids:
+                raise ValueError(
+                    f"Player class '{class_id}' attribute_ranges references unknown attribute: {attribute_id}"
+                )
 
         equipment_ids: list[str] = []
         seen_equipment_ids: set[str] = set()
@@ -647,6 +725,7 @@ def load_player_classes() -> list[dict]:
             "class_id": class_id.strip(),
             "name": name.strip(),
             "description": str(raw_class.get("description", "")).strip(),
+            "attribute_ranges": attribute_ranges,
             "starting_equipment_template_ids": equipment_ids,
             "starting_spell_ids": spell_ids,
             "starting_skill_ids": skill_ids,
