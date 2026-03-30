@@ -157,7 +157,6 @@ def load_equipment_templates() -> list[dict]:
             "attacks_per_round_bonus": int(raw_template.get("attacks_per_round_bonus", 0)),
             "armor_class_bonus": armor_class_bonus,
             "wear_slots": wear_slots,
-            "equip_on_grant": bool(raw_template.get("equip_on_grant", False)),
         })
 
     return normalized_templates
@@ -746,6 +745,7 @@ def load_player_classes() -> list[dict]:
         raw_equipment_ids = raw_class.get("starting_equipment_template_ids", [])
         raw_spell_ids = raw_class.get("starting_spell_ids", [])
         raw_skill_ids = raw_class.get("starting_skill_ids", [])
+        raw_equipped_ids = raw_class.get("starting_equipped_template_ids", [])
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
         if not isinstance(raw_equipment_ids, list):
             raise ValueError(
@@ -755,6 +755,10 @@ def load_player_classes() -> list[dict]:
             raise ValueError(f"Player class '{class_id}' starting_spell_ids must be a list.")
         if not isinstance(raw_skill_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_skill_ids must be a list.")
+        if not isinstance(raw_equipped_ids, list):
+            raise ValueError(
+                f"Player class '{class_id}' starting_equipped_template_ids must be a list."
+            )
         if not isinstance(raw_attribute_ranges, dict):
             raise ValueError(f"Player class '{class_id}' attribute_ranges must be an object.")
 
@@ -834,6 +838,24 @@ def load_player_classes() -> list[dict]:
             seen_skill_ids.add(normalized_skill_id)
             skill_ids.append(skill_id)
 
+        equipped_ids: list[str] = []
+        seen_equipped_ids: set[str] = set()
+        normalized_starting_equipment = {template_id.lower() for template_id in equipment_ids}
+        for raw_template_id in raw_equipped_ids:
+            template_id = str(raw_template_id).strip()
+            if not template_id:
+                continue
+            normalized_template_id = template_id.lower()
+            if normalized_template_id in seen_equipped_ids:
+                continue
+            if normalized_template_id not in normalized_starting_equipment:
+                raise ValueError(
+                    f"Player class '{class_id}' starting_equipped_template_ids contains '{template_id}' "
+                    "which is not present in starting_equipment_template_ids."
+                )
+            seen_equipped_ids.add(normalized_template_id)
+            equipped_ids.append(template_id)
+
         class_ids.add(normalized_class_id)
         class_names.add(normalized_class_name)
         normalized_classes.append({
@@ -842,6 +864,7 @@ def load_player_classes() -> list[dict]:
             "description": str(raw_class.get("description", "")).strip(),
             "attribute_ranges": attribute_ranges,
             "starting_equipment_template_ids": equipment_ids,
+            "starting_equipped_template_ids": equipped_ids,
             "starting_spell_ids": spell_ids,
             "starting_skill_ids": skill_ids,
             "is_default": bool(raw_class.get("is_default", False)),

@@ -62,8 +62,6 @@ def ensure_player_attributes(session: ClientSession) -> None:
 
 
 def _grant_starting_equipment_from_template(session: ClientSession, template: dict) -> None:
-    from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
-
     existing_template_ids = {item.template_id for item in session.equipment.items.values()}
     existing_template_ids.update(item.template_id for item in session.equipment.equipped_items.values())
     template_id = str(template.get("template_id", "")).strip()
@@ -95,7 +93,21 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         item.wear_slot = item.wear_slots[0]
     session.equipment.items[item_id] = item
 
-    if not bool(template.get("equip_on_grant", False)):
+
+def _equip_starting_equipment_by_template_id(session: ClientSession, template_id: str) -> None:
+    from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
+
+    normalized_template_id = template_id.strip().lower()
+    if not normalized_template_id:
+        return
+
+    item = None
+    for inventory_item in session.equipment.items.values():
+        if inventory_item.template_id.strip().lower() == normalized_template_id:
+            item = inventory_item
+            break
+
+    if item is None:
         return
 
     if item.slot == "weapon":
@@ -143,6 +155,9 @@ def apply_player_class(session: ClientSession, class_id: str | None = None, *, r
         if template is None:
             continue
         _grant_starting_equipment_from_template(session, template)
+
+    for template_id in player_class.get("starting_equipped_template_ids", []):
+        _equip_starting_equipment_by_template_id(session, str(template_id))
 
     known_spell_ids = {spell_id.strip().lower() for spell_id in session.known_spell_ids if spell_id.strip()}
     for spell_id in player_class.get("starting_spell_ids", []):

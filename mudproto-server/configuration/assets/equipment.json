@@ -13,8 +13,7 @@
     "damage_roll_modifier": 1,
     "hit_roll_modifier": 2,
     "attack_damage_bonus": 0,
-    "attacks_per_round_bonus": 0,
-    "equip_on_grant": true
+    "attacks_per_round_bonus": 0
   },
   {
     "template_id": "weapon.training-dagger",
@@ -30,8 +29,7 @@
     "damage_roll_modifier": 0,
     "hit_roll_modifier": 1,
     "attack_damage_bonus": 0,
-    "attacks_per_round_bonus": 0,
-    "equip_on_grant": true
+    "attacks_per_round_bonus": 0
   },
   {
     "template_id": "weapon.scout-dagger",
@@ -47,8 +45,7 @@
     "damage_roll_modifier": 0,
     "hit_roll_modifier": 1,
     "attack_damage_bonus": 0,
-    "attacks_per_round_bonus": 0,
-    "equip_on_grant": false
+    "attacks_per_round_bonus": 0
   },
   {
     "template_id": "armor.vanguard-jacket",
@@ -58,8 +55,7 @@
     "description": "A reinforced jacket worn by front-line trainees.",
     "keywords": ["vanguard", "jacket", "chest"],
     "weight": 10,
-    "armor_class_bonus": 2,
-    "equip_on_grant": true
+    "armor_class_bonus": 2
   },
   {
     "template_id": "armor.vanguard-boots",
@@ -69,8 +65,7 @@
     "description": "Heavy boots built for marching and impact.",
     "keywords": ["vanguard", "boots", "feet"],
     "weight": 6,
-    "armor_class_bonus": 1,
-    "equip_on_grant": true
+    "armor_class_bonus": 1
   },
   {
     "template_id": "armor.arcanist-robe",
@@ -80,8 +75,7 @@
     "description": "A rune-lined robe favored by novice arcanists.",
     "keywords": ["arcanist", "robe", "chest"],
     "weight": 4,
-    "armor_class_bonus": 1,
-    "equip_on_grant": true
+    "armor_class_bonus": 1
   },
   {
     "template_id": "armor.arcanist-wraps",
@@ -91,8 +85,7 @@
     "description": "Light hand wraps that steady precise gestures.",
     "keywords": ["arcanist", "wraps", "hands"],
     "weight": 1,
-    "armor_class_bonus": 1,
-    "equip_on_grant": true
+    "armor_class_bonus": 1
   },
   {
     "template_id": "armor.test-ring-amber",
@@ -102,8 +95,7 @@
     "description": "A simple brass ring used for slot testing.",
     "keywords": ["amber", "ring", "test"],
     "weight": 0,
-    "armor_class_bonus": 0,
-    "equip_on_grant": false
+    "armor_class_bonus": 0
   },
   {
     "template_id": "armor.test-ring-azure",
@@ -113,8 +105,7 @@
     "description": "A polished silver ring used for multi-slot testing.",
     "keywords": ["azure", "ring", "test"],
     "weight": 0,
-    "armor_class_bonus": 0,
-    "equip_on_grant": false
+    "armor_class_bonus": 0
   },
   {
     "template_id": "armor.test-chest-vest",
@@ -124,8 +115,7 @@
     "description": "A padded vest used to test occupied chest-slot behavior.",
     "keywords": ["practice", "vest", "chest", "test"],
     "weight": 3,
-    "armor_class_bonus": 0,
-    "equip_on_grant": false
+    "armor_class_bonus": 0
   },
   {
     "template_id": "armor.test-back-cloak",
@@ -135,7 +125,6 @@
     "description": "A padded cloak used to test occupied back-slot behavior.",
     "keywords": ["practice", "cloak", "back", "test"],
     "weight": 2,
-    "armor_class_bonus": 0,
-    "equip_on_grant": false
+    "armor_class_bonus": 0
   }
 ]
