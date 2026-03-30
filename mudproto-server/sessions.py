@@ -4,9 +4,7 @@ import uuid
 from assets import get_default_player_class, get_equipment_template_by_id
 from models import ClientSession, QueuedCommand
 from protocol import utc_now_iso
-
-
-MAX_QUEUED_COMMANDS = 5
+from settings import MAX_QUEUED_COMMANDS
 
 connected_clients: dict[str, ClientSession] = {}
 

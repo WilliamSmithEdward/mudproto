@@ -3,12 +3,10 @@ import asyncio
 from equipment import list_inventory_items, list_worn_items
 from models import ClientSession
 from protocol import build_response
+from settings import PLAYER_REFERENCE_MAX_HP
 from sessions import is_session_lagged
 from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_corpses, list_room_entities
 from world import Room, get_room
-
-
-PLAYER_REFERENCE_MAX_HP = 575
 
 
 def _capitalize_after_newlines(text: str) -> str:

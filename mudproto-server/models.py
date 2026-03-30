@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from websockets.asyncio.server import ServerConnection
+from settings import PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
 
 
 @dataclass
@@ -26,9 +27,9 @@ class PlayerCombatState:
 
 @dataclass
 class PlayerStatus:
-    hit_points: int = 575
-    vigor: int = 119
-    mana: int = 160
+    hit_points: int = PLAYER_REFERENCE_MAX_HP
+    vigor: int = PLAYER_REFERENCE_MAX_VIGOR
+    mana: int = PLAYER_REFERENCE_MAX_MANA
     coins: int = 0
 
 

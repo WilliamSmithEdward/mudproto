@@ -2,11 +2,11 @@ import re
 
 from assets import load_wear_slot_config
 from models import ClientSession, EquipmentItemState
+from settings import BASE_PLAYER_ARMOR_CLASS
 
 
 HAND_MAIN = "main_hand"
 HAND_OFF = "off_hand"
-BASE_PLAYER_ARMOR_CLASS = 10
 
 _WEAR_SLOT_CONFIG = load_wear_slot_config()
 DEFAULT_WEAR_SLOTS = set(_WEAR_SLOT_CONFIG.get("wear_slots", []))

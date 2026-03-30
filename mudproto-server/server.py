@@ -15,6 +15,12 @@ from display import (
     display_room,
 )
 from protocol import validate_message
+from settings import (
+    COMMAND_SCHEDULER_INTERVAL_SECONDS,
+    GAME_TICK_INTERVAL_SECONDS,
+    SERVER_HOST,
+    SERVER_PORT,
+)
 from sessions import (
     connected_clients,
     get_connection_count,
@@ -24,11 +30,6 @@ from sessions import (
     unregister_client,
 )
 from world import get_room
-
-
-COMMAND_SCHEDULER_INTERVAL_SECONDS = 0.1
-GAME_TICK_INTERVAL_SECONDS = 60.0
-
 next_game_tick_monotonic: float | None = None
 
 
@@ -176,8 +177,8 @@ async def main():
     tick_task = asyncio.create_task(game_tick_loop())
 
     try:
-        async with websockets.serve(handle_connection, "localhost", 8765):
-            print("Server listening on ws://localhost:8765")
+        async with websockets.serve(handle_connection, SERVER_HOST, SERVER_PORT):
+            print(f"Server listening on ws://{SERVER_HOST}:{SERVER_PORT}")
             await asyncio.Future()
     finally:
         tick_task.cancel()

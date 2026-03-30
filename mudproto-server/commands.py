@@ -33,12 +33,12 @@ from display import (
     display_whoami,
 )
 from models import ClientSession, EquipmentItemState
+from settings import FLEE_SUCCESS_CHANCE
 from sessions import apply_lag, enqueue_command, is_session_lagged
 from world import get_room
 
 OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]
-FLEE_SUCCESS_CHANCE = 0.5
 
 DIRECTION_ALIASES = {
     "n": "north",

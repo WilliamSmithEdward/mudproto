@@ -6,18 +6,19 @@ import uuid
 from assets import get_equipment_template_by_id, get_npc_template_by_id, get_skill_by_id
 from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
+from settings import (
+    COMBAT_ROUND_INTERVAL_SECONDS,
+    HIT_ROLL_DICE_SIDES,
+    PLAYER_REFERENCE_MAX_HP,
+    PLAYER_REFERENCE_MAX_MANA,
+    PLAYER_REFERENCE_MAX_VIGOR,
+    UNARMED_DAMAGE_VARIANCE,
+)
 from world import WORLD
 
 
-COMBAT_ROUND_INTERVAL_SECONDS = 2.5
 OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
-HIT_ROLL_DICE_SIDES = 20
-UNARMED_DAMAGE_VARIANCE = 2
-PLAYER_REFERENCE_MAX_HP = 575
-PLAYER_REFERENCE_MAX_VIGOR = 119
-PLAYER_REFERENCE_MAX_MANA = 160
-
 WEAPON_TYPE_TO_VERB = {
     "unarmed": "hit",
     "sword": "slash",

@@ -2,10 +2,10 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
+from settings import CONFIGURABLE_ASSET_ROOT
+
 
 SERVER_ROOT = Path(__file__).resolve().parent
-DEFAULT_ASSET_ROOT = SERVER_ROOT / "assets" / "default-assets"
-CONFIGURABLE_ASSET_ROOT = SERVER_ROOT / "assets" / "configurable-assets"
 EQUIPMENT_FILE = CONFIGURABLE_ASSET_ROOT / "equipment.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"

@@ -1,0 +1,30 @@
+{
+  "network": {
+    "host": "localhost",
+    "port": 8765
+  },
+  "timing": {
+    "command_scheduler_interval_seconds": 0.1,
+    "game_tick_interval_seconds": 60.0,
+    "combat_round_interval_seconds": 2.5
+  },
+  "combat": {
+    "hit_roll_dice_sides": 20,
+    "unarmed_damage_variance": 2
+  },
+  "gameplay": {
+    "flee_success_chance": 0.5,
+    "base_player_armor_class": 10
+  },
+  "session": {
+    "max_queued_commands": 5
+  },
+  "player": {
+    "reference_max_hp": 575,
+    "reference_max_vigor": 119,
+    "reference_max_mana": 160
+  },
+  "assets": {
+    "configurable_asset_directory": "configuration/assets"
+  }
+}
