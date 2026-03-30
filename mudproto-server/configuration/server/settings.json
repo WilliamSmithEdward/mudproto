@@ -19,6 +19,11 @@
   "session": {
     "max_queued_commands": 5
   },
+  "offline": {
+    "loop_sleep_seconds": 0.5,
+    "flee_interval_seconds": 2.0,
+    "safe_hours_to_disconnect": 5
+  },
   "database": {
     "directory": "DB",
     "filename": "mudproto.sqlite3",

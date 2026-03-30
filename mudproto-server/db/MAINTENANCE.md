@@ -14,6 +14,14 @@ This server persists player state in SQLite.
 - The database is auto-initialized on first server run.
 - If `DB/mudproto.sqlite3` does not exist, the server creates it and creates required tables.
 
+## Server Tuning
+
+Offline character behavior is configured in `configuration/server/settings.json` under `offline`:
+
+- `loop_sleep_seconds`: polling sleep interval for offline processing loop.
+- `flee_interval_seconds`: delay between automatic flee attempts while offline and engaged.
+- `safe_hours_to_disconnect`: number of safe game hours (no engagement, no damage) before server-side disconnect.
+
 ## Backup
 
 1. Stop the server process to avoid copying a live-writing DB.

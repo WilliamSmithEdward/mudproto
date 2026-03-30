@@ -6,15 +6,17 @@ from assets import load_attributes, get_default_player_class, get_equipment_temp
 from models import ClientSession, QueuedCommand
 from player_state_db import save_player_state
 from protocol import utc_now_iso
-from settings import GAME_TICK_INTERVAL_SECONDS, MAX_QUEUED_COMMANDS
+from settings import (
+    GAME_TICK_INTERVAL_SECONDS,
+    MAX_QUEUED_COMMANDS,
+    OFFLINE_FLEE_INTERVAL_SECONDS,
+    OFFLINE_LOOP_SLEEP_SECONDS,
+    OFFLINE_SAFE_HOURS_TO_DISCONNECT,
+)
 
 connected_clients: dict[str, ClientSession] = {}
 active_character_sessions: dict[str, ClientSession] = {}
 offline_character_tasks: dict[str, asyncio.Task] = {}
-
-OFFLINE_LOOP_SLEEP_SECONDS = 0.5
-OFFLINE_FLEE_INTERVAL_SECONDS = 2.0
-OFFLINE_SAFE_HOURS_TO_DISCONNECT = 5
 
 
 def ensure_player_attributes(session: ClientSession) -> None:

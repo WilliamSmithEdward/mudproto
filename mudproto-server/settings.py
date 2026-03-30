@@ -35,6 +35,7 @@ _TIMING = _section("timing")
 _COMBAT = _section("combat")
 _GAMEPLAY = _section("gameplay")
 _SESSION = _section("session")
+_OFFLINE = _section("offline")
 _DATABASE = _section("database")
 _ASSETS = _section("assets")
 
@@ -53,6 +54,10 @@ FLEE_SUCCESS_CHANCE = float(_GAMEPLAY.get("flee_success_chance", 0.5))
 BASE_PLAYER_ARMOR_CLASS = int(_GAMEPLAY.get("base_player_armor_class", 10))
 
 MAX_QUEUED_COMMANDS = int(_SESSION.get("max_queued_commands", 5))
+
+OFFLINE_LOOP_SLEEP_SECONDS = float(_OFFLINE.get("loop_sleep_seconds", 0.5))
+OFFLINE_FLEE_INTERVAL_SECONDS = float(_OFFLINE.get("flee_interval_seconds", 2.0))
+OFFLINE_SAFE_HOURS_TO_DISCONNECT = int(_OFFLINE.get("safe_hours_to_disconnect", 5))
 
 DATABASE_DIRECTORY = SERVER_ROOT / str(_DATABASE.get("directory", "DB"))
 DATABASE_FILENAME = str(_DATABASE.get("filename", "mudproto.sqlite3")).strip() or "mudproto.sqlite3"
