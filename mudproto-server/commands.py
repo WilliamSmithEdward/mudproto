@@ -44,6 +44,11 @@ from display import (
 from models import ClientSession, EquipmentItemState
 from settings import FLEE_SUCCESS_CHANCE
 from sessions import apply_lag, apply_player_class, enqueue_command, is_session_lagged
+from sessions import (
+    get_active_character_session,
+    hydrate_session_from_active_character,
+    register_authenticated_character_session,
+)
 from world import get_room
 
 OutboundMessage = dict[str, object]
@@ -119,20 +124,30 @@ def _complete_login(session: ClientSession, character_record: dict, *, is_new_ch
 
     session.player_state_key = character_key
     session.authenticated_character_name = character_name
+    session.login_room_id = login_room_id
     session.pending_character_name = ""
     session.pending_password = ""
 
-    loaded_state = load_player_state(session, player_key=character_key)
-    if not loaded_state:
-        apply_player_class(session, class_id)
-    elif class_id:
-        session.player.class_id = class_id
+    resumed_from_active = hydrate_session_from_active_character(session, character_key)
 
-    session.player.current_room_id = login_room_id
+    loaded_state = False
+    if not resumed_from_active:
+        loaded_state = load_player_state(session, player_key=character_key)
+        if not loaded_state:
+            apply_player_class(session, class_id)
+        elif class_id:
+            session.player.class_id = class_id
+
+        # On fresh login (not session resume), always spawn at configured login room.
+        session.player.current_room_id = login_room_id
+
     session.is_authenticated = True
+    session.is_connected = True
+    session.disconnected_by_server = False
     session.auth_stage = "authenticated"
+    register_authenticated_character_session(session)
 
-    if not loaded_state or is_new_character:
+    if (not resumed_from_active and not loaded_state) or is_new_character:
         save_player_state(session, player_key=character_key)
 
     login_room = get_room(session.player.current_room_id)

@@ -25,10 +25,10 @@ from settings import (
 from sessions import (
     connected_clients,
     get_connection_count,
+    handle_client_disconnect,
     is_session_lagged,
     register_client,
     touch_session,
-    unregister_client,
 )
 from world import get_room
 next_game_tick_monotonic: float | None = None
@@ -168,7 +168,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
             except asyncio.CancelledError:
                 pass
 
-        unregister_client(session.client_id)
+        handle_client_disconnect(session)
         print(f"Client disconnected: {session.client_id}")
         print(f"Connected clients: {get_connection_count()}")
 
