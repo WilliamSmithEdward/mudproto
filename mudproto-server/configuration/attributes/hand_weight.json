@@ -1,0 +1,11 @@
+{
+  "strength_attribute_id": "str",
+  "hand_requirements": {
+    "main_hand": {
+      "weight_multiplier": 1.0
+    },
+    "off_hand": {
+      "weight_multiplier": 1.5
+    }
+  }
+}

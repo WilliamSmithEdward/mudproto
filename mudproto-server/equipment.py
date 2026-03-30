@@ -1,6 +1,7 @@
 import re
+from math import ceil
 
-from assets import load_wear_slot_config
+from assets import load_hand_weight_config, load_wear_slot_config
 from models import ClientSession, EquipmentItemState
 from settings import BASE_PLAYER_ARMOR_CLASS
 
@@ -9,9 +10,12 @@ HAND_MAIN = "main_hand"
 HAND_OFF = "off_hand"
 
 _WEAR_SLOT_CONFIG = load_wear_slot_config()
+_HAND_WEIGHT_CONFIG = load_hand_weight_config()
 DEFAULT_WEAR_SLOTS = set(_WEAR_SLOT_CONFIG.get("wear_slots", []))
 WEAR_SLOT_OPTIONS = dict(_WEAR_SLOT_CONFIG.get("slot_options", {}))
 WEAR_LOCATION_ALIASES = dict(_WEAR_SLOT_CONFIG.get("location_aliases", {}))
+_STRENGTH_ATTRIBUTE_ID = str(_HAND_WEIGHT_CONFIG.get("strength_attribute_id", "str"))
+_HAND_REQUIREMENTS = dict(_HAND_WEIGHT_CONFIG.get("hand_requirements", {}))
 
 
 def _get_supported_wear_slot_keys() -> set[str]:
@@ -278,21 +282,26 @@ def resolve_equipped_selector(session: ClientSession, selector: str) -> tuple[Eq
     return matches[0], None
 
 
-def can_player_hold(session: ClientSession, item: EquipmentItemState) -> tuple[bool, str]:
-    """Check whether an item can be placed in the off-hand.
+def _required_strength_for_hand(weight: int, hand: str) -> int:
+    hand_config = _HAND_REQUIREMENTS.get(hand, {})
+    multiplier = float(hand_config.get("weight_multiplier", 1.0))
+    return max(0, int(ceil(max(0, weight) * multiplier)))
 
-    Two gates:
-    - ``can_hold`` must be True on the item; weapons without it cannot be held off-hand.
-    - The item's weight must be <= the player's STR (1:1 mapping).
-    """
+
+def can_player_equip_hand(session: ClientSession, item: EquipmentItemState, hand: str) -> tuple[bool, str]:
+    """Check whether a weapon can be equipped in the requested hand."""
     article = "An" if item.name[0].lower() in "aeiou" else "A"
-    if not item.can_hold:
+    if hand == HAND_OFF and not item.can_hold:
         return False, f"{article} {item.name} cannot be held in your off hand."
+
     weight = max(0, item.weight)
-    player_str = int(session.player.attributes.get("str", 0))
-    if player_str >= weight:
+    player_strength = int(session.player.attributes.get(_STRENGTH_ATTRIBUTE_ID, 0))
+    required_strength = _required_strength_for_hand(weight, hand)
+    if player_strength >= required_strength:
         return True, ""
-    return False, f"{article} {item.name} is too heavy to hold."
+
+    action = "hold" if hand == HAND_OFF else "wield"
+    return False, f"{article} {item.name} is too heavy to {action}."
 
 
 def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | None = None) -> tuple[bool, str]:
@@ -300,13 +309,12 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
         return False, f"{item.name} cannot be equipped as a weapon."
 
     target_hand = (hand or HAND_MAIN).strip().lower()
-
-    if target_hand == HAND_OFF:
-        can_hold, hold_error = can_player_hold(session, item)
-        if not can_hold:
-            return False, hold_error
     if target_hand not in {HAND_MAIN, HAND_OFF}:
         return False, "Hand must be main or off."
+
+    can_equip, equip_error = can_player_equip_hand(session, item, target_hand)
+    if not can_equip:
+        return False, equip_error
 
     if item.item_id not in session.equipment.items:
         return False, f"{item.name} is not in your inventory."

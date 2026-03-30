@@ -6,15 +6,17 @@ from settings import CONFIGURABLE_ASSET_ROOT
 
 
 SERVER_ROOT = Path(__file__).resolve().parent
+ATTRIBUTE_CONFIG_ROOT = SERVER_ROOT / "configuration" / "attributes"
 EQUIPMENT_FILE = CONFIGURABLE_ASSET_ROOT / "equipment.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
-PLAYER_CLASSES_FILE = CONFIGURABLE_ASSET_ROOT / "classes.json"
-WEAR_SLOTS_FILE = CONFIGURABLE_ASSET_ROOT / "wear_slots.json"
+PLAYER_CLASSES_FILE = ATTRIBUTE_CONFIG_ROOT / "classes.json"
+WEAR_SLOTS_FILE = ATTRIBUTE_CONFIG_ROOT / "wear_slots.json"
 NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
-ATTRIBUTES_FILE = CONFIGURABLE_ASSET_ROOT / "attributes.json"
-REGENERATION_FILE = CONFIGURABLE_ASSET_ROOT / "regeneration.json"
+ATTRIBUTES_FILE = ATTRIBUTE_CONFIG_ROOT / "character_attributes.json"
+REGENERATION_FILE = ATTRIBUTE_CONFIG_ROOT / "regeneration.json"
+HAND_WEIGHT_FILE = ATTRIBUTE_CONFIG_ROOT / "hand_weight.json"
 
 
 def _read_json_asset(path: Path) -> object:
@@ -460,6 +462,40 @@ def load_regeneration_config() -> dict:
 
     return {
         "resources": normalized_resources,
+    }
+
+
+@lru_cache(maxsize=1)
+def load_hand_weight_config() -> dict:
+    raw_config = _read_json_asset(HAND_WEIGHT_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Hand weight config file must contain an object: {HAND_WEIGHT_FILE}")
+
+    strength_attribute_id = str(raw_config.get("strength_attribute_id", "str")).strip().lower() or "str"
+    if not strength_attribute_id.isalpha():
+        raise ValueError("Hand weight config field 'strength_attribute_id' must be alphabetic.")
+
+    raw_requirements = raw_config.get("hand_requirements", {})
+    if not isinstance(raw_requirements, dict):
+        raise ValueError("Hand weight config field 'hand_requirements' must be an object.")
+
+    normalized_requirements: dict[str, dict[str, float]] = {}
+    for hand in ("main_hand", "off_hand"):
+        raw_hand = raw_requirements.get(hand)
+        if not isinstance(raw_hand, dict):
+            raise ValueError(f"Hand weight config must include object for '{hand}'.")
+
+        weight_multiplier = float(raw_hand.get("weight_multiplier", 1.0))
+        if weight_multiplier <= 0:
+            raise ValueError(f"Hand weight config '{hand}.weight_multiplier' must be > 0.")
+
+        normalized_requirements[hand] = {
+            "weight_multiplier": weight_multiplier,
+        }
+
+    return {
+        "strength_attribute_id": strength_attribute_id,
+        "hand_requirements": normalized_requirements,
     }
 
 
