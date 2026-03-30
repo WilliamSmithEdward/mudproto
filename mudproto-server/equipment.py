@@ -278,27 +278,33 @@ def resolve_equipped_selector(session: ClientSession, selector: str) -> tuple[Eq
     return matches[0], None
 
 
-def can_player_wield(session: ClientSession, item: EquipmentItemState) -> tuple[bool, str]:
-    """Return (True, '') or (False, reason) for can_hold weapons based on weight vs STR."""
+def can_player_hold(session: ClientSession, item: EquipmentItemState) -> tuple[bool, str]:
+    """Check whether an item can be placed in the off-hand.
+
+    Two gates:
+    - ``can_hold`` must be True on the item; weapons without it cannot be held off-hand.
+    - The item's weight must be <= the player's STR (1:1 mapping).
+    """
+    article = "An" if item.name[0].lower() in "aeiou" else "A"
     if not item.can_hold:
-        return True, ""
+        return False, f"{article} {item.name} cannot be held in your off hand."
     weight = max(0, item.weight)
-    required_str = weight
     player_str = int(session.player.attributes.get("str", 0))
-    if player_str >= required_str:
+    if player_str >= weight:
         return True, ""
-    return False, f"{item.name} is too heavy to wield (requires {required_str} STR, you have {player_str})."
+    return False, f"{article} {item.name} is too heavy to hold."
 
 
 def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | None = None) -> tuple[bool, str]:
     if item.slot != "weapon":
         return False, f"{item.name} cannot be equipped as a weapon."
 
-    can_wield, wield_error = can_player_wield(session, item)
-    if not can_wield:
-        return False, wield_error
-
     target_hand = (hand or HAND_MAIN).strip().lower()
+
+    if target_hand == HAND_OFF:
+        can_hold, hold_error = can_player_hold(session, item)
+        if not can_hold:
+            return False, hold_error
     if target_hand not in {HAND_MAIN, HAND_OFF}:
         return False, "Hand must be main or off."
 
