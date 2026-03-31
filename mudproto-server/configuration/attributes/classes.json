@@ -4,21 +4,19 @@
     "name": "Arcanist",
     "description": "A student of focused destructive and restorative magic.",
     "attribute_ranges": {
-      "str": { "min": 6, "max": 12 },
+      "str": { "min": 14, "max": 16 },
       "wis": { "min": 11, "max": 18 },
       "int": { "min": 13, "max": 18 },
       "dex": { "min": 8, "max": 14 },
       "con": { "min": 8, "max": 14 }
     },
-    "starting_equipment_template_ids": [
-      "weapon.training-dagger",
-      "armor.arcanist-robe",
-      "armor.arcanist-wraps",
+    "starting_inventory_template_ids": [
       "armor.test-ring-amber",
       "armor.test-ring-azure",
       "armor.test-chest-vest"
     ],
-    "starting_equipped_template_ids": [
+    "starting_equipment_template_ids": [
+      "weapon.training-sword",
       "weapon.training-dagger",
       "armor.arcanist-robe",
       "armor.arcanist-wraps"

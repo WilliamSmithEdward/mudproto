@@ -855,9 +855,8 @@ def _resolve_skill_by_name(skill_name: str, skills: list[dict] | None = None) ->
             )
 
         joined_prefix_match = bool(query_joined) and initials.startswith(query_joined)
-        substring_match = normalized in skill_normalized
 
-        if token_prefix_match or joined_prefix_match or substring_match:
+        if token_prefix_match or joined_prefix_match:
             partial_matches.append(skill)
 
     if len(exact_matches) == 1:
@@ -1272,51 +1271,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             ])
 
         return display_command_result(session, parts)
-
-    # Try to resolve unknown verb as a shorthand skill invocation (e.g., 'jab scout' instead of 'skill jab scout')
-    known_skills = _list_known_skills(session)
-    if verb not in {"skill", "sk", "ski", "skil", "skl", "use", "skills"} and known_skills:
-        for cut in range(len(args) + 1, 0, -1):
-            candidate_verb_args = [verb] + args[:cut-1]
-            candidate_skill_name = " ".join(candidate_verb_args).strip()
-            candidate_target_name = " ".join(args[cut-1:]).strip() or None
-            candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
-            if candidate_skill is not None:
-                verb = "skill"
-                args = candidate_verb_args + (args[cut-1:] if args[cut-1:] else [])
-                break
-
-    if verb in {"skill", "sk", "ski", "skil", "skl", "use"}:
-        if not known_skills:
-            return display_error("You do not know any skills.", session)
-
-        skill_name, target_name, parse_error = _parse_skill_use(command_text, args, verb)
-        if parse_error is not None or skill_name is None:
-            return display_error(parse_error or "Usage: skill 'skill name' [target]", session)
-
-        # For unquoted input, resolve by trying longest-to-shortest splits so
-        # `skill jab scout` can map to skill `jab` with target `scout`.
-        if target_name is None and len(args) > 1:
-            for cut in range(len(args), 0, -1):
-                candidate_skill_name = " ".join(args[:cut]).strip()
-                candidate_target_name = " ".join(args[cut:]).strip() or None
-                candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
-                if candidate_skill is not None:
-                    skill_name = candidate_skill_name
-                    target_name = candidate_target_name
-                    break
-
-        skill, resolve_error = _resolve_skill_by_name(skill_name, known_skills)
-        if skill is None:
-            return display_error(resolve_error or f"Unknown skill: {skill_name}", session)
-
-        response, skill_applied = use_skill(session, skill, target_name)
-        if skill_applied and session.combat.engaged_entity_id is not None:
-            try:
-                apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
-            except RuntimeError:
-                pass
-        return response
 
     if verb in {"cast", "c", "ca", "cas"}:
         spell_name, target_name, parse_error = _parse_cast_spell(command_text, args, verb)
@@ -1838,6 +1792,52 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if amount < 0:
             return display_error("Coins amount must be zero or greater.", session)
         return try_adjust_stat(session, [str(-amount)], "coins", "Coins", allow_negative=True)
+
+    # Try to resolve unknown verb as a shorthand skill invocation (e.g., 'jab scout' instead of 'skill jab scout')
+    # Lowest precedence — only runs after all other commands have failed to match.
+    known_skills = _list_known_skills(session)
+    if verb not in {"skill", "sk", "ski", "skil", "skl", "use", "skills"} and known_skills:
+        for cut in range(len(args) + 1, 0, -1):
+            candidate_verb_args = [verb] + args[:cut-1]
+            candidate_skill_name = " ".join(candidate_verb_args).strip()
+            candidate_target_name = " ".join(args[cut-1:]).strip() or None
+            candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
+            if candidate_skill is not None:
+                verb = "skill"
+                args = candidate_verb_args + (args[cut-1:] if args[cut-1:] else [])
+                break
+
+    if verb in {"skill", "sk", "ski", "skil", "skl", "use"}:
+        if not known_skills:
+            return display_error("You do not know any skills.", session)
+
+        skill_name, target_name, parse_error = _parse_skill_use(command_text, args, verb)
+        if parse_error is not None or skill_name is None:
+            return display_error(parse_error or "Usage: skill 'skill name' [target]", session)
+
+        # For unquoted input, resolve by trying longest-to-shortest splits so
+        # `skill jab scout` can map to skill `jab` with target `scout`.
+        if target_name is None and len(args) > 1:
+            for cut in range(len(args), 0, -1):
+                candidate_skill_name = " ".join(args[:cut]).strip()
+                candidate_target_name = " ".join(args[cut:]).strip() or None
+                candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
+                if candidate_skill is not None:
+                    skill_name = candidate_skill_name
+                    target_name = candidate_target_name
+                    break
+
+        skill, resolve_error = _resolve_skill_by_name(skill_name, known_skills)
+        if skill is None:
+            return display_error(resolve_error or f"Unknown skill: {skill_name}", session)
+
+        response, skill_applied = use_skill(session, skill, target_name)
+        if skill_applied and session.combat.engaged_entity_id is not None:
+            try:
+                apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
+            except RuntimeError:
+                pass
+        return response
 
     return display_error(f"Unknown command: {verb}", session)
 

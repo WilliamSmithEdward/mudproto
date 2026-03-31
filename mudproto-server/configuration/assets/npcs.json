@@ -3,9 +3,9 @@
     {
       "npc_id": "npc.hall-scout",
       "name": "Hall Scout",
-      "hit_points": 550,
-      "max_hit_points": 550,
-      "power_leveL": 8,
+      "hit_points": 250,
+      "max_hit_points": 250,
+      "power_leveL": 3,
       "attacks_per_round": 1,
       "hit_roll_modifier": 2,
       "armor_class": 10,

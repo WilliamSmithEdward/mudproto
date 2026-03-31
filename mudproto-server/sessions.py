@@ -62,11 +62,22 @@ def ensure_player_attributes(session: ClientSession) -> None:
 
 
 def _grant_starting_equipment_from_template(session: ClientSession, template: dict) -> None:
-    existing_template_ids = {item.template_id for item in session.equipment.items.values()}
-    existing_template_ids.update(item.template_id for item in session.equipment.equipped_items.values())
-    template_id = str(template.get("template_id", "")).strip()
-    if not template_id or template_id in existing_template_ids:
+    item = _build_starting_equipment_item_from_template(template)
+    if item is None:
         return
+
+    existing_template_ids = {inventory_item.template_id for inventory_item in session.equipment.items.values()}
+    existing_template_ids.update(equipped_item.template_id for equipped_item in session.equipment.equipped_items.values())
+    if item.template_id in existing_template_ids:
+        return
+
+    session.equipment.items[item.item_id] = item
+
+
+def _build_starting_equipment_item_from_template(template: dict):
+    template_id = str(template.get("template_id", "")).strip()
+    if not template_id:
+        return None
 
     item_id = f"item-{uuid.uuid4().hex[:8]}"
     from models import EquipmentItemState
@@ -91,24 +102,35 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
     )
     if item.wear_slots:
         item.wear_slot = item.wear_slots[0]
-    session.equipment.items[item_id] = item
+    return item
 
 
 def _equip_starting_equipment_by_template_id(session: ClientSession, template_id: str) -> None:
     from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
+    from models import EquipmentItemState
 
     normalized_template_id = template_id.strip().lower()
     if not normalized_template_id:
         return
 
-    item = None
+    item: EquipmentItemState | None = None
     for inventory_item in session.equipment.items.values():
         if inventory_item.template_id.strip().lower() == normalized_template_id:
             item = inventory_item
             break
 
     if item is None:
-        return
+        for equipped_item in session.equipment.equipped_items.values():
+            if equipped_item.template_id.strip().lower() == normalized_template_id:
+                return
+
+        template = get_equipment_template_by_id(template_id)
+        if template is None:
+            return
+        item = _build_starting_equipment_item_from_template(template)
+        if item is None:
+            return
+        session.equipment.items[item.item_id] = item
 
     if item.slot == "weapon":
         main_occupied = session.equipment.equipped_main_hand_id is not None
@@ -150,13 +172,13 @@ def apply_player_class(session: ClientSession, class_id: str | None = None, *, r
     else:
         ensure_player_attributes(session)
 
-    for template_id in player_class.get("starting_equipment_template_ids", []):
+    for template_id in player_class.get("starting_inventory_template_ids", []):
         template = get_equipment_template_by_id(str(template_id))
         if template is None:
             continue
         _grant_starting_equipment_from_template(session, template)
 
-    for template_id in player_class.get("starting_equipped_template_ids", []):
+    for template_id in player_class.get("starting_equipment_template_ids", []):
         _equip_starting_equipment_by_template_id(session, str(template_id))
 
     known_spell_ids = {spell_id.strip().lower() for spell_id in session.known_spell_ids if spell_id.strip()}
