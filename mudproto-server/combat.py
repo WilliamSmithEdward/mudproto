@@ -725,6 +725,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     session.status.vigor -= vigor_cost
 
     total_damage = roll_skill_damage(skill) + scaling_bonus
+    destroyed_entity_names: list[str] = []
 
     for entity in damage_targets:
         parts.append(build_part("\n"))
@@ -755,6 +756,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         if entity.hit_points <= 0:
             entity.is_alive = False
             spawn_corpse_for_entity(session, entity)
+            destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
                 build_part(with_article(entity.name, capitalize=True)),
@@ -781,6 +783,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
     if damage_observer_context:
         observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
+    for destroyed_name in destroyed_entity_names:
+        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is destroyed.")
 
     result = display_command_result(session, parts)
     return _attach_room_broadcast_parts(result, observer_lines), True
@@ -1045,6 +1049,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     status.mana -= mana_cost
 
     total_damage = roll_spell_damage(spell)
+    destroyed_entity_names: list[str] = []
 
     parts = [
         build_part("You cast "),
@@ -1082,6 +1087,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         if entity.hit_points <= 0:
             entity.is_alive = False
             spawn_corpse_for_entity(session, entity)
+            destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
                 build_part(with_article(entity.name, capitalize=True)),
@@ -1106,6 +1112,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
     if damage_observer_context:
         observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
+    for destroyed_name in destroyed_entity_names:
+        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is destroyed.")
 
     result = display_command_result(session, parts)
     return _attach_room_broadcast_parts(result, observer_lines), True
