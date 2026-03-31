@@ -5,31 +5,29 @@ import uuid
 
 from assets import get_equipment_template_by_id, get_npc_template_by_id, get_skill_by_id
 from battle_round_ticks import process_battle_round_support_effects
+from damage import (
+    get_npc_hit_modifier,
+    get_player_hit_modifier,
+    resolve_weapon_verb,
+    roll_hit,
+    roll_npc_weapon_damage,
+    roll_player_damage,
+    roll_skill_damage,
+    roll_spell_damage,
+)
 from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
-    HIT_ROLL_DICE_SIDES,
     PLAYER_REFERENCE_MAX_HP,
     PLAYER_REFERENCE_MAX_MANA,
     PLAYER_REFERENCE_MAX_VIGOR,
-    UNARMED_DAMAGE_VARIANCE,
 )
 from world import WORLD
 
 
 OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
-WEAPON_TYPE_TO_VERB = {
-    "unarmed": "hit",
-    "sword": "slash",
-    "axe": "hack",
-    "bludgeon": "bludgeon",
-    "mace": "bludgeon",
-    "club": "bludgeon",
-    "dagger": "stab",
-    "spear": "pierce",
-}
 
 
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
@@ -87,11 +85,6 @@ def _to_third_person(verb: str) -> str:
     if normalized.endswith(("s", "x", "z", "ch", "sh")):
         return f"{normalized}es"
     return f"{normalized}s"
-
-
-def _resolve_weapon_verb(weapon_type: str) -> str:
-    normalized = weapon_type.strip().lower() if weapon_type else "unarmed"
-    return WEAPON_TYPE_TO_VERB.get(normalized, "hit")
 
 
 def _article(name: str) -> str:
@@ -238,50 +231,6 @@ def _build_entity_attack_parts(
         build_part("."),
     ])
     return parts
-
-
-def _roll_hit(total_modifier: int, target_armor_class: int) -> bool:
-    roll = random.randint(1, HIT_ROLL_DICE_SIDES)
-    return (roll + total_modifier) >= target_armor_class
-
-
-def _roll_unarmed_damage(base_damage: int) -> int:
-    normalized_base = max(0, int(base_damage))
-    if normalized_base <= 0:
-        return 0
-
-    low = max(1, normalized_base - UNARMED_DAMAGE_VARIANCE)
-    high = normalized_base + UNARMED_DAMAGE_VARIANCE
-    return random.randint(low, high)
-
-
-def _roll_player_damage(session: ClientSession, weapon: EquipmentItemState | None) -> tuple[int, str | None, str]:
-
-    if weapon is None:
-        base_damage = _roll_unarmed_damage(session.player_combat.attack_damage)
-        return base_damage, None, "hit"
-
-    dice_count = max(0, weapon.damage_dice_count)
-    dice_sides = max(0, weapon.damage_dice_sides)
-
-    rolled_damage = 0
-    if dice_count > 0 and dice_sides > 0:
-        for _ in range(dice_count):
-            rolled_damage += random.randint(1, dice_sides)
-
-    total_damage = (
-        rolled_damage
-        + session.player_combat.attack_damage
-        + weapon.damage_roll_modifier
-        + weapon.attack_damage_bonus
-    )
-    return max(0, total_damage), weapon.name, _resolve_weapon_verb(weapon.weapon_type)
-
-
-def _get_player_hit_modifier(weapon: EquipmentItemState | None) -> int:
-    if weapon is None:
-        return 0
-    return weapon.hit_roll_modifier
 
 
 def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[EquipmentItemState | None]:
@@ -653,18 +602,6 @@ def _process_combat_round_timers(session: ClientSession, entities: list[EntitySt
             entity.skill_lag_rounds_remaining -= 1
 
 
-def _roll_skill_damage(skill: dict) -> int:
-    dice_count = max(0, int(skill.get("damage_dice_count", 0)))
-    dice_sides = max(0, int(skill.get("damage_dice_sides", 0)))
-    damage_modifier = int(skill.get("damage_modifier", 0))
-
-    rolled_damage = 0
-    if dice_count > 0 and dice_sides > 0:
-        for _ in range(dice_count):
-            rolled_damage += random.randint(1, dice_sides)
-    return max(0, rolled_damage + damage_modifier)
-
-
 def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> int:
     scaling_attribute_id = str(skill.get("scaling_attribute_id", "")).strip().lower()
     scaling_multiplier = max(0.0, float(skill.get("scaling_multiplier", 0.0)))
@@ -841,7 +778,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     session.status.vigor -= vigor_cost
 
-    total_damage = _roll_skill_damage(skill) + scaling_bonus
+    total_damage = roll_skill_damage(skill) + scaling_bonus
 
     for entity in damage_targets:
         parts.append(build_part("\n"))
@@ -955,7 +892,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         return True
 
     if skill_type == "damage" and cast_type in {"target", "aoe"}:
-        total_damage = _roll_skill_damage(skill) + scaling_bonus
+        total_damage = roll_skill_damage(skill) + scaling_bonus
         damage_context = str(skill.get("damage_context", "")).strip()
 
         if total_damage > 0:
@@ -995,9 +932,6 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
     cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
 
-    dice_count = max(0, int(spell.get("damage_dice_count", 0)))
-    dice_sides = max(0, int(spell.get("damage_dice_sides", 0)))
-    damage_modifier = int(spell.get("damage_modifier", 0))
     damage_context = str(spell.get("damage_context", "")).strip()
     support_effect = str(spell.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(spell.get("support_amount", 0)))
@@ -1138,11 +1072,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
 
     status.mana -= mana_cost
 
-    rolled_damage = 0
-    if dice_count > 0 and dice_sides > 0:
-        for _ in range(dice_count):
-            rolled_damage += random.randint(1, dice_sides)
-    total_damage = max(0, rolled_damage + damage_modifier)
+    total_damage = roll_spell_damage(spell)
 
     parts = [
         build_part("You cast "),
@@ -1358,9 +1288,9 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
 
         _append_newline_if_needed(parts)
 
-        hit_modifier = _get_player_hit_modifier(weapon)
-        if not _roll_hit(hit_modifier, entity.armor_class):
-            miss_verb = _resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
+        hit_modifier = get_player_hit_modifier(weapon)
+        if not roll_hit(hit_modifier, entity.armor_class):
+            miss_verb = resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
             parts.extend(_build_player_attack_parts(
                 entity_name=entity.name,
                 attack_verb=miss_verb,
@@ -1369,7 +1299,7 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
             ))
             continue
 
-        rolled_damage, weapon_name, attack_verb = _roll_player_damage(session, weapon)
+        rolled_damage, weapon_name, attack_verb = roll_player_damage(session.player_combat, weapon)
         entity.hit_points = max(0, entity.hit_points - rolled_damage)
         parts.extend(_build_player_attack_parts(
             entity_name=entity.name,
@@ -1409,33 +1339,6 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
             return None
         return template
 
-    def _roll_npc_weapon_damage(entity: EntityState, weapon_template: dict | None, *, off_hand: bool) -> tuple[int, str]:
-        base_damage = max(0, entity.power_level)
-        fallback_verb = "hit"
-
-        if weapon_template is None:
-            return _roll_unarmed_damage(base_damage), fallback_verb
-
-        dice_count = max(0, int(weapon_template.get("damage_dice_count", 0)))
-        dice_sides = max(0, int(weapon_template.get("damage_dice_sides", 0)))
-        damage_roll_modifier = int(weapon_template.get("damage_roll_modifier", 0))
-        attack_damage_bonus = int(weapon_template.get("attack_damage_bonus", 0))
-
-        rolled_damage = 0
-        if dice_count > 0 and dice_sides > 0:
-            for _ in range(dice_count):
-                rolled_damage += random.randint(1, dice_sides)
-
-        total_damage = base_damage + rolled_damage + damage_roll_modifier + attack_damage_bonus
-        attack_verb = _resolve_weapon_verb(str(weapon_template.get("weapon_type", "unarmed")))
-        return max(0, total_damage), attack_verb
-
-    def _get_npc_hit_modifier(entity: EntityState, weapon_template: dict | None, *, off_hand: bool) -> int:
-        base_modifier = entity.off_hand_hit_roll_modifier if off_hand else entity.hit_roll_modifier
-        if weapon_template is None:
-            return base_modifier
-        return base_modifier + int(weapon_template.get("hit_roll_modifier", 0))
-
     for entity in attackers:
         if not entity.is_alive:
             continue
@@ -1449,10 +1352,10 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
         for _ in range(max(1, entity.attacks_per_round)):
             _append_newline_if_needed(parts)
 
-            main_hit_modifier = _get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
-            if not _roll_hit(main_hit_modifier, player_armor_class):
+            main_hit_modifier = get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
+            if not roll_hit(main_hit_modifier, player_armor_class):
                 miss_verb = (
-                    _resolve_weapon_verb(str(main_hand_weapon.get("weapon_type", "unarmed")))
+                    resolve_weapon_verb(str(main_hand_weapon.get("weapon_type", "unarmed")))
                     if main_hand_weapon is not None
                     else "hit"
                 )
@@ -1463,7 +1366,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
                 ))
                 continue
 
-            attack_damage, attack_verb = _roll_npc_weapon_damage(entity, main_hand_weapon, off_hand=False)
+            attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
             status.hit_points = max(0, status.hit_points - attack_damage)
             parts.extend(_build_entity_attack_parts(
                 entity=entity,
@@ -1476,10 +1379,10 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
             for _ in range(off_hand_swings):
                 _append_newline_if_needed(parts)
 
-                off_hit_modifier = _get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)
-                if not _roll_hit(off_hit_modifier, player_armor_class):
+                off_hit_modifier = get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)
+                if not roll_hit(off_hit_modifier, player_armor_class):
                     miss_verb = (
-                        _resolve_weapon_verb(str(off_hand_weapon.get("weapon_type", "unarmed")))
+                        resolve_weapon_verb(str(off_hand_weapon.get("weapon_type", "unarmed")))
                         if off_hand_weapon is not None
                         else "hit"
                     )
@@ -1490,7 +1393,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
                     ))
                     continue
 
-                off_hand_damage, off_attack_verb = _roll_npc_weapon_damage(entity, off_hand_weapon, off_hand=True)
+                off_hand_damage, off_attack_verb = roll_npc_weapon_damage(entity, off_hand_weapon)
                 status.hit_points = max(0, status.hit_points - off_hand_damage)
                 parts.extend(_build_entity_attack_parts(
                     entity=entity,
