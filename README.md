@@ -13,6 +13,9 @@
 
 </div>
 
+\
+![Alt text](/images/mudproto_01.png)
+
 ---
 
 ## The Pitch
@@ -139,7 +142,7 @@ mudproto/
 
 ```bash
 # Clone
-git clone https://github.com/YourUsername/mudproto.git
+git clone https://github.com/WilliamSmithEdward/mudproto.git
 cd mudproto
 
 # Set up environment
