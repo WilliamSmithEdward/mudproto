@@ -432,20 +432,47 @@ def clear_combat_if_invalid(session: ClientSession) -> None:
         return
 
     entity = session.entities.get(target_id)
-    if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
+    if (
+        entity is None
+        or not entity.is_alive
+        or entity.room_id != session.player.current_room_id
+        or entity.engaged_client_id not in {None, session.client_id}
+    ):
         end_combat(session)
 
 
 def end_combat(session: ClientSession) -> None:
+    target_id = session.combat.engaged_entity_id
+    if target_id is not None:
+        target = session.entities.get(target_id)
+        if target is not None and target.engaged_client_id == session.client_id:
+            target.engaged_client_id = None
+
     session.combat.engaged_entity_id = None
     session.combat.next_round_monotonic = None
     session.combat.opening_attacker = None
 
 
-def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> None:
+def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
+    entity = session.entities.get(entity_id)
+    if entity is None or not entity.is_alive:
+        return False
+    if entity.room_id != session.player.current_room_id:
+        return False
+    if entity.engaged_client_id is not None and entity.engaged_client_id != session.client_id:
+        return False
+
+    previous_target_id = session.combat.engaged_entity_id
+    if previous_target_id is not None and previous_target_id != entity_id:
+        previous_target = session.entities.get(previous_target_id)
+        if previous_target is not None and previous_target.engaged_client_id == session.client_id:
+            previous_target.engaged_client_id = None
+
+    entity.engaged_client_id = session.client_id
     session.combat.engaged_entity_id = entity_id
     session.combat.next_round_monotonic = None
     session.combat.opening_attacker = opening_attacker
+    return True
 
 
 def _schedule_next_combat_round(session: ClientSession) -> None:
@@ -475,11 +502,14 @@ def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) ->
             continue
         if not candidate.is_alive:
             continue
+        if candidate.engaged_client_id is not None and candidate.engaged_client_id != session.client_id:
+            continue
 
-        session.combat.engaged_entity_id = candidate.entity_id
-        session.combat.opening_attacker = None
-        _schedule_next_combat_round(session)
-        return candidate
+        started = start_combat(session, candidate.entity_id, OPENING_ATTACKER_ENTITY)
+        if started:
+            session.combat.opening_attacker = None
+            _schedule_next_combat_round(session)
+            return candidate
 
     end_combat(session)
     return None
@@ -1141,8 +1171,9 @@ def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None
     room_entities = list_room_entities(session, session.player.current_room_id)
     for entity in room_entities:
         if entity.is_aggro:
-            start_combat(session, entity.entity_id, OPENING_ATTACKER_ENTITY)
-            return entity
+            started = start_combat(session, entity.entity_id, OPENING_ATTACKER_ENTITY)
+            if started:
+                return entity
 
     return None
 
@@ -1183,7 +1214,7 @@ def spawn_dummy(session: ClientSession) -> dict:
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
-    from display import display_error, display_force_prompt
+    from display import build_part, display_command_result, display_error
 
     clear_combat_if_invalid(session)
     entity, resolve_error = resolve_room_entity_selector(
@@ -1196,14 +1227,15 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     if entity is None:
         return display_error(resolve_error or f"No target named '{target_name}' is here.", session)
 
-    start_combat(session, entity.entity_id, OPENING_ATTACKER_PLAYER)
-    combat_result = resolve_combat_round(session)
+    started = start_combat(session, entity.entity_id, OPENING_ATTACKER_PLAYER)
+    if not started:
+        return display_error(f"{entity.name} is already engaged with another target.", session)
 
-    if combat_result is None:
-        _schedule_next_combat_round(session)
-        return display_force_prompt(session)
-
-    return [combat_result, display_force_prompt(session)]
+    return display_command_result(session, [
+        build_part("You engage ", "bright_white"),
+        build_part(with_article(entity.name), "bright_yellow", True),
+        build_part(".", "bright_white"),
+    ])
 
 
 def disengage(session: ClientSession) -> dict | list[dict]:
@@ -1259,18 +1291,7 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
             break
 
 
-def _list_room_attackers(session: ClientSession, primary_entity: EntityState) -> list[EntityState]:
-    attackers: list[EntityState] = [primary_entity]
-    for candidate in list_room_entities(session, session.player.current_room_id):
-        if candidate.entity_id == primary_entity.entity_id:
-            continue
-        if not candidate.is_alive or not candidate.is_aggro:
-            continue
-        attackers.append(candidate)
-    return attackers
-
-
-def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], parts: list[dict], allow_off_hand: bool) -> None:
+def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
     status = session.status
     player_armor_class = get_player_armor_class(session)
 
@@ -1285,24 +1306,55 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
             return None
         return template
 
-    for entity in attackers:
-        if not entity.is_alive:
+    entity = attacker
+    if not entity.is_alive:
+        return
+    if entity.engaged_client_id != session.client_id:
+        return
+
+    # Skills are additive and do not consume the entity's melee turn.
+    _entity_try_use_skill(session, entity, parts)
+
+    main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
+    off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
+
+    for _ in range(max(1, entity.attacks_per_round)):
+        append_newline_if_needed(parts)
+
+        main_hit_modifier = get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
+        if not roll_hit(main_hit_modifier, player_armor_class):
+            miss_verb = (
+                resolve_weapon_verb(str(main_hand_weapon.get("weapon_type", "unarmed")))
+                if main_hand_weapon is not None
+                else "hit"
+            )
+            parts.extend(build_entity_attack_parts(
+                entity_name=entity.name,
+                entity_pronoun_possessive=entity.pronoun_possessive,
+                attack_verb=miss_verb,
+                damage=0,
+            ))
             continue
 
-        # Skills are additive and do not consume the entity's melee turn.
-        _entity_try_use_skill(session, entity, parts)
+        attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
+        status.hit_points = max(0, status.hit_points - attack_damage)
+        parts.extend(build_entity_attack_parts(
+            entity_name=entity.name,
+            entity_pronoun_possessive=entity.pronoun_possessive,
+            attack_verb=attack_verb,
+            damage=attack_damage,
+        ))
 
-        main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
-        off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
-
-        for _ in range(max(1, entity.attacks_per_round)):
+    if allow_off_hand:
+        off_hand_swings = max(0, entity.off_hand_attacks_per_round)
+        for _ in range(off_hand_swings):
             append_newline_if_needed(parts)
 
-            main_hit_modifier = get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
-            if not roll_hit(main_hit_modifier, player_armor_class):
+            off_hit_modifier = get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)
+            if not roll_hit(off_hit_modifier, player_armor_class):
                 miss_verb = (
-                    resolve_weapon_verb(str(main_hand_weapon.get("weapon_type", "unarmed")))
-                    if main_hand_weapon is not None
+                    resolve_weapon_verb(str(off_hand_weapon.get("weapon_type", "unarmed")))
+                    if off_hand_weapon is not None
                     else "hit"
                 )
                 parts.extend(build_entity_attack_parts(
@@ -1313,43 +1365,14 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
                 ))
                 continue
 
-            attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
-            status.hit_points = max(0, status.hit_points - attack_damage)
+            off_hand_damage, off_attack_verb = roll_npc_weapon_damage(entity, off_hand_weapon)
+            status.hit_points = max(0, status.hit_points - off_hand_damage)
             parts.extend(build_entity_attack_parts(
                 entity_name=entity.name,
                 entity_pronoun_possessive=entity.pronoun_possessive,
-                attack_verb=attack_verb,
-                damage=attack_damage,
+                attack_verb=off_attack_verb,
+                damage=off_hand_damage,
             ))
-
-        if allow_off_hand:
-            off_hand_swings = max(0, entity.off_hand_attacks_per_round)
-            for _ in range(off_hand_swings):
-                append_newline_if_needed(parts)
-
-                off_hit_modifier = get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)
-                if not roll_hit(off_hit_modifier, player_armor_class):
-                    miss_verb = (
-                        resolve_weapon_verb(str(off_hand_weapon.get("weapon_type", "unarmed")))
-                        if off_hand_weapon is not None
-                        else "hit"
-                    )
-                    parts.extend(build_entity_attack_parts(
-                        entity_name=entity.name,
-                        entity_pronoun_possessive=entity.pronoun_possessive,
-                        attack_verb=miss_verb,
-                        damage=0,
-                    ))
-                    continue
-
-                off_hand_damage, off_attack_verb = roll_npc_weapon_damage(entity, off_hand_weapon)
-                status.hit_points = max(0, status.hit_points - off_hand_damage)
-                parts.extend(build_entity_attack_parts(
-                    entity_name=entity.name,
-                    entity_pronoun_possessive=entity.pronoun_possessive,
-                    attack_verb=off_attack_verb,
-                    damage=off_hand_damage,
-                ))
 
 
 def resolve_combat_round(session: ClientSession) -> dict | None:
@@ -1372,11 +1395,10 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     status = session.status
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
-    room_attackers = _list_room_attackers(session, entity)
-    _process_combat_round_timers(session, room_attackers)
+    _process_combat_round_timers(session, [entity])
 
     if opening_attacker == OPENING_ATTACKER_ENTITY:
-        _apply_entity_attacks(session, room_attackers, parts, allow_off_hand=False)
+        _apply_entity_attacks(session, entity, parts, allow_off_hand=False)
     else:
         if session.combat.skip_melee_rounds > 0:
             session.combat.skip_melee_rounds -= 1
@@ -1408,7 +1430,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     if opening_attacker is not None:
         session.combat.opening_attacker = None
     else:
-        _apply_entity_attacks(session, room_attackers, parts, allow_off_hand=True)
+        _apply_entity_attacks(session, entity, parts, allow_off_hand=True)
 
     if status.hit_points <= 0:
         end_combat(session)

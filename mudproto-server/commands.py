@@ -269,11 +269,7 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
                 build_part(" notices you and attacks!", "bright_white"),
             ])
 
-    combat_result = resolve_combat_round(session)
-    if combat_result is None:
-        return room_display
-
-    return [room_display, combat_result, display_force_prompt(session)]
+    return room_display
 
 
 def flee(session: ClientSession) -> OutboundResult:

@@ -342,7 +342,7 @@ def register_authenticated_character_session(session: ClientSession) -> None:
 
 
 async def _offline_character_loop(character_key: str, session: ClientSession) -> None:
-    from combat import end_combat, get_engaged_entity, resolve_combat_round
+    from combat import end_combat, get_engaged_entity
     from battle_round_ticks import process_non_combat_support_round
     from game_hour_ticks import process_game_hour_tick
 
@@ -365,9 +365,6 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
                 break
 
             now = loop.time()
-
-            if session.combat.next_round_monotonic is not None and now >= session.combat.next_round_monotonic:
-                resolve_combat_round(session)
 
             process_non_combat_support_round(session)
 

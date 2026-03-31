@@ -19,12 +19,14 @@ from display import (
 from player_state_db import save_player_state
 from protocol import validate_message
 from settings import (
+    COMBAT_ROUND_INTERVAL_SECONDS,
     COMMAND_SCHEDULER_INTERVAL_SECONDS,
     GAME_TICK_INTERVAL_SECONDS,
     SERVER_HOST,
     SERVER_PORT,
 )
 from sessions import (
+    active_character_sessions,
     connected_clients,
     get_connection_count,
     handle_client_disconnect,
@@ -35,6 +37,7 @@ from sessions import (
 from game_hour_ticks import process_game_hour_tick
 from world import get_room
 next_game_tick_monotonic: float | None = None
+next_combat_round_monotonic: float | None = None
 
 
 def _iter_room_peers(origin_session):
@@ -188,19 +191,6 @@ async def command_scheduler_loop(session) -> None:
                     save_player_state(session)
                 session.next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
-            combat_result = None
-            if session.combat.next_round_monotonic is not None:
-                if now >= session.combat.next_round_monotonic:
-                    combat_result = resolve_combat_round(session)
-
-            if combat_result is not None:
-                await send_outbound(
-                    session.websocket,
-                    [combat_result, display_force_prompt(session)],
-                )
-                await _broadcast_outbound_to_room(session, combat_result)
-                continue
-
             process_non_combat_support_round(session)
 
             if is_session_lagged(session):
@@ -241,6 +231,61 @@ async def game_tick_loop() -> None:
             await asyncio.sleep(sleep_seconds)
 
             next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
+
+    except asyncio.CancelledError:
+        raise
+
+
+async def combat_round_loop() -> None:
+    global next_combat_round_monotonic
+
+    try:
+        next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
+
+        while True:
+            sleep_seconds = max(0.0, next_combat_round_monotonic - asyncio.get_running_loop().time())
+            await asyncio.sleep(sleep_seconds)
+            next_combat_round_monotonic += COMBAT_ROUND_INTERVAL_SECONDS
+
+            combat_sessions: list = []
+            seen_sessions: set[str] = set()
+
+            for session in active_character_sessions.values():
+                session_key = session.player_state_key.strip().lower() or session.client_id
+                if not session_key or session_key in seen_sessions:
+                    continue
+                seen_sessions.add(session_key)
+
+                if session.disconnected_by_server or not session.is_authenticated:
+                    continue
+                if session.combat.engaged_entity_id is None:
+                    continue
+                combat_sessions.append(session)
+
+            # Fallback: include authenticated connected sessions not yet in active character map.
+            for session in connected_clients.values():
+                session_key = session.player_state_key.strip().lower() or session.client_id
+                if not session_key or session_key in seen_sessions:
+                    continue
+                seen_sessions.add(session_key)
+
+                if not session.is_connected or session.disconnected_by_server or not session.is_authenticated:
+                    continue
+                if session.combat.engaged_entity_id is None:
+                    continue
+                combat_sessions.append(session)
+
+            for session in combat_sessions:
+                combat_result = resolve_combat_round(session)
+                if combat_result is None:
+                    continue
+
+                if session.is_connected:
+                    await send_outbound(
+                        session.websocket,
+                        [combat_result, display_force_prompt(session)],
+                    )
+                    await _broadcast_outbound_to_room(session, combat_result)
 
     except asyncio.CancelledError:
         raise
@@ -306,12 +351,19 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
 async def main():
     tick_task = asyncio.create_task(game_tick_loop())
+    combat_task = asyncio.create_task(combat_round_loop())
 
     try:
         async with websockets.serve(handle_connection, SERVER_HOST, SERVER_PORT):
             print(f"Server listening on ws://{SERVER_HOST}:{SERVER_PORT}")
             await asyncio.Future()
     finally:
+        combat_task.cancel()
+        try:
+            await combat_task
+        except asyncio.CancelledError:
+            pass
+
         tick_task.cancel()
         try:
             await tick_task
