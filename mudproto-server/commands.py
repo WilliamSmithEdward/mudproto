@@ -12,7 +12,7 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from assets import get_item_template_by_id, get_player_class_by_id, load_attributes, load_equipment_templates, load_item_templates, load_player_classes, load_skills, load_spells
+from assets import get_equipment_template_by_id, get_item_template_by_id, get_player_class_by_id, load_attributes, load_equipment_templates, load_item_templates, load_player_classes, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
     character_exists,
@@ -578,6 +578,15 @@ def _add_item_to_room_ground(session: ClientSession, room_id: str, item) -> None
     room_items[item.item_id] = item
 
 
+def _pickup_ground_item(session: ClientSession, room_id: str, item) -> None:
+    """Move an item from room ground into the correct player inventory bucket."""
+    session.room_ground_items.get(room_id, {}).pop(item.item_id, None)
+    if isinstance(item, EquipmentItemState):
+        session.equipment.items[item.item_id] = item
+    else:
+        session.inventory_items[item.item_id] = item
+
+
 def _find_equipment_template_for_loot_name(loot_name: str) -> dict | None:
     normalized_loot_name = loot_name.strip().lower()
     if not normalized_loot_name:
@@ -717,7 +726,12 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
 
 
 def _promote_misc_item_to_equipment(session: ClientSession, misc_item) -> EquipmentItemState | None:
-    template = _find_equipment_template_for_loot_name(misc_item.name)
+    template: dict | None = None
+    misc_template_id = str(getattr(misc_item, "template_id", "")).strip()
+    if misc_template_id:
+        template = get_equipment_template_by_id(misc_template_id)
+    if template is None:
+        template = _find_equipment_template_for_loot_name(misc_item.name)
     if template is None:
         return None
 
@@ -1025,8 +1039,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     return display_error(selector_error, session)
 
                 for item in matches:
-                    session.room_ground_items.get(room_id, {}).pop(item.item_id, None)
-                    session.inventory_items[item.item_id] = item
+                    _pickup_ground_item(session, room_id, item)
 
                 parts = [
                     build_part("You take all matching items from the room.", "bright_white"),
@@ -1053,8 +1066,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                             session,
                         )
 
-                    session.room_ground_items.get(room_id, {}).pop(selected_item.item_id, None)
-                    session.inventory_items[selected_item.item_id] = selected_item
+                    _pickup_ground_item(session, room_id, selected_item)
                     return display_command_result(session, [
                         build_part("You take ", "bright_white"),
                         build_part(selected_item.name, "bright_yellow", True),
@@ -1090,8 +1102,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 session.room_coin_piles[room_id] = 0
 
             for item in room_items:
-                session.room_ground_items.get(room_id, {}).pop(item.item_id, None)
-                session.inventory_items[item.item_id] = item
+                _pickup_ground_item(session, room_id, item)
                 looted_items.append(item.name)
 
             for corpse in corpses:

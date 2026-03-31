@@ -393,6 +393,7 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
         loot_item = LootItemState(
             item_id=f"loot-{uuid.uuid4().hex[:8]}",
             name=str(template.get("name", "Loot")).strip() or "Loot",
+            template_id=str(template.get("template_id", "")).strip(),
             description=str(template.get("description", "")),
             keywords=[str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
         )
