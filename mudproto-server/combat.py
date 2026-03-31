@@ -21,8 +21,8 @@ from damage import (
     roll_skill_damage,
     roll_spell_damage,
 )
-from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
-from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
+from equipment import build_equippable_item_from_template, get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
+from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, ItemState
 from sessions import active_character_sessions, connected_clients
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
@@ -134,8 +134,8 @@ def get_entity_condition(entity: EntityState) -> tuple[str, str]:
     return get_health_condition(entity.hit_points, entity.max_hit_points)
 
 
-def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[EquipmentItemState | None]:
-    attack_sequence: list[EquipmentItemState | None] = []
+def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[ItemState | None]:
+    attack_sequence: list[ItemState | None] = []
 
     main_hand = get_equipped_main_hand(session)
     main_weapon = main_hand if main_hand is not None and main_hand.slot == "weapon" else None
@@ -163,7 +163,7 @@ def _corpse_keywords(corpse: CorpseState) -> set[str]:
     return keywords
 
 
-def _corpse_item_keywords(item: LootItemState) -> set[str]:
+def _corpse_item_keywords(item: ItemState) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
 
 
@@ -315,7 +315,7 @@ def resolve_room_corpse_selector(
     return matches[0], None
 
 
-def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tuple[LootItemState | None, str | None]:
+def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tuple[ItemState | None, str | None]:
     normalized = selector_text.strip().lower()
     if not normalized:
         return None, "Provide an item selector."
@@ -327,8 +327,8 @@ def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tup
     items.sort(key=lambda item: item.name.lower())
 
     if "." not in normalized:
-        exact_match: LootItemState | None = None
-        partial_match: LootItemState | None = None
+        exact_match: ItemState | None = None
+        partial_match: ItemState | None = None
         for item in items:
             item_name = item.name.lower()
             if item_name == normalized:
@@ -356,7 +356,7 @@ def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tup
     if not parts:
         return None, "Provide at least one selector keyword after the index."
 
-    matches: list[LootItemState] = []
+    matches: list[ItemState] = []
     for item in items:
         keywords = _corpse_item_keywords(item)
         if all(keyword in keywords for keyword in parts):
@@ -377,7 +377,7 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
     next_spawn_sequence = max((corpse.spawn_sequence for corpse in session.corpses.values()), default=0) + 1
     session.corpse_spawn_counter = max(session.corpse_spawn_counter, next_spawn_sequence)
     corpse_id = f"corpse-{uuid.uuid4().hex[:8]}"
-    loot_items: dict[str, LootItemState] = {}
+    loot_items: dict[str, ItemState] = {}
 
     equipped_template_ids: list[str] = []
     if entity.main_hand_weapon_template_id.strip():
@@ -390,23 +390,32 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
         if template is None:
             continue
 
-        loot_item = LootItemState(
-            item_id=f"loot-{uuid.uuid4().hex[:8]}",
-            name=str(template.get("name", "Loot")).strip() or "Loot",
-            template_id=str(template.get("template_id", "")).strip(),
-            description=str(template.get("description", "")),
-            keywords=[str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
-        )
+        loot_item = build_equippable_item_from_template(template, item_id=f"loot-{uuid.uuid4().hex[:8]}")
         loot_items[loot_item.item_id] = loot_item
 
     # Backward-compatible fallback for entities without equipped template-backed items.
     if not loot_items:
         loot_items = {
-            item.item_id: LootItemState(
+            item.item_id: ItemState(
                 item_id=item.item_id,
+                template_id=item.template_id,
                 name=item.name,
                 description=item.description,
                 keywords=list(item.keywords),
+                equippable=item.equippable,
+                slot=item.slot,
+                weapon_type=item.weapon_type,
+                can_hold=item.can_hold,
+                weight=item.weight,
+                damage_dice_count=item.damage_dice_count,
+                damage_dice_sides=item.damage_dice_sides,
+                damage_roll_modifier=item.damage_roll_modifier,
+                hit_roll_modifier=item.hit_roll_modifier,
+                attack_damage_bonus=item.attack_damage_bonus,
+                attacks_per_round_bonus=item.attacks_per_round_bonus,
+                armor_class_bonus=item.armor_class_bonus,
+                wear_slot=item.wear_slot,
+                wear_slots=list(item.wear_slots),
             )
             for item in entity.loot_items
         }
@@ -1146,11 +1155,12 @@ def initialize_session_entities(session: ClientSession) -> None:
                 next_spawn_sequence += 1
                 session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
 
-                loot_items: list[LootItemState] = []
+                loot_items: list[ItemState] = []
                 for loot_template in template.get("loot_items", []):
-                    loot_items.append(LootItemState(
+                    loot_items.append(ItemState(
                         item_id=f"loot-{uuid.uuid4().hex[:8]}",
                         name=str(loot_template.get("name", "Loot")).strip() or "Loot",
+                        template_id=str(loot_template.get("template_id", "")).strip(),
                         description=str(loot_template.get("description", "")),
                         keywords=list(loot_template.get("keywords", [])),
                     ))

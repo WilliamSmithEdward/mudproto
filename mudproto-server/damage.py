@@ -1,6 +1,6 @@
 import random
 
-from models import EntityState, EquipmentItemState, PlayerCombatState
+from models import EntityState, ItemState, PlayerCombatState
 from settings import HIT_ROLL_DICE_SIDES, UNARMED_DAMAGE_VARIANCE
 
 
@@ -48,7 +48,7 @@ def _roll_damage_dice(dice_count: int, dice_sides: int) -> int:
     return total
 
 
-def roll_player_damage(player_combat: PlayerCombatState, weapon: EquipmentItemState | None) -> tuple[int, str | None, str]:
+def roll_player_damage(player_combat: PlayerCombatState, weapon: ItemState | None) -> tuple[int, str | None, str]:
     if weapon is None:
         base_damage = roll_unarmed_damage(player_combat.attack_damage)
         return base_damage, None, "hit"
@@ -63,7 +63,7 @@ def roll_player_damage(player_combat: PlayerCombatState, weapon: EquipmentItemSt
     return max(0, total_damage), weapon.name, resolve_weapon_verb(weapon.weapon_type)
 
 
-def get_player_hit_modifier(weapon: EquipmentItemState | None) -> int:
+def get_player_hit_modifier(weapon: ItemState | None) -> int:
     if weapon is None:
         return 0
     return weapon.hit_roll_modifier

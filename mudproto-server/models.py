@@ -55,13 +55,14 @@ class ActiveSupportEffectState:
 
 
 @dataclass
-class EquipmentItemState:
+class ItemState:
     item_id: str
-    template_id: str
-    name: str
-    slot: str
+    template_id: str = ""
+    name: str = "Item"
     description: str = ""
     keywords: list[str] = field(default_factory=list)
+    equippable: bool = False
+    slot: str = ""
     weapon_type: str = "unarmed"
     can_hold: bool = False
     weight: int = 0
@@ -74,26 +75,15 @@ class EquipmentItemState:
     armor_class_bonus: int = 0
     wear_slot: str = ""
     wear_slots: list[str] = field(default_factory=list)
-
-
 @dataclass
 class EquipmentState:
-    equipped_items: dict[str, EquipmentItemState] = field(default_factory=dict)
+    equipped_items: dict[str, ItemState] = field(default_factory=dict)
     equipped_main_hand_id: Optional[str] = None
     equipped_off_hand_id: Optional[str] = None
     worn_item_ids: dict[str, str] = field(default_factory=dict)
 
 
-@dataclass
-class LootItemState:
-    item_id: str
-    name: str
-    template_id: str = ""
-    description: str = ""
-    keywords: list[str] = field(default_factory=list)
-
-
-InventoryItemState = LootItemState | EquipmentItemState
+InventoryItemState = ItemState
 
 
 @dataclass
@@ -103,7 +93,7 @@ class CorpseState:
     source_name: str
     room_id: str
     coins: int = 0
-    loot_items: dict[str, LootItemState] = field(default_factory=dict)
+    loot_items: dict[str, ItemState] = field(default_factory=dict)
     spawn_sequence: int = 0
 
 
@@ -121,7 +111,7 @@ class EntityState:
     off_hand_attacks_per_round: int = 0
     off_hand_hit_roll_modifier: int = 0
     coin_reward: int = 0
-    loot_items: list[LootItemState] = field(default_factory=list)
+    loot_items: list[ItemState] = field(default_factory=list)
     is_alive: bool = True
     spawn_sequence: int = 0
     is_aggro: bool = False

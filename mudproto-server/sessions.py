@@ -3,7 +3,8 @@ import random
 import uuid
 
 from assets import load_attributes, get_default_player_class, get_equipment_template_by_id, get_item_template_by_id, get_player_class_by_id
-from models import ClientSession, LootItemState, QueuedCommand
+from equipment import HAND_MAIN, HAND_OFF, build_equippable_item_from_template, equip_item, is_item_equippable, wear_item
+from models import ClientSession, ItemState, QueuedCommand
 from player_state_db import save_player_state
 from protocol import utc_now_iso
 from settings import (
@@ -68,14 +69,12 @@ def ensure_player_attributes(session: ClientSession) -> None:
 
 
 def _grant_starting_equipment_from_template(session: ClientSession, template: dict) -> None:
-    item = _build_starting_equipment_item_from_template(template)
-    if item is None:
-        return
+    item = build_equippable_item_from_template(template)
 
     existing_template_ids = {
         inventory_item.template_id
         for inventory_item in session.inventory_items.values()
-        if isinstance(inventory_item, type(item))
+        if is_item_equippable(inventory_item)
     }
     existing_template_ids.update(equipped_item.template_id for equipped_item in session.equipment.equipped_items.values())
     if item.template_id in existing_template_ids:
@@ -89,7 +88,7 @@ def _grant_starting_item_from_template(session: ClientSession, template: dict) -
     if not template_id:
         return
 
-    item = LootItemState(
+    item = ItemState(
         item_id=f"item-{uuid.uuid4().hex[:8]}",
         template_id=template_id,
         name=str(template.get("name", "Item")).strip() or "Item",
@@ -99,48 +98,14 @@ def _grant_starting_item_from_template(session: ClientSession, template: dict) -
     session.inventory_items[item.item_id] = item
 
 
-def _build_starting_equipment_item_from_template(template: dict):
-    template_id = str(template.get("template_id", "")).strip()
-    if not template_id:
-        return None
-
-    item_id = f"item-{uuid.uuid4().hex[:8]}"
-    from models import EquipmentItemState
-    item = EquipmentItemState(
-        item_id=item_id,
-        template_id=template_id,
-        name=str(template.get("name", "Item")).strip() or "Item",
-        slot=str(template.get("slot", "")).strip(),
-        description=str(template.get("description", "")),
-        keywords=list(template.get("keywords", [])),
-        weapon_type=str(template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
-        can_hold=bool(template.get("can_hold", False)),
-        weight=max(0, int(template.get("weight", 0))),
-        damage_dice_count=int(template.get("damage_dice_count", 0)),
-        damage_dice_sides=int(template.get("damage_dice_sides", 0)),
-        damage_roll_modifier=int(template.get("damage_roll_modifier", 0)),
-        hit_roll_modifier=int(template.get("hit_roll_modifier", 0)),
-        attack_damage_bonus=int(template.get("attack_damage_bonus", 0)),
-        attacks_per_round_bonus=int(template.get("attacks_per_round_bonus", 0)),
-        armor_class_bonus=int(template.get("armor_class_bonus", 0)),
-        wear_slots=[str(slot).strip().lower() for slot in template.get("wear_slots", []) if str(slot).strip()],
-    )
-    if item.wear_slots:
-        item.wear_slot = item.wear_slots[0]
-    return item
-
-
 def _equip_starting_equipment_by_template_id(session: ClientSession, template_id: str) -> None:
-    from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
-    from models import EquipmentItemState
-
     normalized_template_id = template_id.strip().lower()
     if not normalized_template_id:
         return
 
-    item: EquipmentItemState | None = None
+    item: ItemState | None = None
     for inventory_item in session.inventory_items.values():
-        if not isinstance(inventory_item, EquipmentItemState):
+        if not is_item_equippable(inventory_item):
             continue
         if inventory_item.template_id.strip().lower() == normalized_template_id:
             item = inventory_item
@@ -154,9 +119,7 @@ def _equip_starting_equipment_by_template_id(session: ClientSession, template_id
         template = get_equipment_template_by_id(template_id)
         if template is None:
             return
-        item = _build_starting_equipment_item_from_template(template)
-        if item is None:
-            return
+        item = build_equippable_item_from_template(template)
         session.inventory_items[item.item_id] = item
 
     if item.slot == "weapon":

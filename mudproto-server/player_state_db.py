@@ -4,7 +4,7 @@ import hashlib
 import secrets
 from datetime import datetime, timezone
 
-from models import ActiveSupportEffectState, ClientSession, EquipmentItemState, LootItemState
+from models import ActiveSupportEffectState, ClientSession, ItemState
 from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH
 
 
@@ -194,14 +194,15 @@ def verify_character_credentials(character_name: str, password: str) -> dict | N
     }
 
 
-def _serialize_equipment_item(item: EquipmentItemState) -> dict:
+def _serialize_item(item: ItemState) -> dict:
     return {
         "item_id": item.item_id,
         "template_id": item.template_id,
         "name": item.name,
-        "slot": item.slot,
         "description": item.description,
         "keywords": list(item.keywords),
+        "equippable": bool(item.equippable),
+        "slot": item.slot,
         "weapon_type": item.weapon_type,
         "can_hold": item.can_hold,
         "weight": int(item.weight),
@@ -217,14 +218,19 @@ def _serialize_equipment_item(item: EquipmentItemState) -> dict:
     }
 
 
-def _deserialize_equipment_item(raw: dict) -> EquipmentItemState:
-    return EquipmentItemState(
+def _deserialize_item(raw: dict) -> ItemState:
+    equippable = bool(raw.get("equippable", False))
+    if not equippable and str(raw.get("slot", "")).strip():
+        equippable = True
+
+    return ItemState(
         item_id=str(raw.get("item_id", "")).strip(),
         template_id=str(raw.get("template_id", "")).strip(),
-        name=str(raw.get("name", "")).strip(),
-        slot=str(raw.get("slot", "")).strip(),
+        name=str(raw.get("name", "")).strip() or "Item",
         description=str(raw.get("description", "")),
         keywords=[str(keyword) for keyword in raw.get("keywords", [])],
+        equippable=equippable,
+        slot=str(raw.get("slot", "")).strip().lower(),
         weapon_type=str(raw.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
         can_hold=bool(raw.get("can_hold", False)),
         weight=max(0, int(raw.get("weight", 0))),
@@ -238,38 +244,6 @@ def _deserialize_equipment_item(raw: dict) -> EquipmentItemState:
         wear_slot=str(raw.get("wear_slot", "")).strip(),
         wear_slots=[str(slot).strip().lower() for slot in raw.get("wear_slots", []) if str(slot).strip()],
     )
-
-
-def _serialize_loot_item(item: LootItemState) -> dict:
-    return {
-        "item_id": item.item_id,
-        "template_id": item.template_id,
-        "name": item.name,
-        "description": item.description,
-        "keywords": list(item.keywords),
-    }
-
-
-def _deserialize_loot_item(raw: dict) -> LootItemState:
-    return LootItemState(
-        item_id=str(raw.get("item_id", "")).strip(),
-        template_id=str(raw.get("template_id", "")).strip(),
-        name=str(raw.get("name", "")).strip() or "Item",
-        description=str(raw.get("description", "")),
-        keywords=[str(keyword) for keyword in raw.get("keywords", [])],
-    )
-
-
-def _serialize_inventory_item(item) -> dict:
-    if isinstance(item, EquipmentItemState):
-        return _serialize_equipment_item(item)
-    return _serialize_loot_item(item)
-
-
-def _deserialize_inventory_item(raw: dict):
-    if "slot" in raw:
-        return _deserialize_equipment_item(raw)
-    return _deserialize_loot_item(raw)
 
 
 def _serialize_support_effect(effect: ActiveSupportEffectState) -> dict:
@@ -315,7 +289,7 @@ def _serialize_session(session: ClientSession) -> dict:
         },
         "equipment": {
             "equipped_items": {
-                item_id: _serialize_equipment_item(item)
+                item_id: _serialize_item(item)
                 for item_id, item in session.equipment.equipped_items.items()
             },
             "equipped_main_hand_id": session.equipment.equipped_main_hand_id,
@@ -323,7 +297,7 @@ def _serialize_session(session: ClientSession) -> dict:
             "worn_item_ids": dict(session.equipment.worn_item_ids),
         },
         "inventory_items": {
-            item_id: _serialize_inventory_item(item)
+            item_id: _serialize_item(item)
             for item_id, item in session.inventory_items.items()
         },
         "known_spell_ids": list(session.known_spell_ids),
@@ -396,14 +370,11 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
         session.status.coins = max(0, int(raw_status.get("coins", session.status.coins)))
 
     raw_equipment = raw_state.get("equipment", {})
-    raw_items = {}
     if isinstance(raw_equipment, dict):
-        raw_items = raw_equipment.get("items", {})
-
         raw_equipped_items = raw_equipment.get("equipped_items", {})
         if isinstance(raw_equipped_items, dict):
             session.equipment.equipped_items = {
-                str(item_id): _deserialize_equipment_item(raw_item)
+                str(item_id): _deserialize_item(raw_item)
                 for item_id, raw_item in raw_equipped_items.items()
                 if isinstance(raw_item, dict)
             }
@@ -421,16 +392,10 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
             }
 
     raw_inventory_items = raw_state.get("inventory_items", {})
-    merged_inventory_items: dict[str, EquipmentItemState | LootItemState] = {}
-    if isinstance(raw_items, dict):
-        merged_inventory_items.update({
-            str(item_id): _deserialize_equipment_item(raw_item)
-            for item_id, raw_item in raw_items.items()
-            if isinstance(raw_item, dict)
-        })
+    merged_inventory_items: dict[str, ItemState] = {}
     if isinstance(raw_inventory_items, dict):
         merged_inventory_items.update({
-            str(item_id): _deserialize_inventory_item(raw_item)
+            str(item_id): _deserialize_item(raw_item)
             for item_id, raw_item in raw_inventory_items.items()
             if isinstance(raw_item, dict)
         })

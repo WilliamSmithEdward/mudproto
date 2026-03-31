@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 import uuid
+from typing import TypeAlias
 
 from websockets.asyncio.server import ServerConnection
 import websockets
@@ -40,6 +41,9 @@ from sessions import (
 )
 from game_hour_ticks import process_game_hour_tick
 from world import get_room
+
+RoomRoundResult: TypeAlias = tuple[ClientSession, dict]
+
 next_game_tick_monotonic: float | None = None
 next_combat_round_monotonic: float | None = None
 
@@ -192,7 +196,7 @@ def _split_actor_round_lines(lines: list[str], actor_prefix: str) -> tuple[list[
 
 def _build_unified_room_round_display(
     recipient_session: ClientSession,
-    room_round_results: list[tuple[ClientSession, dict]],
+    room_round_results: list[RoomRoundResult],
 ) -> dict | None:
     player_phase_lines: list[str] = []
     retaliation_phase_lines: list[str] = []
@@ -345,7 +349,7 @@ async def combat_round_loop() -> None:
             await asyncio.sleep(sleep_seconds)
             next_combat_round_monotonic += COMBAT_ROUND_INTERVAL_SECONDS
 
-            combat_sessions: list = []
+            combat_sessions: list[ClientSession] = []
             seen_sessions: set[str] = set()
 
             for session in active_character_sessions.values():
@@ -373,7 +377,7 @@ async def combat_round_loop() -> None:
                     continue
                 combat_sessions.append(session)
 
-            combat_rooms: dict[str, list] = {}
+            combat_rooms: dict[str, list[ClientSession]] = {}
             for session in combat_sessions:
                 room_id = session.player.current_room_id
                 if not room_id:
@@ -390,7 +394,7 @@ async def combat_round_loop() -> None:
                 tick_out_of_combat_cooldowns(session)
 
             for room_id, room_sessions in combat_rooms.items():
-                round_results: list[tuple[ClientSession, dict]] = []
+                round_results: list[RoomRoundResult] = []
                 room_sessions.sort(key=lambda s: (s.authenticated_character_name or "", s.client_id))
 
                 # One active target session per NPC/entity each room round.
