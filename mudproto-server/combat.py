@@ -493,19 +493,27 @@ def get_engaged_entity(session: ClientSession) -> EntityState | None:
     return entities[0] if entities else None
 
 
-def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) -> EntityState | None:
-    current_room_id = session.player.current_room_id
-    for candidate in list_room_entities(session, current_room_id):
+def _engage_next_targeting_entity(
+    session: ClientSession,
+    defeated_entity_id: str,
+    active_target_entity_ids: set[str] | None = None,
+) -> EntityState | None:
+    """Select next target only from entities currently engaging this player."""
+    candidates: list[EntityState] = []
+    for candidate in get_engaged_entities(session):
         if candidate.entity_id == defeated_entity_id:
             continue
         if not candidate.is_alive:
             continue
+        if active_target_entity_ids is not None and candidate.entity_id not in active_target_entity_ids:
+            continue
+        candidates.append(candidate)
 
-        started = start_combat(session, candidate.entity_id, OPENING_ATTACKER_ENTITY)
-        if started:
-            session.combat.opening_attacker = None
-            _schedule_next_combat_round(session)
-            return candidate
+    if candidates:
+        next_target = candidates[0]
+        session.combat.opening_attacker = None
+        _schedule_next_combat_round(session)
+        return next_target
 
     end_combat(session)
     return None
@@ -755,7 +763,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
             if entity.entity_id in session.combat.engaged_entity_ids:
                 session.combat.engaged_entity_ids.discard(entity.entity_id)
-                next_target = _engage_next_room_target(session, entity.entity_id)
+                next_target = _engage_next_targeting_entity(session, entity.entity_id)
                 if next_target is not None:
                     parts.extend([
                         build_part("\n"),
@@ -1082,7 +1090,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
 
             if entity.entity_id in session.combat.engaged_entity_ids:
                 session.combat.engaged_entity_ids.discard(entity.entity_id)
-                next_target = _engage_next_room_target(session, entity.entity_id)
+                next_target = _engage_next_targeting_entity(session, entity.entity_id)
                 if next_target is not None:
                     parts.extend([
                         build_part("\n"),
@@ -1440,7 +1448,11 @@ def resolve_combat_round(
 
         if entity.entity_id in session.combat.engaged_entity_ids:
             session.combat.engaged_entity_ids.discard(entity.entity_id)
-            next_target = _engage_next_room_target(session, entity.entity_id)
+            next_target = _engage_next_targeting_entity(
+                session,
+                entity.entity_id,
+                active_target_entity_ids=allowed_entity_retaliation_ids,
+            )
             if next_target is not None:
                 append_newline_if_needed(parts)
                 parts.extend([
@@ -1473,7 +1485,15 @@ def resolve_combat_round(
             build_part("You collapse. Combat ends.", "bright_red", True),
         ])
 
-        return display_combat_round_result(session, parts)
+        result = display_combat_round_result(session, parts)
+        payload = result.get("payload") if isinstance(result, dict) else None
+        if isinstance(payload, dict):
+            actor_name = session.authenticated_character_name or "Someone"
+            payload["room_broadcast_parts"] = [
+                build_part(f"{actor_name} collapses. Combat ends.", "bright_red", True),
+            ]
+
+        return result
 
     _schedule_next_combat_round(session)
     return display_combat_round_result(session, parts)
