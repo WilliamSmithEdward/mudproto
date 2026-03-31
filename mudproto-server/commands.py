@@ -12,6 +12,7 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
+from combat_text import with_article
 from assets import get_item_template_by_id, get_player_class_by_id, load_attributes, load_item_templates, load_player_classes, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, is_item_equippable, list_worn_items, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
@@ -706,6 +707,15 @@ def _item_highlight_color(item) -> str:
     return "bright_magenta" if is_item_equippable(item) else "bright_yellow"
 
 
+def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
+    article, _, item_name = with_article(item.name).partition(" ")
+    item_color = fg or _item_highlight_color(item)
+    return [
+        build_part(f"{article} ", "bright_white"),
+        build_part(item_name or item.name, item_color, True),
+    ]
+
+
 def _find_spell_by_name(spell_name: str) -> dict | None:
     normalized = spell_name.strip().lower()
     if not normalized:
@@ -992,7 +1002,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     parts.extend([
                         build_part("\n"),
                         build_part("You take ", "bright_white"),
-                        build_part(item.name, _item_highlight_color(item), True),
+                        *_build_item_reference_parts(item),
                         build_part(".", "bright_white"),
                     ])
                 return display_command_result(session, parts)
@@ -1013,7 +1023,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     _pickup_ground_item(session, room_id, selected_item)
                     return display_command_result(session, [
                         build_part("You take ", "bright_white"),
-                        build_part(selected_item.name, _item_highlight_color(selected_item), True),
+                        *_build_item_reference_parts(selected_item),
                         build_part(".", "bright_white"),
                     ])
 
@@ -1079,7 +1089,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 parts.extend([
                     build_part("\n"),
                     build_part("You take ", "bright_white"),
-                    build_part(item.name, _item_highlight_color(item), True),
+                    *_build_item_reference_parts(item),
                     build_part(".", "bright_white"),
                 ])
 
@@ -1135,7 +1145,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 parts.extend([
                     build_part("\n"),
                     build_part("You take ", "bright_white"),
-                    build_part(item.name, _item_highlight_color(item), True),
+                    *_build_item_reference_parts(item),
                     build_part(".", "bright_white"),
                 ])
 
@@ -1165,7 +1175,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You take ", "bright_white"),
-            build_part(item.name, _item_highlight_color(item), True),
+            *_build_item_reference_parts(item),
             build_part(" from ", "bright_white"),
             build_part(_build_corpse_label(corpse.source_name), "bright_yellow", True),
             build_part(".", "bright_white"),
@@ -1328,7 +1338,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         hand_label = "main hand" if equip_result == HAND_MAIN else "off hand"
         return display_command_result(session, [
             build_part("You equip ", "bright_white"),
-            build_part(item.name, "bright_cyan", True),
+            *_build_item_reference_parts(item, fg="bright_cyan"),
             build_part(" in your ", "bright_white"),
             build_part(hand_label, "bright_yellow", True),
             build_part(".", "bright_white"),
@@ -1359,7 +1369,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You wield ", "bright_white"),
-            build_part(item.name, "bright_cyan", True),
+            *_build_item_reference_parts(item, fg="bright_cyan"),
             build_part(".", "bright_white"),
         ])
 
@@ -1388,7 +1398,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You hold ", "bright_white"),
-            build_part(item.name, "bright_cyan", True),
+            *_build_item_reference_parts(item, fg="bright_cyan"),
             build_part(" in your off hand.", "bright_white"),
         ])
 
@@ -1494,7 +1504,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You wear ", "bright_white"),
-            build_part(item.name, "bright_cyan", True),
+            *_build_item_reference_parts(item, fg="bright_cyan"),
             build_part(" on your ", "bright_white"),
             build_part(wear_result, "bright_yellow", True),
             build_part(".", "bright_white"),
@@ -1587,7 +1597,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             _add_item_to_room_ground(session, session.player.current_room_id, inventory_item)
             return display_command_result(session, [
                 build_part("You drop ", "bright_white"),
-                build_part(inventory_item.name, _item_highlight_color(inventory_item), True),
+                *_build_item_reference_parts(inventory_item),
                 build_part(".", "bright_white"),
             ])
 

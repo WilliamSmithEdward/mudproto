@@ -25,6 +25,25 @@ def _read_json_asset(path: Path) -> object:
         return json.load(handle)
 
 
+def _normalize_keywords(raw_keywords: object, *, context: str) -> list[str]:
+    if raw_keywords is None:
+        raw_keywords = []
+    if not isinstance(raw_keywords, list):
+        raise ValueError(f"{context} keywords must be a list.")
+    return [str(keyword).strip().lower() for keyword in raw_keywords if str(keyword).strip()]
+
+
+def _normalize_template_identity(raw_template: dict, *, context: str) -> tuple[str, str, list[str]]:
+    template_id = str(raw_template.get("template_id", "")).strip()
+    name = str(raw_template.get("name", "")).strip()
+    if not template_id:
+        raise ValueError(f"{context} must include a non-empty string template_id.")
+    if not name:
+        raise ValueError(f"{context} '{template_id}' must include a non-empty name.")
+    keywords = _normalize_keywords(raw_template.get("keywords", []), context=f"{context} '{template_id}'")
+    return template_id, name, keywords
+
+
 @lru_cache(maxsize=1)
 def load_wear_slot_config() -> dict:
     raw_config = _read_json_asset(WEAR_SLOTS_FILE)
@@ -96,16 +115,11 @@ def load_equipment_templates() -> list[dict]:
         if not isinstance(raw_template, dict):
             raise ValueError("Equipment asset entries must be objects.")
 
-        template_id = raw_template.get("template_id")
-        name = raw_template.get("name")
+        template_id, name, normalized_keywords = _normalize_template_identity(raw_template, context="Equipment asset")
         slot = raw_template.get("slot")
 
-        if not isinstance(template_id, str) or not template_id.strip():
-            raise ValueError("Equipment asset entries must include a non-empty string template_id.")
         if template_id in template_ids:
             raise ValueError(f"Duplicate equipment template_id: {template_id}")
-        if not isinstance(name, str) or not name.strip():
-            raise ValueError(f"Equipment asset '{template_id}' must include a non-empty name.")
         if not isinstance(slot, str) or not slot.strip():
             raise ValueError(f"Equipment asset '{template_id}' must include a non-empty slot.")
         normalized_slot = slot.strip().lower()
@@ -115,11 +129,6 @@ def load_equipment_templates() -> list[dict]:
             )
 
         template_ids.add(template_id)
-        raw_keywords = raw_template.get("keywords", [])
-        if raw_keywords is None:
-            raw_keywords = []
-        if not isinstance(raw_keywords, list):
-            raise ValueError(f"Equipment asset '{template_id}' keywords must be a list.")
 
         legacy_wear_slot = str(raw_template.get("wear_slot", "")).strip().lower()
         raw_wear_slots = raw_template.get("wear_slots", [])
@@ -146,7 +155,7 @@ def load_equipment_templates() -> list[dict]:
             "name": name,
             "slot": normalized_slot,
             "description": str(raw_template.get("description", "")),
-            "keywords": [str(keyword).strip().lower() for keyword in raw_keywords if str(keyword).strip()],
+            "keywords": normalized_keywords,
             "weapon_type": str(raw_template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
             "can_hold": bool(raw_template.get("can_hold", False)) if normalized_slot == "weapon" else False,
             "weight": max(0, int(raw_template.get("weight", 0))),
@@ -185,19 +194,14 @@ def load_item_templates() -> list[dict]:
         if not isinstance(raw_template, dict):
             raise ValueError("Item asset entries must be objects.")
 
-        template_id = str(raw_template.get("template_id", "")).strip()
-        name = str(raw_template.get("name", "")).strip()
+        template_id, name, normalized_keywords = _normalize_template_identity(raw_template, context="Item asset")
         effect_type = str(raw_template.get("effect_type", "restore")).strip().lower() or "restore"
         effect_target = str(raw_template.get("effect_target", "")).strip().lower()
         effect_amount = int(raw_template.get("effect_amount", 0))
         use_lag_seconds = max(0.0, float(raw_template.get("use_lag_seconds", 0.0)))
 
-        if not template_id:
-            raise ValueError("Item asset entries must include a non-empty string template_id.")
         if template_id in template_ids:
             raise ValueError(f"Duplicate item template_id: {template_id}")
-        if not name:
-            raise ValueError(f"Item asset '{template_id}' must include a non-empty name.")
         if effect_type != "restore":
             raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
         if effect_target not in allowed_effect_targets:
@@ -207,18 +211,12 @@ def load_item_templates() -> list[dict]:
         if effect_amount <= 0:
             raise ValueError(f"Item asset '{template_id}' effect_amount must be greater than zero.")
 
-        raw_keywords = raw_template.get("keywords", [])
-        if raw_keywords is None:
-            raw_keywords = []
-        if not isinstance(raw_keywords, list):
-            raise ValueError(f"Item asset '{template_id}' keywords must be a list.")
-
         template_ids.add(template_id)
         normalized_templates.append({
             "template_id": template_id,
             "name": name,
             "description": str(raw_template.get("description", "")),
-            "keywords": [str(keyword).strip().lower() for keyword in raw_keywords if str(keyword).strip()],
+            "keywords": normalized_keywords,
             "effect_type": effect_type,
             "effect_target": effect_target,
             "effect_amount": effect_amount,
