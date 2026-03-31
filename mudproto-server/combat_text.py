@@ -1,25 +1,19 @@
+from attribute_config import load_combat_severity_config
 from grammar import indefinite_article, to_third_person, with_article
 from settings import PLAYER_REFERENCE_MAX_HP
 
 
 def _choose_severity(damage: int, target_max_hp: int) -> str:
     _ = target_max_hp
-    if damage <= 0:
-        return "miss"
+    severity_config = load_combat_severity_config()
+    tiers = severity_config.get("tiers", []) if isinstance(severity_config, dict) else []
 
-    if damage <= 5:
-        return "barely"
-    if damage <= 10:
-        return "normal"
-    if damage <= 15:
-        return "hard"
-    if damage <= 25:
-        return "extreme"
-    if damage <= 40:
-        return "massacre"
-    if damage <= 80:
-        return "annihilate"
-    return "obliterate"
+    for tier in tiers:
+        max_damage = tier.get("max_damage")
+        if max_damage is None or damage <= int(max_damage):
+            return str(tier.get("label", "miss"))
+
+    return "miss"
 
 
 def build_player_attack_parts(

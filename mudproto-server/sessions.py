@@ -2,7 +2,8 @@ import asyncio
 import random
 import uuid
 
-from assets import load_attributes, get_default_player_class, get_gear_template_by_id, get_item_template_by_id, get_player_class_by_id
+from attribute_config import load_attributes
+from assets import get_default_player_class, get_gear_template_by_id, get_item_template_by_id, get_player_class_by_id
 from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
 from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState, QueuedCommand

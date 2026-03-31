@@ -116,7 +116,8 @@ mudproto/
 │   ├── inventory.py                 # Item selectors & template hydration
 │   ├── display.py                   # Display builders (room, prompt, etc.)
 │   ├── grammar.py                   # NLP transforms (articles, 3rd person)
-│   ├── assets.py                    # JSON loaders with cross-ref validation
+│   ├── attribute_config.py          # Attribute & rules config loaders
+│   ├── assets.py                    # Content asset loaders with cross-ref validation
 │   ├── player_state_db.py           # SQLite persistence layer
 │   ├── world.py                     # Room model
 │   ├── battle_round_ticks.py        # Per-round support effect processing

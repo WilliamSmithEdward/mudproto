@@ -1,4 +1,4 @@
-from assets import load_regeneration_config
+from attribute_config import load_regeneration_config
 from models import ClientSession
 from settings import PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
 

@@ -1,0 +1,12 @@
+{
+  "tiers": [
+    { "label": "miss", "max_damage": 0 },
+    { "label": "barely", "max_damage": 5 },
+    { "label": "normal", "max_damage": 10 },
+    { "label": "hard", "max_damage": 15 },
+    { "label": "extreme", "max_damage": 25 },
+    { "label": "massacre", "max_damage": 40 },
+    { "label": "annihilate", "max_damage": 80 },
+    { "label": "obliterate" }
+  ]
+}

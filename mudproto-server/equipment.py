@@ -1,8 +1,8 @@
 import re
 from math import ceil
 
+from attribute_config import load_hand_weight_config, load_wear_slot_config
 from grammar import with_article
-from assets import load_hand_weight_config, load_wear_slot_config
 from inventory import get_item_keywords, is_item_equippable, parse_item_selector
 from models import ClientSession, ItemState
 from settings import BASE_PLAYER_ARMOR_CLASS

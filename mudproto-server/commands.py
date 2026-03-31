@@ -12,9 +12,10 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
+from attribute_config import load_attributes
 from grammar import indefinite_article, with_article
 from inventory import is_item_equippable, resolve_equipment_selector
-from assets import get_item_template_by_id, get_player_class_by_id, load_attributes, load_item_templates, load_player_classes, load_skills, load_spells
+from assets import get_item_template_by_id, get_player_class_by_id, load_item_templates, load_player_classes, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
     character_exists,
