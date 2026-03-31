@@ -483,6 +483,7 @@ def get_engaged_entities(session: ClientSession) -> list[EntityState]:
         entity = session.entities.get(entity_id)
         if entity is not None:
             entities.append(entity)
+    entities.sort(key=lambda item: item.spawn_sequence)
     return entities
 
 
@@ -1384,7 +1385,11 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
             ))
 
 
-def resolve_combat_round(session: ClientSession) -> dict | None:
+def resolve_combat_round(
+    session: ClientSession,
+    *,
+    allowed_entity_retaliation_ids: set[str] | None = None,
+) -> dict | None:
     from display import build_part, display_combat_round_result
 
     clear_combat_if_invalid(session)
@@ -1406,8 +1411,17 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     is_opening_round = opening_attacker is not None
     _process_combat_round_timers(session, engaged_entities)
 
+    retaliating_entities = [
+        engaged
+        for engaged in engaged_entities
+        if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
+    ]
+
     if opening_attacker == OPENING_ATTACKER_ENTITY:
-        _apply_entity_attacks(session, entity, parts, allow_off_hand=False)
+        for retaliating_entity in retaliating_entities:
+            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=False)
+            if status.hit_points <= 0:
+                break
     else:
         if session.combat.skip_melee_rounds > 0:
             session.combat.skip_melee_rounds -= 1
@@ -1440,7 +1454,16 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     if opening_attacker is not None:
         session.combat.opening_attacker = None
     else:
-        _apply_entity_attacks(session, entity, parts, allow_off_hand=True)
+        current_engaged_entities = get_engaged_entities(session)
+        current_retaliating_entities = [
+            engaged
+            for engaged in current_engaged_entities
+            if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
+        ]
+        for retaliating_entity in current_retaliating_entities:
+            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
+            if status.hit_points <= 0:
+                break
 
     if status.hit_points <= 0:
         end_combat(session)

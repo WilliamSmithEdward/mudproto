@@ -7,9 +7,11 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from battle_round_ticks import process_non_combat_support_round
-from combat import initialize_session_entities, resolve_combat_round
+from combat import get_engaged_entities, initialize_session_entities, resolve_combat_round
 from commands import dispatch_message, execute_command, initial_auth_prompt, parse_command
 from display import (
+    build_display,
+    build_part,
     build_prompt_parts,
     display_connected,
     display_error,
@@ -148,6 +150,80 @@ def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | l
             return True
 
     return False
+
+
+def _extract_display_lines(message: dict | None) -> list[str]:
+    if not isinstance(message, dict):
+        return []
+    if message.get("type") != "display":
+        return []
+
+    payload = message.get("payload")
+    if not isinstance(payload, dict):
+        return []
+
+    parts = payload.get("parts")
+    if not isinstance(parts, list):
+        return []
+
+    text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
+    return [line.strip() for line in text.split("\n") if line.strip()]
+
+
+def _split_actor_round_lines(lines: list[str], actor_prefix: str) -> tuple[list[str], list[str]]:
+    player_lines: list[str] = []
+    retaliation_lines: list[str] = []
+    in_retaliation = False
+    normalized_prefix = actor_prefix.strip().lower()
+
+    for line in lines:
+        normalized_line = line.strip().lower()
+        is_actor_line = normalized_line.startswith(normalized_prefix)
+        if not in_retaliation and is_actor_line:
+            player_lines.append(line)
+            continue
+
+        in_retaliation = True
+        retaliation_lines.append(line)
+
+    return player_lines, retaliation_lines
+
+
+def _build_unified_room_round_display(recipient_session, room_round_results: list[tuple[object, dict]]) -> dict | None:
+    player_phase_lines: list[str] = []
+    retaliation_phase_lines: list[str] = []
+
+    for actor_session, actor_result in room_round_results:
+        actor_name = actor_session.authenticated_character_name or "Someone"
+        if recipient_session.client_id == actor_session.client_id:
+            recipient_message = actor_result
+            actor_prefix = "you "
+        else:
+            observer_messages = _build_room_broadcast_messages(actor_session, actor_result)
+            if not observer_messages:
+                continue
+            recipient_message = observer_messages[0]
+            actor_prefix = f"{actor_name.lower()} "
+
+        lines = _extract_display_lines(recipient_message)
+        if not lines:
+            continue
+
+        actor_lines, retaliation_lines = _split_actor_round_lines(lines, actor_prefix)
+        player_phase_lines.extend(actor_lines)
+        retaliation_phase_lines.extend(retaliation_lines)
+
+    merged_lines = player_phase_lines + retaliation_phase_lines
+    if not merged_lines:
+        return None
+
+    parts: list[dict] = []
+    for index, line in enumerate(merged_lines):
+        if index > 0:
+            parts.append(build_part("\n"))
+        parts.append(build_part(line))
+
+    return build_display(parts, blank_lines_before=1, starts_on_new_line=True)
 
 
 async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *, prompt_observers: bool = True) -> None:
@@ -293,17 +369,60 @@ async def combat_round_loop() -> None:
                     continue
                 combat_sessions.append(session)
 
+            combat_rooms: dict[str, list] = {}
             for session in combat_sessions:
-                combat_result = resolve_combat_round(session)
-                if combat_result is None:
+                room_id = session.player.current_room_id
+                if not room_id:
+                    continue
+                combat_rooms.setdefault(room_id, []).append(session)
+
+            for room_id, room_sessions in combat_rooms.items():
+                round_results: list[tuple[object, dict]] = []
+                room_sessions.sort(key=lambda s: (s.authenticated_character_name or "", s.client_id))
+
+                # One active target session per NPC/entity each room round.
+                entity_active_target_session: dict[str, str] = {}
+                for actor_session in room_sessions:
+                    engaged_entities = get_engaged_entities(actor_session)
+                    if not engaged_entities:
+                        continue
+                    for engaged_entity in engaged_entities:
+                        entity_active_target_session.setdefault(engaged_entity.entity_id, actor_session.client_id)
+
+                for actor_session in room_sessions:
+                    allowed_entity_retaliation_ids = {
+                        entity_id
+                        for entity_id, target_session_id in entity_active_target_session.items()
+                        if target_session_id == actor_session.client_id
+                    }
+
+                    combat_result = resolve_combat_round(
+                        actor_session,
+                        allowed_entity_retaliation_ids=allowed_entity_retaliation_ids,
+                    )
+                    if combat_result is not None:
+                        round_results.append((actor_session, combat_result))
+
+                if not round_results:
                     continue
 
-                if session.is_connected:
+                room_recipients = [
+                    session
+                    for session in connected_clients.values()
+                    if session.is_connected
+                    and not session.disconnected_by_server
+                    and session.is_authenticated
+                    and session.player.current_room_id == room_id
+                ]
+
+                for recipient in room_recipients:
+                    unified_display = _build_unified_room_round_display(recipient, round_results)
+                    if unified_display is None:
+                        continue
                     await send_outbound(
-                        session.websocket,
-                        [combat_result, display_force_prompt(session)],
+                        recipient.websocket,
+                        [unified_display, display_force_prompt(recipient)],
                     )
-                    await _broadcast_battle_outbound_to_room(session, combat_result)
 
     except asyncio.CancelledError:
         raise
