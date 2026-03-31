@@ -34,14 +34,11 @@ from display import (
     display_equipment,
     display_error,
     display_force_prompt,
-    display_hello,
     display_inventory,
-    display_pong,
     display_prompt,
     display_room,
-    display_whoami,
 )
-from models import ClientSession, EquipmentItemState
+from models import ClientSession, EquipmentItemState, LootItemState
 from settings import FLEE_SUCCESS_CHANCE
 from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged
 from sessions import (
@@ -473,32 +470,11 @@ def _parse_cast_spell(
 
 
 def _parse_skill_use(
-    command_text: str,
     args: list[str],
-    verb: str,
 ) -> tuple[str | None, str | None, str | None]:
-    escaped_verb = re.escape(verb.strip())
-    quoted_match = re.match(
-        rf"^{escaped_verb}\s+(['\"])(.+?)\1(?:\s+(.+))?\s*$",
-        command_text.strip(),
-        re.IGNORECASE,
-    )
-    if quoted_match is not None:
-        skill_name = quoted_match.group(2).strip()
-        target_name = (quoted_match.group(3) or "").strip() or None
-        if skill_name:
-            return skill_name, target_name, None
-
     skill_name = " ".join(args).strip()
-    if (
-        len(skill_name) >= 2
-        and skill_name[0] in {"'", '"'}
-        and skill_name[-1] == skill_name[0]
-    ):
-        skill_name = skill_name[1:-1].strip()
-
     if not skill_name:
-        return None, None, "Usage: skill 'skill name' [target]"
+        return None, None, "Usage: <skill> [target]"
 
     return skill_name, None, None
 
@@ -565,7 +541,7 @@ def _resolve_wear_inventory_selector(session: ClientSession, selector: str) -> t
     if not parts:
         return None, "Provide at least one selector keyword after the index."
 
-    matches: list[tuple[str, object]] = []
+    matches: list[tuple[str, EquipmentItemState | LootItemState]] = []
 
     for item in session.equipment.items.values():
         keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
@@ -582,7 +558,7 @@ def _resolve_wear_inventory_selector(session: ClientSession, selector: str) -> t
     if not matches:
         return None, f"No inventory item matches '{selector}'."
 
-    selected_match: object
+    selected_match: EquipmentItemState | LootItemState
     if requested_index is not None:
         if requested_index > len(matches):
             return None, f"{selector} doesn't exist in inventory."
@@ -905,7 +881,7 @@ def _list_known_skills(session: ClientSession) -> list[dict]:
 def _resolve_skill_by_name(skill_name: str, skills: list[dict] | None = None) -> tuple[dict | None, str | None]:
     normalized = skill_name.strip().lower()
     if not normalized:
-        return None, "Usage: skill 'skill name' [target]"
+        return None, "Usage: <skill> [target]"
 
     def _tokenize(value: str) -> list[str]:
         return [token for token in value.strip().lower().split() if token]
@@ -1879,7 +1855,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error("Coins amount must be zero or greater.", session)
         return try_adjust_stat(session, [str(-amount)], "coins", "Coins", allow_negative=True)
 
-    # Try to resolve unknown verb as a shorthand skill invocation (e.g., 'jab scout' instead of 'skill jab scout')
+    # Try to resolve unknown verb as direct skill invocation (e.g., 'jab scout').
     # Lowest precedence — only runs after all other commands have failed to match.
     known_skills = _list_known_skills(session)
     if verb not in {"skill", "sk", "ski", "skil", "skl", "skills", "use"} and known_skills:
@@ -1897,12 +1873,12 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not known_skills:
             return display_error("You do not know any skills.", session)
 
-        skill_name, target_name, parse_error = _parse_skill_use(command_text, args, verb)
+        skill_name, target_name, parse_error = _parse_skill_use(args)
         if parse_error is not None or skill_name is None:
-            return display_error(parse_error or "Usage: skill 'skill name' [target]", session)
+            return display_error(parse_error or "Usage: <skill> [target]", session)
 
-        # For unquoted input, resolve by trying longest-to-shortest splits so
-        # `skill jab scout` can map to skill `jab` with target `scout`.
+        # Resolve by trying longest-to-shortest splits so
+        # `jab scout` maps to skill `jab` with target `scout`.
         if target_name is None and len(args) > 1:
             for cut in range(len(args), 0, -1):
                 candidate_skill_name = " ".join(args[:cut]).strip()
@@ -1944,25 +1920,6 @@ async def process_input_message(message: dict, session: ClientSession) -> Outbou
 
     if not session.is_authenticated:
         return _process_auth_input(session, input_text)
-
-    if input_text.startswith("/"):
-        command_line = input_text[1:].strip()
-        verb, args = parse_command(command_line)
-
-        if not verb:
-            return display_prompt(session)
-
-        if verb == "hello":
-            name = " ".join(args).strip() or "unknown"
-            return display_hello(name, session)
-
-        if verb == "ping":
-            return display_pong(session)
-
-        if verb == "whoami":
-            return display_whoami(session)
-
-        return display_error(f"Unknown slash command: /{verb}", session)
 
     if is_session_lagged(session):
         was_queued, queue_message = enqueue_command(session, input_text)

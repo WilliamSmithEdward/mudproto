@@ -5,6 +5,12 @@ import uuid
 
 from assets import get_equipment_template_by_id, get_npc_template_by_id, get_skill_by_id
 from battle_round_ticks import process_battle_round_support_effects
+from combat_text import (
+    append_newline_if_needed,
+    build_entity_attack_parts,
+    build_player_attack_parts,
+    with_article,
+)
 from damage import (
     get_npc_hit_modifier,
     get_player_hit_modifier,
@@ -76,161 +82,6 @@ def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str
 
 def get_entity_condition(entity: EntityState) -> tuple[str, str]:
     return get_health_condition(entity.hit_points, entity.max_hit_points)
-
-
-def _to_third_person(verb: str) -> str:
-    normalized = verb.strip().lower() or "hit"
-    if normalized.endswith("y") and len(normalized) > 1 and normalized[-2] not in "aeiou":
-        return f"{normalized[:-1]}ies"
-    if normalized.endswith(("s", "x", "z", "ch", "sh")):
-        return f"{normalized}es"
-    return f"{normalized}s"
-
-
-def _article(name: str) -> str:
-    return "an" if name.strip().lower()[:1] in "aeiou" else "a"
-
-
-def _with_article(name: str, *, capitalize: bool = False) -> str:
-    article = _article(name)
-    if capitalize:
-        article = article.capitalize()
-    return f"{article} {name}"
-
-
-def _choose_severity(damage: int, target_max_hp: int) -> str:
-    _ = target_max_hp
-    if damage <= 0:
-        return "miss"
-
-    if damage <= 5:
-        return "barely"
-    if damage <= 10:
-        return "normal"
-    if damage <= 15:
-        return "hard"
-    if damage <= 25:
-        return "extreme"
-    if damage <= 40:
-        return "massacre"
-    if damage <= 80:
-        return "annihilate"
-    return "obliterate"
-
-
-def _build_player_attack_parts(
-    *,
-    entity_name: str,
-    attack_verb: str,
-    damage: int,
-    target_max_hp: int,
-) -> list[dict]:
-    from display import build_part
-
-    verb_noun = _to_third_person(attack_verb)
-    severity = _choose_severity(damage, target_max_hp)
-    article = _article(entity_name)
-    named = f"{article} {entity_name}"
-
-    parts: list[dict] = []
-    if severity == "miss":
-        parts.extend([
-            build_part("You miss "),
-            build_part(named),
-            build_part(" with your "),
-            build_part(attack_verb),
-            build_part("."),
-        ])
-        return parts
-
-    if severity in {"barely", "normal", "hard", "extreme"}:
-        if severity == "barely":
-            parts.append(build_part("You barely "))
-        else:
-            parts.append(build_part("You "))
-        parts.extend([
-            build_part(attack_verb),
-            build_part(" "),
-            build_part(named),
-        ])
-        if severity == "hard":
-            parts.append(build_part(" hard"))
-        elif severity == "extreme":
-            parts.append(build_part(" extremely hard"))
-        parts.append(build_part("."))
-        return parts
-
-    top_label = {
-        "massacre": "massacre",
-        "annihilate": "annihilate",
-        "obliterate": "obliterate",
-    }[severity]
-    parts.extend([
-        build_part(f"You {top_label} "),
-        build_part(named),
-        build_part(" with your "),
-        build_part(verb_noun),
-        build_part("."),
-    ])
-    return parts
-
-
-def _build_entity_attack_parts(
-    *,
-    entity: EntityState,
-    attack_verb: str,
-    damage: int,
-) -> list[dict]:
-    from display import build_part
-
-    verb_noun = _to_third_person(attack_verb)
-    severity = _choose_severity(damage, PLAYER_REFERENCE_MAX_HP)
-    subject = _with_article(entity.name, capitalize=True)
-
-    parts: list[dict] = []
-    if severity == "miss":
-        parts.extend([
-            build_part(subject),
-            build_part(" misses you."),
-        ])
-        return parts
-
-    if severity == "barely":
-        parts.extend([
-            build_part(subject),
-            build_part(" barely "),
-            build_part(_to_third_person(attack_verb)),
-            build_part(" you."),
-        ])
-        return parts
-
-    if severity in {"normal", "hard", "extreme"}:
-        parts.extend([
-            build_part(subject),
-            build_part(" "),
-            build_part(_to_third_person(attack_verb)),
-            build_part(" you"),
-        ])
-        if severity == "hard":
-            parts.append(build_part(" hard"))
-        elif severity == "extreme":
-            parts.append(build_part(" extremely hard"))
-        parts.append(build_part("."))
-        return parts
-
-    top_verb = {
-        "massacre": "massacres",
-        "annihilate": "annihilates",
-        "obliterate": "obliterates",
-    }[severity]
-    pronoun = entity.pronoun_possessive.strip().lower() or "its"
-    parts.extend([
-        build_part(subject),
-        build_part(f" {top_verb} you with {pronoun} "),
-        build_part(verb_noun),
-        build_part("."),
-    ])
-    return parts
 
 
 def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[EquipmentItemState | None]:
@@ -689,7 +540,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             living_only=True,
         )
         if target_entity:
-            target_text = f" on {_with_article(target_entity.name)}"
+            target_text = f" on {with_article(target_entity.name)}"
         else:
             target_text = f" on {target_name}"
     elif cast_type == "self":
@@ -782,7 +633,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     for entity in damage_targets:
         parts.append(build_part("\n"))
-        named_target = _with_article(entity.name, capitalize=True)
+        named_target = with_article(entity.name, capitalize=True)
         resolved_context = damage_context.replace("[a/an]", named_target).replace("[verb]", "is")
         if resolved_context and not resolved_context.endswith("."):
             resolved_context += "."
@@ -811,7 +662,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             spawn_corpse_for_entity(session, entity)
             parts.extend([
                 build_part("\n"),
-                build_part(_with_article(entity.name, capitalize=True)),
+                build_part(with_article(entity.name, capitalize=True)),
                 build_part(" is destroyed."),
             ])
 
@@ -822,7 +673,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     parts.extend([
                         build_part("\n"),
                         build_part("You turn to "),
-                        build_part(_with_article(next_target.name)),
+                        build_part(with_article(next_target.name)),
                         build_part("."),
                     ])
 
@@ -862,9 +713,9 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
     description = str(skill.get("description", "")).strip()
     
-    _append_newline_if_needed(parts)
+    append_newline_if_needed(parts)
     parts.extend([
-        build_part(_with_article(entity.name, capitalize=True)),
+        build_part(with_article(entity.name, capitalize=True)),
         build_part(" uses "),
         build_part(skill_name),
         build_part(" on you!"),
@@ -884,7 +735,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         if support_effect == "heal":
             entity.hit_points = min(entity.max_hit_points, entity.hit_points + total_support_amount)
         if support_context:
-            _append_newline_if_needed(parts)
+            append_newline_if_needed(parts)
             parts.append(build_part(support_context))
 
         _set_entity_skill_cooldown(entity, skill)
@@ -898,7 +749,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         if total_damage > 0:
             session.status.hit_points = max(0, session.status.hit_points - total_damage)
 
-        _append_newline_if_needed(parts)
+        append_newline_if_needed(parts)
         if damage_context:
             resolved_context = damage_context.replace("[a/an]", "you").replace("[verb]", "are")
             if not resolved_context.endswith("."):
@@ -1083,7 +934,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     for index, entity in enumerate(damage_targets):
         parts.append(build_part("\n"))
 
-        named_target = _with_article(entity.name, capitalize=True)
+        named_target = with_article(entity.name, capitalize=True)
         resolved_context = damage_context.replace("[a/an]", named_target)
         if resolved_context and not resolved_context.endswith("."):
             resolved_context += "."
@@ -1112,7 +963,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             spawn_corpse_for_entity(session, entity)
             parts.extend([
                 build_part("\n"),
-                build_part(_with_article(entity.name, capitalize=True)),
+                build_part(with_article(entity.name, capitalize=True)),
                 build_part(" is destroyed."),
             ])
 
@@ -1123,7 +974,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                     parts.extend([
                         build_part("\n"),
                         build_part("You turn to "),
-                        build_part(_with_article(next_target.name)),
+                        build_part(with_article(next_target.name)),
                         build_part("."),
                     ])
 
@@ -1274,11 +1125,6 @@ def disengage(session: ClientSession) -> dict | list[dict]:
     ])
 
 
-def _append_newline_if_needed(parts: list[dict]) -> None:
-    if parts:
-        parts.append({"text": "\n", "fg": "bright_white", "bold": False})
-
-
 def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
     attack_sequence = _build_player_attack_sequence(session, allow_off_hand)
 
@@ -1286,12 +1132,12 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
         if not entity.is_alive:
             break
 
-        _append_newline_if_needed(parts)
+        append_newline_if_needed(parts)
 
         hit_modifier = get_player_hit_modifier(weapon)
         if not roll_hit(hit_modifier, entity.armor_class):
             miss_verb = resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
-            parts.extend(_build_player_attack_parts(
+            parts.extend(build_player_attack_parts(
                 entity_name=entity.name,
                 attack_verb=miss_verb,
                 damage=0,
@@ -1301,7 +1147,7 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
 
         rolled_damage, weapon_name, attack_verb = roll_player_damage(session.player_combat, weapon)
         entity.hit_points = max(0, entity.hit_points - rolled_damage)
-        parts.extend(_build_player_attack_parts(
+        parts.extend(build_player_attack_parts(
             entity_name=entity.name,
             attack_verb=attack_verb,
             damage=rolled_damage,
@@ -1350,7 +1196,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
         off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
 
         for _ in range(max(1, entity.attacks_per_round)):
-            _append_newline_if_needed(parts)
+            append_newline_if_needed(parts)
 
             main_hit_modifier = get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
             if not roll_hit(main_hit_modifier, player_armor_class):
@@ -1359,8 +1205,9 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
                     if main_hand_weapon is not None
                     else "hit"
                 )
-                parts.extend(_build_entity_attack_parts(
-                    entity=entity,
+                parts.extend(build_entity_attack_parts(
+                    entity_name=entity.name,
+                    entity_pronoun_possessive=entity.pronoun_possessive,
                     attack_verb=miss_verb,
                     damage=0,
                 ))
@@ -1368,8 +1215,9 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
 
             attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
             status.hit_points = max(0, status.hit_points - attack_damage)
-            parts.extend(_build_entity_attack_parts(
-                entity=entity,
+            parts.extend(build_entity_attack_parts(
+                entity_name=entity.name,
+                entity_pronoun_possessive=entity.pronoun_possessive,
                 attack_verb=attack_verb,
                 damage=attack_damage,
             ))
@@ -1377,7 +1225,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
         if allow_off_hand:
             off_hand_swings = max(0, entity.off_hand_attacks_per_round)
             for _ in range(off_hand_swings):
-                _append_newline_if_needed(parts)
+                append_newline_if_needed(parts)
 
                 off_hit_modifier = get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)
                 if not roll_hit(off_hit_modifier, player_armor_class):
@@ -1386,8 +1234,9 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
                         if off_hand_weapon is not None
                         else "hit"
                     )
-                    parts.extend(_build_entity_attack_parts(
-                        entity=entity,
+                    parts.extend(build_entity_attack_parts(
+                        entity_name=entity.name,
+                        entity_pronoun_possessive=entity.pronoun_possessive,
                         attack_verb=miss_verb,
                         damage=0,
                     ))
@@ -1395,8 +1244,9 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
 
                 off_hand_damage, off_attack_verb = roll_npc_weapon_damage(entity, off_hand_weapon)
                 status.hit_points = max(0, status.hit_points - off_hand_damage)
-                parts.extend(_build_entity_attack_parts(
-                    entity=entity,
+                parts.extend(build_entity_attack_parts(
+                    entity_name=entity.name,
+                    entity_pronoun_possessive=entity.pronoun_possessive,
                     attack_verb=off_attack_verb,
                     damage=off_hand_damage,
                 ))
@@ -1437,19 +1287,19 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
         entity.is_alive = False
         spawn_corpse_for_entity(session, entity)
 
-        _append_newline_if_needed(parts)
+        append_newline_if_needed(parts)
         parts.extend([
-            build_part(_with_article(entity.name, capitalize=True)),
+            build_part(with_article(entity.name, capitalize=True)),
             build_part(" is destroyed.", "bright_white"),
         ])
 
         previous_engaged_id = session.combat.engaged_entity_id
         next_target = _engage_next_room_target(session, entity.entity_id)
         if next_target is not None and session.combat.engaged_entity_id != previous_engaged_id:
-            _append_newline_if_needed(parts)
+            append_newline_if_needed(parts)
             parts.extend([
                 build_part("You turn to ", "bright_white"),
-                build_part(_with_article(next_target.name)),
+                build_part(with_article(next_target.name)),
                 build_part(".", "bright_white"),
             ])
 
@@ -1463,7 +1313,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     if status.hit_points <= 0:
         end_combat(session)
 
-        _append_newline_if_needed(parts)
+        append_newline_if_needed(parts)
         parts.extend([
             build_part("You collapse. Combat ends.", "bright_red", True),
         ])
