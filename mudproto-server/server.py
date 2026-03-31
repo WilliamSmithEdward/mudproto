@@ -10,6 +10,7 @@ from battle_round_ticks import process_non_combat_support_round
 from combat import initialize_session_entities, resolve_combat_round
 from commands import dispatch_message, execute_command, initial_auth_prompt, parse_command
 from display import (
+    build_prompt_parts,
     display_connected,
     display_error,
     display_force_prompt,
@@ -90,6 +91,7 @@ def _extract_room_broadcast_messages(origin_session, outbound: dict | list[dict]
         if not isinstance(parts, list) or not parts:
             continue
 
+        from display import build_prompt_parts
         copied_message = json.loads(json.dumps(message))
         copied_payload = copied_message.get("payload")
         if isinstance(copied_payload, dict):
@@ -104,8 +106,8 @@ def _extract_room_broadcast_messages(origin_session, outbound: dict | list[dict]
                             continue
                         original_text = str(part.get("text", ""))
                         part["text"] = _third_personize_text(original_text, actor_name)
-            copied_payload["prompt_after"] = False
-            copied_payload["prompt_parts"] = None
+            copied_payload["starts_on_new_line"] = True
+            copied_payload["blank_lines_before"] = 2
         broadcast_messages.append(copied_message)
 
     return broadcast_messages
@@ -156,7 +158,14 @@ async def _broadcast_outbound_to_room(origin_session, outbound: dict | list[dict
 
     peers = _iter_room_peers(origin_session)
     for peer in peers:
-        await send_outbound(peer.websocket, broadcast_messages)
+        peer_messages = json.loads(json.dumps(broadcast_messages))
+        for message in peer_messages:
+            if isinstance(message, dict) and message.get("type") == "display":
+                payload = message.get("payload")
+                if isinstance(payload, dict):
+                    payload["prompt_after"] = True
+                    payload["prompt_parts"] = build_prompt_parts(peer)
+        await send_outbound(peer.websocket, peer_messages)
 
 
 async def send_json(websocket: ServerConnection, message: dict) -> None:

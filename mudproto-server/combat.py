@@ -432,43 +432,26 @@ def clear_combat_if_invalid(session: ClientSession) -> None:
         return
 
     entity = session.entities.get(target_id)
-    if (
-        entity is None
-        or not entity.is_alive
-        or entity.room_id != session.player.current_room_id
-        or entity.engaged_client_id not in {None, session.client_id}
-    ):
+    if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
         end_combat(session)
 
 
 def end_combat(session: ClientSession) -> None:
-    target_id = session.combat.engaged_entity_id
-    if target_id is not None:
-        target = session.entities.get(target_id)
-        if target is not None and target.engaged_client_id == session.client_id:
-            target.engaged_client_id = None
-
     session.combat.engaged_entity_id = None
     session.combat.next_round_monotonic = None
     session.combat.opening_attacker = None
 
 
 def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
+    if session.combat.engaged_entity_id is not None:
+        return False
+
     entity = session.entities.get(entity_id)
     if entity is None or not entity.is_alive:
         return False
     if entity.room_id != session.player.current_room_id:
         return False
-    if entity.engaged_client_id is not None and entity.engaged_client_id != session.client_id:
-        return False
 
-    previous_target_id = session.combat.engaged_entity_id
-    if previous_target_id is not None and previous_target_id != entity_id:
-        previous_target = session.entities.get(previous_target_id)
-        if previous_target is not None and previous_target.engaged_client_id == session.client_id:
-            previous_target.engaged_client_id = None
-
-    entity.engaged_client_id = session.client_id
     session.combat.engaged_entity_id = entity_id
     session.combat.next_round_monotonic = None
     session.combat.opening_attacker = opening_attacker
@@ -501,8 +484,6 @@ def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) ->
         if candidate.entity_id == defeated_entity_id:
             continue
         if not candidate.is_alive:
-            continue
-        if candidate.engaged_client_id is not None and candidate.engaged_client_id != session.client_id:
             continue
 
         started = start_combat(session, candidate.entity_id, OPENING_ATTACKER_ENTITY)
@@ -1308,8 +1289,6 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
 
     entity = attacker
     if not entity.is_alive:
-        return
-    if entity.engaged_client_id != session.client_id:
         return
 
     # Skills are additive and do not consume the entity's melee turn.

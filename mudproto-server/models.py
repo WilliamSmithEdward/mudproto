@@ -131,7 +131,6 @@ class EntityState:
     skill_ids: list[str] = field(default_factory=list)
     skill_cooldowns: dict[str, int] = field(default_factory=dict)
     skill_lag_rounds_remaining: int = 0
-    engaged_client_id: Optional[str] = None
 
 
 def _build_default_equipment_state() -> EquipmentState:
