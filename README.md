@@ -51,7 +51,7 @@ MudProto is a ground-up implementation of a **Multi-User Dungeon** — the genre
 - **Corpse loot** — defeated enemies drop gear and coins for any player to claim.
 
 ### 💾 Character Persistence
-- **SQLite-backed** — full character state serialized/deserialized on login/logout.
+- **SQLite-backed** — full character state serialized/deserialized on login/logout and every game hour (60 seconds by default).
 - **Offline processing** — disconnected characters auto-flee combat, regenerate, and gracefully disconnect after 5 safe hours.
 - **Seamless reconnect** — resume an active session mid-combat with full state hydration.
 
