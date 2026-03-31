@@ -1,6 +1,7 @@
 import asyncio
 
-from equipment import is_item_equippable, list_worn_items
+from equipment import list_worn_items
+from inventory import is_item_equippable
 from grammar import capitalize_after_newlines
 from models import ClientSession
 from protocol import build_response

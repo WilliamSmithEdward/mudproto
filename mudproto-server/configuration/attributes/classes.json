@@ -10,12 +10,12 @@
       "dex": { "min": 8, "max": 14 },
       "con": { "min": 8, "max": 14 }
     },
-    "starting_inventory_template_ids": [
+    "starting_gear_template_ids": [
       "armor.test-ring-amber",
       "armor.test-ring-azure",
       "armor.test-chest-vest"
     ],
-    "starting_equipment_template_ids": [
+    "starting_equipped_gear_template_ids": [
       "weapon.training-sword",
       "weapon.training-dagger",
       "armor.arcanist-robe",

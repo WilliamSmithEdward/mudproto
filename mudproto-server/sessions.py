@@ -2,8 +2,9 @@ import asyncio
 import random
 import uuid
 
-from assets import load_attributes, get_default_player_class, get_equipment_template_by_id, get_item_template_by_id, get_player_class_by_id
-from equipment import HAND_MAIN, HAND_OFF, build_equippable_item_from_template, equip_item, is_item_equippable, wear_item
+from assets import load_attributes, get_default_player_class, get_gear_template_by_id, get_item_template_by_id, get_player_class_by_id
+from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
+from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState, QueuedCommand
 from player_state_db import save_player_state
 from protocol import utc_now_iso
@@ -68,7 +69,7 @@ def ensure_player_attributes(session: ClientSession) -> None:
     session.player.attributes = merged
 
 
-def _grant_starting_equipment_from_template(session: ClientSession, template: dict) -> None:
+def _grant_starting_gear_from_template(session: ClientSession, template: dict) -> None:
     item = build_equippable_item_from_template(template)
 
     existing_template_ids = {
@@ -98,7 +99,7 @@ def _grant_starting_item_from_template(session: ClientSession, template: dict) -
     session.inventory_items[item.item_id] = item
 
 
-def _equip_starting_equipment_by_template_id(session: ClientSession, template_id: str) -> None:
+def _equip_starting_gear_by_template_id(session: ClientSession, template_id: str) -> None:
     normalized_template_id = template_id.strip().lower()
     if not normalized_template_id:
         return
@@ -116,7 +117,7 @@ def _equip_starting_equipment_by_template_id(session: ClientSession, template_id
             if equipped_item.template_id.strip().lower() == normalized_template_id:
                 return
 
-        template = get_equipment_template_by_id(template_id)
+        template = get_gear_template_by_id(template_id)
         if template is None:
             return
         item = build_equippable_item_from_template(template)
@@ -162,14 +163,14 @@ def apply_player_class(session: ClientSession, class_id: str | None = None, *, r
     else:
         ensure_player_attributes(session)
 
-    for template_id in player_class.get("starting_inventory_template_ids", []):
-        template = get_equipment_template_by_id(str(template_id))
+    for template_id in player_class.get("starting_gear_template_ids", []):
+        template = get_gear_template_by_id(str(template_id))
         if template is None:
             continue
-        _grant_starting_equipment_from_template(session, template)
+        _grant_starting_gear_from_template(session, template)
 
-    for template_id in player_class.get("starting_equipment_template_ids", []):
-        _equip_starting_equipment_by_template_id(session, str(template_id))
+    for template_id in player_class.get("starting_equipped_gear_template_ids", []):
+        _equip_starting_gear_by_template_id(session, str(template_id))
 
     for template_id in player_class.get("starting_item_ids", []):
         template = get_item_template_by_id(str(template_id))

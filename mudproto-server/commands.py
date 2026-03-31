@@ -13,8 +13,9 @@ from combat import (
     use_skill,
 )
 from grammar import indefinite_article, with_article
+from inventory import is_item_equippable, resolve_equipment_selector
 from assets import get_item_template_by_id, get_player_class_by_id, load_attributes, load_item_templates, load_player_classes, load_skills, load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, is_item_equippable, list_worn_items, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
+from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
     character_exists,
     create_character,
@@ -1338,7 +1339,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         hand_label = "main hand" if equip_result == HAND_MAIN else "off hand"
         return display_command_result(session, [
             build_part("You equip ", "bright_white"),
-            *_build_item_reference_parts(item, fg="bright_cyan"),
+            *_build_item_reference_parts(item),
             build_part(" in your ", "bright_white"),
             build_part(hand_label, "bright_yellow", True),
             build_part(".", "bright_white"),
@@ -1369,7 +1370,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You wield ", "bright_white"),
-            *_build_item_reference_parts(item, fg="bright_cyan"),
+            *_build_item_reference_parts(item),
             build_part(".", "bright_white"),
         ])
 
@@ -1398,7 +1399,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You hold ", "bright_white"),
-            *_build_item_reference_parts(item, fg="bright_cyan"),
+            *_build_item_reference_parts(item),
             build_part(" in your off hand.", "bright_white"),
         ])
 
@@ -1504,7 +1505,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You wear ", "bright_white"),
-            *_build_item_reference_parts(item, fg="bright_cyan"),
+            *_build_item_reference_parts(item),
             build_part(" on your ", "bright_white"),
             build_part(wear_result, "bright_yellow", True),
             build_part(".", "bright_white"),

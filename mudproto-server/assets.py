@@ -7,7 +7,7 @@ from settings import CONFIGURABLE_ASSET_ROOT
 
 SERVER_ROOT = Path(__file__).resolve().parent
 ATTRIBUTE_CONFIG_ROOT = SERVER_ROOT / "configuration" / "attributes"
-EQUIPMENT_FILE = CONFIGURABLE_ASSET_ROOT / "equipment.json"
+GEAR_FILE = CONFIGURABLE_ASSET_ROOT / "gear.json"
 ITEMS_FILE = CONFIGURABLE_ASSET_ROOT / "items.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
@@ -103,52 +103,47 @@ def load_wear_slot_config() -> dict:
 
 
 @lru_cache(maxsize=1)
-def load_equipment_templates() -> list[dict]:
-    raw_templates = _read_json_asset(EQUIPMENT_FILE)
+def load_gear_templates() -> list[dict]:
+    raw_templates = _read_json_asset(GEAR_FILE)
     if not isinstance(raw_templates, list):
-        raise ValueError(f"Equipment asset file must contain a list: {EQUIPMENT_FILE}")
+        raise ValueError(f"Gear asset file must contain a list: {GEAR_FILE}")
 
     template_ids: set[str] = set()
     normalized_templates: list[dict] = []
 
     for raw_template in raw_templates:
         if not isinstance(raw_template, dict):
-            raise ValueError("Equipment asset entries must be objects.")
+            raise ValueError("Gear asset entries must be objects.")
 
-        template_id, name, normalized_keywords = _normalize_template_identity(raw_template, context="Equipment asset")
+        template_id, name, normalized_keywords = _normalize_template_identity(raw_template, context="Gear asset")
         slot = raw_template.get("slot")
 
         if template_id in template_ids:
-            raise ValueError(f"Duplicate equipment template_id: {template_id}")
+            raise ValueError(f"Duplicate gear template_id: {template_id}")
         if not isinstance(slot, str) or not slot.strip():
-            raise ValueError(f"Equipment asset '{template_id}' must include a non-empty slot.")
+            raise ValueError(f"Gear asset '{template_id}' must include a non-empty slot.")
         normalized_slot = slot.strip().lower()
         if normalized_slot not in {"weapon", "armor"}:
             raise ValueError(
-                f"Equipment asset '{template_id}' slot must be 'weapon' or 'armor'."
+                f"Gear asset '{template_id}' slot must be 'weapon' or 'armor'."
             )
 
         template_ids.add(template_id)
 
-        legacy_wear_slot = str(raw_template.get("wear_slot", "")).strip().lower()
         raw_wear_slots = raw_template.get("wear_slots", [])
         if raw_wear_slots is None:
             raw_wear_slots = []
         if not isinstance(raw_wear_slots, list):
-            raise ValueError(f"Equipment asset '{template_id}' wear_slots must be a list.")
+            raise ValueError(f"Gear asset '{template_id}' wear_slots must be a list.")
         wear_slots = [str(slot).strip().lower() for slot in raw_wear_slots if str(slot).strip()]
-        if legacy_wear_slot and legacy_wear_slot not in wear_slots:
-            wear_slots.insert(0, legacy_wear_slot)
 
         armor_class_bonus = int(raw_template.get("armor_class_bonus", 0))
         if normalized_slot == "armor" and not wear_slots:
-            raise ValueError(f"Equipment asset '{template_id}' armor items must define wear_slots.")
-        if normalized_slot == "weapon" and legacy_wear_slot:
-            raise ValueError(f"Equipment asset '{template_id}' weapons cannot define wear_slot.")
+            raise ValueError(f"Gear asset '{template_id}' armor items must define wear_slots.")
         if normalized_slot == "weapon" and wear_slots:
-            raise ValueError(f"Equipment asset '{template_id}' weapons cannot define wear_slots.")
+            raise ValueError(f"Gear asset '{template_id}' weapons cannot define wear_slots.")
         if armor_class_bonus < 0:
-            raise ValueError(f"Equipment asset '{template_id}' armor_class_bonus must be zero or greater.")
+            raise ValueError(f"Gear asset '{template_id}' armor_class_bonus must be zero or greater.")
 
         normalized_templates.append({
             "template_id": template_id,
@@ -172,9 +167,9 @@ def load_equipment_templates() -> list[dict]:
     return normalized_templates
 
 
-def get_equipment_template_by_id(template_id: str) -> dict | None:
+def get_gear_template_by_id(template_id: str) -> dict | None:
     normalized = template_id.strip().lower()
-    for template in load_equipment_templates():
+    for template in load_gear_templates():
         if str(template.get("template_id", "")).strip().lower() == normalized:
             return template
     return None
@@ -833,23 +828,23 @@ def load_player_classes() -> list[dict]:
         if normalized_class_name in class_names:
             raise ValueError(f"Duplicate class name in player classes: {name}")
 
-        raw_inventory_ids = raw_class.get("starting_inventory_template_ids", [])
+        raw_gear_ids = raw_class.get("starting_gear_template_ids", [])
         raw_spell_ids = raw_class.get("starting_spell_ids", [])
         raw_skill_ids = raw_class.get("starting_skill_ids", [])
-        raw_equipment_ids = raw_class.get("starting_equipment_template_ids", [])
+        raw_equipped_gear_ids = raw_class.get("starting_equipped_gear_template_ids", [])
         raw_item_ids = raw_class.get("starting_item_ids", [])
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
-        if not isinstance(raw_inventory_ids, list):
+        if not isinstance(raw_gear_ids, list):
             raise ValueError(
-                f"Player class '{class_id}' starting_inventory_template_ids must be a list."
+                f"Player class '{class_id}' starting_gear_template_ids must be a list."
             )
         if not isinstance(raw_spell_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_spell_ids must be a list.")
         if not isinstance(raw_skill_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_skill_ids must be a list.")
-        if not isinstance(raw_equipment_ids, list):
+        if not isinstance(raw_equipped_gear_ids, list):
             raise ValueError(
-                f"Player class '{class_id}' starting_equipment_template_ids must be a list."
+                f"Player class '{class_id}' starting_equipped_gear_template_ids must be a list."
             )
         if not isinstance(raw_item_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_item_ids must be a list.")
@@ -888,21 +883,21 @@ def load_player_classes() -> list[dict]:
                     f"Player class '{class_id}' attribute_ranges references unknown attribute: {attribute_id}"
                 )
 
-        inventory_ids: list[str] = []
-        seen_inventory_ids: set[str] = set()
-        for raw_template_id in raw_inventory_ids:
+        gear_ids: list[str] = []
+        seen_gear_ids: set[str] = set()
+        for raw_template_id in raw_gear_ids:
             template_id = str(raw_template_id).strip()
             if not template_id:
                 continue
             normalized_template_id = template_id.lower()
-            if normalized_template_id in seen_inventory_ids:
+            if normalized_template_id in seen_gear_ids:
                 continue
-            if get_equipment_template_by_id(template_id) is None:
+            if get_gear_template_by_id(template_id) is None:
                 raise ValueError(
-                    f"Player class '{class_id}' references unknown equipment template: {template_id}"
+                    f"Player class '{class_id}' references unknown gear template: {template_id}"
                 )
-            seen_inventory_ids.add(normalized_template_id)
-            inventory_ids.append(template_id)
+            seen_gear_ids.add(normalized_template_id)
+            gear_ids.append(template_id)
 
         spell_ids: list[str] = []
         seen_spell_ids: set[str] = set()
@@ -932,21 +927,21 @@ def load_player_classes() -> list[dict]:
             seen_skill_ids.add(normalized_skill_id)
             skill_ids.append(skill_id)
 
-        equipment_ids: list[str] = []
-        seen_equipment_ids: set[str] = set()
-        for raw_template_id in raw_equipment_ids:
+        equipped_gear_ids: list[str] = []
+        seen_equipped_gear_ids: set[str] = set()
+        for raw_template_id in raw_equipped_gear_ids:
             template_id = str(raw_template_id).strip()
             if not template_id:
                 continue
             normalized_template_id = template_id.lower()
-            if normalized_template_id in seen_equipment_ids:
+            if normalized_template_id in seen_equipped_gear_ids:
                 continue
-            if get_equipment_template_by_id(template_id) is None:
+            if get_gear_template_by_id(template_id) is None:
                 raise ValueError(
-                    f"Player class '{class_id}' references unknown equipment template: {template_id}"
+                    f"Player class '{class_id}' references unknown gear template: {template_id}"
                 )
-            seen_equipment_ids.add(normalized_template_id)
-            equipment_ids.append(template_id)
+            seen_equipped_gear_ids.add(normalized_template_id)
+            equipped_gear_ids.append(template_id)
 
         item_ids: list[str] = []
         seen_item_ids: set[str] = set()
@@ -969,8 +964,8 @@ def load_player_classes() -> list[dict]:
             "name": name.strip(),
             "description": str(raw_class.get("description", "")).strip(),
             "attribute_ranges": attribute_ranges,
-            "starting_inventory_template_ids": inventory_ids,
-            "starting_equipment_template_ids": equipment_ids,
+            "starting_gear_template_ids": gear_ids,
+            "starting_equipped_gear_template_ids": equipped_gear_ids,
             "starting_item_ids": item_ids,
             "starting_spell_ids": spell_ids,
             "starting_skill_ids": skill_ids,

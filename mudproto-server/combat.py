@@ -4,7 +4,7 @@ import re
 import uuid
 
 from grammar import with_article
-from assets import get_equipment_template_by_id, get_npc_template_by_id, get_skill_by_id
+from assets import get_gear_template_by_id, get_npc_template_by_id, get_skill_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_text import (
     append_newline_if_needed,
@@ -21,7 +21,8 @@ from damage import (
     roll_skill_damage,
     roll_spell_damage,
 )
-from equipment import build_equippable_item_from_template, get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
+from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
+from inventory import build_equippable_item_from_template
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, ItemState
 from sessions import active_character_sessions, connected_clients
 from settings import (
@@ -386,39 +387,12 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
         equipped_template_ids.append(entity.off_hand_weapon_template_id.strip())
 
     for template_id in equipped_template_ids:
-        template = get_equipment_template_by_id(template_id)
+        template = get_gear_template_by_id(template_id)
         if template is None:
             continue
 
         loot_item = build_equippable_item_from_template(template, item_id=f"loot-{uuid.uuid4().hex[:8]}")
         loot_items[loot_item.item_id] = loot_item
-
-    # Backward-compatible fallback for entities without equipped template-backed items.
-    if not loot_items:
-        loot_items = {
-            item.item_id: ItemState(
-                item_id=item.item_id,
-                template_id=item.template_id,
-                name=item.name,
-                description=item.description,
-                keywords=list(item.keywords),
-                equippable=item.equippable,
-                slot=item.slot,
-                weapon_type=item.weapon_type,
-                can_hold=item.can_hold,
-                weight=item.weight,
-                damage_dice_count=item.damage_dice_count,
-                damage_dice_sides=item.damage_dice_sides,
-                damage_roll_modifier=item.damage_roll_modifier,
-                hit_roll_modifier=item.hit_roll_modifier,
-                attack_damage_bonus=item.attack_damage_bonus,
-                attacks_per_round_bonus=item.attacks_per_round_bonus,
-                armor_class_bonus=item.armor_class_bonus,
-                wear_slot=item.wear_slot,
-                wear_slots=list(item.wear_slots),
-            )
-            for item in entity.loot_items
-        }
     corpse = CorpseState(
         corpse_id=corpse_id,
         source_entity_id=entity.entity_id,
@@ -1343,7 +1317,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
         normalized_template_id = template_id.strip()
         if not normalized_template_id:
             return None
-        template = get_equipment_template_by_id(normalized_template_id)
+        template = get_gear_template_by_id(normalized_template_id)
         if template is None:
             return None
         if str(template.get("slot", "")).strip().lower() != "weapon":
