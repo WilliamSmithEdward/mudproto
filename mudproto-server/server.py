@@ -7,7 +7,7 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from battle_round_ticks import process_non_combat_support_round
-from combat import get_engaged_entities, initialize_session_entities, resolve_combat_round
+from combat import get_engaged_entities, initialize_session_entities, resolve_combat_round, tick_out_of_combat_cooldowns
 from commands import dispatch_message, execute_command, initial_auth_prompt, parse_command
 from display import (
     build_display,
@@ -19,6 +19,7 @@ from display import (
     display_prompt,
     display_room,
 )
+from models import ClientSession
 from player_state_db import save_player_state
 from protocol import validate_message
 from settings import (
@@ -189,7 +190,10 @@ def _split_actor_round_lines(lines: list[str], actor_prefix: str) -> tuple[list[
     return player_lines, retaliation_lines
 
 
-def _build_unified_room_round_display(recipient_session, room_round_results: list[tuple[object, dict]]) -> dict | None:
+def _build_unified_room_round_display(
+    recipient_session: ClientSession,
+    room_round_results: list[tuple[ClientSession, dict]],
+) -> dict | None:
     player_phase_lines: list[str] = []
     retaliation_phase_lines: list[str] = []
 
@@ -376,8 +380,17 @@ async def combat_round_loop() -> None:
                     continue
                 combat_rooms.setdefault(room_id, []).append(session)
 
+            # Tick skill cooldowns for authenticated sessions not currently in combat.
+            combat_session_ids = {s.client_id for s in combat_sessions}
+            for session in list(connected_clients.values()):
+                if session.client_id in combat_session_ids:
+                    continue
+                if not session.is_authenticated or session.disconnected_by_server:
+                    continue
+                tick_out_of_combat_cooldowns(session)
+
             for room_id, room_sessions in combat_rooms.items():
-                round_results: list[tuple[object, dict]] = []
+                round_results: list[tuple[ClientSession, dict]] = []
                 room_sessions.sort(key=lambda s: (s.authenticated_character_name or "", s.client_id))
 
                 # One active target session per NPC/entity each room round.

@@ -529,11 +529,11 @@ def _resolve_wear_inventory_selector(session: ClientSession, selector: str) -> t
     if isinstance(selected_match, EquipmentItemState):
         return selected_match, None
 
-    promoted = _promote_misc_item_to_equipment(session, selected_match)
-    if promoted is None:
+    template = _get_equipment_template_for_item(selected_match)
+    if template is None:
         return None, f"{selected_match.name} cannot be worn."
 
-    return promoted, None
+    return _build_equipment_item(session, selected_match, template), None
 
 
 def _list_room_ground_items(session: ClientSession, room_id: str):
@@ -725,21 +725,23 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     return result
 
 
-def _promote_misc_item_to_equipment(session: ClientSession, misc_item) -> EquipmentItemState | None:
-    template: dict | None = None
-    misc_template_id = str(getattr(misc_item, "template_id", "")).strip()
-    if misc_template_id:
-        template = get_equipment_template_by_id(misc_template_id)
-    if template is None:
-        template = _find_equipment_template_for_loot_name(misc_item.name)
-    if template is None:
-        return None
+def _get_equipment_template_for_item(item) -> dict | None:
+    """Return the equipment template for an item if it is equippable, otherwise None."""
+    template_id = str(getattr(item, "template_id", "")).strip()
+    if template_id:
+        template = get_equipment_template_by_id(template_id)
+        if template is not None:
+            return template
+    return _find_equipment_template_for_loot_name(item.name)
 
+
+def _build_equipment_item(session: ClientSession, loot_item, template: dict) -> EquipmentItemState:
+    """Construct an EquipmentItemState from a loot item + its template and move it into equipment.items."""
     item_id = f"item-{uuid.uuid4().hex[:8]}"
-    promoted = EquipmentItemState(
+    equipment_item = EquipmentItemState(
         item_id=item_id,
         template_id=str(template.get("template_id", "")).strip(),
-        name=str(template.get("name", misc_item.name)).strip() or misc_item.name,
+        name=str(template.get("name", loot_item.name)).strip() or loot_item.name,
         slot=str(template.get("slot", "")).strip(),
         description=str(template.get("description", "")),
         keywords=list(template.get("keywords", [])),
@@ -755,11 +757,11 @@ def _promote_misc_item_to_equipment(session: ClientSession, misc_item) -> Equipm
         armor_class_bonus=int(template.get("armor_class_bonus", 0)),
         wear_slots=[str(slot).strip().lower() for slot in template.get("wear_slots", []) if str(slot).strip()],
     )
-    if promoted.wear_slots:
-        promoted.wear_slot = promoted.wear_slots[0]
-    session.inventory_items.pop(misc_item.item_id, None)
-    session.equipment.items[promoted.item_id] = promoted
-    return promoted
+    if equipment_item.wear_slots:
+        equipment_item.wear_slot = equipment_item.wear_slots[0]
+    session.inventory_items.pop(loot_item.item_id, None)
+    session.equipment.items[equipment_item.item_id] = equipment_item
+    return equipment_item
 
 
 def _find_spell_by_name(spell_name: str) -> dict | None:
@@ -1371,7 +1373,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error(parse_error or "Usage: equip <selector> [main|off]", session)
 
         item, resolve_error = resolve_equipment_selector(session, selector)
-        if resolve_error is not None or item is None:
+        if item is None:
+            misc_item, _ = _resolve_misc_inventory_selector(session, selector)
+            if misc_item is not None:
+                template = _get_equipment_template_for_item(misc_item)
+                if template is not None:
+                    item = _build_equipment_item(session, misc_item, template)
+        if item is None:
             return display_error(resolve_error or "Unable to resolve equipment selector.", session)
 
         equipped, equip_result = equip_item(session, item, hand)
@@ -1398,10 +1406,10 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if misc_item is None:
                 return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
 
-            promoted = _promote_misc_item_to_equipment(session, misc_item)
+            promoted = _get_equipment_template_for_item(misc_item)
             if promoted is None:
                 return display_error(f"{misc_item.name} cannot be wielded.", session)
-            item = promoted
+            item = _build_equipment_item(session, misc_item, promoted)
 
         current_main = get_equipped_main_hand(session)
         if current_main is not None:
@@ -1431,10 +1439,10 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if misc_item is None:
                 return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
 
-            promoted = _promote_misc_item_to_equipment(session, misc_item)
+            promoted = _get_equipment_template_for_item(misc_item)
             if promoted is None:
                 return display_error(f"{misc_item.name} cannot be held.", session)
-            item = promoted
+            item = _build_equipment_item(session, misc_item, promoted)
 
         current_off = get_equipped_off_hand(session)
         if current_off is not None:
@@ -1475,21 +1483,19 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 if selector_tokens.issubset(item_keywords):
                     wearable_items.append(item)
 
-            # Promote matching wearable misc loot into equipment inventory.
+            # Include matching wearable misc items by checking equippable property at runtime.
             for misc_item in list(session.inventory_items.values()):
                 item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", misc_item.name.lower()) if token}
                 if not selector_tokens.issubset(item_keywords):
                     continue
 
-                template = _find_equipment_template_for_loot_name(misc_item.name)
-                if template is None:
-                    continue
-                if str(template.get("slot", "")).strip().lower() != "armor":
+                template = _get_equipment_template_for_item(misc_item)
+                if template is None or str(template.get("slot", "")).strip().lower() != "armor":
                     continue
 
-                promoted = _promote_misc_item_to_equipment(session, misc_item)
-                if promoted is not None and promoted.slot.strip().lower() == "armor":
-                    wearable_items.append(promoted)
+                equipment_item = _build_equipment_item(session, misc_item, template)
+                if equipment_item.slot.strip().lower() == "armor":
+                    wearable_items.append(equipment_item)
 
             wearable_items.sort(key=lambda item: (len(item.wear_slots) if item.wear_slots else 1, item.name.lower(), item.item_id))
 
@@ -1527,16 +1533,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 if item.slot.strip().lower() == "armor"
             ]
 
-            # Promote wearable misc loot into equipment inventory first.
+            # Include wearable misc items by checking equippable property at runtime.
             for misc_item in list(session.inventory_items.values()):
-                template = _find_equipment_template_for_loot_name(misc_item.name)
-                if template is None:
+                template = _get_equipment_template_for_item(misc_item)
+                if template is None or str(template.get("slot", "")).strip().lower() != "armor":
                     continue
-                if str(template.get("slot", "")).strip().lower() != "armor":
-                    continue
-                promoted = _promote_misc_item_to_equipment(session, misc_item)
-                if promoted is not None and promoted.slot.strip().lower() == "armor":
-                    wearable_items.append(promoted)
+                equipment_item = _build_equipment_item(session, misc_item, template)
+                if equipment_item.slot.strip().lower() == "armor":
+                    wearable_items.append(equipment_item)
 
             wearable_items.sort(key=lambda item: (len(item.wear_slots) if item.wear_slots else 1, item.name.lower(), item.item_id))
 

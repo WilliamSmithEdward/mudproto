@@ -572,6 +572,11 @@ def _set_entity_skill_cooldown(entity: EntityState, skill: dict) -> None:
             entity.skill_cooldowns[skill_id] = cooldown_rounds
 
 
+def tick_out_of_combat_cooldowns(session: ClientSession) -> None:
+    """Decrement player skill cooldowns for sessions not currently in combat."""
+    _decrement_cooldowns(session.combat.skill_cooldowns)
+
+
 def _apply_player_skill_lag(session: ClientSession, skill: dict) -> None:
     # Lag is tracked for visual feedback but doesn't skip melee rounds.
     # Skills have lag_rounds but this doesn't prevent player melee attacks.
@@ -602,14 +607,14 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
     actor_name = session.authenticated_character_name or "Someone"
 
+    if get_engaged_entity(session) is None and not usable_out_of_combat:
+        return display_error(f"{skill_name} can only be used while in combat.", session), False
+
     if skill_id and session.combat.skill_cooldowns.get(skill_id, 0) > 0:
         return display_error(
             f"{skill_name} is on cooldown for {session.combat.skill_cooldowns[skill_id]} more round(s).",
             session,
         ), False
-
-    if get_engaged_entity(session) is None and not usable_out_of_combat:
-        return display_error(f"{skill_name} can only be used while in combat.", session), False
 
     if cast_type not in {"self", "target", "aoe"}:
         return display_error(f"Skill '{skill_name}' has unsupported cast_type '{cast_type}'.", session), False
