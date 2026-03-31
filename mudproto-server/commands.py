@@ -316,7 +316,6 @@ def flee(session: ClientSession) -> OutboundResult:
     return build_auto_aggro_outbound(session, room_display)
 
 
-
 def try_move(session: ClientSession, direction: str) -> OutboundResult:
     if session.combat.engaged_entity_id is not None:
         return display_error("You cannot move while engaged in combat. Try flee.", session)
@@ -340,42 +339,6 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
 
     room_display = display_room(session, next_room)
     return build_auto_aggro_outbound(session, room_display)
-
-
-def try_adjust_stat(
-    session: ClientSession,
-    args: list[str],
-    attribute_name: str,
-    label: str,
-    allow_negative: bool = False
-) -> OutboundResult:
-    if not args:
-        return display_error(f"Usage: {label.lower()} <amount>", session)
-
-    try:
-        amount = int(args[0])
-    except ValueError:
-        return display_error(f"{label} amount must be an integer.", session)
-
-    if not allow_negative and amount < 0:
-        return display_error(f"{label} amount must be zero or greater.", session)
-
-    current_value = getattr(session.status, attribute_name)
-    new_value = current_value + amount
-    if new_value < 0:
-        new_value = 0
-    setattr(session.status, attribute_name, new_value)
-
-    sign = "+" if amount >= 0 else ""
-    return display_command_result(session, [
-        build_part(f"{label}: ", "bright_white"),
-        build_part(str(current_value), "bright_yellow", True),
-        build_part(" -> ", "bright_white"),
-        build_part(str(new_value), "bright_green", True),
-        build_part(" (", "bright_white"),
-        build_part(f"{sign}{amount}", "bright_cyan", True),
-        build_part(")", "bright_white"),
-    ])
 
 
 def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, str | None]:
@@ -1788,20 +1751,9 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
         return try_move(session, verb)
 
-    if verb == "go":
-        if not args:
-            return display_error("Usage: go <direction>", session)
-
-        return try_move(session, args[0])
-
     if verb == "use":
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         return _use_misc_item(session, selector)
-
-    if verb == "wait":
-        return display_command_result(session, [
-            build_part("You wait.", "bright_white")
-        ])
 
     if verb == "say":
         spoken_text = " ".join(args).strip()
@@ -1813,47 +1765,6 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             build_part(f'"{spoken_text}"', "bright_magenta", True)
         ])
 
-    if verb == "hurt":
-        if not args:
-            return display_error("Usage: hurt <amount>", session)
-        try:
-            amount = int(args[0])
-        except ValueError:
-            return display_error("Hurt amount must be an integer.", session)
-        if amount < 0:
-            return display_error("Hurt amount must be zero or greater.", session)
-        return try_adjust_stat(session, [str(-amount)], "hit_points", "HP", allow_negative=True)
-
-    if verb == "heal":
-        return try_adjust_stat(session, args, "hit_points", "HP")
-
-    if verb == "usevigor":
-        if not args:
-            return display_error("Usage: usevigor <amount>", session)
-        try:
-            amount = int(args[0])
-        except ValueError:
-            return display_error("Vigor amount must be an integer.", session)
-        if amount < 0:
-            return display_error("Vigor amount must be zero or greater.", session)
-        return try_adjust_stat(session, [str(-amount)], "vigor", "Vigor", allow_negative=True)
-
-    if verb == "restorevigor":
-        return try_adjust_stat(session, args, "vigor", "Vigor")
-
-    if verb == "gaincoins":
-        return try_adjust_stat(session, args, "coins", "Coins")
-
-    if verb == "spendcoins":
-        if not args:
-            return display_error("Usage: spendcoins <amount>", session)
-        try:
-            amount = int(args[0])
-        except ValueError:
-            return display_error("Coins amount must be an integer.", session)
-        if amount < 0:
-            return display_error("Coins amount must be zero or greater.", session)
-        return try_adjust_stat(session, [str(-amount)], "coins", "Coins", allow_negative=True)
 
     # Try to resolve unknown verb as direct skill invocation (e.g., 'jab scout').
     # Lowest precedence — only runs after all other commands have failed to match.
