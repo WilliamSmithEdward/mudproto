@@ -8,6 +8,8 @@
     "damage_dice_count": 1,
     "damage_dice_sides": 8,
     "damage_modifier": 2,
+    "vigor_cost": 4,
+    "usable_out_of_combat": false,
     "damage_context": "[a/an] [verb] snapped backward by a sharp jab.",
     "lag_rounds": 0,
     "cooldown_rounds": 1
@@ -21,6 +23,8 @@
     "damage_dice_count": 2,
     "damage_dice_sides": 8,
     "damage_modifier": 2,
+    "vigor_cost": 8,
+    "usable_out_of_combat": false,
     "damage_context": "[a/an] [verb] taken by a crushing overhead strike.",
     "lag_rounds": 1,
     "cooldown_rounds": 3
@@ -31,6 +35,8 @@
     "description": "Steady breath and reset posture to recover.",
     "skill_type": "support",
     "cast_type": "self",
+    "vigor_cost": 6,
+    "usable_out_of_combat": true,
     "support_effect": "heal",
     "support_amount": 10,
     "support_context": "A measured breath steadies your posture and closes shallow wounds.",

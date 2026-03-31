@@ -645,6 +645,8 @@ def load_skills() -> list[dict]:
         dice_count = int(raw_skill.get("damage_dice_count", 0))
         dice_sides = int(raw_skill.get("damage_dice_sides", 0))
         damage_modifier = int(raw_skill.get("damage_modifier", 0))
+        vigor_cost = int(raw_skill.get("vigor_cost", 0))
+        usable_out_of_combat = bool(raw_skill.get("usable_out_of_combat", False))
         damage_context = str(raw_skill.get("damage_context", "")).strip()
         support_effect = str(raw_skill.get("support_effect", "")).strip().lower()
         support_amount = int(raw_skill.get("support_amount", 0))
@@ -660,6 +662,8 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' damage_dice_count must be zero or greater.")
         if dice_sides < 0:
             raise ValueError(f"Skill asset '{skill_id}' damage_dice_sides must be zero or greater.")
+        if vigor_cost < 0:
+            raise ValueError(f"Skill asset '{skill_id}' vigor_cost must be zero or greater.")
         if support_amount < 0:
             raise ValueError(f"Skill asset '{skill_id}' support_amount must be zero or greater.")
         if lag_rounds < 0:
@@ -689,6 +693,8 @@ def load_skills() -> list[dict]:
             "damage_dice_count": dice_count,
             "damage_dice_sides": dice_sides,
             "damage_modifier": damage_modifier,
+            "vigor_cost": vigor_cost,
+            "usable_out_of_combat": usable_out_of_combat,
             "damage_context": damage_context,
             "support_effect": support_effect,
             "support_amount": support_amount,

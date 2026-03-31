@@ -1265,30 +1265,11 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         parts = [build_part("Skills", "bright_white", True)]
         for skill in skills:
             skill_name = str(skill.get("name", "Skill"))
-            skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
-            cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
-            lag_rounds = int(skill.get("lag_rounds", 0))
-            cooldown_rounds = int(skill.get("cooldown_rounds", 0))
-            description = str(skill.get("description", "")).strip()
-
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
                 build_part(skill_name, "bright_cyan", True),
-                build_part(" | type: ", "bright_white"),
-                build_part(skill_type, "bright_yellow", True),
-                build_part(" | cast: ", "bright_white"),
-                build_part(cast_type, "bright_yellow", True),
-                build_part(" | lag: ", "bright_white"),
-                build_part(f"{lag_rounds}r", "bright_yellow", True),
-                build_part(" | cd: ", "bright_white"),
-                build_part(f"{cooldown_rounds}r", "bright_yellow", True),
             ])
-            if description:
-                parts.extend([
-                    build_part(" | ", "bright_white"),
-                    build_part(description, "bright_white"),
-                ])
 
         return display_command_result(session, parts)
 

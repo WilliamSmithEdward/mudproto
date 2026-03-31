@@ -698,6 +698,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     skill_id = str(skill.get("skill_id", "")).strip()
     skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
+    vigor_cost = max(0, int(skill.get("vigor_cost", 0)))
+    usable_out_of_combat = bool(skill.get("usable_out_of_combat", False))
     skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
     cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
     damage_context = str(skill.get("damage_context", "")).strip()
@@ -710,6 +712,9 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             f"{skill_name} is on cooldown for {session.combat.skill_cooldowns[skill_id]} more round(s).",
             session,
         ), False
+
+    if get_engaged_entity(session) is None and not usable_out_of_combat:
+        return display_error(f"{skill_name} can only be used while in combat.", session), False
 
     if cast_type not in {"self", "target", "aoe"}:
         return display_error(f"Skill '{skill_name}' has unsupported cast_type '{cast_type}'.", session), False
@@ -753,6 +758,14 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 f"Skill '{skill_name}' has unsupported support_effect '{support_effect}'.",
                 session,
             ), False
+
+        if session.status.vigor < vigor_cost:
+            return display_error(
+                f"Not enough vigor for {skill_name}. Need {vigor_cost}V, have {session.status.vigor}V.",
+                session,
+            ), False
+
+        session.status.vigor -= vigor_cost
 
         if support_effect == "heal":
             session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + support_amount)
@@ -798,6 +811,14 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             return display_error("No valid hostile targets in the room.", session), False
     else:
         return display_error(f"Damage skill '{skill_name}' cannot be cast as '{cast_type}'.", session), False
+
+    if session.status.vigor < vigor_cost:
+        return display_error(
+            f"Not enough vigor for {skill_name}. Need {vigor_cost}V, have {session.status.vigor}V.",
+            session,
+        ), False
+
+    session.status.vigor -= vigor_cost
 
     total_damage = _roll_skill_damage(skill)
 
