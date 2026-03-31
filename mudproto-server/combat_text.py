@@ -1,24 +1,5 @@
+from grammar import indefinite_article, to_third_person, with_article
 from settings import PLAYER_REFERENCE_MAX_HP
-
-
-def _to_third_person(verb: str) -> str:
-    normalized = verb.strip().lower() or "hit"
-    if normalized.endswith("y") and len(normalized) > 1 and normalized[-2] not in "aeiou":
-        return f"{normalized[:-1]}ies"
-    if normalized.endswith(("s", "x", "z", "ch", "sh")):
-        return f"{normalized}es"
-    return f"{normalized}s"
-
-
-def _article(name: str) -> str:
-    return "an" if name.strip().lower()[:1] in "aeiou" else "a"
-
-
-def with_article(name: str, *, capitalize: bool = False) -> str:
-    article = _article(name)
-    if capitalize:
-        article = article.capitalize()
-    return f"{article} {name}"
 
 
 def _choose_severity(damage: int, target_max_hp: int) -> str:
@@ -50,9 +31,9 @@ def build_player_attack_parts(
 ) -> list[dict]:
     from display import build_part
 
-    verb_noun = _to_third_person(attack_verb)
+    verb_noun = to_third_person(attack_verb)
     severity = _choose_severity(damage, target_max_hp)
-    article = _article(entity_name)
+    article = indefinite_article(entity_name)
     named = f"{article} {entity_name}"
 
     parts: list[dict] = []
@@ -107,7 +88,7 @@ def build_entity_attack_parts(
 ) -> list[dict]:
     from display import build_part
 
-    verb_noun = _to_third_person(attack_verb)
+    verb_noun = to_third_person(attack_verb)
     severity = _choose_severity(damage, PLAYER_REFERENCE_MAX_HP)
     subject = with_article(entity_name, capitalize=True)
 
@@ -123,7 +104,7 @@ def build_entity_attack_parts(
         parts.extend([
             build_part(subject),
             build_part(" barely "),
-            build_part(_to_third_person(attack_verb)),
+            build_part(to_third_person(attack_verb)),
             build_part(" you."),
         ])
         return parts
@@ -132,7 +113,7 @@ def build_entity_attack_parts(
         parts.extend([
             build_part(subject),
             build_part(" "),
-            build_part(_to_third_person(attack_verb)),
+            build_part(to_third_person(attack_verb)),
             build_part(" you"),
         ])
         if severity == "hard":

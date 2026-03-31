@@ -12,7 +12,7 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from combat_text import with_article
+from grammar import indefinite_article, with_article
 from assets import get_item_template_by_id, get_player_class_by_id, load_attributes, load_item_templates, load_player_classes, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, is_item_equippable, list_worn_items, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
@@ -659,7 +659,7 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
             pass
 
     item_name = misc_item.name.strip().lower() or "item"
-    item_article = "an" if item_name[:1] in "aeiou" else "a"
+    item_article = indefinite_article(item_name)
 
     observer_action = str(template.get("observer_action", "")).strip()
     observer_context = str(template.get("observer_context", "")).strip()

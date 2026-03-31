@@ -2,6 +2,7 @@ import re
 import uuid
 from math import ceil
 
+from grammar import with_article
 from assets import get_equipment_template_by_id, load_equipment_templates, load_hand_weight_config, load_wear_slot_config
 from models import ClientSession, ItemState
 from settings import BASE_PLAYER_ARMOR_CLASS
@@ -374,9 +375,8 @@ def _required_strength_for_hand(weight: int, hand: str) -> int:
 
 def can_player_equip_hand(session: ClientSession, item: ItemState, hand: str) -> tuple[bool, str]:
     """Check whether a weapon can be equipped in the requested hand."""
-    article = "An" if item.name[0].lower() in "aeiou" else "A"
     if hand == HAND_OFF and not item.can_hold:
-        return False, f"{article} {item.name} cannot be held in your off hand."
+        return False, f"{with_article(item.name, capitalize=True)} cannot be held in your off hand."
 
     weight = max(0, item.weight)
     player_strength = int(session.player.attributes.get(_STRENGTH_ATTRIBUTE_ID, 0))
@@ -385,7 +385,7 @@ def can_player_equip_hand(session: ClientSession, item: ItemState, hand: str) ->
         return True, ""
 
     action = "hold" if hand == HAND_OFF else "wield"
-    return False, f"{article} {item.name} is too heavy to {action}."
+    return False, f"{with_article(item.name, capitalize=True)} is too heavy to {action}."
 
 
 def equip_item(session: ClientSession, item: ItemState, hand: str | None = None) -> tuple[bool, str]:

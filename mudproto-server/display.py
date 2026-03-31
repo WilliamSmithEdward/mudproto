@@ -1,38 +1,13 @@
 import asyncio
 
 from equipment import is_item_equippable, list_worn_items
+from grammar import capitalize_after_newlines
 from models import ClientSession
 from protocol import build_response
 from settings import PLAYER_REFERENCE_MAX_HP
 from sessions import is_session_lagged, list_authenticated_room_players
 from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_corpses, list_room_entities
 from world import Room, get_room
-
-
-def _capitalize_after_newlines(text: str) -> str:
-    """Capitalize the first letter after each newline in text."""
-    if not text:
-        return text
-    
-    result = []
-    capitalize_next = False
-    for i, char in enumerate(text):
-        if i == 0:
-            # Capitalize the very first character
-            result.append(char.upper() if char.isalpha() else char)
-        elif char == "\n":
-            result.append(char)
-            capitalize_next = True
-        elif capitalize_next and char.isalpha():
-            result.append(char.upper())
-            capitalize_next = False
-        else:
-            result.append(char)
-            capitalize_next = False
-    
-    return "".join(result)
-
-
 def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     return {
         "text": text,
@@ -125,7 +100,7 @@ def build_display(
 ) -> dict:
     # Capitalize first letter after newlines in the full text
     full_text = "".join(p.get("text", "") for p in parts)
-    capitalized_text = _capitalize_after_newlines(full_text)
+    capitalized_text = capitalize_after_newlines(full_text)
     
     # Rebuild parts with capitalized text, maintaining original formatting
     offset = 0

@@ -4,6 +4,7 @@ import re
 import uuid
 from typing import TypeAlias
 
+from grammar import third_personize_text
 from websockets.asyncio.server import ServerConnection
 import websockets
 
@@ -63,22 +64,6 @@ def _iter_room_peers(origin_session):
             continue
         peers.append(session)
     return peers
-
-
-def _third_personize_text(text: str, actor_name: str) -> str:
-    if not text:
-        return text
-
-    possessive = f"{actor_name}'" if actor_name.endswith("s") else f"{actor_name}'s"
-    rewritten = text
-    rewritten = re.sub(r"\byou are\b", f"{actor_name} is", rewritten, flags=re.IGNORECASE)
-    rewritten = re.sub(r"\byou were\b", f"{actor_name} was", rewritten, flags=re.IGNORECASE)
-    rewritten = re.sub(r"\byourself\b", "themselves", rewritten, flags=re.IGNORECASE)
-    rewritten = re.sub(r"\byour\b", possessive, rewritten, flags=re.IGNORECASE)
-    rewritten = re.sub(r"\byou\b", actor_name, rewritten, flags=re.IGNORECASE)
-    return rewritten
-
-
 def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) -> list[dict]:
     messages = outbound if isinstance(outbound, list) else [outbound]
     broadcast_messages: list[dict] = []
@@ -111,7 +96,7 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
                         if not isinstance(part, dict):
                             continue
                         original_text = str(part.get("text", ""))
-                        part["text"] = _third_personize_text(original_text, actor_name)
+                        part["text"] = third_personize_text(original_text, actor_name)
             copied_payload["starts_on_new_line"] = True
             copied_payload["blank_lines_before"] = 2
         broadcast_messages.append(copied_message)

@@ -3,13 +3,13 @@ import random
 import re
 import uuid
 
+from grammar import with_article
 from assets import get_equipment_template_by_id, get_npc_template_by_id, get_skill_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_text import (
     append_newline_if_needed,
     build_entity_attack_parts,
     build_player_attack_parts,
-    with_article,
 )
 from damage import (
     get_npc_hit_modifier,
