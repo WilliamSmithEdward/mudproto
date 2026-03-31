@@ -319,20 +319,16 @@ def load_npc_templates() -> list[dict]:
             "name": name,
             "hit_points": hit_points,
             "max_hit_points": max_hit_points,
-            "attack_damage": int(raw_npc.get("attack_damage", 1)),
+            "power_leveL": max(0, int(raw_npc.get("power_leveL", 1))),
             "attacks_per_round": int(raw_npc.get("attacks_per_round", 1)),
             "hit_roll_modifier": int(raw_npc.get("hit_roll_modifier", 0)),
             "armor_class": int(raw_npc.get("armor_class", 10)),
-            "off_hand_attack_damage": int(raw_npc.get("off_hand_attack_damage", 0)),
             "off_hand_attacks_per_round": int(raw_npc.get("off_hand_attacks_per_round", 0)),
             "off_hand_hit_roll_modifier": int(raw_npc.get("off_hand_hit_roll_modifier", 0)),
-            "off_hand_attack_verb": str(raw_npc.get("off_hand_attack_verb", "hit")).strip().lower() or "hit",
-            "off_hand_weapon_name": str(raw_npc.get("off_hand_weapon_name", "off-hand")).strip() or "off-hand",
             "coin_reward": max(0, int(raw_npc.get("coin_reward", 0))),
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
             "is_ally": bool(raw_npc.get("is_ally", False)),
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
-            "attack_verb": str(raw_npc.get("attack_verb", "hit")).strip().lower() or "hit",
             "main_hand_weapon_template_id": str(raw_npc.get("main_hand_weapon_template_id", "")).strip(),
             "off_hand_weapon_template_id": str(raw_npc.get("off_hand_weapon_template_id", "")).strip(),
             "skill_use_chance": skill_use_chance,
@@ -618,6 +614,11 @@ def load_skills() -> list[dict]:
     skill_ids: set[str] = set()
     skill_names: set[str] = set()
     normalized_skills: list[dict] = []
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
 
     for raw_skill in raw_skills:
         if not isinstance(raw_skill, dict):
@@ -647,6 +648,8 @@ def load_skills() -> list[dict]:
         damage_modifier = int(raw_skill.get("damage_modifier", 0))
         vigor_cost = int(raw_skill.get("vigor_cost", 0))
         usable_out_of_combat = bool(raw_skill.get("usable_out_of_combat", False))
+        scaling_attribute_id = str(raw_skill.get("scaling_attribute_id", "")).strip().lower()
+        scaling_multiplier = float(raw_skill.get("scaling_multiplier", 0.0))
         damage_context = str(raw_skill.get("damage_context", "")).strip()
         support_effect = str(raw_skill.get("support_effect", "")).strip().lower()
         support_amount = int(raw_skill.get("support_amount", 0))
@@ -664,12 +667,18 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' damage_dice_sides must be zero or greater.")
         if vigor_cost < 0:
             raise ValueError(f"Skill asset '{skill_id}' vigor_cost must be zero or greater.")
+        if scaling_multiplier < 0:
+            raise ValueError(f"Skill asset '{skill_id}' scaling_multiplier must be zero or greater.")
         if support_amount < 0:
             raise ValueError(f"Skill asset '{skill_id}' support_amount must be zero or greater.")
         if lag_rounds < 0:
             raise ValueError(f"Skill asset '{skill_id}' lag_rounds must be zero or greater.")
         if cooldown_rounds < 0:
             raise ValueError(f"Skill asset '{skill_id}' cooldown_rounds must be zero or greater.")
+        if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
+            raise ValueError(
+                f"Skill asset '{skill_id}' references unknown scaling_attribute_id '{scaling_attribute_id}'."
+            )
 
         if skill_type == "support":
             if support_effect not in {"heal", "vigor", "mana"}:
@@ -695,6 +704,8 @@ def load_skills() -> list[dict]:
             "damage_modifier": damage_modifier,
             "vigor_cost": vigor_cost,
             "usable_out_of_combat": usable_out_of_combat,
+            "scaling_attribute_id": scaling_attribute_id,
+            "scaling_multiplier": scaling_multiplier,
             "damage_context": damage_context,
             "support_effect": support_effect,
             "support_amount": support_amount,

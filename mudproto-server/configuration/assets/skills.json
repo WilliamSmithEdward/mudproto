@@ -10,6 +10,8 @@
     "damage_modifier": 2,
     "vigor_cost": 4,
     "usable_out_of_combat": false,
+    "scaling_attribute_id": "dex",
+    "scaling_multiplier": 2.50,
     "damage_context": "[a/an] [verb] snapped backward by a sharp jab.",
     "lag_rounds": 0,
     "cooldown_rounds": 1
@@ -25,6 +27,8 @@
     "damage_modifier": 2,
     "vigor_cost": 8,
     "usable_out_of_combat": false,
+    "scaling_attribute_id": "str",
+    "scaling_multiplier": 3.00,
     "damage_context": "[a/an] [verb] taken by a crushing overhead strike.",
     "lag_rounds": 1,
     "cooldown_rounds": 3
@@ -36,7 +40,9 @@
     "skill_type": "support",
     "cast_type": "self",
     "vigor_cost": 6,
-    "usable_out_of_combat": true,
+    "usable_out_of_combat": false,
+    "scaling_attribute_id": "con",
+    "scaling_multiplier": 0.5,
     "support_effect": "heal",
     "support_amount": 10,
     "support_context": "A measured breath steadies your posture and closes shallow wounds.",

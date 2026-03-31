@@ -665,6 +665,24 @@ def _roll_skill_damage(skill: dict) -> int:
     return max(0, rolled_damage + damage_modifier)
 
 
+def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> int:
+    scaling_attribute_id = str(skill.get("scaling_attribute_id", "")).strip().lower()
+    scaling_multiplier = max(0.0, float(skill.get("scaling_multiplier", 0.0)))
+    if not scaling_attribute_id or scaling_multiplier <= 0:
+        return 0
+
+    attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
+    return max(0, int(attribute_value * scaling_multiplier))
+
+
+def _resolve_entity_skill_scale_bonus(entity: EntityState, skill: dict) -> int:
+    scaling_multiplier = max(0.0, float(skill.get("scaling_multiplier", 0.0)))
+    if scaling_multiplier <= 0:
+        return 0
+
+    return max(0, int(max(0, entity.power_level) * scaling_multiplier))
+
+
 def _set_player_skill_cooldown(session: ClientSession, skill: dict) -> None:
     cooldown_rounds = max(0, int(skill.get("cooldown_rounds", 0)))
     if cooldown_rounds > 0:
@@ -706,6 +724,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     support_effect = str(skill.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(skill.get("support_amount", 0)))
     support_context = str(skill.get("support_context", "")).strip()
+    scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
 
     if skill_id and session.combat.skill_cooldowns.get(skill_id, 0) > 0:
         return display_error(
@@ -767,12 +786,14 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
         session.status.vigor -= vigor_cost
 
+        total_support_amount = max(0, support_amount + scaling_bonus)
+
         if support_effect == "heal":
-            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + support_amount)
+            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + total_support_amount)
         elif support_effect == "vigor":
-            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + support_amount)
+            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + total_support_amount)
         else:
-            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + support_amount)
+            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + total_support_amount)
 
         if support_context:
             parts.extend([
@@ -820,7 +841,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     session.status.vigor -= vigor_cost
 
-    total_damage = _roll_skill_damage(skill)
+    total_damage = _roll_skill_damage(skill) + scaling_bonus
 
     for entity in damage_targets:
         parts.append(build_part("\n"))
@@ -900,6 +921,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
     skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
     cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+    scaling_bonus = _resolve_entity_skill_scale_bonus(entity, skill)
 
     description = str(skill.get("description", "")).strip()
     
@@ -920,9 +942,10 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         support_effect = str(skill.get("support_effect", "")).strip().lower()
         support_amount = max(0, int(skill.get("support_amount", 0)))
         support_context = str(skill.get("support_context", "")).strip()
+        total_support_amount = max(0, support_amount + scaling_bonus)
 
         if support_effect == "heal":
-            entity.hit_points = min(entity.max_hit_points, entity.hit_points + support_amount)
+            entity.hit_points = min(entity.max_hit_points, entity.hit_points + total_support_amount)
         if support_context:
             _append_newline_if_needed(parts)
             parts.append(build_part(support_context))
@@ -932,7 +955,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         return True
 
     if skill_type == "damage" and cast_type in {"target", "aoe"}:
-        total_damage = _roll_skill_damage(skill)
+        total_damage = _roll_skill_damage(skill) + scaling_bonus
         damage_context = str(skill.get("damage_context", "")).strip()
 
         if total_damage > 0:
@@ -1210,22 +1233,18 @@ def initialize_session_entities(session: ClientSession) -> None:
                     room_id=room.room_id,
                     hit_points=int(template.get("hit_points", 1)),
                     max_hit_points=int(template.get("max_hit_points", template.get("hit_points", 1))),
-                    attack_damage=int(template.get("attack_damage", 1)),
+                    power_level=max(0, int(template.get("power_leveL", 1))),
                     attacks_per_round=max(1, int(template.get("attacks_per_round", 1))),
                     hit_roll_modifier=int(template.get("hit_roll_modifier", 0)),
                     armor_class=int(template.get("armor_class", 10)),
-                    off_hand_attack_damage=max(0, int(template.get("off_hand_attack_damage", 0))),
                     off_hand_attacks_per_round=max(0, int(template.get("off_hand_attacks_per_round", 0))),
                     off_hand_hit_roll_modifier=int(template.get("off_hand_hit_roll_modifier", 0)),
-                    off_hand_attack_verb=str(template.get("off_hand_attack_verb", "hit")).strip().lower() or "hit",
-                    off_hand_weapon_name=str(template.get("off_hand_weapon_name", "off-hand")).strip() or "off-hand",
                     coin_reward=max(0, int(template.get("coin_reward", 0))),
                     loot_items=loot_items,
                     spawn_sequence=session.entity_spawn_counter,
                     is_aggro=bool(template.get("is_aggro", False)),
                     is_ally=bool(template.get("is_ally", False)),
                     pronoun_possessive=str(template.get("pronoun_possessive", "its")).strip().lower() or "its",
-                    attack_verb=str(template.get("attack_verb", "hit")).strip().lower() or "hit",
                     main_hand_weapon_template_id=str(template.get("main_hand_weapon_template_id", "")).strip(),
                     off_hand_weapon_template_id=str(template.get("off_hand_weapon_template_id", "")).strip(),
                     skill_use_chance=max(0.0, min(1.0, float(template.get("skill_use_chance", 0.35)))),
@@ -1268,7 +1287,7 @@ def spawn_dummy(session: ClientSession) -> dict:
         room_id=room_id,
         hit_points=40,
         max_hit_points=40,
-        attack_damage=6,
+        power_level=6,
         attacks_per_round=1,
         coin_reward=12,
         spawn_sequence=session.entity_spawn_counter,
@@ -1391,12 +1410,8 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
         return template
 
     def _roll_npc_weapon_damage(entity: EntityState, weapon_template: dict | None, *, off_hand: bool) -> tuple[int, str]:
-        if off_hand:
-            base_damage = max(0, entity.off_hand_attack_damage)
-            fallback_verb = entity.off_hand_attack_verb
-        else:
-            base_damage = max(0, entity.attack_damage)
-            fallback_verb = entity.attack_verb
+        base_damage = max(0, entity.power_level)
+        fallback_verb = "hit"
 
         if weapon_template is None:
             return _roll_unarmed_damage(base_damage), fallback_verb
@@ -1439,7 +1454,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
                 miss_verb = (
                     _resolve_weapon_verb(str(main_hand_weapon.get("weapon_type", "unarmed")))
                     if main_hand_weapon is not None
-                    else entity.attack_verb
+                    else "hit"
                 )
                 parts.extend(_build_entity_attack_parts(
                     entity=entity,
@@ -1466,7 +1481,7 @@ def _apply_entity_attacks(session: ClientSession, attackers: list[EntityState], 
                     miss_verb = (
                         _resolve_weapon_verb(str(off_hand_weapon.get("weapon_type", "unarmed")))
                         if off_hand_weapon is not None
-                        else entity.off_hand_attack_verb
+                        else "hit"
                     )
                     parts.extend(_build_entity_attack_parts(
                         entity=entity,

@@ -32,7 +32,8 @@
     ],
     "starting_skill_ids": [
       "skill.guard.breath",
-      "skill.jab"
+      "skill.jab",
+      "skill.overhead.crack"
     ],
     "is_default": true
   }

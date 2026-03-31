@@ -111,15 +111,12 @@ class EntityState:
     room_id: str
     hit_points: int
     max_hit_points: int
-    attack_damage: int = 1
+    power_level: int = 1
     attacks_per_round: int = 1
     hit_roll_modifier: int = 0
     armor_class: int = 10
-    off_hand_attack_damage: int = 0
     off_hand_attacks_per_round: int = 0
     off_hand_hit_roll_modifier: int = 0
-    off_hand_attack_verb: str = "hit"
-    off_hand_weapon_name: str = "off-hand"
     coin_reward: int = 0
     loot_items: list[LootItemState] = field(default_factory=list)
     is_alive: bool = True
@@ -127,7 +124,6 @@ class EntityState:
     is_aggro: bool = False
     is_ally: bool = False
     pronoun_possessive: str = "its"
-    attack_verb: str = "hit"
     main_hand_weapon_template_id: str = ""
     off_hand_weapon_template_id: str = ""
     skill_use_chance: float = 0.35
