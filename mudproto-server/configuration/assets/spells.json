@@ -82,6 +82,8 @@
     "support_amount": 50,
     "support_mode": "battle_rounds",
     "duration_rounds": 3,
-    "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle."
+    "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
+    "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
+    "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle."
   }
 ]

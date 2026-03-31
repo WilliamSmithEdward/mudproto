@@ -7,6 +7,8 @@
     "effect_type": "restore",
     "effect_target": "mana",
     "effect_amount": 50,
-    "use_lag_seconds": 0
+    "use_lag_seconds": 0,
+    "observer_action": "[actor_name] drinks a potion of mana.",
+    "observer_context": "Arcane focus gathers around [actor_object]."
   }
 ]

@@ -223,6 +223,8 @@ def load_item_templates() -> list[dict]:
             "effect_target": effect_target,
             "effect_amount": effect_amount,
             "use_lag_seconds": use_lag_seconds,
+            "observer_action": str(raw_template.get("observer_action", "")).strip(),
+            "observer_context": str(raw_template.get("observer_context", "")).strip(),
         })
 
     return normalized_templates
@@ -601,6 +603,8 @@ def load_spells() -> list[dict]:
         duration_rounds = int(raw_spell.get("duration_rounds", 0))
         support_mode = str(raw_spell.get("support_mode", "timed")).strip().lower() or "timed"
         support_context = str(raw_spell.get("support_context", "")).strip()
+        observer_action = str(raw_spell.get("observer_action", "")).strip()
+        observer_context = str(raw_spell.get("observer_context", "")).strip()
 
         if not cast_type:
             cast_type = "self" if spell_type == "support" else "target"
@@ -658,6 +662,8 @@ def load_spells() -> list[dict]:
             "duration_rounds": duration_rounds,
             "support_mode": support_mode,
             "support_context": support_context,
+            "observer_action": observer_action,
+            "observer_context": observer_context,
         })
 
     return normalized_spells
@@ -720,6 +726,8 @@ def load_skills() -> list[dict]:
         support_effect = str(raw_skill.get("support_effect", "")).strip().lower()
         support_amount = int(raw_skill.get("support_amount", 0))
         support_context = str(raw_skill.get("support_context", "")).strip()
+        observer_action = str(raw_skill.get("observer_action", "")).strip()
+        observer_context = str(raw_skill.get("observer_context", "")).strip()
         lag_rounds = int(raw_skill.get("lag_rounds", 0))
         cooldown_rounds = int(raw_skill.get("cooldown_rounds", 0))
 
@@ -776,6 +784,8 @@ def load_skills() -> list[dict]:
             "support_effect": support_effect,
             "support_amount": support_amount,
             "support_context": support_context,
+            "observer_action": observer_action,
+            "observer_context": observer_context,
             "lag_rounds": lag_rounds,
             "cooldown_rounds": cooldown_rounds,
         })

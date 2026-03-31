@@ -229,6 +229,25 @@ def get_connection_count() -> int:
     return sum(1 for session in connected_clients.values() if session.is_connected)
 
 
+def list_authenticated_room_players(room_id: str, *, exclude_client_id: str | None = None) -> list[ClientSession]:
+    normalized_room_id = room_id.strip()
+    if not normalized_room_id:
+        return []
+
+    players: list[ClientSession] = []
+    for session in connected_clients.values():
+        if not session.is_connected or session.disconnected_by_server or not session.is_authenticated:
+            continue
+        if exclude_client_id is not None and session.client_id == exclude_client_id:
+            continue
+        if session.player.current_room_id != normalized_room_id:
+            continue
+        players.append(session)
+
+    players.sort(key=lambda player_session: player_session.authenticated_character_name.lower())
+    return players
+
+
 def _attach_session_to_shared_world(session: ClientSession) -> None:
     session.entities = shared_world_entities
     session.corpses = shared_world_corpses

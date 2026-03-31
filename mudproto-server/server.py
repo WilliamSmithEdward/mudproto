@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import uuid
 
 from websockets.asyncio.server import ServerConnection
@@ -7,7 +8,7 @@ import websockets
 
 from battle_round_ticks import process_non_combat_support_round
 from combat import initialize_session_entities, resolve_combat_round
-from commands import dispatch_message, execute_command, initial_auth_prompt
+from commands import dispatch_message, execute_command, initial_auth_prompt, parse_command
 from display import (
     display_connected,
     display_error,
@@ -34,6 +35,125 @@ from sessions import (
 from game_hour_ticks import process_game_hour_tick
 from world import get_room
 next_game_tick_monotonic: float | None = None
+
+
+def _iter_room_peers(origin_session):
+    if not origin_session.is_authenticated:
+        return []
+
+    room_id = origin_session.player.current_room_id
+    peers = []
+    for session in connected_clients.values():
+        if session.client_id == origin_session.client_id:
+            continue
+        if not session.is_connected or session.disconnected_by_server or not session.is_authenticated:
+            continue
+        if session.player.current_room_id != room_id:
+            continue
+        peers.append(session)
+    return peers
+
+
+def _third_personize_text(text: str, actor_name: str) -> str:
+    if not text:
+        return text
+
+    possessive = f"{actor_name}'" if actor_name.endswith("s") else f"{actor_name}'s"
+    rewritten = text
+    rewritten = re.sub(r"\byou are\b", f"{actor_name} is", rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byou were\b", f"{actor_name} was", rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byourself\b", "themselves", rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byour\b", possessive, rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byou\b", actor_name, rewritten, flags=re.IGNORECASE)
+    return rewritten
+
+
+def _extract_room_broadcast_messages(origin_session, outbound: dict | list[dict]) -> list[dict]:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    broadcast_messages: list[dict] = []
+    actor_name = origin_session.authenticated_character_name or "Someone"
+
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        if message.get("type") != "display":
+            continue
+
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+
+        parts = payload.get("parts")
+        if not isinstance(parts, list) or not parts:
+            continue
+
+        copied_message = json.loads(json.dumps(message))
+        copied_payload = copied_message.get("payload")
+        if isinstance(copied_payload, dict):
+            observer_parts = copied_payload.get("room_broadcast_parts")
+            if isinstance(observer_parts, list) and observer_parts:
+                copied_payload["parts"] = observer_parts
+            else:
+                copied_parts = copied_payload.get("parts")
+                if isinstance(copied_parts, list):
+                    for part in copied_parts:
+                        if not isinstance(part, dict):
+                            continue
+                        original_text = str(part.get("text", ""))
+                        part["text"] = _third_personize_text(original_text, actor_name)
+            copied_payload["prompt_after"] = False
+            copied_payload["prompt_parts"] = None
+        broadcast_messages.append(copied_message)
+
+    return broadcast_messages
+
+
+def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | list[dict]) -> bool:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        parts = payload.get("parts")
+        if not isinstance(parts, list):
+            continue
+        text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict)).strip()
+        if text.startswith("Error:"):
+            return False
+
+    verb, _ = parse_command(command_text)
+    if verb in {
+        "attack", "ki", "kil", "kill", "disengage", "flee",
+        "cast", "c", "ca", "cas", "use", "skill", "sk", "ski", "skil", "skl",
+    }:
+        return True
+
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        parts = payload.get("parts")
+        if not isinstance(parts, list):
+            continue
+        text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict)).strip().lower()
+        if text.startswith("you cast ") or text.startswith("you use "):
+            return True
+
+    return False
+
+
+async def _broadcast_outbound_to_room(origin_session, outbound: dict | list[dict]) -> None:
+    broadcast_messages = _extract_room_broadcast_messages(origin_session, outbound)
+    if not broadcast_messages:
+        return
+
+    peers = _iter_room_peers(origin_session)
+    for peer in peers:
+        await send_outbound(peer.websocket, broadcast_messages)
 
 
 async def send_json(websocket: ServerConnection, message: dict) -> None:
@@ -78,6 +198,7 @@ async def command_scheduler_loop(session) -> None:
                     session.websocket,
                     [combat_result, display_force_prompt(session)],
                 )
+                await _broadcast_outbound_to_room(session, combat_result)
                 continue
 
             process_non_combat_support_round(session)
@@ -90,6 +211,8 @@ async def command_scheduler_loop(session) -> None:
 
                 result = execute_command(session, queued_command.command_text)
                 await send_outbound(session.websocket, result)
+                if _looks_like_skill_spell_or_item_action(queued_command.command_text, result):
+                    await _broadcast_outbound_to_room(session, result)
                 continue
 
             if session.prompt_pending_after_lag:
@@ -161,6 +284,12 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
             response = await dispatch_message(message, session)
             await send_outbound(session.websocket, response)
+
+            if message.get("type") == "input":
+                payload = message.get("payload", {})
+                input_text = payload.get("text") if isinstance(payload, dict) else None
+                if isinstance(input_text, str) and session.is_authenticated and _looks_like_skill_spell_or_item_action(input_text, response):
+                    await _broadcast_outbound_to_room(session, response)
 
     finally:
         if session.scheduler_task is not None:

@@ -36,6 +36,55 @@ OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
 
 
+def _attach_room_broadcast_parts(outbound: dict, lines: list[str]) -> dict:
+    payload = outbound.get("payload")
+    if not isinstance(payload, dict):
+        return outbound
+
+    parts: list[dict] = []
+    for index, line in enumerate(lines):
+        cleaned = str(line).strip()
+        if not cleaned:
+            continue
+        if index > 0 and parts:
+            parts.append({"text": "\n", "fg": "bright_white", "bold": False})
+        parts.append({"text": cleaned, "fg": "bright_white", "bold": False})
+
+    if parts:
+        payload["room_broadcast_parts"] = parts
+    return outbound
+
+
+def _render_observer_template(template_text: str, actor_name: str) -> str:
+    actor_object = "them"
+    actor_possessive = "their"
+    actor_subject = actor_name
+    return (
+        template_text
+        .replace("[actor_name]", actor_name)
+        .replace("[actor_subject]", actor_subject)
+        .replace("[actor_object]", actor_object)
+        .replace("[actor_possessive]", actor_possessive)
+    )
+
+
+def _observer_context_from_player_context(context: str, target_text: str | None = None) -> str:
+    if not context:
+        return ""
+
+    resolved = context
+    resolved = resolved.replace("[a/an]", target_text or "the target")
+    resolved = resolved.replace("[verb]", "is")
+    resolved = resolved.replace(" your ", " their ")
+    resolved = resolved.replace(" you ", " them ")
+    resolved = resolved.replace(" yourself", " themselves")
+    if resolved.startswith("Your "):
+        resolved = f"Their {resolved[5:]}"
+    if resolved.startswith("You "):
+        resolved = f"{resolved[4:]}"
+    return resolved
+
+
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
     entities: list[EntityState] = []
 
@@ -513,7 +562,10 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     support_effect = str(skill.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(skill.get("support_amount", 0)))
     support_context = str(skill.get("support_context", "")).strip()
+    observer_action = str(skill.get("observer_action", "")).strip()
+    observer_context = str(skill.get("observer_context", "")).strip()
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
+    actor_name = session.authenticated_character_name or "Someone"
 
     if skill_id and session.combat.skill_cooldowns.get(skill_id, 0) > 0:
         return display_error(
@@ -592,7 +644,15 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
         _set_player_skill_cooldown(session, skill)
         _apply_player_skill_lag(session, skill)
-        return display_command_result(session, parts), True
+        observer_lines = [
+            _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} uses {skill_name}.",
+        ]
+        support_observer_context = observer_context or _observer_context_from_player_context(support_context)
+        if support_observer_context:
+            observer_lines.append(_render_observer_template(support_observer_context, actor_name))
+
+        result = display_command_result(session, parts)
+        return _attach_room_broadcast_parts(result, observer_lines), True
 
     clear_combat_if_invalid(session)
 
@@ -680,7 +740,16 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     _set_player_skill_cooldown(session, skill)
     _apply_player_skill_lag(session, skill)
-    return display_command_result(session, parts), True
+    target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
+    observer_lines = [
+        _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} uses {skill_name}.",
+    ]
+    damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
+    if damage_observer_context:
+        observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
+
+    result = display_command_result(session, parts)
+    return _attach_room_broadcast_parts(result, observer_lines), True
 
 
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
@@ -791,7 +860,10 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
     support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
     support_context = str(spell.get("support_context", "")).strip()
+    observer_action = str(spell.get("observer_action", "")).strip()
+    observer_context = str(spell.get("observer_context", "")).strip()
     spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
+    actor_name = session.authenticated_character_name or "Someone"
 
     status = session.status
     if status.mana < mana_cost:
@@ -851,8 +923,15 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 build_part("\n"),
                 build_part(support_context),
             ])
+            observer_lines = [
+                _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} casts {spell_name}.",
+            ]
+            support_observer_context = observer_context or _observer_context_from_player_context(support_context)
+            if support_observer_context:
+                observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
-            return display_command_result(session, parts), True
+            result = display_command_result(session, parts)
+            return _attach_room_broadcast_parts(result, observer_lines), True
 
         refreshed = False
         for active_effect in session.active_support_effects:
@@ -884,8 +963,15 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             build_part("\n"),
             build_part(support_context),
         ]
+        observer_lines = [
+            _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} casts {spell_name}.",
+        ]
+        support_observer_context = observer_context or _observer_context_from_player_context(support_context)
+        if support_observer_context:
+            observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
-        return display_command_result(session, parts), True
+        result = display_command_result(session, parts)
+        return _attach_room_broadcast_parts(result, observer_lines), True
 
     if spell_type != "damage":
         return display_error(f"Spell '{spell_name}' has unsupported spell_type '{spell_type}'.", session), False
@@ -979,7 +1065,16 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                         build_part("."),
                     ])
 
-    return display_command_result(session, parts), True
+    target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
+    observer_lines = [
+        _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} casts {spell_name}.",
+    ]
+    damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
+    if damage_observer_context:
+        observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
+
+    result = display_command_result(session, parts)
+    return _attach_room_broadcast_parts(result, observer_lines), True
 
 
 def initialize_session_entities(session: ClientSession) -> None:

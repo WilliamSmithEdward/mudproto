@@ -677,11 +677,46 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     item_name = misc_item.name.strip().lower() or "item"
     item_article = "an" if item_name[:1] in "aeiou" else "a"
 
-    return display_command_result(session, [
+    observer_action = str(template.get("observer_action", "")).strip()
+    observer_context = str(template.get("observer_context", "")).strip()
+    actor_name = session.authenticated_character_name or "Someone"
+
+    if not observer_action:
+        observer_action = f"{actor_name} uses {item_article} {item_name}."
+    observer_action = (
+        observer_action
+        .replace("[actor_name]", actor_name)
+        .replace("[actor_subject]", actor_name)
+        .replace("[actor_object]", "them")
+        .replace("[actor_possessive]", "their")
+    )
+
+    if observer_context:
+        observer_context = (
+            observer_context
+            .replace("[actor_name]", actor_name)
+            .replace("[actor_subject]", actor_name)
+            .replace("[actor_object]", "them")
+            .replace("[actor_possessive]", "their")
+        )
+
+    result = display_command_result(session, [
         build_part("You use ", "bright_white"),
         build_part(f"{item_article} {item_name}", "bright_yellow", True),
         build_part(".", "bright_white"),
     ])
+
+    payload = result.get("payload")
+    if isinstance(payload, dict):
+        room_parts = [build_part(observer_action, "bright_white")]
+        if observer_context:
+            room_parts.extend([
+                build_part("\n", "bright_white"),
+                build_part(observer_context, "bright_white"),
+            ])
+        payload["room_broadcast_parts"] = room_parts
+
+    return result
 
 
 def _promote_misc_item_to_equipment(session: ClientSession, misc_item) -> EquipmentItemState | None:

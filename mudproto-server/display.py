@@ -4,7 +4,7 @@ from equipment import list_inventory_items, list_worn_items
 from models import ClientSession
 from protocol import build_response
 from settings import PLAYER_REFERENCE_MAX_HP
-from sessions import is_session_lagged
+from sessions import is_session_lagged, list_authenticated_room_players
 from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_corpses, list_room_entities
 from world import Room, get_room
 
@@ -423,6 +423,22 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(" (", "bright_white"),
                 build_part(condition_text, condition_color, True),
                 build_part(" condition)", "bright_white"),
+            ])
+
+    other_players = list_authenticated_room_players(room.room_id, exclude_client_id=session.client_id)
+    if other_players:
+        parts.extend([
+            build_part("\n"),
+            build_part("\n"),
+            build_part("Players here:", "bright_white", True),
+        ])
+
+        for other_player in other_players:
+            player_name = other_player.authenticated_character_name.strip() or "Unknown"
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(player_name, "bright_cyan", True),
             ])
 
     corpses = list_room_corpses(session, room.room_id)
