@@ -72,12 +72,16 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
     if item is None:
         return
 
-    existing_template_ids = {inventory_item.template_id for inventory_item in session.equipment.items.values()}
+    existing_template_ids = {
+        inventory_item.template_id
+        for inventory_item in session.inventory_items.values()
+        if isinstance(inventory_item, type(item))
+    }
     existing_template_ids.update(equipped_item.template_id for equipped_item in session.equipment.equipped_items.values())
     if item.template_id in existing_template_ids:
         return
 
-    session.equipment.items[item.item_id] = item
+    session.inventory_items[item.item_id] = item
 
 
 def _grant_starting_item_from_template(session: ClientSession, template: dict) -> None:
@@ -135,7 +139,9 @@ def _equip_starting_equipment_by_template_id(session: ClientSession, template_id
         return
 
     item: EquipmentItemState | None = None
-    for inventory_item in session.equipment.items.values():
+    for inventory_item in session.inventory_items.values():
+        if not isinstance(inventory_item, EquipmentItemState):
+            continue
         if inventory_item.template_id.strip().lower() == normalized_template_id:
             item = inventory_item
             break
@@ -151,7 +157,7 @@ def _equip_starting_equipment_by_template_id(session: ClientSession, template_id
         item = _build_starting_equipment_item_from_template(template)
         if item is None:
             return
-        session.equipment.items[item.item_id] = item
+        session.inventory_items[item.item_id] = item
 
     if item.slot == "weapon":
         main_occupied = session.equipment.equipped_main_hand_id is not None

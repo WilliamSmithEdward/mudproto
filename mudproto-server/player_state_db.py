@@ -260,6 +260,18 @@ def _deserialize_loot_item(raw: dict) -> LootItemState:
     )
 
 
+def _serialize_inventory_item(item) -> dict:
+    if isinstance(item, EquipmentItemState):
+        return _serialize_equipment_item(item)
+    return _serialize_loot_item(item)
+
+
+def _deserialize_inventory_item(raw: dict):
+    if "slot" in raw:
+        return _deserialize_equipment_item(raw)
+    return _deserialize_loot_item(raw)
+
+
 def _serialize_support_effect(effect: ActiveSupportEffectState) -> dict:
     return {
         "spell_id": effect.spell_id,
@@ -302,7 +314,6 @@ def _serialize_session(session: ClientSession) -> dict:
             "coins": int(session.status.coins),
         },
         "equipment": {
-            "items": {item_id: _serialize_equipment_item(item) for item_id, item in session.equipment.items.items()},
             "equipped_items": {
                 item_id: _serialize_equipment_item(item)
                 for item_id, item in session.equipment.equipped_items.items()
@@ -312,7 +323,7 @@ def _serialize_session(session: ClientSession) -> dict:
             "worn_item_ids": dict(session.equipment.worn_item_ids),
         },
         "inventory_items": {
-            item_id: _serialize_loot_item(item)
+            item_id: _serialize_inventory_item(item)
             for item_id, item in session.inventory_items.items()
         },
         "known_spell_ids": list(session.known_spell_ids),
@@ -385,14 +396,9 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
         session.status.coins = max(0, int(raw_status.get("coins", session.status.coins)))
 
     raw_equipment = raw_state.get("equipment", {})
+    raw_items = {}
     if isinstance(raw_equipment, dict):
         raw_items = raw_equipment.get("items", {})
-        if isinstance(raw_items, dict):
-            session.equipment.items = {
-                str(item_id): _deserialize_equipment_item(raw_item)
-                for item_id, raw_item in raw_items.items()
-                if isinstance(raw_item, dict)
-            }
 
         raw_equipped_items = raw_equipment.get("equipped_items", {})
         if isinstance(raw_equipped_items, dict):
@@ -415,12 +421,20 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
             }
 
     raw_inventory_items = raw_state.get("inventory_items", {})
+    merged_inventory_items: dict[str, EquipmentItemState | LootItemState] = {}
+    if isinstance(raw_items, dict):
+        merged_inventory_items.update({
+            str(item_id): _deserialize_equipment_item(raw_item)
+            for item_id, raw_item in raw_items.items()
+            if isinstance(raw_item, dict)
+        })
     if isinstance(raw_inventory_items, dict):
-        session.inventory_items = {
-            str(item_id): _deserialize_loot_item(raw_item)
+        merged_inventory_items.update({
+            str(item_id): _deserialize_inventory_item(raw_item)
             for item_id, raw_item in raw_inventory_items.items()
             if isinstance(raw_item, dict)
-        }
+        })
+    session.inventory_items = merged_inventory_items
 
     raw_known_spell_ids = raw_state.get("known_spell_ids", [])
     if isinstance(raw_known_spell_ids, list):

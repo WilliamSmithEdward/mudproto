@@ -1,7 +1,7 @@
 import re
 from math import ceil
 
-from assets import load_hand_weight_config, load_wear_slot_config
+from assets import get_equipment_template_by_id, load_equipment_templates, load_hand_weight_config, load_wear_slot_config
 from models import ClientSession, EquipmentItemState
 from settings import BASE_PLAYER_ARMOR_CLASS
 
@@ -80,8 +80,43 @@ def _resolve_item_wear_slot_candidates(item: EquipmentItemState) -> tuple[list[s
     return resolved_candidates, None
 
 
+def _find_equipment_template_for_loot_name(loot_name: str) -> dict | None:
+    normalized_loot_name = loot_name.strip().lower()
+    if not normalized_loot_name:
+        return None
+
+    loot_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_loot_name) if token}
+    for template in load_equipment_templates():
+        template_name = str(template.get("name", "")).strip().lower()
+        if template_name == normalized_loot_name:
+            return template
+
+        keywords = [str(keyword).strip().lower() for keyword in template.get("keywords", [])]
+        if keywords and all(keyword in loot_tokens for keyword in keywords):
+            return template
+
+    return None
+
+
+def get_equipment_template_for_item(item) -> dict | None:
+    template_id = str(getattr(item, "template_id", "")).strip()
+    if template_id:
+        template = get_equipment_template_by_id(template_id)
+        if template is not None:
+            return template
+    return _find_equipment_template_for_loot_name(str(getattr(item, "name", "")))
+
+
+def is_item_equippable(item) -> bool:
+    return isinstance(item, EquipmentItemState) or get_equipment_template_for_item(item) is not None
+
+
 def list_equipment(session: ClientSession) -> list[EquipmentItemState]:
-    equipment_items = list(session.equipment.items.values())
+    equipment_items = [
+        item
+        for item in session.inventory_items.values()
+        if isinstance(item, EquipmentItemState)
+    ]
     equipment_items.sort(key=lambda item: (item.name.lower(), item.item_id))
     return equipment_items
 
@@ -171,7 +206,7 @@ def get_player_armor_class(session: ClientSession) -> int:
 def _move_equipped_item_to_inventory(session: ClientSession, item_id: str) -> None:
     equipped_item = session.equipment.equipped_items.pop(item_id, None)
     if equipped_item is not None:
-        session.equipment.items[item_id] = equipped_item
+        session.inventory_items[item_id] = equipped_item
 
 
 def _clear_item_slot_references(session: ClientSession, item_id: str) -> None:
@@ -316,7 +351,7 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
     if not can_equip:
         return False, equip_error
 
-    if item.item_id not in session.equipment.items:
+    if item.item_id not in session.inventory_items:
         return False, f"{item.name} is not in your inventory."
 
     previous_main_id = session.equipment.equipped_main_hand_id
@@ -340,7 +375,7 @@ def equip_item(session: ClientSession, item: EquipmentItemState, hand: str | Non
             _move_equipped_item_to_inventory(session, previous_off_id)
 
     session.equipment.equipped_items[item.item_id] = item
-    session.equipment.items.pop(item.item_id, None)
+    session.inventory_items.pop(item.item_id, None)
 
     return True, target_hand
 
@@ -360,7 +395,7 @@ def wear_item(session: ClientSession, item: EquipmentItemState, target_wear_slot
             return False, f"{item.name} cannot be worn on your {_normalize_wear_slot_label(normalized_target_slot)}. Available slots: {allowed}."
         wear_slot_candidates = [normalized_target_slot]
 
-    if item.item_id not in session.equipment.items:
+    if item.item_id not in session.inventory_items:
         return False, f"{item.name} is not in your inventory."
 
     target_slot_key: str | None = None
@@ -379,7 +414,7 @@ def wear_item(session: ClientSession, item: EquipmentItemState, target_wear_slot
     _clear_item_slot_references(session, item.item_id)
     session.equipment.worn_item_ids[target_slot_key] = item.item_id
     session.equipment.equipped_items[item.item_id] = item
-    session.equipment.items.pop(item.item_id, None)
+    session.inventory_items.pop(item.item_id, None)
     return True, _normalize_wear_slot_label(target_slot_key)
 
 
@@ -397,4 +432,4 @@ def remove_item(session: ClientSession, item: EquipmentItemState) -> None:
     item_id = item.item_id
     _clear_item_slot_references(session, item_id)
     session.equipment.equipped_items.pop(item_id, None)
-    session.equipment.items.pop(item_id, None)
+    session.inventory_items.pop(item_id, None)

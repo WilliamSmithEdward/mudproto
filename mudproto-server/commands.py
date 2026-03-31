@@ -12,8 +12,8 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from assets import get_equipment_template_by_id, get_item_template_by_id, get_player_class_by_id, load_attributes, load_equipment_templates, load_item_templates, load_player_classes, load_skills, load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
+from assets import get_item_template_by_id, get_player_class_by_id, load_attributes, load_item_templates, load_player_classes, load_skills, load_spells
+from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, get_equipment_template_for_item, is_item_equippable, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
     character_exists,
     create_character,
@@ -443,6 +443,45 @@ def _build_corpse_label(source_name: str) -> str:
     return f"{source_name} corpse"
 
 
+def _resolve_inventory_selector(session: ClientSession, selector: str):
+    normalized = selector.strip().lower()
+    if not normalized:
+        return None, "Provide an inventory selector."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, "Provide an inventory selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, "Provide at least one selector keyword after the index."
+
+    inventory_items = list(session.inventory_items.values())
+    inventory_items.sort(key=lambda item: item.name.lower())
+
+    matches = []
+    for item in inventory_items:
+        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+        if all(keyword in keywords for keyword in parts):
+            matches.append(item)
+
+    if not matches:
+        return None, f"{selector} doesn't exist in inventory."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} match(es) found for '{selector}'."
+        return matches[requested_index - 1], None
+
+    return matches[0], None
+
+
 def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
     normalized = selector.strip().lower()
     if not normalized:
@@ -462,7 +501,11 @@ def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
     if not parts:
         return None, "Provide at least one selector keyword after the index."
 
-    misc_items = list(session.inventory_items.values())
+    misc_items = [
+        item
+        for item in session.inventory_items.values()
+        if not is_item_equippable(item)
+    ]
     misc_items.sort(key=lambda item: item.name.lower())
 
     matches = []
@@ -503,15 +546,10 @@ def _resolve_wear_inventory_selector(session: ClientSession, selector: str) -> t
 
     matches: list[tuple[str, EquipmentItemState | LootItemState]] = []
 
-    for item in session.equipment.items.values():
-        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+    for inventory_item in session.inventory_items.values():
+        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", inventory_item.name.lower()) if token}
         if all(keyword in keywords for keyword in parts):
-            matches.append((item.name.lower(), item))
-
-    for misc_item in session.inventory_items.values():
-        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", misc_item.name.lower()) if token}
-        if all(keyword in keywords for keyword in parts):
-            matches.append((misc_item.name.lower(), misc_item))
+            matches.append((inventory_item.name.lower(), inventory_item))
 
     matches.sort(key=lambda entry: entry[0])
 
@@ -529,7 +567,7 @@ def _resolve_wear_inventory_selector(session: ClientSession, selector: str) -> t
     if isinstance(selected_match, EquipmentItemState):
         return selected_match, None
 
-    template = _get_equipment_template_for_item(selected_match)
+    template = get_equipment_template_for_item(selected_match)
     if template is None:
         return None, f"{selected_match.name} cannot be worn."
 
@@ -579,30 +617,9 @@ def _add_item_to_room_ground(session: ClientSession, room_id: str, item) -> None
 
 
 def _pickup_ground_item(session: ClientSession, room_id: str, item) -> None:
-    """Move an item from room ground into the correct player inventory bucket."""
+    """Move an item from room ground into player inventory."""
     session.room_ground_items.get(room_id, {}).pop(item.item_id, None)
-    if isinstance(item, EquipmentItemState):
-        session.equipment.items[item.item_id] = item
-    else:
-        session.inventory_items[item.item_id] = item
-
-
-def _find_equipment_template_for_loot_name(loot_name: str) -> dict | None:
-    normalized_loot_name = loot_name.strip().lower()
-    if not normalized_loot_name:
-        return None
-
-    loot_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_loot_name) if token}
-    for template in load_equipment_templates():
-        template_name = str(template.get("name", "")).strip().lower()
-        if template_name == normalized_loot_name:
-            return template
-
-        keywords = [str(keyword).strip().lower() for keyword in template.get("keywords", [])]
-        if keywords and all(keyword in loot_tokens for keyword in keywords):
-            return template
-
-    return None
+    session.inventory_items[item.item_id] = item
 
 
 def _find_item_template_for_misc_item(misc_item) -> dict | None:
@@ -725,21 +742,10 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     return result
 
 
-def _get_equipment_template_for_item(item) -> dict | None:
-    """Return the equipment template for an item if it is equippable, otherwise None."""
-    template_id = str(getattr(item, "template_id", "")).strip()
-    if template_id:
-        template = get_equipment_template_by_id(template_id)
-        if template is not None:
-            return template
-    return _find_equipment_template_for_loot_name(item.name)
-
-
 def _build_equipment_item(session: ClientSession, loot_item, template: dict) -> EquipmentItemState:
-    """Construct an EquipmentItemState from a loot item + its template and move it into equipment.items."""
-    item_id = f"item-{uuid.uuid4().hex[:8]}"
+    """Replace a carried loot-style item with an EquipmentItemState in inventory_items."""
     equipment_item = EquipmentItemState(
-        item_id=item_id,
+        item_id=loot_item.item_id,
         template_id=str(template.get("template_id", "")).strip(),
         name=str(template.get("name", loot_item.name)).strip() or loot_item.name,
         slot=str(template.get("slot", "")).strip(),
@@ -759,9 +765,12 @@ def _build_equipment_item(session: ClientSession, loot_item, template: dict) -> 
     )
     if equipment_item.wear_slots:
         equipment_item.wear_slot = equipment_item.wear_slots[0]
-    session.inventory_items.pop(loot_item.item_id, None)
-    session.equipment.items[equipment_item.item_id] = equipment_item
+    session.inventory_items[equipment_item.item_id] = equipment_item
     return equipment_item
+
+
+def _item_highlight_color(item) -> str:
+    return "bright_magenta" if is_item_equippable(item) else "bright_yellow"
 
 
 def _find_spell_by_name(spell_name: str) -> dict | None:
@@ -1018,7 +1027,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 parts.extend([
                     build_part("\n"),
                     build_part(f" - {index}. ", "bright_white"),
-                    build_part(loot_item.name, "bright_magenta", True),
+                    build_part(loot_item.name, _item_highlight_color(loot_item), True),
                 ])
         else:
             parts.extend([
@@ -1050,7 +1059,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     parts.extend([
                         build_part("\n"),
                         build_part("You take ", "bright_white"),
-                        build_part(item.name, "bright_yellow", True),
+                        build_part(item.name, _item_highlight_color(item), True),
                         build_part(".", "bright_white"),
                     ])
                 return display_command_result(session, parts)
@@ -1071,7 +1080,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     _pickup_ground_item(session, room_id, selected_item)
                     return display_command_result(session, [
                         build_part("You take ", "bright_white"),
-                        build_part(selected_item.name, "bright_yellow", True),
+                        build_part(selected_item.name, _item_highlight_color(selected_item), True),
                         build_part(".", "bright_white"),
                     ])
 
@@ -1098,14 +1107,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 return display_error("There is nothing to loot in this room.", session)
 
             total_coins = room_coin_pile
-            looted_items: list[str] = []
+            looted_items = []
 
             if room_coin_pile > 0:
                 session.room_coin_piles[room_id] = 0
 
             for item in room_items:
                 _pickup_ground_item(session, room_id, item)
-                looted_items.append(item.name)
+                looted_items.append(item)
 
             for corpse in corpses:
                 corpse_coins = max(0, corpse.coins)
@@ -1117,7 +1126,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 for item in corpse_items:
                     session.inventory_items[item.item_id] = item
                     corpse.loot_items.pop(item.item_id, None)
-                    looted_items.append(item.name)
+                    looted_items.append(item)
 
             if total_coins <= 0 and not looted_items:
                 return display_error("There is nothing to loot in this room.", session)
@@ -1133,11 +1142,11 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                     build_part("Coins +", "bright_white"),
                     build_part(str(total_coins), "bright_cyan", True),
                 ])
-            for item_name in looted_items:
+            for item in looted_items:
                 parts.extend([
                     build_part("\n"),
                     build_part("You take ", "bright_white"),
-                    build_part(item_name, "bright_magenta", True),
+                    build_part(item.name, _item_highlight_color(item), True),
                     build_part(".", "bright_white"),
                 ])
 
@@ -1193,7 +1202,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 parts.extend([
                     build_part("\n"),
                     build_part("You take ", "bright_white"),
-                    build_part(item.name, "bright_magenta", True),
+                    build_part(item.name, _item_highlight_color(item), True),
                     build_part(".", "bright_white"),
                 ])
 
@@ -1223,7 +1232,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You take ", "bright_white"),
-            build_part(item.name, "bright_magenta", True),
+            build_part(item.name, _item_highlight_color(item), True),
             build_part(" from ", "bright_white"),
             build_part(_build_corpse_label(corpse.source_name), "bright_yellow", True),
             build_part(".", "bright_white"),
@@ -1374,11 +1383,11 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         item, resolve_error = resolve_equipment_selector(session, selector)
         if item is None:
-            misc_item, _ = _resolve_misc_inventory_selector(session, selector)
-            if misc_item is not None:
-                template = _get_equipment_template_for_item(misc_item)
+            inventory_item, _ = _resolve_inventory_selector(session, selector)
+            if inventory_item is not None:
+                template = get_equipment_template_for_item(inventory_item)
                 if template is not None:
-                    item = _build_equipment_item(session, misc_item, template)
+                    item = _build_equipment_item(session, inventory_item, template)
         if item is None:
             return display_error(resolve_error or "Unable to resolve equipment selector.", session)
 
@@ -1402,14 +1411,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
-            misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
-            if misc_item is None:
-                return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
+            inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
+            if inventory_item is None:
+                return display_error(resolve_error or inventory_error or "Unable to resolve equipment selector.", session)
 
-            promoted = _get_equipment_template_for_item(misc_item)
+            promoted = get_equipment_template_for_item(inventory_item)
             if promoted is None:
-                return display_error(f"{misc_item.name} cannot be wielded.", session)
-            item = _build_equipment_item(session, misc_item, promoted)
+                return display_error(f"{inventory_item.name} cannot be wielded.", session)
+            item = _build_equipment_item(session, inventory_item, promoted)
 
         current_main = get_equipped_main_hand(session)
         if current_main is not None:
@@ -1435,14 +1444,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
         if resolve_error is not None or item is None:
-            misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
-            if misc_item is None:
-                return display_error(resolve_error or misc_error or "Unable to resolve equipment selector.", session)
+            inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
+            if inventory_item is None:
+                return display_error(resolve_error or inventory_error or "Unable to resolve equipment selector.", session)
 
-            promoted = _get_equipment_template_for_item(misc_item)
+            promoted = get_equipment_template_for_item(inventory_item)
             if promoted is None:
-                return display_error(f"{misc_item.name} cannot be held.", session)
-            item = _build_equipment_item(session, misc_item, promoted)
+                return display_error(f"{inventory_item.name} cannot be held.", session)
+            item = _build_equipment_item(session, inventory_item, promoted)
 
         current_off = get_equipped_off_hand(session)
         if current_off is not None:
@@ -1476,26 +1485,23 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 return display_error("Usage: wear all.<item>", session)
 
             wearable_items = []
-            for item in session.equipment.items.values():
-                if item.slot.strip().lower() != "armor":
-                    continue
-                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
-                if selector_tokens.issubset(item_keywords):
-                    wearable_items.append(item)
 
-            # Include matching wearable misc items by checking equippable property at runtime.
-            for misc_item in list(session.inventory_items.values()):
-                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", misc_item.name.lower()) if token}
+            for inventory_item in list(session.inventory_items.values()):
+                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", inventory_item.name.lower()) if token}
                 if not selector_tokens.issubset(item_keywords):
                     continue
 
-                template = _get_equipment_template_for_item(misc_item)
-                if template is None or str(template.get("slot", "")).strip().lower() != "armor":
-                    continue
+                if isinstance(inventory_item, EquipmentItemState):
+                    equipment_item = inventory_item
+                else:
+                    template = get_equipment_template_for_item(inventory_item)
+                    if template is None:
+                        continue
+                    equipment_item = _build_equipment_item(session, inventory_item, template)
 
-                equipment_item = _build_equipment_item(session, misc_item, template)
-                if equipment_item.slot.strip().lower() == "armor":
-                    wearable_items.append(equipment_item)
+                if equipment_item.slot.strip().lower() != "armor":
+                    continue
+                wearable_items.append(equipment_item)
 
             wearable_items.sort(key=lambda item: (len(item.wear_slots) if item.wear_slots else 1, item.name.lower(), item.item_id))
 
@@ -1527,18 +1533,15 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_command_result(session, parts)
 
         if selector == "all":
-            wearable_items = [
-                item
-                for item in session.equipment.items.values()
-                if item.slot.strip().lower() == "armor"
-            ]
-
-            # Include wearable misc items by checking equippable property at runtime.
-            for misc_item in list(session.inventory_items.values()):
-                template = _get_equipment_template_for_item(misc_item)
-                if template is None or str(template.get("slot", "")).strip().lower() != "armor":
-                    continue
-                equipment_item = _build_equipment_item(session, misc_item, template)
+            wearable_items = []
+            for inventory_item in list(session.inventory_items.values()):
+                if isinstance(inventory_item, EquipmentItemState):
+                    equipment_item = inventory_item
+                else:
+                    template = get_equipment_template_for_item(inventory_item)
+                    if template is None:
+                        continue
+                    equipment_item = _build_equipment_item(session, inventory_item, template)
                 if equipment_item.slot.strip().lower() == "armor":
                     wearable_items.append(equipment_item)
 
@@ -1604,41 +1607,30 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if not selector_tokens:
                 return display_error("Usage: drop all.<item>", session)
 
-            equipment_matches = []
-            for item in list(session.equipment.items.values()):
-                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
-                if selector_tokens.issubset(item_keywords):
-                    equipment_matches.append(item)
-
-            misc_matches = []
+            inventory_matches = []
             for item in list(session.inventory_items.values()):
                 item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
                 if selector_tokens.issubset(item_keywords):
-                    misc_matches.append(item)
+                    inventory_matches.append(item)
 
-            if not equipment_matches and not misc_matches:
+            if not inventory_matches:
                 return display_error(f"No inventory item matches '{item_selector}'.", session)
 
-            dropped_names: list[str] = []
+            dropped_items = []
 
-            for item in equipment_matches:
-                remove_item(session, item)
-                _add_item_to_room_ground(session, session.player.current_room_id, item)
-                dropped_names.append(item.name)
-
-            for item in misc_matches:
+            for item in inventory_matches:
                 session.inventory_items.pop(item.item_id, None)
                 _add_item_to_room_ground(session, session.player.current_room_id, item)
-                dropped_names.append(item.name)
+                dropped_items.append(item)
 
             parts = [
                 build_part("You drop all matching items.", "bright_white"),
             ]
-            for item_name in dropped_names:
+            for item in dropped_items:
                 parts.extend([
                     build_part("\n"),
                     build_part(" - ", "bright_white"),
-                    build_part(item_name, "bright_yellow", True),
+                    build_part(item.name, _item_highlight_color(item), True),
                 ])
             return display_command_result(session, parts)
 
@@ -1664,19 +1656,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             ])
 
         if selector == "all":
-            equipment_items = list(session.equipment.items.values())
-            misc_items = list(session.inventory_items.values())
+            inventory_items = list(session.inventory_items.values())
 
-            if not equipment_items and not misc_items:
+            if not inventory_items:
                 return display_error("You have nothing to drop.", session)
 
             dropped_count = 0
-            for item in equipment_items:
-                remove_item(session, item)
-                _add_item_to_room_ground(session, session.player.current_room_id, item)
-                dropped_count += 1
-
-            for item in misc_items:
+            for item in inventory_items:
                 session.inventory_items.pop(item.item_id, None)
                 _add_item_to_room_ground(session, session.player.current_room_id, item)
                 dropped_count += 1
@@ -1690,27 +1676,25 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         item, resolve_error = resolve_equipment_selector(session, selector)
         if item is not None and resolve_error is None:
-            dropped_item = session.equipment.items.get(item.item_id)
-            remove_item(session, item)
-            if dropped_item is not None:
-                _add_item_to_room_ground(session, session.player.current_room_id, dropped_item)
+            session.inventory_items.pop(item.item_id, None)
+            _add_item_to_room_ground(session, session.player.current_room_id, item)
             return display_command_result(session, [
                 build_part("You drop ", "bright_white"),
-                build_part(item.name, "bright_yellow", True),
+                build_part(item.name, _item_highlight_color(item), True),
                 build_part(".", "bright_white"),
             ])
 
-        misc_item, misc_error = _resolve_misc_inventory_selector(session, selector)
-        if misc_item is not None:
-            session.inventory_items.pop(misc_item.item_id, None)
-            _add_item_to_room_ground(session, session.player.current_room_id, misc_item)
+        inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
+        if inventory_item is not None:
+            session.inventory_items.pop(inventory_item.item_id, None)
+            _add_item_to_room_ground(session, session.player.current_room_id, inventory_item)
             return display_command_result(session, [
                 build_part("You drop ", "bright_white"),
-                build_part(misc_item.name, "bright_yellow", True),
+                build_part(inventory_item.name, _item_highlight_color(inventory_item), True),
                 build_part(".", "bright_white"),
             ])
 
-        return display_error(misc_error or resolve_error or "Unable to resolve inventory selector.", session)
+        return display_error(inventory_error or resolve_error or "Unable to resolve inventory selector.", session)
 
     if verb in {"remove", "rem"}:
         if not args:
@@ -1737,22 +1721,22 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if not matches:
                 return display_error(f"No equipped item matches '{item_selector}'.", session)
 
-            removed_names: list[str] = []
+            removed_items = []
             for worn_item in matches:
                 if unequip_item(session, worn_item):
-                    removed_names.append(worn_item.name)
+                    removed_items.append(worn_item)
 
-            if not removed_names:
+            if not removed_items:
                 return display_error(f"No equipped item matches '{item_selector}'.", session)
 
             parts = [
                 build_part("You remove all matching equipped items.", "bright_white"),
             ]
-            for item_name in removed_names:
+            for item in removed_items:
                 parts.extend([
                     build_part("\n"),
                     build_part(" - ", "bright_white"),
-                    build_part(item_name, "bright_yellow", True),
+                    build_part(item.name, _item_highlight_color(item), True),
                 ])
             return display_command_result(session, parts)
 
@@ -1761,26 +1745,26 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if not worn_items:
                 return display_error("You have nothing to remove.", session)
 
-            removed_names: list[str] = []
+            removed_items = []
             seen_item_ids: set[str] = set()
             for _, worn_item in worn_items:
                 if worn_item.item_id in seen_item_ids:
                     continue
                 if unequip_item(session, worn_item):
-                    removed_names.append(worn_item.name)
+                    removed_items.append(worn_item)
                 seen_item_ids.add(worn_item.item_id)
 
-            if not removed_names:
+            if not removed_items:
                 return display_error("You have nothing to remove.", session)
 
             parts = [
                 build_part("You remove all equipped items and place them in your inventory.", "bright_white"),
             ]
-            for item_name in removed_names:
+            for item in removed_items:
                 parts.extend([
                     build_part("\n"),
                     build_part(" - ", "bright_white"),
-                    build_part(item_name, "bright_yellow", True),
+                    build_part(item.name, _item_highlight_color(item), True),
                 ])
             return display_command_result(session, parts)
 
@@ -1794,7 +1778,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, [
             build_part("You remove ", "bright_white"),
-            build_part(item.name, "bright_yellow", True),
+            build_part(item.name, _item_highlight_color(item), True),
             build_part(" and place it in your inventory.", "bright_white"),
         ])
 

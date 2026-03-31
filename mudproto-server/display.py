@@ -1,6 +1,6 @@
 import asyncio
 
-from equipment import list_inventory_items, list_worn_items
+from equipment import is_item_equippable, list_worn_items
 from models import ClientSession
 from protocol import build_response
 from settings import PLAYER_REFERENCE_MAX_HP
@@ -285,64 +285,57 @@ def display_equipment(session: ClientSession) -> dict:
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
+def _item_highlight_color(item) -> str:
+    return "bright_magenta" if is_item_equippable(item) else "bright_yellow"
+
+
 def display_inventory(session: ClientSession) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
-    equipment_items = list_inventory_items(session)
-    misc_items = list(session.inventory_items.values())
-    misc_items.sort(key=lambda item: item.name.lower())
+    inventory_items = list(session.inventory_items.values())
+    inventory_items.sort(key=lambda item: item.name.lower())
 
-    def _stack_counts(names: list[str]) -> list[tuple[str, int]]:
+    def _stack_counts(items: list) -> list[tuple[str, str, int]]:
         counts: dict[str, int] = {}
         display_names: dict[str, str] = {}
+        display_colors: dict[str, str] = {}
         order: list[str] = []
 
-        for name in names:
-            normalized = name.strip().lower()
+        for item in items:
+            name = str(getattr(item, "name", "")).strip()
+            normalized = name.lower()
             if not normalized:
                 continue
             if normalized not in counts:
                 counts[normalized] = 0
                 display_names[normalized] = name
+                display_colors[normalized] = _item_highlight_color(item)
                 order.append(normalized)
             counts[normalized] += 1
 
-        return [(display_names[key], counts[key]) for key in order]
+        return [(display_names[key], display_colors[key], counts[key]) for key in order]
 
     parts = [
         build_part("Inventory", "bright_white", True),
     ]
 
-    if not equipment_items and not misc_items:
+    if not inventory_items:
         parts.extend([
             build_part("\n"),
             build_part(" - empty", "bright_yellow", True),
         ])
     else:
-        equipment_stacks = _stack_counts([item.name for item in equipment_items])
-        for item_name, count in equipment_stacks:
+        inventory_stacks = _stack_counts(inventory_items)
+        for item_name, item_color, count in inventory_stacks:
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
-                build_part(item_name, "bright_magenta", True),
+                build_part(item_name, item_color, True),
             ])
             if count > 1:
                 parts.extend([
                     build_part(" ", "bright_white"),
                     build_part(f"[{count}]", "bright_cyan", True),
                 ])
-
-    misc_stacks = _stack_counts([item.name for item in misc_items])
-    for item_name, count in misc_stacks:
-        parts.extend([
-            build_part("\n"),
-            build_part(" - ", "bright_white"),
-            build_part(item_name, "bright_yellow", True),
-        ])
-        if count > 1:
-            parts.extend([
-                build_part(" ", "bright_white"),
-                build_part(f"[{count}]", "bright_cyan", True),
-            ])
 
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
@@ -473,6 +466,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
 
     room_item_counts: dict[str, int] = {}
     room_item_names: dict[str, str] = {}
+    room_item_colors: dict[str, str] = {}
     room_item_order: list[str] = []
     for item in room_items:
         normalized = item.name.strip().lower()
@@ -481,6 +475,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
         if normalized not in room_item_counts:
             room_item_counts[normalized] = 0
             room_item_names[normalized] = item.name
+            room_item_colors[normalized] = _item_highlight_color(item)
             room_item_order.append(normalized)
         room_item_counts[normalized] += 1
 
@@ -494,7 +489,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
-                build_part(room_item_names[item_key], "bright_yellow", True),
+                build_part(room_item_names[item_key], room_item_colors[item_key], True),
             ])
             count = room_item_counts[item_key]
             if count > 1:
