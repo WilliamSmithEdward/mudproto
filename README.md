@@ -40,8 +40,8 @@ MudProto is a ground-up implementation of a **Multi-User Dungeon** — the genre
 
 ### 🎒 Unified Item System
 - **Single `ItemState` model** — no split between "inventory items" and "equipment items." Every item carries an intrinsic `equippable` flag hydrated from gear templates.
-- **Flexible wear slots** — armor can be worn in primary or alternate slots (e.g., gloves → left or right hand).
-- **Hand weight limits** — weapon wielding gated by STR via configurable thresholds.
+- **Flexible wear slots** — armor can be worn in primary or alternate slots (e.g., rings → left or right hand).
+- **Hand weight limits** — weapon wielding / holding gated by STR via configurable thresholds.
 - **Color-coded display** — equippable items in **magenta**, consumables in **cyan**, consistent everywhere.
 
 ### 🌍 Persistent World
