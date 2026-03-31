@@ -1,0 +1,12 @@
+[
+  {
+    "template_id": "item.potion.mana",
+    "name": "Potion of Mana",
+    "description": "A glass vial of bright blue liquid that restores magical focus.",
+    "keywords": ["potion", "mana"],
+    "effect_type": "restore",
+    "effect_target": "mana",
+    "effect_amount": 50,
+    "use_lag_seconds": 0
+  }
+]

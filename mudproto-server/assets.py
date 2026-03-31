@@ -8,6 +8,7 @@ from settings import CONFIGURABLE_ASSET_ROOT
 SERVER_ROOT = Path(__file__).resolve().parent
 ATTRIBUTE_CONFIG_ROOT = SERVER_ROOT / "configuration" / "attributes"
 EQUIPMENT_FILE = CONFIGURABLE_ASSET_ROOT / "equipment.json"
+ITEMS_FILE = CONFIGURABLE_ASSET_ROOT / "items.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
@@ -165,6 +166,71 @@ def load_equipment_templates() -> list[dict]:
 def get_equipment_template_by_id(template_id: str) -> dict | None:
     normalized = template_id.strip().lower()
     for template in load_equipment_templates():
+        if str(template.get("template_id", "")).strip().lower() == normalized:
+            return template
+    return None
+
+
+@lru_cache(maxsize=1)
+def load_item_templates() -> list[dict]:
+    raw_templates = _read_json_asset(ITEMS_FILE)
+    if not isinstance(raw_templates, list):
+        raise ValueError(f"Item asset file must contain a list: {ITEMS_FILE}")
+
+    template_ids: set[str] = set()
+    normalized_templates: list[dict] = []
+    allowed_effect_targets = {"hit_points", "mana", "vigor"}
+
+    for raw_template in raw_templates:
+        if not isinstance(raw_template, dict):
+            raise ValueError("Item asset entries must be objects.")
+
+        template_id = str(raw_template.get("template_id", "")).strip()
+        name = str(raw_template.get("name", "")).strip()
+        effect_type = str(raw_template.get("effect_type", "restore")).strip().lower() or "restore"
+        effect_target = str(raw_template.get("effect_target", "")).strip().lower()
+        effect_amount = int(raw_template.get("effect_amount", 0))
+        use_lag_seconds = max(0.0, float(raw_template.get("use_lag_seconds", 0.0)))
+
+        if not template_id:
+            raise ValueError("Item asset entries must include a non-empty string template_id.")
+        if template_id in template_ids:
+            raise ValueError(f"Duplicate item template_id: {template_id}")
+        if not name:
+            raise ValueError(f"Item asset '{template_id}' must include a non-empty name.")
+        if effect_type != "restore":
+            raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
+        if effect_target not in allowed_effect_targets:
+            raise ValueError(
+                f"Item asset '{template_id}' effect_target must be one of: hit_points, mana, vigor."
+            )
+        if effect_amount <= 0:
+            raise ValueError(f"Item asset '{template_id}' effect_amount must be greater than zero.")
+
+        raw_keywords = raw_template.get("keywords", [])
+        if raw_keywords is None:
+            raw_keywords = []
+        if not isinstance(raw_keywords, list):
+            raise ValueError(f"Item asset '{template_id}' keywords must be a list.")
+
+        template_ids.add(template_id)
+        normalized_templates.append({
+            "template_id": template_id,
+            "name": name,
+            "description": str(raw_template.get("description", "")),
+            "keywords": [str(keyword).strip().lower() for keyword in raw_keywords if str(keyword).strip()],
+            "effect_type": effect_type,
+            "effect_target": effect_target,
+            "effect_amount": effect_amount,
+            "use_lag_seconds": use_lag_seconds,
+        })
+
+    return normalized_templates
+
+
+def get_item_template_by_id(template_id: str) -> dict | None:
+    normalized = template_id.strip().lower()
+    for template in load_item_templates():
         if str(template.get("template_id", "")).strip().lower() == normalized:
             return template
     return None
@@ -763,6 +829,7 @@ def load_player_classes() -> list[dict]:
         raw_spell_ids = raw_class.get("starting_spell_ids", [])
         raw_skill_ids = raw_class.get("starting_skill_ids", [])
         raw_equipment_ids = raw_class.get("starting_equipment_template_ids", [])
+        raw_item_ids = raw_class.get("starting_item_ids", [])
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
         if not isinstance(raw_inventory_ids, list):
             raise ValueError(
@@ -776,6 +843,8 @@ def load_player_classes() -> list[dict]:
             raise ValueError(
                 f"Player class '{class_id}' starting_equipment_template_ids must be a list."
             )
+        if not isinstance(raw_item_ids, list):
+            raise ValueError(f"Player class '{class_id}' starting_item_ids must be a list.")
         if not isinstance(raw_attribute_ranges, dict):
             raise ValueError(f"Player class '{class_id}' attribute_ranges must be an object.")
 
@@ -871,6 +940,20 @@ def load_player_classes() -> list[dict]:
             seen_equipment_ids.add(normalized_template_id)
             equipment_ids.append(template_id)
 
+        item_ids: list[str] = []
+        seen_item_ids: set[str] = set()
+        for raw_template_id in raw_item_ids:
+            template_id = str(raw_template_id).strip()
+            if not template_id:
+                continue
+            normalized_template_id = template_id.lower()
+            if normalized_template_id in seen_item_ids:
+                continue
+            if get_item_template_by_id(template_id) is None:
+                raise ValueError(f"Player class '{class_id}' references unknown item template: {template_id}")
+            seen_item_ids.add(normalized_template_id)
+            item_ids.append(template_id)
+
         class_ids.add(normalized_class_id)
         class_names.add(normalized_class_name)
         normalized_classes.append({
@@ -880,6 +963,7 @@ def load_player_classes() -> list[dict]:
             "attribute_ranges": attribute_ranges,
             "starting_inventory_template_ids": inventory_ids,
             "starting_equipment_template_ids": equipment_ids,
+            "starting_item_ids": item_ids,
             "starting_spell_ids": spell_ids,
             "starting_skill_ids": skill_ids,
             "is_default": bool(raw_class.get("is_default", False)),

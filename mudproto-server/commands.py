@@ -12,7 +12,7 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from assets import get_player_class_by_id, load_attributes, load_equipment_templates, load_player_classes, load_skills, load_spells
+from assets import get_item_template_by_id, get_player_class_by_id, load_attributes, load_equipment_templates, load_item_templates, load_player_classes, load_skills, load_spells
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, remove_item, resolve_equipped_selector, resolve_equipment_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from player_state_db import (
     character_exists,
@@ -26,7 +26,7 @@ from player_state_db import (
 import random
 import re
 import uuid
-from settings import COMBAT_ROUND_INTERVAL_SECONDS
+from settings import COMBAT_ROUND_INTERVAL_SECONDS, PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
 
 from display import (
     build_part,
@@ -658,6 +658,88 @@ def _find_equipment_template_for_loot_name(loot_name: str) -> dict | None:
             return template
 
     return None
+
+
+def _find_item_template_for_misc_item(misc_item) -> dict | None:
+    template_id = str(getattr(misc_item, "template_id", "")).strip()
+    if template_id:
+        template = get_item_template_by_id(template_id)
+        if template is not None:
+            return template
+
+    normalized_item_name = misc_item.name.strip().lower()
+    if not normalized_item_name:
+        return None
+
+    item_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_item_name) if token}
+    for template in load_item_templates():
+        template_name = str(template.get("name", "")).strip().lower()
+        if template_name == normalized_item_name:
+            return template
+
+        keywords = [str(keyword).strip().lower() for keyword in template.get("keywords", [])]
+        if keywords and all(keyword in item_tokens for keyword in keywords):
+            return template
+
+    return None
+
+
+def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
+    if not selector.strip():
+        return display_error("Usage: use <item>", session)
+
+    misc_item, resolve_error = _resolve_misc_inventory_selector(session, selector)
+    if misc_item is None:
+        return display_error(resolve_error or f"No inventory item matches '{selector}'.", session)
+
+    template = _find_item_template_for_misc_item(misc_item)
+    if template is None:
+        return display_error(f"{misc_item.name} cannot be used.", session)
+
+    effect_type = str(template.get("effect_type", "restore")).strip().lower() or "restore"
+    effect_target = str(template.get("effect_target", "")).strip().lower()
+    effect_amount = max(0, int(template.get("effect_amount", 0)))
+    use_lag_seconds = max(0.0, float(template.get("use_lag_seconds", 0.0)))
+
+    if effect_type != "restore" or effect_amount <= 0:
+        return display_error(f"{misc_item.name} cannot be used.", session)
+
+    current_value = 0
+    max_value = 0
+    effect_label = ""
+    if effect_target == "hit_points":
+        current_value = session.status.hit_points
+        max_value = PLAYER_REFERENCE_MAX_HP
+        effect_label = "HP"
+    elif effect_target == "mana":
+        current_value = session.status.mana
+        max_value = PLAYER_REFERENCE_MAX_MANA
+        effect_label = "Mana"
+    elif effect_target == "vigor":
+        current_value = session.status.vigor
+        max_value = PLAYER_REFERENCE_MAX_VIGOR
+        effect_label = "Vigor"
+    else:
+        return display_error(f"{misc_item.name} cannot be used.", session)
+
+    if current_value >= max_value:
+        return display_error(f"Your {effect_label.lower()} is already full.", session)
+
+    restored_amount = min(effect_amount, max_value - current_value)
+    setattr(session.status, effect_target, current_value + restored_amount)
+    session.inventory_items.pop(misc_item.item_id, None)
+
+    if use_lag_seconds > 0:
+        try:
+            apply_lag(session, use_lag_seconds)
+        except RuntimeError:
+            pass
+
+    return display_command_result(session, [
+        build_part("You use ", "bright_white"),
+        build_part(misc_item.name, "bright_yellow", True),
+        build_part(".", "bright_white"),
+    ])
 
 
 def _promote_misc_item_to_equipment(session: ClientSession, misc_item) -> EquipmentItemState | None:
@@ -1736,6 +1818,10 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return try_move(session, args[0])
 
+    if verb == "use":
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
+        return _use_misc_item(session, selector)
+
     if verb == "wait":
         return display_command_result(session, [
             build_part("You wait.", "bright_white")
@@ -1796,7 +1882,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     # Try to resolve unknown verb as a shorthand skill invocation (e.g., 'jab scout' instead of 'skill jab scout')
     # Lowest precedence — only runs after all other commands have failed to match.
     known_skills = _list_known_skills(session)
-    if verb not in {"skill", "sk", "ski", "skil", "skl", "use", "skills"} and known_skills:
+    if verb not in {"skill", "sk", "ski", "skil", "skl", "skills", "use"} and known_skills:
         for cut in range(len(args) + 1, 0, -1):
             candidate_verb_args = [verb] + args[:cut-1]
             candidate_skill_name = " ".join(candidate_verb_args).strip()
@@ -1807,7 +1893,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 args = candidate_verb_args + (args[cut-1:] if args[cut-1:] else [])
                 break
 
-    if verb in {"skill", "sk", "ski", "skil", "skl", "use"}:
+    if verb in {"skill", "sk", "ski", "skil", "skl"}:
         if not known_skills:
             return display_error("You do not know any skills.", session)
 

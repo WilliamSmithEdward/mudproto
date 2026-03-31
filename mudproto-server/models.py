@@ -89,6 +89,7 @@ class EquipmentState:
 class LootItemState:
     item_id: str
     name: str
+    template_id: str = ""
     description: str = ""
     keywords: list[str] = field(default_factory=list)
 

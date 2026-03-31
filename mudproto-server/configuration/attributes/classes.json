@@ -21,6 +21,9 @@
       "armor.arcanist-robe",
       "armor.arcanist-wraps"
     ],
+    "starting_item_ids": [
+      "item.potion.mana"
+    ],
     "starting_spell_ids": [
       "spell.spark",
       "spell.mending.light",

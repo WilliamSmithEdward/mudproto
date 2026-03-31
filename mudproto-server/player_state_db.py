@@ -243,6 +243,7 @@ def _deserialize_equipment_item(raw: dict) -> EquipmentItemState:
 def _serialize_loot_item(item: LootItemState) -> dict:
     return {
         "item_id": item.item_id,
+        "template_id": item.template_id,
         "name": item.name,
         "description": item.description,
         "keywords": list(item.keywords),
@@ -252,6 +253,7 @@ def _serialize_loot_item(item: LootItemState) -> dict:
 def _deserialize_loot_item(raw: dict) -> LootItemState:
     return LootItemState(
         item_id=str(raw.get("item_id", "")).strip(),
+        template_id=str(raw.get("template_id", "")).strip(),
         name=str(raw.get("name", "")).strip() or "Item",
         description=str(raw.get("description", "")),
         keywords=[str(keyword) for keyword in raw.get("keywords", [])],

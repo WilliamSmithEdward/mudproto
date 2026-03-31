@@ -2,8 +2,8 @@ import asyncio
 import random
 import uuid
 
-from assets import load_attributes, get_default_player_class, get_equipment_template_by_id, get_player_class_by_id
-from models import ClientSession, QueuedCommand
+from assets import load_attributes, get_default_player_class, get_equipment_template_by_id, get_item_template_by_id, get_player_class_by_id
+from models import ClientSession, LootItemState, QueuedCommand
 from player_state_db import save_player_state
 from protocol import utc_now_iso
 from settings import (
@@ -72,6 +72,21 @@ def _grant_starting_equipment_from_template(session: ClientSession, template: di
         return
 
     session.equipment.items[item.item_id] = item
+
+
+def _grant_starting_item_from_template(session: ClientSession, template: dict) -> None:
+    template_id = str(template.get("template_id", "")).strip()
+    if not template_id:
+        return
+
+    item = LootItemState(
+        item_id=f"item-{uuid.uuid4().hex[:8]}",
+        template_id=template_id,
+        name=str(template.get("name", "Item")).strip() or "Item",
+        description=str(template.get("description", "")),
+        keywords=[str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
+    )
+    session.inventory_items[item.item_id] = item
 
 
 def _build_starting_equipment_item_from_template(template: dict):
@@ -180,6 +195,12 @@ def apply_player_class(session: ClientSession, class_id: str | None = None, *, r
 
     for template_id in player_class.get("starting_equipment_template_ids", []):
         _equip_starting_equipment_by_template_id(session, str(template_id))
+
+    for template_id in player_class.get("starting_item_ids", []):
+        template = get_item_template_by_id(str(template_id))
+        if template is None:
+            continue
+        _grant_starting_item_from_template(session, template)
 
     known_spell_ids = {spell_id.strip().lower() for spell_id in session.known_spell_ids if spell_id.strip()}
     for spell_id in player_class.get("starting_spell_ids", []):
