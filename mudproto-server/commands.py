@@ -674,9 +674,12 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
         except RuntimeError:
             pass
 
+    item_name = misc_item.name.strip().lower() or "item"
+    item_article = "an" if item_name[:1] in "aeiou" else "a"
+
     return display_command_result(session, [
         build_part("You use ", "bright_white"),
-        build_part(misc_item.name, "bright_yellow", True),
+        build_part(f"{item_article} {item_name}", "bright_yellow", True),
         build_part(".", "bright_white"),
     ])
 
