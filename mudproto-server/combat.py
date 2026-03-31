@@ -324,7 +324,8 @@ def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tup
 
 
 def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> CorpseState:
-    session.corpse_spawn_counter += 1
+    next_spawn_sequence = max((corpse.spawn_sequence for corpse in session.corpses.values()), default=0) + 1
+    session.corpse_spawn_counter = max(session.corpse_spawn_counter, next_spawn_sequence)
     corpse_id = f"corpse-{uuid.uuid4().hex[:8]}"
     loot_items: dict[str, LootItemState] = {}
 
@@ -365,7 +366,7 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
         room_id=entity.room_id,
         coins=max(0, entity.coin_reward),
         loot_items=loot_items,
-        spawn_sequence=session.corpse_spawn_counter,
+        spawn_sequence=next_spawn_sequence,
     )
     session.corpses[corpse_id] = corpse
     return corpse
@@ -985,6 +986,8 @@ def initialize_session_entities(session: ClientSession) -> None:
     if session.entities:
         return
 
+    next_spawn_sequence = max((entity.spawn_sequence for entity in session.entities.values()), default=0)
+
     for room in WORLD.rooms.values():
         for npc_spawn in room.npcs:
             npc_id = str(npc_spawn.get("npc_id", "")).strip()
@@ -997,7 +1000,8 @@ def initialize_session_entities(session: ClientSession) -> None:
 
             spawn_count = max(1, int(npc_spawn.get("count", 1)))
             for _ in range(spawn_count):
-                session.entity_spawn_counter += 1
+                next_spawn_sequence += 1
+                session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
 
                 loot_items: list[LootItemState] = []
                 for loot_template in template.get("loot_items", []):
@@ -1061,7 +1065,8 @@ def spawn_dummy(session: ClientSession) -> dict:
         dummy_name = f"Training Dummy {dummy_number}"
 
     entity_id = f"dummy-{uuid.uuid4().hex[:8]}"
-    session.entity_spawn_counter += 1
+    next_spawn_sequence = max((entity.spawn_sequence for entity in session.entities.values()), default=0) + 1
+    session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
     entity = EntityState(
         entity_id=entity_id,
         name=dummy_name,
@@ -1071,7 +1076,7 @@ def spawn_dummy(session: ClientSession) -> dict:
         power_level=6,
         attacks_per_round=1,
         coin_reward=12,
-        spawn_sequence=session.entity_spawn_counter,
+        spawn_sequence=next_spawn_sequence,
     )
     session.entities[entity_id] = entity
 

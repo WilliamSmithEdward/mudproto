@@ -18,6 +18,12 @@ connected_clients: dict[str, ClientSession] = {}
 active_character_sessions: dict[str, ClientSession] = {}
 offline_character_tasks: dict[str, asyncio.Task] = {}
 
+# Shared runtime world state across all connected characters.
+shared_world_entities: dict = {}
+shared_world_corpses: dict = {}
+shared_world_room_coin_piles: dict[str, int] = {}
+shared_world_room_ground_items: dict[str, dict] = {}
+
 
 def ensure_player_attributes(session: ClientSession) -> None:
     configured_attribute_ids = [
@@ -223,12 +229,20 @@ def get_connection_count() -> int:
     return sum(1 for session in connected_clients.values() if session.is_connected)
 
 
+def _attach_session_to_shared_world(session: ClientSession) -> None:
+    session.entities = shared_world_entities
+    session.corpses = shared_world_corpses
+    session.room_coin_piles = shared_world_room_coin_piles
+    session.room_ground_items = shared_world_room_ground_items
+
+
 def register_client(client_id: str, websocket) -> ClientSession:
     session = ClientSession(
         client_id=client_id,
         websocket=websocket,
         connected_at=utc_now_iso()
     )
+    _attach_session_to_shared_world(session)
     session.is_connected = True
     connected_clients[client_id] = session
     return session
@@ -263,6 +277,9 @@ def _copy_runtime_state(source: ClientSession, target: ClientSession) -> None:
     target.active_support_effects = source.active_support_effects
     target.next_game_tick_monotonic = source.next_game_tick_monotonic
     target.next_non_combat_support_round_monotonic = source.next_non_combat_support_round_monotonic
+
+    # Keep world state shared for all sessions.
+    _attach_session_to_shared_world(target)
 
 
 def stop_offline_character_processing(character_key: str) -> None:
