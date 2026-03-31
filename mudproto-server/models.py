@@ -36,7 +36,7 @@ class PlayerStatus:
 
 @dataclass
 class CombatState:
-    engaged_entity_id: Optional[str] = None
+    engaged_entity_ids: set[str] = field(default_factory=set)
     next_round_monotonic: Optional[float] = None
     opening_attacker: Optional[str] = None
     skip_melee_rounds: int = 0

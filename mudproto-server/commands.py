@@ -254,20 +254,21 @@ def normalize_direction(direction: str) -> str:
 
 
 def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMessage) -> OutboundResult:
-    auto_entity = maybe_auto_engage_current_room(session)
-    if auto_entity is None:
+    auto_entities = maybe_auto_engage_current_room(session)
+    if not auto_entities:
         return room_display
 
     payload = room_display.get("payload") if isinstance(room_display, dict) else None
     if isinstance(payload, dict):
         parts = payload.get("parts")
         if isinstance(parts, list):
-            parts.extend([
-                build_part("\n"),
-                build_part("\n"),
-                build_part(auto_entity.name),
-                build_part(" notices you and attacks!", "bright_white"),
-            ])
+            for auto_entity in auto_entities:
+                parts.extend([
+                    build_part("\n"),
+                    build_part("\n"),
+                    build_part(auto_entity.name),
+                    build_part(" notices you and attacks!", "bright_white"),
+                ])
 
     return room_display
 
@@ -313,7 +314,7 @@ def flee(session: ClientSession) -> OutboundResult:
 
 
 def try_move(session: ClientSession, direction: str) -> OutboundResult:
-    if session.combat.engaged_entity_id is not None:
+    if session.combat.engaged_entity_ids:
         return display_error("You cannot move while engaged in combat. Try flee.", session)
 
     current_room = get_room(session.player.current_room_id)
@@ -947,7 +948,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not target_name:
             return display_error(f"Usage: {verb} <target>", session)
 
-        if session.combat.engaged_entity_id is not None:
+        if session.combat.engaged_entity_ids:
             return display_error("You're already fighting!", session)
 
         return begin_attack(session, target_name)
@@ -1342,7 +1343,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         response, cast_applied = cast_spell(session, spell, target_name)
         if cast_applied:
-            if session.combat.engaged_entity_id is not None:
+            if session.combat.engaged_entity_ids:
                 session.combat.skip_melee_rounds = max(1, session.combat.skip_melee_rounds)
             try:
                 apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
@@ -1839,7 +1840,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error(resolve_error or f"Unknown skill: {skill_name}", session)
 
         response, skill_applied = use_skill(session, skill, target_name)
-        if skill_applied and session.combat.engaged_entity_id is not None:
+        if skill_applied and session.combat.engaged_entity_ids:
             try:
                 apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
             except RuntimeError:

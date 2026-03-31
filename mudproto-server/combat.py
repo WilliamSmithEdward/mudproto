@@ -23,6 +23,7 @@ from damage import (
 )
 from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, EquipmentItemState, LootItemState
+from sessions import active_character_sessions, connected_clients
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
     PLAYER_REFERENCE_MAX_HP,
@@ -427,23 +428,28 @@ def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: 
 
 
 def clear_combat_if_invalid(session: ClientSession) -> None:
-    target_id = session.combat.engaged_entity_id
-    if target_id is None:
-        return
-
-    entity = session.entities.get(target_id)
-    if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
+    current_room_id = session.player.current_room_id
+    invalid_entities = set()
+    
+    for entity_id in session.combat.engaged_entity_ids:
+        entity = session.entities.get(entity_id)
+        if entity is None or not entity.is_alive or entity.room_id != current_room_id:
+            invalid_entities.add(entity_id)
+    
+    session.combat.engaged_entity_ids -= invalid_entities
+    
+    if not session.combat.engaged_entity_ids:
         end_combat(session)
 
 
 def end_combat(session: ClientSession) -> None:
-    session.combat.engaged_entity_id = None
+    session.combat.engaged_entity_ids.clear()
     session.combat.next_round_monotonic = None
     session.combat.opening_attacker = None
 
 
 def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
-    if session.combat.engaged_entity_id is not None:
+    if entity_id in session.combat.engaged_entity_ids:
         return False
 
     entity = session.entities.get(entity_id)
@@ -452,9 +458,10 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
     if entity.room_id != session.player.current_room_id:
         return False
 
-    session.combat.engaged_entity_id = entity_id
+    session.combat.engaged_entity_ids.add(entity_id)
     session.combat.next_round_monotonic = None
-    session.combat.opening_attacker = opening_attacker
+    if not session.combat.opening_attacker:
+        session.combat.opening_attacker = opening_attacker
     return True
 
 
@@ -468,14 +475,21 @@ def _schedule_next_combat_round(session: ClientSession) -> None:
     session.combat.next_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
 
 
-def get_engaged_entity(session: ClientSession) -> EntityState | None:
+def get_engaged_entities(session: ClientSession) -> list[EntityState]:
     clear_combat_if_invalid(session)
 
-    target_id = session.combat.engaged_entity_id
-    if target_id is None:
-        return None
+    entities = []
+    for entity_id in session.combat.engaged_entity_ids:
+        entity = session.entities.get(entity_id)
+        if entity is not None:
+            entities.append(entity)
+    return entities
 
-    return session.entities.get(target_id)
+
+def get_engaged_entity(session: ClientSession) -> EntityState | None:
+    """Get primary engaged entity (first in set for player attacks)."""
+    entities = get_engaged_entities(session)
+    return entities[0] if entities else None
 
 
 def _engage_next_room_target(session: ClientSession, defeated_entity_id: str) -> EntityState | None:
@@ -738,10 +752,10 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 build_part(" is destroyed."),
             ])
 
-            if session.combat.engaged_entity_id == entity.entity_id:
-                previous_engaged_id = session.combat.engaged_entity_id
+            if entity.entity_id in session.combat.engaged_entity_ids:
+                session.combat.engaged_entity_ids.discard(entity.entity_id)
                 next_target = _engage_next_room_target(session, entity.entity_id)
-                if next_target is not None and session.combat.engaged_entity_id != previous_engaged_id:
+                if next_target is not None:
                     parts.extend([
                         build_part("\n"),
                         build_part("You turn to "),
@@ -1065,10 +1079,10 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 build_part(" is destroyed."),
             ])
 
-            if session.combat.engaged_entity_id == entity.entity_id:
-                previous_engaged_id = session.combat.engaged_entity_id
+            if entity.entity_id in session.combat.engaged_entity_ids:
+                session.combat.engaged_entity_ids.discard(entity.entity_id)
                 next_target = _engage_next_room_target(session, entity.entity_id)
-                if next_target is not None and session.combat.engaged_entity_id != previous_engaged_id:
+                if next_target is not None:
                     parts.extend([
                         build_part("\n"),
                         build_part("You turn to "),
@@ -1144,19 +1158,35 @@ def initialize_session_entities(session: ClientSession) -> None:
                 session.entities[entity.entity_id] = entity
 
 
-def maybe_auto_engage_current_room(session: ClientSession) -> EntityState | None:
-    clear_combat_if_invalid(session)
-    if session.combat.engaged_entity_id is not None:
-        return None
+def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSession) -> bool:
+    """Check if an entity is already engaged by any other player."""
+    # Check connected clients
+    for sess in connected_clients.values():
+        if sess != current_session and entity_id in sess.combat.engaged_entity_ids:
+            return True
+    
+    # Check active character sessions (including offline characters)
+    for sess in active_character_sessions.values():
+        if sess != current_session and entity_id in sess.combat.engaged_entity_ids:
+            return True
+    
+    return False
 
+
+def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:
+    clear_combat_if_invalid(session)
+    if session.combat.engaged_entity_ids:
+        return []
+
+    engaged_entities = []
     room_entities = list_room_entities(session, session.player.current_room_id)
     for entity in room_entities:
-        if entity.is_aggro:
+        if entity.is_aggro and not _is_entity_engaged_by_other_player(entity.entity_id, session):
             started = start_combat(session, entity.entity_id, OPENING_ATTACKER_ENTITY)
             if started:
-                return entity
+                engaged_entities.append(entity)
 
-    return None
+    return engaged_entities
 
 
 def spawn_dummy(session: ClientSession) -> dict:
@@ -1359,11 +1389,11 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
 
     clear_combat_if_invalid(session)
 
-    target_id = session.combat.engaged_entity_id
-    if target_id is None:
+    engaged_entities = get_engaged_entities(session)
+    if not engaged_entities:
         return None
 
-    entity = session.entities.get(target_id)
+    entity = engaged_entities[0]  # Primary target for melee combat
     if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
         clear_combat_if_invalid(session)
         return None
@@ -1374,7 +1404,7 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
     status = session.status
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
-    _process_combat_round_timers(session, [entity])
+    _process_combat_round_timers(session, engaged_entities)
 
     if opening_attacker == OPENING_ATTACKER_ENTITY:
         _apply_entity_attacks(session, entity, parts, allow_off_hand=False)
@@ -1394,15 +1424,16 @@ def resolve_combat_round(session: ClientSession) -> dict | None:
             build_part(" is destroyed.", "bright_white"),
         ])
 
-        previous_engaged_id = session.combat.engaged_entity_id
-        next_target = _engage_next_room_target(session, entity.entity_id)
-        if next_target is not None and session.combat.engaged_entity_id != previous_engaged_id:
-            append_newline_if_needed(parts)
-            parts.extend([
-                build_part("You turn to ", "bright_white"),
-                build_part(with_article(next_target.name)),
-                build_part(".", "bright_white"),
-            ])
+        if entity.entity_id in session.combat.engaged_entity_ids:
+            session.combat.engaged_entity_ids.discard(entity.entity_id)
+            next_target = _engage_next_room_target(session, entity.entity_id)
+            if next_target is not None:
+                append_newline_if_needed(parts)
+                parts.extend([
+                    build_part("You turn to ", "bright_white"),
+                    build_part(with_article(next_target.name)),
+                    build_part(".", "bright_white"),
+                ])
 
         return display_combat_round_result(session, parts)
 
