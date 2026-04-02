@@ -443,7 +443,8 @@ Rendering invariants:
   entries (`[]`) inside `lines` / `prompt_lines`.
 - The client does not inject blank lines for display messages; it only renders
   what the server sends.
-- Command-panel UIs (currently score, spells, and skills) use a shared visual
+- Command-panel UIs (currently score, spells, skills, inventory, and
+  equipment) use a shared visual
   frame contract from `commands.py`: fixed inner width (`PANEL_INNER_WIDTH`),
   centered title line, and full-width divider rows. New panel-style command
   outputs should reuse this contract for

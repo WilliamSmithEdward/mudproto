@@ -12,6 +12,9 @@ from combat import get_engaged_entity, get_entity_condition, get_health_conditio
 from world import Room, get_room
 
 
+PANEL_INNER_WIDTH = 34
+
+
 def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     return {
         "text": text,
@@ -22,6 +25,14 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
 
 def build_line(*parts: dict) -> list[dict]:
     return [part for part in parts if isinstance(part, dict)]
+
+
+def _panel_divider() -> str:
+    return "-" * PANEL_INNER_WIDTH
+
+
+def _panel_title_line(title: str) -> str:
+    return str(title).strip().center(PANEL_INNER_WIDTH)
 
 
 def _normalize_part(part: dict) -> dict:
@@ -394,7 +405,9 @@ def display_equipment(session: ClientSession) -> dict:
     worn_items = list_worn_items(session)
 
     parts = [
-        build_part("Worn Equipment", "bright_white", True),
+        build_part(_panel_title_line("Worn Equipment"), "bright_cyan", True),
+        build_part("\n"),
+        build_part(_panel_divider(), "bright_black"),
     ]
 
     if not worn_items:
@@ -445,7 +458,9 @@ def display_inventory(session: ClientSession) -> dict:
         return [(display_names[key], display_colors[key], counts[key]) for key in order]
 
     parts = [
-        build_part("Inventory", "bright_white", True),
+        build_part(_panel_title_line("Inventory"), "bright_cyan", True),
+        build_part("\n"),
+        build_part(_panel_divider(), "bright_black"),
     ]
 
     if not inventory_items:
