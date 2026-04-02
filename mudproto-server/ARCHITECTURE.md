@@ -354,9 +354,16 @@ When an entity dies:
 
 - Cost mana. Defined in `spells.json`.
 - Each spell declares a lore `school` string.
-- **Damage spells**: targeted or AoE. Roll dice, apply to engaged entities.
+- **Damage spells**: targeted or AoE. Roll dice, add damage scaling, apply to engaged entities.
+  Player casts scale from `damage_scaling_attribute_id` × `damage_scaling_multiplier`
+  and default to INT when no attribute is specified. Player spells also add
+  `level` × `level_scaling_multiplier`. NPC casts scale from
+  `power_level` × `damage_scaling_multiplier`.
 - **Support spells**: heal/vigor/mana. Self-cast only.
   Modes: `instant`, `timed` (hours), `battle_rounds`.
+  Player support spells also add `level` × `level_scaling_multiplier` on top
+  of any attribute-based support scaling. NPC support spells continue to scale
+  from `power_level`.
 - Cast via `cast <spell> [target]`.
 - The spells menu renders aligned columns in the order: Name, School, Cost.
 

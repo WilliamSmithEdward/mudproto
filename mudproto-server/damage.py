@@ -15,26 +15,10 @@ WEAPON_TYPE_TO_VERB = {
     "spear": "pierce",
 }
 
-WEAPON_TYPE_TO_FINISH_NOUN = {
-    "unarmed": "blow",
-    "sword": "slash",
-    "axe": "hack",
-    "bludgeon": "blow",
-    "mace": "blow",
-    "club": "blow",
-    "dagger": "stab",
-    "spear": "thrust",
-}
-
 
 def resolve_weapon_verb(weapon_type: str) -> str:
     normalized = weapon_type.strip().lower() if weapon_type else "unarmed"
     return WEAPON_TYPE_TO_VERB.get(normalized, "hit")
-
-
-def resolve_weapon_finish_noun(weapon_type: str) -> str:
-    normalized = weapon_type.strip().lower() if weapon_type else "unarmed"
-    return WEAPON_TYPE_TO_FINISH_NOUN.get(normalized, "blow")
 
 
 def roll_hit(total_modifier: int, target_armor_class: int) -> bool:
@@ -94,13 +78,13 @@ def roll_skill_damage(skill: dict) -> int:
     return max(0, rolled_damage + damage_modifier)
 
 
-def roll_spell_damage(spell: dict) -> int:
+def roll_spell_damage(spell: dict, scaling_bonus: int = 0) -> int:
     rolled_damage = _roll_damage_dice(
         int(spell.get("damage_dice_count", 0)),
         int(spell.get("damage_dice_sides", 0)),
     )
     damage_modifier = int(spell.get("damage_modifier", 0))
-    return max(0, rolled_damage + damage_modifier)
+    return max(0, rolled_damage + damage_modifier + int(scaling_bonus))
 
 
 def roll_npc_weapon_damage(entity: EntityState, weapon_template: dict | None) -> tuple[int, str]:

@@ -399,6 +399,11 @@ def load_spells() -> list[dict]:
     spell_ids: set[str] = set()
     spell_names: set[str] = set()
     normalized_spells: list[dict] = []
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
 
     for raw_spell in raw_spells:
         if not isinstance(raw_spell, dict):
@@ -426,6 +431,9 @@ def load_spells() -> list[dict]:
         dice_count = int(raw_spell.get("damage_dice_count", 0))
         dice_sides = int(raw_spell.get("damage_dice_sides", 0))
         damage_modifier = int(raw_spell.get("damage_modifier", 0))
+        damage_scaling_attribute_id = str(raw_spell.get("damage_scaling_attribute_id", "int")).strip().lower() or "int"
+        damage_scaling_multiplier = float(raw_spell.get("damage_scaling_multiplier", 1.0))
+        level_scaling_multiplier = float(raw_spell.get("level_scaling_multiplier", 1.0))
         damage_context = str(raw_spell.get("damage_context", "")).strip()
         restore_effect = str(raw_spell.get("restore_effect", "")).strip().lower()
         restore_ratio = float(raw_spell.get("restore_ratio", raw_spell.get("life_steal_ratio", 0.0)))
@@ -464,6 +472,10 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_count must be zero or greater.")
         if dice_sides < 0:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_sides must be zero or greater.")
+        if damage_scaling_multiplier < 0.0:
+            raise ValueError(f"Spell asset '{spell_id}' damage_scaling_multiplier must be zero or greater.")
+        if level_scaling_multiplier < 0.0:
+            raise ValueError(f"Spell asset '{spell_id}' level_scaling_multiplier must be zero or greater.")
         if support_amount < 0:
             raise ValueError(f"Spell asset '{spell_id}' support_amount must be zero or greater.")
         if support_dice_count < 0:
@@ -509,6 +521,10 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Spell asset '{spell_id}' support spells must define support_context.")
         if spell_type == "damage" and not damage_context:
             raise ValueError(f"Spell asset '{spell_id}' damage spells must define damage_context.")
+        if spell_type == "damage" and damage_scaling_attribute_id not in configured_attribute_ids:
+            raise ValueError(
+                f"Spell asset '{spell_id}' damage_scaling_attribute_id '{damage_scaling_attribute_id}' is unknown."
+            )
 
         spell_ids.add(spell_id)
         spell_names.add(normalized_name)
@@ -523,6 +539,9 @@ def load_spells() -> list[dict]:
             "damage_dice_count": dice_count,
             "damage_dice_sides": dice_sides,
             "damage_modifier": damage_modifier,
+            "damage_scaling_attribute_id": damage_scaling_attribute_id,
+            "damage_scaling_multiplier": damage_scaling_multiplier,
+            "level_scaling_multiplier": level_scaling_multiplier,
             "damage_context": damage_context,
             "restore_effect": restore_effect,
             "restore_ratio": restore_ratio,

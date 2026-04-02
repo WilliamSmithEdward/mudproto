@@ -194,16 +194,37 @@ def _resolve_player_support_scaling_bonus(session: ClientSession, spell: dict, s
     scaling_attribute_id = str(spell.get("support_scaling_attribute_id", "")).strip().lower()
     if not scaling_attribute_id and support_effect == "heal":
         scaling_attribute_id = "wis"
-    if not scaling_attribute_id:
-        return 0
+    level_scaling_multiplier = max(0.0, float(spell.get("level_scaling_multiplier", 1.0)))
 
-    scaling_multiplier = max(0.0, float(spell.get("support_scaling_multiplier", 1.0)))
-    if scaling_multiplier <= 0.0:
-        return 0
+    scaling_bonus = 0
+    if scaling_attribute_id:
+        scaling_multiplier = max(0.0, float(spell.get("support_scaling_multiplier", 1.0)))
+        if scaling_multiplier > 0.0:
+            attribute_score = int(session.player.attributes.get(scaling_attribute_id, 0))
+            attribute_modifier = (attribute_score - 10) // 2
+            scaling_bonus += int(attribute_modifier * scaling_multiplier)
 
-    attribute_score = int(session.player.attributes.get(scaling_attribute_id, 0))
-    attribute_modifier = (attribute_score - 10) // 2
-    return int(attribute_modifier * scaling_multiplier)
+    if level_scaling_multiplier > 0.0:
+        scaling_bonus += int(max(1, int(session.player.level)) * level_scaling_multiplier)
+
+    return scaling_bonus
+
+
+def _resolve_player_damage_scaling_bonus(session: ClientSession, spell: dict) -> int:
+    scaling_attribute_id = str(spell.get("damage_scaling_attribute_id", "int")).strip().lower() or "int"
+    scaling_multiplier = max(0.0, float(spell.get("damage_scaling_multiplier", 1.0)))
+    level_scaling_multiplier = max(0.0, float(spell.get("level_scaling_multiplier", 1.0)))
+
+    scaling_bonus = 0
+    if scaling_multiplier > 0.0:
+        attribute_score = int(session.player.attributes.get(scaling_attribute_id, 0))
+        attribute_modifier = (attribute_score - 10) // 2
+        scaling_bonus += int(attribute_modifier * scaling_multiplier)
+
+    if level_scaling_multiplier > 0.0:
+        scaling_bonus += int(max(1, int(session.player.level)) * level_scaling_multiplier)
+
+    return scaling_bonus
 
 
 def _roll_player_support_amount(
@@ -232,6 +253,14 @@ def _resolve_entity_support_scaling_bonus(entity: EntityState, spell: dict, supp
         return 0
 
     scaling_multiplier = max(0.0, float(spell.get("support_scaling_multiplier", 1.0)))
+    if scaling_multiplier <= 0.0:
+        return 0
+
+    return int(max(0, entity.power_level) * scaling_multiplier)
+
+
+def _resolve_entity_damage_scaling_bonus(entity: EntityState, spell: dict) -> int:
+    scaling_multiplier = max(0.0, float(spell.get("damage_scaling_multiplier", 1.0)))
     if scaling_multiplier <= 0.0:
         return 0
 
@@ -1261,7 +1290,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
         return True
 
     if spell_type == "damage" and cast_type in {"target", "aoe"}:
-        spell_damage = roll_spell_damage(spell)
+        spell_damage = roll_spell_damage(spell, _resolve_entity_damage_scaling_bonus(entity, spell))
         damage_context = str(spell.get("damage_context", "")).strip()
         restore_effect, restore_ratio, _, observer_restore_context = _resolve_secondary_restore_fields(spell)
         damage_dealt = 0
@@ -1496,7 +1525,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
 
     status.mana -= mana_cost
 
-    total_damage = roll_spell_damage(spell)
+    total_damage = roll_spell_damage(spell, _resolve_player_damage_scaling_bonus(session, spell))
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(spell)
     total_damage_dealt = 0
     destroyed_entity_names: list[str] = []
@@ -1619,35 +1648,35 @@ def initialize_session_entities(session: ClientSession) -> None:
                     ))
 
                 entity = EntityState(
-                    entity_id=f"npc-{uuid.uuid4().hex[:8]}",
-                    name=str(template.get("name", "NPC")).strip() or "NPC",
-                    room_id=room.room_id,
-                    hit_points=int(template.get("hit_points", 1)),
-                    max_hit_points=int(template.get("max_hit_points", template.get("hit_points", 1))),
-                    power_level=max(0, int(template.get("power_leveL", 1))),
-                    attacks_per_round=max(1, int(template.get("attacks_per_round", 1))),
-                    hit_roll_modifier=int(template.get("hit_roll_modifier", 0)),
-                    armor_class=int(template.get("armor_class", 10)),
-                    off_hand_attacks_per_round=max(0, int(template.get("off_hand_attacks_per_round", 0))),
-                    off_hand_hit_roll_modifier=int(template.get("off_hand_hit_roll_modifier", 0)),
-                    coin_reward=max(0, int(template.get("coin_reward", 0))),
-                    experience_reward=max(0, int(template.get("experience_reward", 0))),
-                    loot_items=loot_items,
-                    spawn_sequence=session.entity_spawn_counter,
-                    is_aggro=bool(template.get("is_aggro", False)),
-                    is_ally=bool(template.get("is_ally", False)),
-                    pronoun_possessive=str(template.get("pronoun_possessive", "its")).strip().lower() or "its",
-                    main_hand_weapon_template_id=str(template.get("main_hand_weapon_template_id", "")).strip(),
-                    off_hand_weapon_template_id=str(template.get("off_hand_weapon_template_id", "")).strip(),
-                    vigor=max(0, int(template.get("vigor", template.get("max_vigor", 0)))),
-                    max_vigor=max(0, int(template.get("max_vigor", 0))),
-                    mana=max(0, int(template.get("mana", template.get("max_mana", 0)))),
-                    max_mana=max(0, int(template.get("max_mana", 0))),
-                    skill_use_chance=max(0.0, min(1.0, float(template.get("skill_use_chance", 0.35)))),
-                    skill_ids=[str(skill_id).strip() for skill_id in template.get("skill_ids", []) if str(skill_id).strip()],
-                    spell_use_chance=max(0.0, min(1.0, float(template.get("spell_use_chance", 0.25)))),
-                    spell_ids=[str(spell_id).strip() for spell_id in template.get("spell_ids", []) if str(spell_id).strip()],
+                    f"npc-{uuid.uuid4().hex[:8]}",
+                    str(template.get("name", "NPC")).strip() or "NPC",
+                    room.room_id,
+                    int(template.get("hit_points", 1)),
+                    int(template.get("max_hit_points", template.get("hit_points", 1))),
                 )
+                entity.power_level = max(0, int(template.get("power_leveL", 1)))
+                entity.attacks_per_round = max(1, int(template.get("attacks_per_round", 1)))
+                entity.hit_roll_modifier = int(template.get("hit_roll_modifier", 0))
+                entity.armor_class = int(template.get("armor_class", 10))
+                entity.off_hand_attacks_per_round = max(0, int(template.get("off_hand_attacks_per_round", 0)))
+                entity.off_hand_hit_roll_modifier = int(template.get("off_hand_hit_roll_modifier", 0))
+                entity.coin_reward = max(0, int(template.get("coin_reward", 0)))
+                entity.experience_reward = max(0, int(template.get("experience_reward", 0)))
+                entity.loot_items = loot_items
+                entity.spawn_sequence = session.entity_spawn_counter
+                entity.is_aggro = bool(template.get("is_aggro", False))
+                entity.is_ally = bool(template.get("is_ally", False))
+                entity.pronoun_possessive = str(template.get("pronoun_possessive", "its")).strip().lower() or "its"
+                entity.main_hand_weapon_template_id = str(template.get("main_hand_weapon_template_id", "")).strip()
+                entity.off_hand_weapon_template_id = str(template.get("off_hand_weapon_template_id", "")).strip()
+                entity.vigor = max(0, int(template.get("vigor", template.get("max_vigor", 0))))
+                entity.max_vigor = max(0, int(template.get("max_vigor", 0)))
+                entity.mana = max(0, int(template.get("mana", template.get("max_mana", 0))))
+                entity.max_mana = max(0, int(template.get("max_mana", 0)))
+                entity.skill_use_chance = max(0.0, min(1.0, float(template.get("skill_use_chance", 0.35))))
+                entity.skill_ids = [str(skill_id).strip() for skill_id in template.get("skill_ids", []) if str(skill_id).strip()]
+                entity.spell_use_chance = max(0.0, min(1.0, float(template.get("spell_use_chance", 0.25))))
+                entity.spell_ids = [str(spell_id).strip() for spell_id in template.get("spell_ids", []) if str(spell_id).strip()]
                 session.entities[entity.entity_id] = entity
 
 
@@ -1697,18 +1726,12 @@ def spawn_dummy(session: ClientSession) -> dict:
     entity_id = f"dummy-{uuid.uuid4().hex[:8]}"
     next_spawn_sequence = max((entity.spawn_sequence for entity in session.entities.values()), default=0) + 1
     session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
-    entity = EntityState(
-        entity_id=entity_id,
-        name=dummy_name,
-        room_id=room_id,
-        hit_points=40,
-        max_hit_points=40,
-        power_level=6,
-        attacks_per_round=1,
-        coin_reward=12,
-        experience_reward=10,
-        spawn_sequence=next_spawn_sequence,
-    )
+    entity = EntityState(entity_id, dummy_name, room_id, 40, 40)
+    entity.power_level = 6
+    entity.attacks_per_round = 1
+    entity.coin_reward = 12
+    entity.experience_reward = 10
+    entity.spawn_sequence = next_spawn_sequence
     session.entities[entity_id] = entity
 
     return display_command_result(session, [
