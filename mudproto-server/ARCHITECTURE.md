@@ -407,9 +407,10 @@ consistently across inventory, room, loot, and action-message contexts.
 
 ## 11. Display & Rendering
 
-Display messages are built in `display.py` as structured `parts` arrays.
-Each part carries `text`, optional `fg` color, and optional `bold` flag.
-The client renders these as ANSI-colored terminal output.
+Display messages are built in `display.py` and sent as structured JSON `lines`.
+Each line is an array of styled text parts, where each part carries `text`,
+optional `fg` color, and optional `bold` flag. The client renders line arrays
+as ANSI-colored terminal output.
 
 Key builders:
 - `build_display()` — assembles final protocol payload with structural `lines`.
@@ -418,6 +419,14 @@ Key builders:
 - `display_inventory()`, `display_equipment()`, `display_attributes()`.
 - `build_prompt_parts()` — HP/vigor/mana (color-coded), coins, tick
   countdown, engaged-entity condition, exits.
+
+Rendering invariants:
+- All newline behavior is server-owned and encoded in JSON via empty line
+  entries (`[]`) inside `lines` / `prompt_lines`.
+- The client does not inject blank lines for display messages; it only renders
+  what the server sends.
+- A blank line before a prompt is represented by leading empty entries in
+  `prompt_lines`.
 
 Room broadcasts use `room_broadcast_lines` and are third-personised via
 `grammar.py::third_personize_text()`.
