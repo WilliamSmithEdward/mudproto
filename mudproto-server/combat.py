@@ -1203,7 +1203,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             if support_observer_context:
                 observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
-            result = display_command_result(session, parts)
+            result = display_command_result(session, parts, blank_lines_before=0)
             return _attach_room_broadcast_lines(result, observer_lines), True
 
         refreshed = False
@@ -1243,7 +1243,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         if support_observer_context:
             observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
-        result = display_command_result(session, parts)
+        result = display_command_result(session, parts, blank_lines_before=0)
         return _attach_room_broadcast_lines(result, observer_lines), True
 
     if spell_type != "damage":
@@ -1369,7 +1369,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     for destroyed_name in destroyed_entity_names:
         observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
 
-    result = display_command_result(session, parts)
+    result = display_command_result(session, parts, blank_lines_before=0)
     return _attach_room_broadcast_lines(result, observer_lines), True
 
 
@@ -1576,7 +1576,6 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
         ))
 
         if entity.hit_points <= 0:
-            entity.is_alive = False
             break
 
 
@@ -1717,27 +1716,13 @@ def resolve_combat_round(
 
     # Mark entity dead if it reached 0 HP, but don't return yet — let the round finish.
     entity_died_this_round = False
-    if entity.hit_points <= 0 and entity.is_alive:
-        entity.is_alive = False
+    if entity.hit_points <= 0:
         entity_died_this_round = True
+        if entity.is_alive:
+            entity.is_alive = False
         spawn_corpse_for_entity(session, entity)
 
-    # Continue retaliation phase if opening round or player has HP and entity hasn't died yet.
-    if opening_attacker is not None:
-        session.combat.opening_attacker = None
-    else:
-        current_engaged_entities = get_engaged_entities(session)
-        current_retaliating_entities = [
-            engaged
-            for engaged in current_engaged_entities
-            if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
-        ]
-        for retaliating_entity in current_retaliating_entities:
-            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
-            if status.hit_points <= 0:
-                break
-
-    # Now display deaths in order: entity death first, then player death.
+    # Announce entity death immediately after the lethal hit is resolved.
     if entity_died_this_round:
         append_newline_if_needed(parts)
         parts.extend([
@@ -1760,6 +1745,23 @@ def resolve_combat_round(
                     build_part(".", "bright_white"),
                 ])
 
+    # Continue retaliation phase after player-side output has been assembled.
+    if opening_attacker is not None:
+        session.combat.opening_attacker = None
+    else:
+        current_engaged_entities = get_engaged_entities(session)
+        current_retaliating_entities = [
+            engaged
+            for engaged in current_engaged_entities
+            if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
+        ]
+        for retaliating_entity in current_retaliating_entities:
+            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
+            if status.hit_points <= 0:
+                break
+
+    # Now display player death if it occurred this round.
+
     if status.hit_points <= 0:
         handle_player_death(session)
 
@@ -1771,7 +1773,14 @@ def resolve_combat_round(
         payload = result.get("payload") if isinstance(result, dict) else None
         if isinstance(payload, dict):
             actor_name = session.authenticated_character_name or "Someone"
-            payload["room_broadcast_lines"] = [build_player_death_broadcast_parts(actor_name)]
+            room_broadcast_lines: list[list[dict]] = []
+            if entity_died_this_round:
+                room_broadcast_lines.append([
+                    build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+                    build_part(" is dead!", "bright_red", True),
+                ])
+            room_broadcast_lines.append(build_player_death_broadcast_parts(actor_name))
+            payload["room_broadcast_lines"] = room_broadcast_lines
 
         return result
 
