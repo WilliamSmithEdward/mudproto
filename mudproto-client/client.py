@@ -90,7 +90,13 @@ def render_parts(parts: list[dict]) -> str:
         fg = part.get("fg")
         bold = bool(part.get("bold", False))
 
-        rendered.append(style_text(text, fg, bold))
+        if bool(part.get("blank_line", False)):
+            blank_line_count = int(part.get("count", 1) or 1)
+            rendered.append("\n" * (max(1, blank_line_count) + 1))
+        elif text.strip() == "":
+            rendered.append(text)
+        else:
+            rendered.append(style_text(text, fg, bold))
 
     return "".join(rendered)
 
@@ -107,6 +113,7 @@ async def send_json(websocket, message: dict) -> None:
 
 def render_display_message(message: dict) -> None:
     payload = message.get("payload", {})
+    blank_lines_before = int(payload.get("blank_lines_before", 0) or 0)
     prompt_after = bool(payload.get("prompt_after", False))
     prompt_parts = payload.get("prompt_parts") or []
     parts = payload.get("parts", [])
@@ -116,6 +123,9 @@ def render_display_message(message: dict) -> None:
 
     if starts_on_new_line:
         sys.stdout.write("\n")
+
+    if blank_lines_before > 0:
+        sys.stdout.write("\n" * blank_lines_before)
 
     if has_parts:
         sys.stdout.write(render_parts(parts))

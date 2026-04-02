@@ -24,9 +24,16 @@ def build_player_death_parts() -> list[dict]:
 
     return [
         build_part("\n"),
-        build_part("You are dead!", "bright_red", True),
-        build_part("\n"),
-        build_part("Combat ends.", "bright_white"),
+        build_part("You are dead!\n", "bright_red", True),
+    ]
+
+
+def build_player_death_mourn_parts() -> list[dict]:
+    """Return the mourn message display parts after player death."""
+    from display import build_part
+
+    return [
+        build_part("Your comrades mourn your death.\n\n", "bright_white"),
     ]
 
 

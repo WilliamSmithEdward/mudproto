@@ -25,7 +25,7 @@ from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_
 from inventory import build_equippable_item_from_template
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, ItemState
 from sessions import active_character_sessions, connected_clients
-from death import build_player_death_broadcast_parts, build_player_death_parts, handle_player_death
+from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
     PLAYER_REFERENCE_MAX_HP,
@@ -1715,10 +1715,30 @@ def resolve_combat_round(
         else:
             _apply_player_attacks(session, entity, parts, allow_off_hand=not is_opening_round)
 
-    if entity.hit_points <= 0:
+    # Mark entity dead if it reached 0 HP, but don't return yet — let the round finish.
+    entity_died_this_round = False
+    if entity.hit_points <= 0 and entity.is_alive:
         entity.is_alive = False
+        entity_died_this_round = True
         spawn_corpse_for_entity(session, entity)
 
+    # Continue retaliation phase if opening round or player has HP and entity hasn't died yet.
+    if opening_attacker is not None:
+        session.combat.opening_attacker = None
+    else:
+        current_engaged_entities = get_engaged_entities(session)
+        current_retaliating_entities = [
+            engaged
+            for engaged in current_engaged_entities
+            if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
+        ]
+        for retaliating_entity in current_retaliating_entities:
+            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
+            if status.hit_points <= 0:
+                break
+
+    # Now display deaths in order: entity death first, then player death.
+    if entity_died_this_round:
         append_newline_if_needed(parts)
         parts.extend([
             build_part(with_article(entity.name, capitalize=True), "bright_red", True),
@@ -1740,27 +1760,12 @@ def resolve_combat_round(
                     build_part(".", "bright_white"),
                 ])
 
-        return display_combat_round_result(session, parts)
-
-    if opening_attacker is not None:
-        session.combat.opening_attacker = None
-    else:
-        current_engaged_entities = get_engaged_entities(session)
-        current_retaliating_entities = [
-            engaged
-            for engaged in current_engaged_entities
-            if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
-        ]
-        for retaliating_entity in current_retaliating_entities:
-            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
-            if status.hit_points <= 0:
-                break
-
     if status.hit_points <= 0:
         handle_player_death(session)
 
         append_newline_if_needed(parts)
         parts.extend(build_player_death_parts())
+        parts.extend(build_player_death_mourn_parts())
 
         result = display_combat_round_result(session, parts)
         payload = result.get("payload") if isinstance(result, dict) else None
@@ -1769,6 +1774,9 @@ def resolve_combat_round(
             payload["room_broadcast_parts"] = build_player_death_broadcast_parts(actor_name)
 
         return result
+
+    if entity_died_this_round:
+        return display_combat_round_result(session, parts)
 
     _schedule_next_combat_round(session)
     return display_combat_round_result(session, parts)

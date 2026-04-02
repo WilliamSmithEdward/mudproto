@@ -158,7 +158,15 @@ def _extract_display_lines(message: dict | None) -> list[str]:
         return []
 
     text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
-    return [line.strip() for line in text.split("\n") if line.strip()]
+    lines = text.split("\n")
+
+    while lines and not lines[0].strip():
+        lines.pop(0)
+
+    while lines and not lines[-1].strip():
+        lines.pop()
+
+    return [line.strip() if line.strip() else "" for line in lines]
 
 
 def _split_actor_round_lines(lines: list[str], actor_prefix: str) -> tuple[list[str], list[str]]:
@@ -168,6 +176,13 @@ def _split_actor_round_lines(lines: list[str], actor_prefix: str) -> tuple[list[
     normalized_prefix = actor_prefix.strip().lower()
 
     for line in lines:
+        if not line.strip():
+            if in_retaliation:
+                retaliation_lines.append("")
+            else:
+                player_lines.append("")
+            continue
+
         normalized_line = line.strip().lower()
         is_actor_line = normalized_line.startswith(normalized_prefix)
         if not in_retaliation and is_actor_line:
@@ -419,20 +434,25 @@ async def combat_round_loop() -> None:
                 ]
 
                 for recipient in room_recipients:
+                    # Skip the force_prompt for players about to logout after death
+                    skip_prompt = any(
+                        actor_session == recipient and actor_session.pending_death_logout
+                        for actor_session, _ in round_results
+                    )
                     unified_display = _build_unified_room_round_display(recipient, round_results)
                     if unified_display is None:
                         continue
-                    await send_outbound(
-                        recipient.websocket,
-                        [unified_display, display_force_prompt(recipient)],
-                    )
+                    outbounds = [unified_display]
+                    if not skip_prompt:
+                        outbounds.append(display_force_prompt(recipient))
+                    await send_outbound(recipient.websocket, outbounds)
 
                 for actor_session, _ in round_results:
                     if not actor_session.pending_death_logout:
                         continue
                     reset_session_to_login(actor_session)
                     if actor_session.is_connected:
-                        await send_outbound(actor_session.websocket, login_prompt(actor_session))
+                        await send_outbound(actor_session.websocket, initial_auth_prompt(actor_session))
 
     except asyncio.CancelledError:
         raise

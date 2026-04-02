@@ -17,6 +17,16 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     }
 
 
+def build_blank_line_part(count: int = 1) -> dict:
+    return {
+        "text": "",
+        "fg": "bright_white",
+        "bold": False,
+        "blank_line": True,
+        "count": max(1, count)
+    }
+
+
 def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
     if session.next_game_tick_monotonic is None:
         return None
