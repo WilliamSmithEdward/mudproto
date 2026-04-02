@@ -34,8 +34,8 @@ from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, g
 from grammar import indefinite_article, with_article
 from inventory import is_item_equippable, resolve_equipment_selector
 from models import ClientSession, ItemState
-from player_resources import get_player_resource_caps
-from player_resources import clamp_player_resources_to_caps
+from experience import get_xp_to_next_level
+from player_resources import clamp_player_resources_to_caps, get_player_resource_caps
 from player_state_db import (
     character_exists,
     create_character,
@@ -125,6 +125,106 @@ def _resolve_class_selection(selection: str) -> dict | None:
             return player_class
 
     return None
+
+
+def _resolve_player_class_name(class_id: str) -> str:
+    normalized_id = class_id.strip().lower()
+    if not normalized_id:
+        return "Wanderer"
+
+    matched = get_player_class_by_id(normalized_id)
+    if matched is None:
+        return normalized_id.title()
+
+    return str(matched.get("name", normalized_id.title())).strip() or normalized_id.title()
+
+
+def _resource_color(current: int, maximum: int) -> str:
+    if maximum <= 0:
+        return "bright_white"
+
+    ratio = max(0.0, min(1.0, float(current) / float(maximum)))
+    if ratio <= 0.2:
+        return "bright_red"
+    if ratio <= 0.5:
+        return "bright_yellow"
+    return "bright_green"
+
+
+def display_score(session: ClientSession) -> OutboundMessage:
+    caps = get_player_resource_caps(session)
+    xp_total = max(0, int(session.player.experience_points))
+    xp_to_next = get_xp_to_next_level(xp_total)
+    class_name = _resolve_player_class_name(session.player.class_id)
+    character_name = session.authenticated_character_name or "Unknown"
+    room = get_room(session.player.current_room_id)
+    room_name = room.title if room is not None else "Unknown"
+
+    hp_now = max(0, int(session.status.hit_points))
+    hp_cap = max(1, int(caps["hit_points"]))
+    vigor_now = max(0, int(session.status.vigor))
+    vigor_cap = max(1, int(caps["vigor"]))
+    mana_now = max(0, int(session.status.mana))
+    mana_cap = max(1, int(caps["mana"]))
+
+    parts: list[dict] = [
+        build_part(".-=[ Adventurer's Ledger ]=-.", "bright_cyan", True),
+        build_part("\n"),
+        build_part("Name: ", "bright_white"),
+        build_part(character_name, "bright_yellow", True),
+        build_part("   Class: ", "bright_white"),
+        build_part(class_name, "bright_cyan", True),
+        build_part("   Level: ", "bright_white"),
+        build_part(str(max(1, int(session.player.level))), "bright_green", True),
+        build_part("\n"),
+        build_part("Location: ", "bright_white"),
+        build_part(room_name, "bright_magenta", True),
+        build_part("\n"),
+        build_part("----------------------------------", "bright_black"),
+        build_part("\n"),
+        build_part("Health: ", "bright_white"),
+        build_part(f"{hp_now}/{hp_cap}", _resource_color(hp_now, hp_cap), True),
+        build_part("   Vigor: ", "bright_white"),
+        build_part(f"{vigor_now}/{vigor_cap}", _resource_color(vigor_now, vigor_cap), True),
+        build_part("   Mana: ", "bright_white"),
+        build_part(f"{mana_now}/{mana_cap}", _resource_color(mana_now, mana_cap), True),
+        build_part("\n"),
+        build_part("Coins: ", "bright_white"),
+        build_part(str(max(0, int(session.status.coins))), "bright_cyan", True),
+        build_part("\n"),
+        build_part("Experience: ", "bright_white"),
+        build_part(str(xp_total), "bright_cyan", True),
+        build_part("   To Next Level: ", "bright_white"),
+        build_part(str(xp_to_next), "bright_green", True),
+        build_part("\n"),
+        build_part("----------------------------------", "bright_black"),
+        build_part("\n"),
+        build_part("Attributes", "bright_white", True),
+    ]
+
+    configured_attributes = load_attributes()
+    for attribute in configured_attributes:
+        attribute_id = str(attribute.get("attribute_id", "")).strip().lower()
+        if not attribute_id:
+            continue
+        attribute_name = str(attribute.get("name", attribute_id)).strip() or attribute_id
+        value = int(session.player.attributes.get(attribute_id, 0))
+        parts.extend([
+            build_part("\n"),
+            build_part(" - ", "bright_white"),
+            build_part(attribute_name, "bright_cyan", True),
+            build_part(" (", "bright_white"),
+            build_part(attribute_id.upper(), "bright_yellow", True),
+            build_part("): ", "bright_white"),
+            build_part(str(value), "bright_green", True),
+        ])
+
+    parts.extend([
+        build_part("\n"),
+        build_part("'------------------------------'", "bright_black"),
+    ])
+
+    return display_command_result(session, parts)
 
 
 def _complete_login(session: ClientSession, character_record: dict, *, is_new_character: bool) -> OutboundResult:
@@ -1214,6 +1314,9 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             ])
 
         return display_command_result(session, parts)
+
+    if verb in {"score", "sc"}:
+        return display_score(session)
 
     if verb in {"spell", "spells", "sp", "spe", "spel"}:
         spells = _list_known_spells(session)
