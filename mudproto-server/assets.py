@@ -434,6 +434,11 @@ def load_spells() -> list[dict]:
         ).strip()
         support_effect = str(raw_spell.get("support_effect", "")).strip().lower()
         support_amount = int(raw_spell.get("support_amount", 0))
+        support_dice_count = int(raw_spell.get("support_dice_count", 0))
+        support_dice_sides = int(raw_spell.get("support_dice_sides", 0))
+        support_roll_modifier = int(raw_spell.get("support_roll_modifier", 0))
+        support_scaling_attribute_id = str(raw_spell.get("support_scaling_attribute_id", "")).strip().lower()
+        support_scaling_multiplier = float(raw_spell.get("support_scaling_multiplier", 1.0))
         duration_hours = int(raw_spell.get("duration_hours", 0))
         duration_rounds = int(raw_spell.get("duration_rounds", 0))
         support_mode = str(raw_spell.get("support_mode", "timed")).strip().lower() or "timed"
@@ -456,6 +461,14 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_sides must be zero or greater.")
         if support_amount < 0:
             raise ValueError(f"Spell asset '{spell_id}' support_amount must be zero or greater.")
+        if support_dice_count < 0:
+            raise ValueError(f"Spell asset '{spell_id}' support_dice_count must be zero or greater.")
+        if support_dice_sides < 0:
+            raise ValueError(f"Spell asset '{spell_id}' support_dice_sides must be zero or greater.")
+        if support_dice_count > 0 and support_dice_sides <= 0:
+            raise ValueError(f"Spell asset '{spell_id}' support_dice_sides must be > 0 when support_dice_count is set.")
+        if support_scaling_multiplier < 0.0:
+            raise ValueError(f"Spell asset '{spell_id}' support_scaling_multiplier must be zero or greater.")
         if duration_hours < 0:
             raise ValueError(f"Spell asset '{spell_id}' duration_hours must be zero or greater.")
         if duration_rounds < 0:
@@ -478,6 +491,10 @@ def load_spells() -> list[dict]:
         if spell_type == "support" and support_effect not in {"heal", "vigor", "mana"}:
             raise ValueError(
                 f"Spell asset '{spell_id}' support_effect must be one of: heal, vigor, mana."
+            )
+        if spell_type == "support" and support_amount <= 0 and support_dice_count <= 0:
+            raise ValueError(
+                f"Spell asset '{spell_id}' support spells must define support_amount and/or support_dice_count."
             )
         if spell_type == "support" and support_mode == "timed" and duration_hours <= 0:
             raise ValueError(f"Spell asset '{spell_id}' support spells must have duration_hours > 0.")
@@ -510,6 +527,11 @@ def load_spells() -> list[dict]:
             "observer_life_steal_context": observer_restore_context if restore_effect == "heal" else "",
             "support_effect": support_effect,
             "support_amount": support_amount,
+            "support_dice_count": support_dice_count,
+            "support_dice_sides": support_dice_sides,
+            "support_roll_modifier": support_roll_modifier,
+            "support_scaling_attribute_id": support_scaling_attribute_id,
+            "support_scaling_multiplier": support_scaling_multiplier,
             "duration_hours": duration_hours,
             "duration_rounds": duration_rounds,
             "support_mode": support_mode,

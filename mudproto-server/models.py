@@ -51,6 +51,10 @@ class ActiveSupportEffectState:
     support_effect: str
     support_amount: int
     remaining_hours: int
+    support_dice_count: int = 0
+    support_dice_sides: int = 0
+    support_roll_modifier: int = 0
+    support_scaling_bonus: int = 0
     remaining_rounds: int = 0
 
 

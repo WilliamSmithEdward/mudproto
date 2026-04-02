@@ -253,6 +253,10 @@ def _serialize_support_effect(effect: ActiveSupportEffectState) -> dict:
         "support_mode": effect.support_mode,
         "support_effect": effect.support_effect,
         "support_amount": int(effect.support_amount),
+        "support_dice_count": int(effect.support_dice_count),
+        "support_dice_sides": int(effect.support_dice_sides),
+        "support_roll_modifier": int(effect.support_roll_modifier),
+        "support_scaling_bonus": int(effect.support_scaling_bonus),
         "remaining_hours": int(effect.remaining_hours),
         "remaining_rounds": int(effect.remaining_rounds),
     }
@@ -265,6 +269,10 @@ def _deserialize_support_effect(raw: dict) -> ActiveSupportEffectState:
         support_mode=str(raw.get("support_mode", "timed")).strip().lower() or "timed",
         support_effect=str(raw.get("support_effect", "")).strip().lower(),
         support_amount=int(raw.get("support_amount", 0)),
+        support_dice_count=max(0, int(raw.get("support_dice_count", 0))),
+        support_dice_sides=max(0, int(raw.get("support_dice_sides", 0))),
+        support_roll_modifier=int(raw.get("support_roll_modifier", 0)),
+        support_scaling_bonus=int(raw.get("support_scaling_bonus", 0)),
         remaining_hours=int(raw.get("remaining_hours", 0)),
         remaining_rounds=int(raw.get("remaining_rounds", 0)),
     )

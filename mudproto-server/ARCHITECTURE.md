@@ -374,12 +374,18 @@ When an entity dies:
 ### Support Effects
 
 - `ActiveSupportEffectState` tracked on player sessions and NPC entities.
+- Support effects can be flat-value and/or dice-based each application tick:
+  `support_amount` + rolled support dice + roll modifier + scaling bonus.
 - **Timed** (`remaining_hours`): player effects are processed by
   `game_hour_ticks.py`; NPC effects are processed from the global tick loop
   via `combat.py::process_entity_game_hour_tick()`.
 - **Battle-round** (`remaining_rounds`): player effects are processed by
   `battle_round_ticks.py`; NPC effects are processed in
   `combat.py::_process_combat_round_timers()`.
+- Default scaling for support heal spells:
+  player casts default to WIS-derived scaling when no
+  `support_scaling_attribute_id` is specified; NPC casts default to
+  `power_level` scaling.
 
 ---
 

@@ -157,12 +157,92 @@ def _apply_entity_secondary_restore(entity: EntityState, effect: str, amount: in
     return entity.hit_points - before
 
 
+def _resolve_player_support_scaling_bonus(session: ClientSession, spell: dict, support_effect: str) -> int:
+    scaling_attribute_id = str(spell.get("support_scaling_attribute_id", "")).strip().lower()
+    if not scaling_attribute_id and support_effect == "heal":
+        scaling_attribute_id = "wis"
+    if not scaling_attribute_id:
+        return 0
+
+    scaling_multiplier = max(0.0, float(spell.get("support_scaling_multiplier", 1.0)))
+    if scaling_multiplier <= 0.0:
+        return 0
+
+    attribute_score = int(session.player.attributes.get(scaling_attribute_id, 0))
+    attribute_modifier = (attribute_score - 10) // 2
+    return int(attribute_modifier * scaling_multiplier)
+
+
+def _roll_player_support_amount(
+    session: ClientSession,
+    spell: dict,
+    support_effect: str,
+) -> tuple[int, int, int, int, int]:
+    base_amount = max(0, int(spell.get("support_amount", 0)))
+    dice_count = max(0, int(spell.get("support_dice_count", 0)))
+    dice_sides = max(0, int(spell.get("support_dice_sides", 0)))
+    roll_modifier = int(spell.get("support_roll_modifier", 0))
+    scaling_bonus = _resolve_player_support_scaling_bonus(session, spell, support_effect)
+
+    rolled_amount = base_amount + roll_modifier + scaling_bonus
+    if dice_count > 0 and dice_sides > 0:
+        rolled_amount += sum(random.randint(1, dice_sides) for _ in range(dice_count))
+
+    return max(0, rolled_amount), dice_count, dice_sides, roll_modifier, scaling_bonus
+
+
+def _resolve_entity_support_scaling_bonus(entity: EntityState, spell: dict, support_effect: str) -> int:
+    scaling_attribute_id = str(spell.get("support_scaling_attribute_id", "")).strip().lower()
+    if not scaling_attribute_id and support_effect == "heal":
+        scaling_attribute_id = "power_level"
+    if scaling_attribute_id != "power_level":
+        return 0
+
+    scaling_multiplier = max(0.0, float(spell.get("support_scaling_multiplier", 1.0)))
+    if scaling_multiplier <= 0.0:
+        return 0
+
+    return int(max(0, entity.power_level) * scaling_multiplier)
+
+
+def _roll_entity_support_amount(
+    entity: EntityState,
+    spell: dict,
+    support_effect: str,
+) -> tuple[int, int, int, int, int]:
+    base_amount = max(0, int(spell.get("support_amount", 0)))
+    dice_count = max(0, int(spell.get("support_dice_count", 0)))
+    dice_sides = max(0, int(spell.get("support_dice_sides", 0)))
+    roll_modifier = int(spell.get("support_roll_modifier", 0))
+    scaling_bonus = _resolve_entity_support_scaling_bonus(entity, spell, support_effect)
+
+    rolled_amount = base_amount + roll_modifier + scaling_bonus
+    if dice_count > 0 and dice_sides > 0:
+        rolled_amount += sum(random.randint(1, dice_sides) for _ in range(dice_count))
+
+    return max(0, rolled_amount), dice_count, dice_sides, roll_modifier, scaling_bonus
+
+
+def _roll_support_effect_amount(effect: ActiveSupportEffectState) -> int:
+    rolled_amount = int(effect.support_amount)
+    rolled_amount += int(effect.support_roll_modifier)
+    rolled_amount += int(effect.support_scaling_bonus)
+
+    dice_count = max(0, int(effect.support_dice_count))
+    dice_sides = max(0, int(effect.support_dice_sides))
+    if dice_count > 0 and dice_sides > 0:
+        rolled_amount += sum(random.randint(1, dice_sides) for _ in range(dice_count))
+
+    return max(0, rolled_amount)
+
+
 def _process_entity_battle_round_support_effects(entity: EntityState) -> None:
     for effect in list(entity.active_support_effects):
         if effect.support_mode != "battle_rounds":
             continue
 
-        _apply_entity_secondary_restore(entity, effect.support_effect, effect.support_amount)
+        rolled_amount = _roll_support_effect_amount(effect)
+        _apply_entity_secondary_restore(entity, effect.support_effect, rolled_amount)
 
         effect.remaining_rounds -= 1
         if effect.remaining_rounds <= 0:
@@ -174,7 +254,8 @@ def process_entity_game_hour_tick(entity: EntityState) -> None:
         if effect.support_mode != "timed":
             continue
 
-        _apply_entity_secondary_restore(entity, effect.support_effect, effect.support_amount)
+        rolled_amount = _roll_support_effect_amount(effect)
+        _apply_entity_secondary_restore(entity, effect.support_effect, rolled_amount)
 
         effect.remaining_hours -= 1
         if effect.remaining_hours <= 0:
@@ -1081,18 +1162,28 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
     if spell_type == "support" and cast_type == "self":
         support_effect = str(spell.get("support_effect", "")).strip().lower()
         support_amount = max(0, int(spell.get("support_amount", 0)))
+        support_dice_count = max(0, int(spell.get("support_dice_count", 0)))
         support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
         duration_hours = max(0, int(spell.get("duration_hours", 0)))
         duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
         support_context = str(spell.get("support_context", "")).strip()
 
+        if support_amount <= 0 and support_dice_count <= 0:
+            return False
+
+        rolled_support_amount, dice_count, dice_sides, roll_modifier, scaling_bonus = _roll_entity_support_amount(
+            entity,
+            spell,
+            support_effect,
+        )
+
         if support_mode == "instant":
             if support_effect == "heal":
-                entity.hit_points = min(entity.max_hit_points, entity.hit_points + support_amount)
+                entity.hit_points = min(entity.max_hit_points, entity.hit_points + rolled_support_amount)
             elif support_effect == "vigor":
-                entity.vigor = min(entity.max_vigor, entity.vigor + support_amount)
+                entity.vigor = min(entity.max_vigor, entity.vigor + rolled_support_amount)
             elif support_effect == "mana":
-                entity.mana = min(entity.max_mana, entity.mana + support_amount)
+                entity.mana = min(entity.max_mana, entity.mana + rolled_support_amount)
         elif support_mode in {"timed", "battle_rounds"}:
             spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
             refreshed = False
@@ -1102,6 +1193,10 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
                 active_effect.support_mode = support_mode
                 active_effect.support_effect = support_effect
                 active_effect.support_amount = support_amount
+                active_effect.support_dice_count = dice_count
+                active_effect.support_dice_sides = dice_sides
+                active_effect.support_roll_modifier = roll_modifier
+                active_effect.support_scaling_bonus = scaling_bonus
                 active_effect.remaining_hours = duration_hours
                 active_effect.remaining_rounds = duration_rounds
                 refreshed = True
@@ -1114,6 +1209,10 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
                     support_mode=support_mode,
                     support_effect=support_effect,
                     support_amount=support_amount,
+                    support_dice_count=dice_count,
+                    support_dice_sides=dice_sides,
+                    support_roll_modifier=roll_modifier,
+                    support_scaling_bonus=scaling_bonus,
                     remaining_hours=duration_hours,
                     remaining_rounds=duration_rounds,
                 ))
@@ -1186,6 +1285,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     damage_context = str(spell.get("damage_context", "")).strip()
     support_effect = str(spell.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(spell.get("support_amount", 0)))
+    support_dice_count = max(0, int(spell.get("support_dice_count", 0)))
     duration_hours = max(0, int(spell.get("duration_hours", 0)))
     duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
     support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
@@ -1228,6 +1328,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 f"Spell '{spell_name}' must have duration_rounds > 0.",
                 session,
             ), False
+        if support_amount <= 0 and support_dice_count <= 0:
+            return display_error(
+                f"Spell '{spell_name}' must define support_amount and/or support_dice_count.",
+                session,
+            ), False
         if not support_context:
             return display_error(
                 f"Spell '{spell_name}' must define support_context.",
@@ -1243,12 +1348,13 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 build_part("."),
             ]
 
+            rolled_support_amount, _, _, _, _ = _roll_player_support_amount(session, spell, support_effect)
             if support_effect == "heal":
-                status.hit_points = min(PLAYER_REFERENCE_MAX_HP, status.hit_points + support_amount)
+                status.hit_points = min(PLAYER_REFERENCE_MAX_HP, status.hit_points + rolled_support_amount)
             elif support_effect == "vigor":
-                status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, status.vigor + support_amount)
+                status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, status.vigor + rolled_support_amount)
             else:
-                status.mana = min(PLAYER_REFERENCE_MAX_MANA, status.mana + support_amount)
+                status.mana = min(PLAYER_REFERENCE_MAX_MANA, status.mana + rolled_support_amount)
             parts.extend([
                 build_part("\n"),
                 build_part(support_context),
@@ -1263,6 +1369,12 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             result = display_command_result(session, parts, blank_lines_before=0)
             return _attach_room_broadcast_lines(result, observer_lines), True
 
+        _, dice_count, dice_sides, roll_modifier, scaling_bonus = _roll_player_support_amount(
+            session,
+            spell,
+            support_effect,
+        )
+
         refreshed = False
         for active_effect in session.active_support_effects:
             if active_effect.spell_id != spell_id:
@@ -1270,6 +1382,10 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             active_effect.support_mode = support_mode
             active_effect.support_effect = support_effect
             active_effect.support_amount = support_amount
+            active_effect.support_dice_count = dice_count
+            active_effect.support_dice_sides = dice_sides
+            active_effect.support_roll_modifier = roll_modifier
+            active_effect.support_scaling_bonus = scaling_bonus
             active_effect.remaining_hours = duration_hours
             active_effect.remaining_rounds = duration_rounds
             refreshed = True
@@ -1282,6 +1398,10 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 support_mode=support_mode,
                 support_effect=support_effect,
                 support_amount=support_amount,
+                support_dice_count=dice_count,
+                support_dice_sides=dice_sides,
+                support_roll_modifier=roll_modifier,
+                support_scaling_bonus=scaling_bonus,
                 remaining_hours=duration_hours,
                 remaining_rounds=duration_rounds,
             ))

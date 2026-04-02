@@ -1,6 +1,17 @@
+import random
+
 from attribute_config import load_regeneration_config
 from models import ClientSession
 from settings import PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
+
+
+def _roll_support_effect_amount(effect) -> int:
+    total = int(effect.support_amount) + int(effect.support_roll_modifier) + int(effect.support_scaling_bonus)
+    dice_count = max(0, int(effect.support_dice_count))
+    dice_sides = max(0, int(effect.support_dice_sides))
+    if dice_count > 0 and dice_sides > 0:
+        total += sum(random.randint(1, dice_sides) for _ in range(dice_count))
+    return max(0, total)
 
 
 def process_game_hour_tick(session: ClientSession) -> list[str]:
@@ -54,12 +65,14 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
         if effect.support_mode != "timed":
             continue
 
+        applied_amount = _roll_support_effect_amount(effect)
+
         if effect.support_effect == "heal":
-            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + effect.support_amount)
+            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + applied_amount)
         elif effect.support_effect == "vigor":
-            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + effect.support_amount)
+            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + applied_amount)
         elif effect.support_effect == "mana":
-            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + effect.support_amount)
+            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + applied_amount)
 
         effect.remaining_hours -= 1
         if effect.remaining_hours <= 0:
