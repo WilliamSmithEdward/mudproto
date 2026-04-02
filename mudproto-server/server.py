@@ -38,6 +38,7 @@ from sessions import (
     handle_client_disconnect,
     is_session_lagged,
     register_client,
+    reset_session_to_login,
     touch_session,
 )
 from game_hour_ticks import process_game_hour_tick
@@ -426,6 +427,13 @@ async def combat_round_loop() -> None:
                         [unified_display, display_force_prompt(recipient)],
                     )
 
+                for actor_session, _ in round_results:
+                    if not actor_session.pending_death_logout:
+                        continue
+                    reset_session_to_login(actor_session)
+                    if actor_session.is_connected:
+                        await send_outbound(actor_session.websocket, initial_auth_prompt(actor_session))
+
     except asyncio.CancelledError:
         raise
 
@@ -468,6 +476,11 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
             response = await dispatch_message(message, session)
             await send_outbound(session.websocket, response)
+
+            if session.pending_death_logout:
+                reset_session_to_login(session)
+                await send_outbound(session.websocket, initial_auth_prompt(session))
+                continue
 
             if message.get("type") == "input":
                 payload = message.get("payload", {})

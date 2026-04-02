@@ -400,6 +400,24 @@ def handle_client_disconnect(session: ClientSession) -> None:
         start_offline_character_processing(session)
 
 
+def reset_session_to_login(session: ClientSession) -> None:
+    """Save and deauthenticate a session, returning it to the login screen."""
+    normalized_key = session.player_state_key.strip().lower()
+    if normalized_key:
+        save_player_state(session)
+        active_character_sessions.pop(normalized_key, None)
+        stop_offline_character_processing(normalized_key)
+
+    session.is_authenticated = False
+    session.auth_stage = "awaiting_character_or_start"
+    session.authenticated_character_name = ""
+    session.player_state_key = ""
+    session.pending_character_name = ""
+    session.pending_password = ""
+    session.lag_until_monotonic = None
+    session.pending_death_logout = False
+
+
 def touch_session(session: ClientSession) -> None:
     session.last_message_at = utc_now_iso()
 

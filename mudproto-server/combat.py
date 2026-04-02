@@ -25,6 +25,7 @@ from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_
 from inventory import build_equippable_item_from_template
 from models import ActiveSupportEffectState, ClientSession, CorpseState, EntityState, ItemState
 from sessions import active_character_sessions, connected_clients
+from death import build_player_death_broadcast_parts, build_player_death_parts, handle_player_death
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
     PLAYER_REFERENCE_MAX_HP,
@@ -841,8 +842,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
-                build_part(with_article(entity.name, capitalize=True)),
-                build_part(" is destroyed."),
+                build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+                build_part(" is dead!", "bright_red", True),
             ])
 
             if entity.entity_id in session.combat.engaged_entity_ids:
@@ -881,7 +882,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             actor_name,
         ))
     for destroyed_name in destroyed_entity_names:
-        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is destroyed.")
+        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
 
     result = display_command_result(session, parts)
     return _attach_room_broadcast_parts(result, observer_lines), True
@@ -1330,8 +1331,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
-                build_part(with_article(entity.name, capitalize=True)),
-                build_part(" is destroyed."),
+                build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+                build_part(" is dead!", "bright_red", True),
             ])
 
             if entity.entity_id in session.combat.engaged_entity_ids:
@@ -1368,7 +1369,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             actor_name,
         ))
     for destroyed_name in destroyed_entity_names:
-        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is destroyed.")
+        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
 
     result = display_command_result(session, parts)
     return _attach_room_broadcast_parts(result, observer_lines), True
@@ -1636,10 +1637,14 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
             attack_verb=attack_verb,
             damage=attack_damage,
         ))
+        if status.hit_points <= 0:
+            return
 
     if allow_off_hand:
         off_hand_swings = max(0, entity.off_hand_attacks_per_round)
         for _ in range(off_hand_swings):
+            if status.hit_points <= 0:
+                return
             append_newline_if_needed(parts)
 
             off_hit_modifier = get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)
@@ -1665,6 +1670,8 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
                 attack_verb=off_attack_verb,
                 damage=off_hand_damage,
             ))
+            if status.hit_points <= 0:
+                return
 
 
 def resolve_combat_round(
@@ -1716,8 +1723,8 @@ def resolve_combat_round(
 
         append_newline_if_needed(parts)
         parts.extend([
-            build_part(with_article(entity.name, capitalize=True)),
-            build_part(" is destroyed.", "bright_white"),
+            build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+            build_part(" is dead!", "bright_red", True),
         ])
 
         if entity.entity_id in session.combat.engaged_entity_ids:
@@ -1752,20 +1759,16 @@ def resolve_combat_round(
                 break
 
     if status.hit_points <= 0:
-        end_combat(session)
+        handle_player_death(session)
 
         append_newline_if_needed(parts)
-        parts.extend([
-            build_part("You collapse. Combat ends.", "bright_red", True),
-        ])
+        parts.extend(build_player_death_parts())
 
         result = display_combat_round_result(session, parts)
         payload = result.get("payload") if isinstance(result, dict) else None
         if isinstance(payload, dict):
             actor_name = session.authenticated_character_name or "Someone"
-            payload["room_broadcast_parts"] = [
-                build_part(f"{actor_name} collapses. Combat ends.", "bright_red", True),
-            ]
+            payload["room_broadcast_parts"] = build_player_death_broadcast_parts(actor_name)
 
         return result
 

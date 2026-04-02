@@ -173,3 +173,4 @@ class ClientSession:
     login_room_id: str = "start"
     is_connected: bool = True
     disconnected_by_server: bool = False
+    pending_death_logout: bool = False
