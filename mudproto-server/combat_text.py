@@ -1,4 +1,5 @@
 from attribute_config import load_combat_severity_config
+from damage import resolve_weapon_finish_noun
 from grammar import indefinite_article, to_third_person, with_article
 from settings import PLAYER_REFERENCE_MAX_HP
 
@@ -25,10 +26,10 @@ def build_player_attack_parts(
 ) -> list[dict]:
     from display import build_part
 
-    verb_noun = to_third_person(attack_verb)
     severity = _choose_severity(damage, target_max_hp)
     article = indefinite_article(entity_name)
     named = f"{article} {entity_name}"
+    finish_noun = resolve_weapon_finish_noun(attack_verb)
 
     parts: list[dict] = []
     if severity == "miss":
@@ -67,7 +68,7 @@ def build_player_attack_parts(
         build_part(f"You {top_label} "),
         build_part(named),
         build_part(" with your "),
-        build_part(verb_noun),
+        build_part(finish_noun),
         build_part("."),
     ])
     return parts
@@ -82,9 +83,9 @@ def build_entity_attack_parts(
 ) -> list[dict]:
     from display import build_part
 
-    verb_noun = to_third_person(attack_verb)
     severity = _choose_severity(damage, PLAYER_REFERENCE_MAX_HP)
     subject = with_article(entity_name, capitalize=True)
+    finish_noun = resolve_weapon_finish_noun(attack_verb)
 
     parts: list[dict] = []
     if severity == "miss":
@@ -126,7 +127,7 @@ def build_entity_attack_parts(
     parts.extend([
         build_part(subject),
         build_part(f" {top_verb} you with {pronoun} "),
-        build_part(verb_noun),
+        build_part(finish_noun),
         build_part("."),
     ])
     return parts

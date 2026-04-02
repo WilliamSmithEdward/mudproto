@@ -42,6 +42,7 @@ def build_menu_table_parts(
     *,
     column_colors: list[str] | None = None,
     row_cell_colors: list[list[str]] | None = None,
+    column_alignments: list[str] | None = None,
     empty_message: str = "Nothing is known.",
 ) -> list[dict]:
     normalized_headers = [str(header).strip() for header in headers if str(header).strip()]
@@ -61,6 +62,11 @@ def build_menu_table_parts(
         base_colors.extend(["bright_cyan"] * (column_count - len(base_colors)))
         column_colors = base_colors
 
+    if column_alignments is None or len(column_alignments) < column_count:
+        base_alignments = list(column_alignments or [])
+        base_alignments.extend(["left"] * (column_count - len(base_alignments)))
+        column_alignments = base_alignments
+
     if not normalized_rows:
         return [
             build_part(_panel_title_line(title), "bright_cyan", True),
@@ -77,8 +83,15 @@ def build_menu_table_parts(
         col_widths.append(max(len(normalized_headers[col_index]), max_cell))
 
     content_width = sum(col_widths) + gap * (column_count - 1)
-    panel_width = max(PANEL_INNER_WIDTH, content_width)
+    panel_width = max(len(str(title).strip()), content_width)
     col_widths[0] += panel_width - content_width
+
+    def _align_text(value: str, width: int, alignment: str) -> str:
+        if alignment == "right":
+            return value.rjust(width)
+        if alignment == "center":
+            return value.center(width)
+        return value.ljust(width)
 
     parts: list[dict] = [
         build_part(str(title).strip().center(panel_width), "bright_cyan", True),
@@ -88,10 +101,10 @@ def build_menu_table_parts(
     ]
 
     for col_index in range(column_count):
-        parts.append(build_part(normalized_headers[col_index], "bright_white", True))
+        header_text = _align_text(normalized_headers[col_index], col_widths[col_index], column_alignments[col_index])
+        parts.append(build_part(header_text, "bright_white", True))
         if col_index < column_count - 1:
-            spacing = max(2, col_widths[col_index] - len(normalized_headers[col_index]) + gap)
-            parts.append(build_part(" " * spacing, "bright_white"))
+            parts.append(build_part(" " * gap, "bright_white"))
 
     parts.extend([
         build_part("\n"),
@@ -107,7 +120,8 @@ def build_menu_table_parts(
                 if col_index < len(color_row) and str(color_row[col_index]).strip():
                     cell_color = str(color_row[col_index]).strip()
 
-            parts.append(build_part(row[col_index].ljust(col_widths[col_index]), cell_color, True))
+            aligned_cell = _align_text(row[col_index], col_widths[col_index], column_alignments[col_index])
+            parts.append(build_part(aligned_cell, cell_color, True))
             if col_index < column_count - 1:
                 parts.append(build_part(" " * gap, "bright_white"))
 
@@ -257,9 +271,7 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
     xp_to_next_level = get_xp_to_next_level(session.player.experience_points)
     parts.extend([
-        build_part(" [XP:", "bright_white"),
-        build_part(str(xp_to_next_level), "bright_cyan", True),
-        build_part("]", "bright_white"),
+        build_part(f" {xp_to_next_level}X", "bright_white"),
     ])
 
     tick_seconds_remaining = _get_tick_seconds_remaining(session)
@@ -489,6 +501,7 @@ def display_equipment(session: ClientSession) -> dict:
         ["Slot", "Item"],
         rows,
         column_colors=["bright_cyan", "bright_magenta"],
+        column_alignments=["left", "left"],
         empty_message="Nothing is worn.",
     )
 
@@ -533,6 +546,7 @@ def display_inventory(session: ClientSession) -> dict:
         rows,
         column_colors=["bright_cyan", "bright_cyan"],
         row_cell_colors=row_cell_colors,
+        column_alignments=["left", "right"],
         empty_message="Inventory is empty.",
     )
 

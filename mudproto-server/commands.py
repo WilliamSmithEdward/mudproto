@@ -218,6 +218,7 @@ def _build_cost_menu_parts(
             ["Name", middle_header_label, "Cost"],
             rows,
             column_colors=["bright_cyan", "bright_magenta", "bright_yellow"],
+            column_alignments=["left", "left", "right"],
         )
 
     rows = [
@@ -232,6 +233,7 @@ def _build_cost_menu_parts(
         ["Name", "Cost"],
         rows,
         column_colors=["bright_cyan", "bright_yellow"],
+        column_alignments=["left", "right"],
     )
 
 
@@ -251,8 +253,53 @@ def display_score(session: ClientSession) -> OutboundMessage:
     mana_now = max(0, int(session.status.mana))
     mana_cap = max(1, int(caps["mana"]))
 
-    divider = _panel_divider()
-    title_line = _panel_title_line("Adventurer's Ledger")
+    level_text = str(max(1, int(session.player.level)))
+    coins_text = str(max(0, int(session.status.coins)))
+
+    summary_line = f"Name: {character_name}   Class: {class_name}   Level: {level_text}"
+    location_line = f"Location: {room_name}"
+    resources_line = f"Health: {hp_now}/{hp_cap}   Vigor: {vigor_now}/{vigor_cap}   Mana: {mana_now}/{mana_cap}"
+    coins_line = f"Coins: {coins_text}"
+    xp_line = f"Experience: {xp_total}   To Next Level: {xp_to_next}"
+
+    attribute_line_texts: list[str] = []
+    configured_attributes = load_attributes()
+    for attribute in configured_attributes:
+        attribute_id = str(attribute.get("attribute_id", "")).strip().lower()
+        if not attribute_id:
+            continue
+        attribute_name = str(attribute.get("name", attribute_id)).strip() or attribute_id
+        value = int(session.player.attributes.get(attribute_id, 0))
+        attribute_line_texts.append(f" - {attribute_name} ({attribute_id.upper()}): {value}")
+
+    active_effects = sorted(
+        list(session.active_support_effects),
+        key=lambda effect: str(getattr(effect, "spell_name", "")).lower(),
+    )
+    effect_line_texts: list[str] = []
+    if not active_effects:
+        effect_line_texts.append(" - None")
+    else:
+        for effect in active_effects:
+            effect_name = str(getattr(effect, "spell_name", "Effect")).strip() or "Effect"
+            duration_text = _format_effect_remaining_duration(effect)
+            effect_line_texts.append(f" - {effect_name} ({duration_text} remaining)")
+
+    panel_width = max(
+        PANEL_INNER_WIDTH,
+        len("Adventurer's Ledger"),
+        len(summary_line),
+        len(location_line),
+        len(resources_line),
+        len(coins_line),
+        len(xp_line),
+        len("Attributes"),
+        len("Active Effects"),
+        max((len(text) for text in attribute_line_texts), default=0),
+        max((len(text) for text in effect_line_texts), default=0),
+    )
+    divider = "-" * panel_width
+    title_line = "Adventurer's Ledger".center(panel_width)
 
     parts: list[dict] = [
         build_part(title_line, "bright_cyan", True),
@@ -264,7 +311,7 @@ def display_score(session: ClientSession) -> OutboundMessage:
         build_part("   Class: ", "bright_white"),
         build_part(class_name, "bright_cyan", True),
         build_part("   Level: ", "bright_white"),
-        build_part(str(max(1, int(session.player.level))), "bright_green", True),
+        build_part(level_text, "bright_green", True),
         build_part("\n"),
         build_part("Location: ", "bright_white"),
         build_part(room_name, "bright_magenta", True),
@@ -291,7 +338,6 @@ def display_score(session: ClientSession) -> OutboundMessage:
         build_part("Attributes", "bright_white", True),
     ]
 
-    configured_attributes = load_attributes()
     for attribute in configured_attributes:
         attribute_id = str(attribute.get("attribute_id", "")).strip().lower()
         if not attribute_id:
@@ -315,10 +361,6 @@ def display_score(session: ClientSession) -> OutboundMessage:
         build_part("Active Effects", "bright_white", True),
     ])
 
-    active_effects = sorted(
-        list(session.active_support_effects),
-        key=lambda effect: str(getattr(effect, "spell_name", "")).lower(),
-    )
     if not active_effects:
         parts.extend([
             build_part("\n"),

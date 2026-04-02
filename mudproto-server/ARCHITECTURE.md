@@ -449,7 +449,8 @@ Rendering invariants:
   equipment) use a shared visual
   frame/table contract from `display.py` (`build_menu_table_parts`): dynamic
   column widths sized to content, minimum panel width (`PANEL_INNER_WIDTH`),
-  centered title line, and full-width divider rows. New panel-style command
+  centered title line, and divider rows sized to the computed panel width.
+  New panel-style command
   outputs should reuse this contract for
   consistent horizontal alignment.
 - A blank line before a prompt is represented by leading empty entries in

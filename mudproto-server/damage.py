@@ -15,10 +15,26 @@ WEAPON_TYPE_TO_VERB = {
     "spear": "pierce",
 }
 
+WEAPON_TYPE_TO_FINISH_NOUN = {
+    "unarmed": "blow",
+    "sword": "slash",
+    "axe": "hack",
+    "bludgeon": "blow",
+    "mace": "blow",
+    "club": "blow",
+    "dagger": "stab",
+    "spear": "thrust",
+}
+
 
 def resolve_weapon_verb(weapon_type: str) -> str:
     normalized = weapon_type.strip().lower() if weapon_type else "unarmed"
     return WEAPON_TYPE_TO_VERB.get(normalized, "hit")
+
+
+def resolve_weapon_finish_noun(weapon_type: str) -> str:
+    normalized = weapon_type.strip().lower() if weapon_type else "unarmed"
+    return WEAPON_TYPE_TO_FINISH_NOUN.get(normalized, "blow")
 
 
 def roll_hit(total_modifier: int, target_armor_class: int) -> bool:
