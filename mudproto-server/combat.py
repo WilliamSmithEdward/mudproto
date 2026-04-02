@@ -947,9 +947,9 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         build_part(skill_name),
         build_part(target_text + "."),
     ]
-    if description:
+    if description and skill_type != "support":
         parts.extend([
-            build_part("\n"),
+            build_part(" "),
             build_part(description),
         ])
 
@@ -1165,6 +1165,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
     vigor_cost = max(0, int(skill.get("vigor_cost", 0)))
     scaling_bonus = _resolve_entity_skill_scale_bonus(entity, skill)
+    observer_context = str(skill.get("observer_context", "")).strip()
 
     description = str(skill.get("description", "")).strip()
     cast_target_text = " on you!"
@@ -1180,7 +1181,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         build_part(skill_name),
         build_part(cast_target_text),
     ])
-    if description:
+    if description and skill_type != "support":
         parts.extend([
             build_part(" "),
             build_part(description),
@@ -1201,8 +1202,12 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         elif support_effect == "mana":
             entity.mana = min(entity.max_mana, entity.mana + total_support_amount)
         if support_context:
+            rendered_support_context = observer_context or _observer_context_from_player_context(support_context)
             append_newline_if_needed(parts)
-            parts.append(build_part(support_context))
+            parts.append(build_part(_render_observer_template(
+                rendered_support_context,
+                with_article(entity.name, capitalize=True),
+            )))
 
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)

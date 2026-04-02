@@ -19,7 +19,22 @@
       }
     ],
     "exits": {
-      "south": "start"
+      "south": "start",
+      "east": "east-watch"
+    }
+  },
+  {
+    "room_id": "east-watch",
+    "title": "Eastern Watch",
+    "description": "A long watch corridor lit by guttering iron braziers and scarred by old blade marks.",
+    "npcs": [
+      {
+        "npc_id": "npc.east-watch-reaver",
+        "count": 1
+      }
+    ],
+    "exits": {
+      "west": "hall"
     }
   },
   {

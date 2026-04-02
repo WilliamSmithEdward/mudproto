@@ -65,11 +65,23 @@ PANEL_INNER_WIDTH = 34
 
 DIRECTION_ALIASES = {
     "n": "north",
+    "no": "north",
+    "nor": "north",
+    "nort": "north",
     "s": "south",
+    "so": "south",
+    "sou": "south",
+    "sout": "south",
     "e": "east",
+    "ea": "east",
+    "eas": "east",
     "w": "west",
+    "we": "west",
+    "wes": "west",
     "u": "up",
-    "d": "down"
+    "d": "down",
+    "do": "down",
+    "dow": "down",
 }
 
 
@@ -1910,7 +1922,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             build_part(" and place it in your inventory.", "bright_white"),
         ])
 
-    if verb in {"north", "south", "east", "west", "up", "down", "n", "s", "e", "w", "u", "d"}:
+    if normalize_direction(verb) in {"north", "south", "east", "west", "up", "down"}:
         return try_move(session, verb)
 
     if verb == "use":

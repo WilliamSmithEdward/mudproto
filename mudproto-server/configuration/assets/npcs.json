@@ -51,6 +51,33 @@
       "spell_ids": [
         "spell.regeneration-ward"
       ]
+    },
+    {
+      "npc_id": "npc.east-watch-reaver",
+      "name": "East Watch Reaver",
+      "hit_points": 280,
+      "max_hit_points": 280,
+      "power_level": 5,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 11,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 1,
+      "coin_reward": 42,
+      "experience_reward": 55,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "main_hand_weapon_template_id": "weapon.reaver-nightblade",
+      "off_hand_weapon_template_id": "weapon.scout-dagger",
+      "vigor": 72,
+      "max_vigor": 72,
+      "skill_use_chance": 0.45,
+      "skill_ids": [
+        "skill.jab",
+        "skill.overhead-crack",
+        "skill.guard-breath"
+      ]
     }
   ]
 }

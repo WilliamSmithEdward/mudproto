@@ -48,6 +48,22 @@
     "attacks_per_round_bonus": 0
   },
   {
+    "template_id": "weapon.reaver-nightblade",
+    "name": "Reaver Nightblade",
+    "slot": "weapon",
+    "description": "A blackened longsword etched with pale runes that drink the brazier light.",
+    "keywords": ["reaver", "nightblade", "sword"],
+    "weapon_type": "sword",
+    "can_hold": false,
+    "weight": 7,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 6,
+    "damage_roll_modifier": 2,
+    "hit_roll_modifier": 2,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
     "template_id": "armor.vanguard-jacket",
     "name": "Vanguard Jacket",
     "slot": "armor",
