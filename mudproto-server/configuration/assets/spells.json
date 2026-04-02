@@ -2,6 +2,7 @@
   {
     "spell_id": "spell.spark",
     "name": "Spark",
+    "school": "Storm",
     "description": "A focused bolt of crackling force.",
     "spell_type": "damage",
     "cast_type": "target",
@@ -14,6 +15,7 @@
   {
     "spell_id": "spell.ember-lance",
     "name": "Ember Lance",
+    "school": "Pyre",
     "description": "A fan of burning embers that scorches nearby enemies.",
     "spell_type": "damage",
     "cast_type": "aoe",
@@ -26,6 +28,7 @@
   {
     "spell_id": "spell.second-wind",
     "name": "Second Wind",
+    "school": "Discipline",
     "description": "Channel calm focus to recover vigor.",
     "spell_type": "support",
     "cast_type": "self",
@@ -38,6 +41,7 @@
   {
     "spell_id": "spell.mending-light",
     "name": "Mending Light",
+    "school": "Restoration",
     "description": "Seal wounds with a gentle restorative pulse.",
     "spell_type": "support",
     "cast_type": "self",
@@ -50,6 +54,7 @@
   {
     "spell_id": "spell.clarity",
     "name": "Clarity",
+    "school": "Aether",
     "description": "Draw ambient ether to replenish mana reserves.",
     "spell_type": "support",
     "cast_type": "self",
@@ -62,6 +67,7 @@
   {
     "spell_id": "spell.healing-light",
     "name": "Healing Light",
+    "school": "Restoration",
     "description": "A sudden restorative pulse that immediately heals your wounds.",
     "spell_type": "support",
     "cast_type": "self",
@@ -79,6 +85,7 @@
   {
     "spell_id": "spell.regeneration-ward",
     "name": "Regeneration Ward",
+    "school": "Restoration",
     "description": "A steady restorative ward that heals you each battle round, even outside combat.",
     "spell_type": "support",
     "cast_type": "self",
@@ -99,6 +106,7 @@
   {
     "spell_id": "spell.arc-bolt",
     "name": "Arc Bolt",
+    "school": "Storm",
     "description": "A rigid line of blue force cracks outward.",
     "spell_type": "damage",
     "cast_type": "target",
@@ -111,6 +119,7 @@
   {
     "spell_id": "spell.life-siphon",
     "name": "Life Siphon",
+    "school": "Blood",
     "description": "Threads of crimson light loop back to the caster.",
     "spell_type": "damage",
     "cast_type": "target",

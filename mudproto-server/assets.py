@@ -418,6 +418,8 @@ def load_spells() -> list[dict]:
         if normalized_name in spell_names:
             raise ValueError(f"Duplicate spell name in spell assets: {name}")
 
+        school = str(raw_spell.get("school", "")).strip()
+
         mana_cost = int(raw_spell.get("mana_cost", 0))
         spell_type = str(raw_spell.get("spell_type", "damage")).strip().lower() or "damage"
         cast_type = str(raw_spell.get("cast_type", "")).strip().lower()
@@ -452,6 +454,8 @@ def load_spells() -> list[dict]:
 
         if mana_cost < 0:
             raise ValueError(f"Spell asset '{spell_id}' mana_cost must be zero or greater.")
+        if not school:
+            raise ValueError(f"Spell asset '{spell_id}' must include a non-empty school.")
         if spell_type not in {"damage", "support"}:
             raise ValueError(f"Spell asset '{spell_id}' spell_type must be 'damage' or 'support'.")
         if cast_type not in {"self", "target", "aoe"}:
@@ -511,6 +515,7 @@ def load_spells() -> list[dict]:
         normalized_spells.append({
             "spell_id": spell_id.strip(),
             "name": name.strip(),
+            "school": school,
             "description": str(raw_spell.get("description", "")).strip(),
             "mana_cost": mana_cost,
             "spell_type": spell_type,

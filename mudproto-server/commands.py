@@ -19,6 +19,7 @@ from combat import (
     use_skill,
 )
 from display import (
+    build_menu_table_parts,
     build_line,
     build_part,
     parts_to_lines,
@@ -178,8 +179,9 @@ def _panel_title_line(title: str) -> str:
 
 def _build_cost_menu_parts(
     title: str,
-    entries: list[tuple[str, int]],
+    entries: list[tuple[str, str, int]],
     cost_resource_label: str,
+    middle_column_header: str | None = None,
 ) -> list[dict]:
     if not entries:
         return [
@@ -188,48 +190,49 @@ def _build_cost_menu_parts(
             build_part("Nothing is known.", "bright_white"),
         ]
 
+    has_middle_column = bool(middle_column_header and middle_column_header.strip())
     sorted_entries = sorted(
-        [(str(name).strip() or title, max(0, int(cost))) for name, cost in entries],
+        [
+            (
+                str(name).strip() or title,
+                str(middle_value).strip(),
+                max(0, int(cost)),
+            )
+            for name, middle_value, cost in entries
+        ],
         key=lambda entry: entry[0].lower(),
     )
-    row_gap = 3
-    longest_cost_text_len = max(
-        len("Free") if cost <= 0 else len(f"{cost} {cost_resource_label}")
-        for _, cost in sorted_entries
-    )
-    name_col_width = max(8, PANEL_INNER_WIDTH - longest_cost_text_len - row_gap)
 
-    def _fit_name(value: str) -> str:
-        if len(value) <= name_col_width:
-            return value.ljust(name_col_width)
-        if name_col_width <= 3:
-            return value[:name_col_width]
-        return (value[:name_col_width - 3] + "...")
+    if has_middle_column:
+        middle_header_label = str(middle_column_header or "").strip()
+        rows = [
+            [
+                name,
+                middle_value,
+                "Free" if cost <= 0 else f"{cost} {cost_resource_label}",
+            ]
+            for name, middle_value, cost in sorted_entries
+        ]
+        return build_menu_table_parts(
+            title,
+            ["Name", middle_header_label, "Cost"],
+            rows,
+            column_colors=["bright_cyan", "bright_magenta", "bright_yellow"],
+        )
 
-    title_line = _panel_title_line(title)
-
-    parts: list[dict] = [
-        build_part(title_line, "bright_cyan", True),
-        build_part("\n"),
-        build_part(_panel_divider(), "bright_black"),
-        build_part("\n"),
-        build_part("Name", "bright_white", True),
-        build_part(" " * max(2, name_col_width - 4 + row_gap), "bright_white"),
-        build_part("Cost", "bright_white", True),
-        build_part("\n"),
-        build_part(_panel_divider(), "bright_black"),
+    rows = [
+        [
+            name,
+            "Free" if cost <= 0 else f"{cost} {cost_resource_label}",
+        ]
+        for name, _, cost in sorted_entries
     ]
-
-    for name, cost in sorted_entries:
-        cost_text = "Free" if cost <= 0 else f"{cost} {cost_resource_label}"
-        parts.extend([
-            build_part("\n"),
-            build_part(_fit_name(name), "bright_cyan", True),
-            build_part(" " * row_gap, "bright_white"),
-            build_part(cost_text, "bright_yellow", True),
-        ])
-
-    return parts
+    return build_menu_table_parts(
+        title,
+        ["Name", "Cost"],
+        rows,
+        column_colors=["bright_cyan", "bright_yellow"],
+    )
 
 
 def display_score(session: ClientSession) -> OutboundMessage:
@@ -1442,11 +1445,15 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         menu_rows = [
             (
                 str(spell.get("name", "Spell")).strip() or "Spell",
+                str(spell.get("school", "Unknown")).strip() or "Unknown",
                 int(spell.get("mana_cost", 0)),
             )
             for spell in spells
         ]
-        return display_command_result(session, _build_cost_menu_parts("Spells", menu_rows, "Mana"))
+        return display_command_result(
+            session,
+            _build_cost_menu_parts("Spells", menu_rows, "Mana", middle_column_header="School"),
+        )
 
     if verb in {"skills", "sk", "ski", "skil", "skill"} and not args:
         skills = _list_known_skills(session)
@@ -1458,6 +1465,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         menu_rows = [
             (
                 str(skill.get("name", "Skill")).strip() or "Skill",
+                "",
                 int(skill.get("vigor_cost", 0)),
             )
             for skill in skills

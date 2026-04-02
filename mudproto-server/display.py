@@ -35,6 +35,85 @@ def _panel_title_line(title: str) -> str:
     return str(title).strip().center(PANEL_INNER_WIDTH)
 
 
+def build_menu_table_parts(
+    title: str,
+    headers: list[str],
+    rows: list[list[str]],
+    *,
+    column_colors: list[str] | None = None,
+    row_cell_colors: list[list[str]] | None = None,
+    empty_message: str = "Nothing is known.",
+) -> list[dict]:
+    normalized_headers = [str(header).strip() for header in headers if str(header).strip()]
+    if not normalized_headers:
+        normalized_headers = ["Value"]
+
+    column_count = len(normalized_headers)
+    normalized_rows: list[list[str]] = []
+    for row in rows:
+        normalized_row = [str(cell) for cell in row[:column_count]]
+        if len(normalized_row) < column_count:
+            normalized_row.extend([""] * (column_count - len(normalized_row)))
+        normalized_rows.append(normalized_row)
+
+    if column_colors is None or len(column_colors) < column_count:
+        base_colors = list(column_colors or [])
+        base_colors.extend(["bright_cyan"] * (column_count - len(base_colors)))
+        column_colors = base_colors
+
+    if not normalized_rows:
+        return [
+            build_part(_panel_title_line(title), "bright_cyan", True),
+            build_part("\n"),
+            build_part(_panel_divider(), "bright_black"),
+            build_part("\n"),
+            build_part(empty_message, "bright_white"),
+        ]
+
+    gap = 3
+    col_widths: list[int] = []
+    for col_index in range(column_count):
+        max_cell = max(len(row[col_index]) for row in normalized_rows)
+        col_widths.append(max(len(normalized_headers[col_index]), max_cell))
+
+    content_width = sum(col_widths) + gap * (column_count - 1)
+    panel_width = max(PANEL_INNER_WIDTH, content_width)
+    col_widths[0] += panel_width - content_width
+
+    parts: list[dict] = [
+        build_part(str(title).strip().center(panel_width), "bright_cyan", True),
+        build_part("\n"),
+        build_part("-" * panel_width, "bright_black"),
+        build_part("\n"),
+    ]
+
+    for col_index in range(column_count):
+        parts.append(build_part(normalized_headers[col_index], "bright_white", True))
+        if col_index < column_count - 1:
+            spacing = max(2, col_widths[col_index] - len(normalized_headers[col_index]) + gap)
+            parts.append(build_part(" " * spacing, "bright_white"))
+
+    parts.extend([
+        build_part("\n"),
+        build_part("-" * panel_width, "bright_black"),
+    ])
+
+    for row_index, row in enumerate(normalized_rows):
+        parts.append(build_part("\n"))
+        for col_index in range(column_count):
+            cell_color = column_colors[col_index]
+            if row_cell_colors is not None and row_index < len(row_cell_colors):
+                color_row = row_cell_colors[row_index]
+                if col_index < len(color_row) and str(color_row[col_index]).strip():
+                    cell_color = str(color_row[col_index]).strip()
+
+            parts.append(build_part(row[col_index].ljust(col_widths[col_index]), cell_color, True))
+            if col_index < column_count - 1:
+                parts.append(build_part(" " * gap, "bright_white"))
+
+    return parts
+
+
 def _normalize_part(part: dict) -> dict:
     return {
         "text": str(part.get("text", "")),
@@ -404,26 +483,14 @@ def display_equipment(session: ClientSession) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
     worn_items = list_worn_items(session)
 
-    parts = [
-        build_part(_panel_title_line("Worn Equipment"), "bright_cyan", True),
-        build_part("\n"),
-        build_part(_panel_divider(), "bright_black"),
-    ]
-
-    if not worn_items:
-        parts.extend([
-            build_part("\n"),
-            build_part(" - nothing", "bright_yellow", True),
-        ])
-    else:
-        for wear_slot, item in worn_items:
-            parts.extend([
-                build_part("\n"),
-                build_part(" - ", "bright_white"),
-                build_part(wear_slot, "bright_cyan", True),
-                build_part(": ", "bright_white"),
-                build_part(item.name, "bright_magenta", True),
-            ])
+    rows = [[str(wear_slot), str(item.name)] for wear_slot, item in worn_items]
+    parts = build_menu_table_parts(
+        "Worn Equipment",
+        ["Slot", "Item"],
+        rows,
+        column_colors=["bright_cyan", "bright_magenta"],
+        empty_message="Nothing is worn.",
+    )
 
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
@@ -457,30 +524,17 @@ def display_inventory(session: ClientSession) -> dict:
 
         return [(display_names[key], display_colors[key], counts[key]) for key in order]
 
-    parts = [
-        build_part(_panel_title_line("Inventory"), "bright_cyan", True),
-        build_part("\n"),
-        build_part(_panel_divider(), "bright_black"),
-    ]
-
-    if not inventory_items:
-        parts.extend([
-            build_part("\n"),
-            build_part(" - empty", "bright_yellow", True),
-        ])
-    else:
-        inventory_stacks = _stack_counts(inventory_items)
-        for item_name, item_color, count in inventory_stacks:
-            parts.extend([
-                build_part("\n"),
-                build_part(" - ", "bright_white"),
-                build_part(item_name, item_color, True),
-            ])
-            if count > 1:
-                parts.extend([
-                    build_part(" ", "bright_white"),
-                    build_part(f"[{count}]", "bright_cyan", True),
-                ])
+    inventory_stacks = _stack_counts(inventory_items)
+    rows = [[item_name, str(count)] for item_name, _, count in inventory_stacks]
+    row_cell_colors = [[item_color, "bright_cyan"] for _, item_color, _ in inventory_stacks]
+    parts = build_menu_table_parts(
+        "Inventory",
+        ["Item", "Qty"],
+        rows,
+        column_colors=["bright_cyan", "bright_cyan"],
+        row_cell_colors=row_cell_colors,
+        empty_message="Inventory is empty.",
+    )
 
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 

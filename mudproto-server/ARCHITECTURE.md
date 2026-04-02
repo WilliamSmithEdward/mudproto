@@ -128,7 +128,7 @@ configuration/
     items.json             # consumable item templates
     npcs.json              # NPC templates (HP, attacks, loot, skills)
     rooms.json             # world rooms (exits, NPC spawns)
-    spells.json            # player spells (damage/support, mana cost)
+    spells.json            # player spells (damage/support, mana cost, school)
     skills.json            # player skills (vigor cost, scaling, cooldown)
   attributes/
     character_attributes.json   # attribute definitions (STR, DEX, CON, INT, WIS)
@@ -353,10 +353,12 @@ When an entity dies:
 ### Spells
 
 - Cost mana. Defined in `spells.json`.
+- Each spell declares a lore `school` string.
 - **Damage spells**: targeted or AoE. Roll dice, apply to engaged entities.
 - **Support spells**: heal/vigor/mana. Self-cast only.
   Modes: `instant`, `timed` (hours), `battle_rounds`.
 - Cast via `cast <spell> [target]`.
+- The spells menu renders aligned columns in the order: Name, School, Cost.
 
 ### Skills
 
@@ -445,7 +447,8 @@ Rendering invariants:
   what the server sends.
 - Command-panel UIs (currently score, spells, skills, inventory, and
   equipment) use a shared visual
-  frame contract from `commands.py`: fixed inner width (`PANEL_INNER_WIDTH`),
+  frame/table contract from `display.py` (`build_menu_table_parts`): dynamic
+  column widths sized to content, minimum panel width (`PANEL_INNER_WIDTH`),
   centered title line, and full-width divider rows. New panel-style command
   outputs should reuse this contract for
   consistent horizontal alignment.
