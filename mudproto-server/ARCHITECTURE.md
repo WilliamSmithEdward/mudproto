@@ -443,6 +443,11 @@ Rendering invariants:
   entries (`[]`) inside `lines` / `prompt_lines`.
 - The client does not inject blank lines for display messages; it only renders
   what the server sends.
+- Command-panel UIs (currently score, spells, and skills) use a shared visual
+  frame contract from `commands.py`: fixed inner width (`PANEL_INNER_WIDTH`),
+  centered title line, and full-width divider rows. New panel-style command
+  outputs should reuse this contract for
+  consistent horizontal alignment.
 - A blank line before a prompt is represented by leading empty entries in
   `prompt_lines`.
 - When an event is visible to both actor and observers, `room_broadcast_lines`

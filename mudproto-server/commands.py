@@ -60,6 +60,8 @@ from world import get_room
 OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]
 
+PANEL_INNER_WIDTH = 34
+
 DIRECTION_ALIASES = {
     "n": "north",
     "s": "south",
@@ -166,6 +168,70 @@ def _format_effect_remaining_duration(effect) -> str:
     return "lingering"
 
 
+def _panel_divider() -> str:
+    return "-" * PANEL_INNER_WIDTH
+
+
+def _panel_title_line(title: str) -> str:
+    return str(title).strip().center(PANEL_INNER_WIDTH)
+
+
+def _build_cost_menu_parts(
+    title: str,
+    entries: list[tuple[str, int]],
+    cost_resource_label: str,
+) -> list[dict]:
+    if not entries:
+        return [
+            build_part(title, "bright_white", True),
+            build_part("\n"),
+            build_part("Nothing is known.", "bright_white"),
+        ]
+
+    sorted_entries = sorted(
+        [(str(name).strip() or title, max(0, int(cost))) for name, cost in entries],
+        key=lambda entry: entry[0].lower(),
+    )
+    row_gap = 3
+    longest_cost_text_len = max(
+        len("Free") if cost <= 0 else len(f"{cost} {cost_resource_label}")
+        for _, cost in sorted_entries
+    )
+    name_col_width = max(8, PANEL_INNER_WIDTH - longest_cost_text_len - row_gap)
+
+    def _fit_name(value: str) -> str:
+        if len(value) <= name_col_width:
+            return value.ljust(name_col_width)
+        if name_col_width <= 3:
+            return value[:name_col_width]
+        return (value[:name_col_width - 3] + "...")
+
+    title_line = _panel_title_line(title)
+
+    parts: list[dict] = [
+        build_part(title_line, "bright_cyan", True),
+        build_part("\n"),
+        build_part(_panel_divider(), "bright_black"),
+        build_part("\n"),
+        build_part("Name", "bright_white", True),
+        build_part(" " * max(2, name_col_width - 4 + row_gap), "bright_white"),
+        build_part("Cost", "bright_white", True),
+        build_part("\n"),
+        build_part(_panel_divider(), "bright_black"),
+    ]
+
+    for name, cost in sorted_entries:
+        cost_text = "Free" if cost <= 0 else f"{cost} {cost_resource_label}"
+        parts.extend([
+            build_part("\n"),
+            build_part(_fit_name(name), "bright_cyan", True),
+            build_part(" " * row_gap, "bright_white"),
+            build_part(cost_text, "bright_yellow", True),
+        ])
+
+    return parts
+
+
 def display_score(session: ClientSession) -> OutboundMessage:
     caps = get_player_resource_caps(session)
     xp_total = max(0, int(session.player.experience_points))
@@ -182,8 +248,13 @@ def display_score(session: ClientSession) -> OutboundMessage:
     mana_now = max(0, int(session.status.mana))
     mana_cap = max(1, int(caps["mana"]))
 
+    divider = _panel_divider()
+    title_line = _panel_title_line("Adventurer's Ledger")
+
     parts: list[dict] = [
-        build_part(".-=[ Adventurer's Ledger ]=-.", "bright_cyan", True),
+        build_part(title_line, "bright_cyan", True),
+        build_part("\n"),
+        build_part(divider, "bright_black"),
         build_part("\n"),
         build_part("Name: ", "bright_white"),
         build_part(character_name, "bright_yellow", True),
@@ -195,7 +266,7 @@ def display_score(session: ClientSession) -> OutboundMessage:
         build_part("Location: ", "bright_white"),
         build_part(room_name, "bright_magenta", True),
         build_part("\n"),
-        build_part("----------------------------------", "bright_black"),
+        build_part(divider, "bright_black"),
         build_part("\n"),
         build_part("Health: ", "bright_white"),
         build_part(f"{hp_now}/{hp_cap}", _resource_color(hp_now, hp_cap), True),
@@ -212,7 +283,7 @@ def display_score(session: ClientSession) -> OutboundMessage:
         build_part("   To Next Level: ", "bright_white"),
         build_part(str(xp_to_next), "bright_green", True),
         build_part("\n"),
-        build_part("----------------------------------", "bright_black"),
+        build_part(divider, "bright_black"),
         build_part("\n"),
         build_part("Attributes", "bright_white", True),
     ]
@@ -236,7 +307,7 @@ def display_score(session: ClientSession) -> OutboundMessage:
 
     parts.extend([
         build_part("\n"),
-        build_part("----------------------------------", "bright_black"),
+        build_part(divider, "bright_black"),
         build_part("\n"),
         build_part("Active Effects", "bright_white", True),
     ])
@@ -262,11 +333,6 @@ def display_score(session: ClientSession) -> OutboundMessage:
                 build_part(duration_text, "bright_yellow", True),
                 build_part(" remaining)", "bright_white"),
             ])
-
-    parts.extend([
-        build_part("\n"),
-        build_part("'------------------------------'", "bright_black"),
-    ])
 
     return display_command_result(session, parts)
 
@@ -920,11 +986,13 @@ def _list_known_spells(session: ClientSession) -> list[dict]:
     if not known_ids:
         return []
 
-    return [
+    known_spells = [
         spell
         for spell in load_spells()
         if str(spell.get("spell_id", "")).strip().lower() in known_ids
     ]
+    known_spells.sort(key=lambda spell: str(spell.get("name", "")).strip().lower())
+    return known_spells
 
 
 def _resolve_spell_by_name(spell_name: str, spells: list[dict] | None = None) -> tuple[dict | None, str | None]:
@@ -987,11 +1055,13 @@ def _list_known_skills(session: ClientSession) -> list[dict]:
     if not known_ids:
         return []
 
-    return [
+    known_skills = [
         skill
         for skill in load_skills()
         if str(skill.get("skill_id", "")).strip().lower() in known_ids
     ]
+    known_skills.sort(key=lambda skill: str(skill.get("name", "")).strip().lower())
+    return known_skills
 
 
 def _resolve_skill_by_name(skill_name: str, skills: list[dict] | None = None) -> tuple[dict | None, str | None]:
@@ -1369,64 +1439,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 build_part("You do not know any spells.", "bright_white"),
             ])
 
-        parts = [
-            build_part("Spells", "bright_white", True),
+        menu_rows = [
+            (
+                str(spell.get("name", "Spell")).strip() or "Spell",
+                int(spell.get("mana_cost", 0)),
+            )
+            for spell in spells
         ]
-        for spell in spells:
-            spell_name = str(spell.get("name", "Spell"))
-            spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
-            cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
-            dice_count = int(spell.get("damage_dice_count", 0))
-            dice_sides = int(spell.get("damage_dice_sides", 0))
-            damage_modifier = int(spell.get("damage_modifier", 0))
-            support_effect = str(spell.get("support_effect", "")).strip().lower()
-            support_amount = int(spell.get("support_amount", 0))
-            duration_hours = int(spell.get("duration_hours", 0))
-            duration_rounds = int(spell.get("duration_rounds", 0))
-            support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
-            description = str(spell.get("description", "")).strip()
-
-            parts.extend([
-                build_part("\n"),
-                build_part(" - ", "bright_white"),
-                build_part(spell_name, "bright_cyan", True),
-                build_part(" | cast: ", "bright_white"),
-                build_part(cast_type, "bright_yellow", True),
-            ])
-
-            if spell_type == "support":
-                parts.extend([
-                    build_part(" | support: ", "bright_white"),
-                    build_part(f"{support_effect}+{support_amount}", "bright_yellow", True),
-                ])
-                if support_mode == "timed":
-                    parts.extend([
-                        build_part(" | duration: ", "bright_white"),
-                        build_part(f"{duration_hours}h", "bright_yellow", True),
-                    ])
-                elif support_mode == "battle_rounds":
-                    parts.extend([
-                        build_part(" | duration: ", "bright_white"),
-                        build_part(f"{duration_rounds} rounds", "bright_yellow", True),
-                    ])
-                else:
-                    parts.extend([
-                        build_part(" | duration: ", "bright_white"),
-                        build_part("instant", "bright_yellow", True),
-                    ])
-            else:
-                parts.extend([
-                    build_part(" | dmg: ", "bright_white"),
-                    build_part(f"{dice_count}d{dice_sides}+{damage_modifier}", "bright_yellow", True),
-                ])
-
-            if description:
-                parts.extend([
-                    build_part(" | ", "bright_white"),
-                    build_part(description, "bright_white"),
-                ])
-
-        return display_command_result(session, parts)
+        return display_command_result(session, _build_cost_menu_parts("Spells", menu_rows, "Mana"))
 
     if verb in {"skills", "sk", "ski", "skil", "skill"} and not args:
         skills = _list_known_skills(session)
@@ -1435,16 +1455,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 build_part("You do not know any skills.", "bright_white"),
             ])
 
-        parts = [build_part("Skills", "bright_white", True)]
-        for skill in skills:
-            skill_name = str(skill.get("name", "Skill"))
-            parts.extend([
-                build_part("\n"),
-                build_part(" - ", "bright_white"),
-                build_part(skill_name, "bright_cyan", True),
-            ])
-
-        return display_command_result(session, parts)
+        menu_rows = [
+            (
+                str(skill.get("name", "Skill")).strip() or "Skill",
+                int(skill.get("vigor_cost", 0)),
+            )
+            for skill in skills
+        ]
+        return display_command_result(session, _build_cost_menu_parts("Skills", menu_rows, "Vigor"))
 
     if verb in {"cast", "c", "ca", "cas"}:
         spell_name, target_name, parse_error = _parse_cast_spell(command_text, args, verb)
