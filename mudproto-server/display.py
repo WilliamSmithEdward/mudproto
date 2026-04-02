@@ -19,6 +19,101 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     }
 
 
+def build_line(*parts: dict) -> list[dict]:
+    return [part for part in parts if isinstance(part, dict)]
+
+
+def _normalize_part(part: dict) -> dict:
+    return {
+        "text": str(part.get("text", "")),
+        "fg": part.get("fg", "bright_white"),
+        "bold": part.get("bold", False),
+    }
+
+
+def _capitalize_parts(parts: list[dict]) -> list[dict]:
+    full_text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
+    capitalized_text = capitalize_after_newlines(full_text)
+
+    offset = 0
+    capitalized_parts: list[dict] = []
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+
+        normalized_part = _normalize_part(part)
+        original_text = normalized_part["text"]
+        text_len = len(original_text)
+        capitalized_portion = capitalized_text[offset:offset + text_len]
+        offset += text_len
+        normalized_part["text"] = capitalized_portion
+        capitalized_parts.append(normalized_part)
+
+    return capitalized_parts
+
+
+def parts_to_lines(parts: list[dict]) -> list[list[dict]]:
+    lines: list[list[dict]] = []
+    current_line: list[dict] = []
+    saw_part = False
+
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+
+        normalized_part = _normalize_part(part)
+        text = normalized_part["text"]
+        segments = text.split("\n")
+        saw_part = True
+
+        for index, segment in enumerate(segments):
+            if segment:
+                current_line.append({
+                    "text": segment,
+                    "fg": normalized_part["fg"],
+                    "bold": normalized_part["bold"],
+                })
+
+            if index < len(segments) - 1:
+                lines.append(current_line)
+                current_line = []
+
+    if current_line or (saw_part and not lines):
+        lines.append(current_line)
+
+    return lines
+
+
+def _sanitize_lines(lines: list[list[dict]]) -> list[list[dict]]:
+    sanitized_lines: list[list[dict]] = []
+    for line in lines:
+        if not isinstance(line, list):
+            continue
+        sanitized_line = [
+            _normalize_part(part)
+            for part in line
+            if isinstance(part, dict)
+        ]
+        sanitized_lines.append(sanitized_line)
+    return sanitized_lines
+
+
+def _trim_empty_edge_lines(lines: list[list[dict]]) -> tuple[int, list[list[dict]], int]:
+    trimmed_lines = list(lines)
+    blank_lines_before = 0
+    blank_lines_after = 0
+
+    while trimmed_lines and not trimmed_lines[0]:
+        blank_lines_before += 1
+        trimmed_lines.pop(0)
+
+    while trimmed_lines and not trimmed_lines[-1]:
+        blank_lines_after += 1
+        trimmed_lines.pop()
+
+    return blank_lines_before, trimmed_lines, blank_lines_after
+
+
 def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
     if session.next_game_tick_monotonic is None:
         return None
@@ -97,38 +192,61 @@ def build_display(
     parts: list[dict],
     *,
     blank_lines_before: int = 1,
+    blank_lines_after: int = 0,
     prompt_after: bool = False,
     prompt_parts: list[dict] | None = None,
     starts_on_new_line: bool = False
 ) -> dict:
-    # Capitalize first letter after newlines in the full text
-    full_text = "".join(p.get("text", "") for p in parts)
-    capitalized_text = capitalize_after_newlines(full_text)
-    
-    # Rebuild parts with capitalized text, maintaining original formatting
-    offset = 0
-    new_parts = []
-    for part in parts:
-        original_text = part.get("text", "")
-        text_len = len(original_text)
-        if text_len > 0:
-            capitalized_portion = capitalized_text[offset:offset + text_len]
-            offset += text_len
-            new_parts.append({
-                "text": capitalized_portion,
-                "fg": part.get("fg", "bright_white"),
-                "bold": part.get("bold", False)
-            })
-        else:
-            new_parts.append(part)
-    
+    content_lines = parts_to_lines(_capitalize_parts(parts))
+    extra_blank_lines_before, content_lines, extra_blank_lines_after = _trim_empty_edge_lines(content_lines)
+
+    effective_blank_lines_before = blank_lines_before + extra_blank_lines_before
+    effective_blank_lines_after = blank_lines_after + extra_blank_lines_after
+
+    prompt_lines: list[list[dict]] = []
+    if prompt_after and prompt_parts:
+        prompt_lines = _sanitize_lines(parts_to_lines(_capitalize_parts(prompt_parts)))
+
+    prompt_blank_lines_before = 0
+    if prompt_lines:
+        prompt_blank_lines_before = effective_blank_lines_after + (1 if content_lines else 0)
+        effective_blank_lines_after = 0
+
     return build_response("display", {
-        "parts": new_parts,
-        "blank_lines_before": blank_lines_before,
-        "prompt_after": prompt_after,
-        "prompt_parts": prompt_parts,
+        "lines": _sanitize_lines(content_lines),
+        "blank_lines_before": effective_blank_lines_before,
+        "blank_lines_after": effective_blank_lines_after,
+        "prompt_lines": prompt_lines,
+        "prompt_blank_lines_before": prompt_blank_lines_before,
         "starts_on_new_line": starts_on_new_line
     })
+
+
+def build_display_lines(
+    lines: list[list[dict]],
+    *,
+    blank_lines_before: int = 1,
+    blank_lines_after: int = 0,
+    prompt_after: bool = False,
+    prompt_parts: list[dict] | None = None,
+    starts_on_new_line: bool = False
+) -> dict:
+    flattened_parts: list[dict] = []
+    for index, line in enumerate(lines):
+        if index > 0:
+            flattened_parts.append(build_part("\n"))
+        for part in line:
+            if isinstance(part, dict):
+                flattened_parts.append(_normalize_part(part))
+
+    return build_display(
+        flattened_parts,
+        blank_lines_before=blank_lines_before,
+        blank_lines_after=blank_lines_after,
+        prompt_after=prompt_after,
+        prompt_parts=prompt_parts,
+        starts_on_new_line=starts_on_new_line,
+    )
 
 
 def display_text(
@@ -137,12 +255,14 @@ def display_text(
     fg: str = "bright_white",
     bold: bool = False,
     blank_lines_before: int = 1,
+    blank_lines_after: int = 0,
     prompt_after: bool = False,
     prompt_parts: list[dict] | None = None
 ) -> dict:
     return build_display(
         [build_part(text, fg, bold)],
         blank_lines_before=blank_lines_before,
+        blank_lines_after=blank_lines_after,
         prompt_after=prompt_after,
         prompt_parts=prompt_parts
     )
@@ -174,7 +294,7 @@ def display_prompt(session: ClientSession) -> dict:
 
 
 def display_force_prompt(session: ClientSession) -> dict:
-    return build_display([], prompt_after=True, prompt_parts=build_prompt_parts(session))
+    return build_display([], blank_lines_before=0, prompt_after=True, prompt_parts=build_prompt_parts(session))
 
 
 def display_connected(session: ClientSession) -> dict:

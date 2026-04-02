@@ -65,14 +65,17 @@ Responsibilities:
   "source": "mudproto-server",
   "timestamp": "2026-03-28T12:34:56Z",
   "payload": {
-    "parts": [
-      { "text": "You see ", "fg": "bright_white", "bold": false },
-      { "text": "an orc",  "fg": "bright_magenta", "bold": true },
-      { "text": ".",        "fg": "bright_white",   "bold": false }
+    "lines": [
+      [
+        { "text": "You see ", "fg": "bright_white", "bold": false },
+        { "text": "an orc",  "fg": "bright_magenta", "bold": true },
+        { "text": ".",        "fg": "bright_white",   "bold": false }
+      ]
     ],
     "blank_lines_before": 1,
-    "prompt_after": true,
-    "prompt_parts": [{ "text": "575H 119V 160M> " }],
+    "blank_lines_after": 0,
+    "prompt_lines": [[{ "text": "575H 119V 160M> " }]],
+    "prompt_blank_lines_before": 1,
     "starts_on_new_line": false,
     "room_broadcast_parts": []
   }
@@ -408,7 +411,7 @@ Each part carries `text`, optional `fg` color, and optional `bold` flag.
 The client renders these as ANSI-colored terminal output.
 
 Key builders:
-- `build_display()` — assembles final protocol payload.
+- `build_display()` — assembles final protocol payload with structural `lines`.
 - `display_room()` — room title, description, exits, NPCs, corpses, items,
   coins, other players.
 - `display_inventory()`, `display_equipment()`, `display_attributes()`.

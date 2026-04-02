@@ -19,6 +19,7 @@ from combat import (
     use_skill,
 )
 from display import (
+    build_line,
     build_part,
     display_command_result,
     display_equipment,
@@ -175,16 +176,17 @@ def _complete_login(session: ClientSession, character_record: dict, *, is_new_ch
     room_display = display_room(session, login_room)
     payload = room_display.get("payload") if isinstance(room_display, dict) else None
     if isinstance(payload, dict):
-        parts = payload.get("parts")
-        if isinstance(parts, list):
+        lines = payload.get("lines")
+        if isinstance(lines, list):
             greeting = "Character created" if is_new_character else "Welcome back"
-            parts[:0] = [
-                build_part(f"{greeting}, ", "bright_white"),
-                build_part(character_name, "bright_green", True),
-                build_part(".", "bright_white"),
-                build_part("\n"),
-                build_part("\n"),
-            ]
+            payload["lines"] = [
+                build_line(
+                    build_part(f"{greeting}, ", "bright_white"),
+                    build_part(character_name, "bright_green", True),
+                    build_part(".", "bright_white"),
+                ),
+                [],
+            ] + lines
 
     return build_auto_aggro_outbound(session, room_display)
 
@@ -273,14 +275,15 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
 
     payload = room_display.get("payload") if isinstance(room_display, dict) else None
     if isinstance(payload, dict):
-        parts = payload.get("parts")
-        if isinstance(parts, list):
+        lines = payload.get("lines")
+        if isinstance(lines, list):
             for auto_entity in auto_entities:
-                parts.extend([
-                    build_part("\n"),
-                    build_part("\n"),
-                    build_part(auto_entity.name),
-                    build_part(" notices you and attacks!", "bright_white"),
+                lines.extend([
+                    [],
+                    build_line(
+                        build_part(auto_entity.name),
+                        build_part(" notices you and attacks!", "bright_white"),
+                    ),
                 ])
 
     return room_display
@@ -315,13 +318,18 @@ def flee(session: ClientSession) -> OutboundResult:
     end_combat(session)
 
     room_display = display_room(session, next_room)
-    room_display["payload"]["parts"] = [
-        build_part("You flee ", "bright_white"),
-        build_part(flee_direction, "bright_yellow", True),
-        build_part(".", "bright_white"),
-        build_part("\n"),
-        build_part("\n"),
-    ] + room_display["payload"]["parts"]
+    payload = room_display.get("payload") if isinstance(room_display, dict) else None
+    if isinstance(payload, dict):
+        lines = payload.get("lines")
+        if isinstance(lines, list):
+            payload["lines"] = [
+                build_line(
+                    build_part("You flee ", "bright_white"),
+                    build_part(flee_direction, "bright_yellow", True),
+                    build_part(".", "bright_white"),
+                ),
+                [],
+            ] + lines
 
     return build_auto_aggro_outbound(session, room_display)
 

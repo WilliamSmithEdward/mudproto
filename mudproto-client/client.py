@@ -98,6 +98,17 @@ def render_parts(parts: list[dict]) -> str:
     return "".join(rendered)
 
 
+def render_lines(lines: list[list[dict]]) -> str:
+    rendered_lines: list[str] = []
+
+    for line in lines:
+        if not isinstance(line, list):
+            continue
+        rendered_lines.append(render_parts(line))
+
+    return "\n".join(rendered_lines)
+
+
 def write_line(text: str) -> None:
     sys.stdout.write(text + "\n")
     sys.stdout.flush()
@@ -111,12 +122,14 @@ async def send_json(websocket, message: dict) -> None:
 def render_display_message(message: dict) -> None:
     payload = message.get("payload", {})
     blank_lines_before = int(payload.get("blank_lines_before", 0) or 0)
-    prompt_after = bool(payload.get("prompt_after", False))
-    prompt_parts = payload.get("prompt_parts") or []
-    parts = payload.get("parts", [])
+    blank_lines_after = int(payload.get("blank_lines_after", 0) or 0)
+    prompt_blank_lines_before = int(payload.get("prompt_blank_lines_before", 0) or 0)
+    prompt_lines = payload.get("prompt_lines") or []
+    lines = payload.get("lines") or []
     starts_on_new_line = bool(payload.get("starts_on_new_line", False))
 
-    has_parts = isinstance(parts, list) and len(parts) > 0
+    has_lines = isinstance(lines, list) and len(lines) > 0
+    has_prompt_lines = isinstance(prompt_lines, list) and len(prompt_lines) > 0
 
     if starts_on_new_line:
         sys.stdout.write("\n")
@@ -124,18 +137,19 @@ def render_display_message(message: dict) -> None:
     if blank_lines_before > 0:
         sys.stdout.write("\n" * blank_lines_before)
 
-    if has_parts:
-        sys.stdout.write(render_parts(parts))
+    if has_lines:
+        sys.stdout.write(render_lines(lines))
 
-    if has_parts and prompt_after:
-        sys.stdout.write("\n\n")
-        sys.stdout.write(render_parts(prompt_parts))
+    if has_prompt_lines:
+        if has_lines:
+            sys.stdout.write("\n" * (prompt_blank_lines_before + 1))
+        elif prompt_blank_lines_before > 0:
+            sys.stdout.write("\n" * prompt_blank_lines_before)
+
+        sys.stdout.write(render_lines(prompt_lines))
         sys.stdout.flush()
-    elif prompt_after:
-        sys.stdout.write(render_parts(prompt_parts))
-        sys.stdout.flush()
-    elif has_parts:
-        sys.stdout.write("\n")
+    elif has_lines:
+        sys.stdout.write("\n" * (blank_lines_after + 1))
 
     sys.stdout.flush()
 
