@@ -33,7 +33,7 @@ def build_player_death_mourn_parts() -> list[dict]:
     from display import build_part
 
     return [
-        build_part("Your comrades mourn your death.\n\n", "bright_white"),
+        build_part("Your comrades mourn your death.", "bright_white"),
     ]
 
 

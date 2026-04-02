@@ -329,7 +329,6 @@ def flee(session: ClientSession) -> OutboundResult:
                     build_part(flee_direction, "bright_yellow", True),
                     build_part(".", "bright_white"),
                 ),
-                [],
             ] + lines
 
     return build_auto_aggro_outbound(session, room_display)

@@ -66,16 +66,17 @@ Responsibilities:
   "timestamp": "2026-03-28T12:34:56Z",
   "payload": {
     "lines": [
+      [],
       [
         { "text": "You see ", "fg": "bright_white", "bold": false },
         { "text": "an orc",  "fg": "bright_magenta", "bold": true },
         { "text": ".",        "fg": "bright_white",   "bold": false }
       ]
     ],
-    "blank_lines_before": 1,
-    "blank_lines_after": 0,
-    "prompt_lines": [[{ "text": "575H 119V 160M> " }]],
-    "prompt_blank_lines_before": 1,
+    "prompt_lines": [
+      [],
+      [{ "text": "575H 119V 160M> " }]
+    ],
     "starts_on_new_line": false,
     "room_broadcast_lines": []
   }

@@ -114,6 +114,10 @@ def _trim_empty_edge_lines(lines: list[list[dict]]) -> tuple[int, list[list[dict
     return blank_lines_before, trimmed_lines, blank_lines_after
 
 
+def _blank_lines(count: int) -> list[list[dict]]:
+    return [[] for _ in range(max(0, count))]
+
+
 def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
     if session.next_game_tick_monotonic is None:
         return None
@@ -203,21 +207,24 @@ def build_display(
     effective_blank_lines_before = blank_lines_before + extra_blank_lines_before
     effective_blank_lines_after = blank_lines_after + extra_blank_lines_after
 
+    sanitized_content_lines = _sanitize_lines(content_lines)
+
     prompt_lines: list[list[dict]] = []
     if prompt_after and prompt_parts:
         prompt_lines = _sanitize_lines(parts_to_lines(_capitalize_parts(prompt_parts)))
 
-    prompt_blank_lines_before = 0
+    display_lines = _blank_lines(effective_blank_lines_before) + sanitized_content_lines
+
     if prompt_lines:
-        prompt_blank_lines_before = effective_blank_lines_after + (1 if content_lines else 0)
-        effective_blank_lines_after = 0
+        # Keep prompt spacing deterministic: one blank line before prompt when content exists.
+        prompt_prefix_blank_lines = 2 if sanitized_content_lines else effective_blank_lines_after
+        prompt_lines = _blank_lines(prompt_prefix_blank_lines) + prompt_lines
+    else:
+        display_lines.extend(_blank_lines(effective_blank_lines_after))
 
     return build_response("display", {
-        "lines": _sanitize_lines(content_lines),
-        "blank_lines_before": effective_blank_lines_before,
-        "blank_lines_after": effective_blank_lines_after,
+        "lines": display_lines,
         "prompt_lines": prompt_lines,
-        "prompt_blank_lines_before": prompt_blank_lines_before,
         "starts_on_new_line": starts_on_new_line
     })
 
@@ -294,7 +301,13 @@ def display_prompt(session: ClientSession) -> dict:
 
 
 def display_force_prompt(session: ClientSession) -> dict:
-    return build_display([], blank_lines_before=0, prompt_after=True, prompt_parts=build_prompt_parts(session))
+    return build_display(
+        [],
+        blank_lines_before=0,
+        blank_lines_after=1,
+        prompt_after=True,
+        prompt_parts=build_prompt_parts(session),
+    )
 
 
 def display_connected(session: ClientSession) -> dict:

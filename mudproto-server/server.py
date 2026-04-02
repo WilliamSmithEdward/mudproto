@@ -103,7 +103,9 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
                             original_text = str(part.get("text", ""))
                             part["text"] = third_personize_text(original_text, actor_name)
             copied_payload["starts_on_new_line"] = True
-            copied_payload["blank_lines_before"] = 2
+            copied_lines = copied_payload.get("lines")
+            if isinstance(copied_lines, list):
+                copied_payload["lines"] = [[], []] + copied_lines
         broadcast_messages.append(copied_message)
 
     return broadcast_messages
@@ -254,8 +256,10 @@ async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *
                 if isinstance(message, dict) and message.get("type") == "display":
                     payload = message.get("payload")
                     if isinstance(payload, dict):
-                        payload["prompt_lines"] = [build_prompt_parts(peer)]
-                        payload["prompt_blank_lines_before"] = 1 if payload.get("lines") else 0
+                        prompt_lines = [build_prompt_parts(peer)]
+                        if payload.get("lines"):
+                            prompt_lines = [[], []] + prompt_lines
+                        payload["prompt_lines"] = prompt_lines
         await send_outbound(peer.websocket, peer_messages)
 
 
