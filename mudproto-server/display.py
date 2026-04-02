@@ -9,21 +9,13 @@ from settings import PLAYER_REFERENCE_MAX_HP
 from sessions import is_session_lagged, list_authenticated_room_players
 from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_corpses, list_room_entities
 from world import Room, get_room
+
+
 def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     return {
         "text": text,
         "fg": fg,
         "bold": bold
-    }
-
-
-def build_blank_line_part(count: int = 1) -> dict:
-    return {
-        "text": "",
-        "fg": "bright_white",
-        "bold": False,
-        "blank_line": True,
-        "count": max(1, count)
     }
 
 
@@ -178,7 +170,7 @@ def resolve_prompt(session: ClientSession, prompt_after: bool) -> tuple[bool, li
 
 def display_prompt(session: ClientSession) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
-    return build_display([], prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display([], blank_lines_before=0, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_force_prompt(session: ClientSession) -> dict:
@@ -371,6 +363,7 @@ def display_command_result(
 def display_combat_round_result(session: ClientSession, parts: list[dict]) -> dict:
     return build_display(
         parts,
+        blank_lines_before=0,
         prompt_after=False,
         starts_on_new_line=True
     )

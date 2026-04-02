@@ -90,10 +90,7 @@ def render_parts(parts: list[dict]) -> str:
         fg = part.get("fg")
         bold = bool(part.get("bold", False))
 
-        if bool(part.get("blank_line", False)):
-            blank_line_count = int(part.get("count", 1) or 1)
-            rendered.append("\n" * (max(1, blank_line_count) + 1))
-        elif text.strip() == "":
+        if text.strip() == "":
             rendered.append(text)
         else:
             rendered.append(style_text(text, fg, bold))
@@ -135,7 +132,6 @@ def render_display_message(message: dict) -> None:
         sys.stdout.write(render_parts(prompt_parts))
         sys.stdout.flush()
     elif prompt_after:
-        sys.stdout.write("\n")
         sys.stdout.write(render_parts(prompt_parts))
         sys.stdout.flush()
     elif has_parts:

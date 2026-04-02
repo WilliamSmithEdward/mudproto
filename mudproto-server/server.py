@@ -232,7 +232,7 @@ def _build_unified_room_round_display(
             parts.append(build_part("\n"))
         parts.append(build_part(line))
 
-    return build_display(parts, blank_lines_before=1, starts_on_new_line=True)
+    return build_display(parts, blank_lines_before=0, starts_on_new_line=True)
 
 
 async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *, prompt_observers: bool = True) -> None:
