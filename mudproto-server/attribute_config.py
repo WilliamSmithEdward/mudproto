@@ -7,6 +7,7 @@ SERVER_ROOT = Path(__file__).resolve().parent
 ATTRIBUTE_CONFIG_ROOT = SERVER_ROOT / "configuration" / "attributes"
 WEAR_SLOTS_FILE = ATTRIBUTE_CONFIG_ROOT / "wear_slots.json"
 ATTRIBUTES_FILE = ATTRIBUTE_CONFIG_ROOT / "character_attributes.json"
+PLAYER_CLASSES_FILE = ATTRIBUTE_CONFIG_ROOT / "classes.json"
 REGENERATION_FILE = ATTRIBUTE_CONFIG_ROOT / "regeneration.json"
 HAND_WEIGHT_FILE = ATTRIBUTE_CONFIG_ROOT / "hand_weight.json"
 COMBAT_SEVERITY_FILE = ATTRIBUTE_CONFIG_ROOT / "combat_severity.json"
@@ -271,3 +272,211 @@ def load_combat_severity_config() -> dict:
     return {
         "tiers": normalized_tiers,
     }
+
+
+@lru_cache(maxsize=1)
+def load_player_classes() -> list[dict]:
+    # Import locally to avoid circular imports with assets.py.
+    from assets import get_gear_template_by_id, get_item_template_by_id, get_skill_by_id, get_spell_by_id
+
+    raw_classes = _read_json_attribute_config(PLAYER_CLASSES_FILE)
+    if not isinstance(raw_classes, list):
+        raise ValueError(f"Player class asset file must contain a list: {PLAYER_CLASSES_FILE}")
+
+    class_ids: set[str] = set()
+    class_names: set[str] = set()
+    normalized_classes: list[dict] = []
+
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
+
+    for raw_class in raw_classes:
+        if not isinstance(raw_class, dict):
+            raise ValueError("Player class entries must be objects.")
+
+        class_id = raw_class.get("class_id")
+        name = raw_class.get("name")
+        if not isinstance(class_id, str) or not class_id.strip():
+            raise ValueError("Player class entries must include a non-empty string class_id.")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"Player class '{class_id}' must include a non-empty name.")
+
+        normalized_class_id = class_id.strip().lower()
+        normalized_class_name = name.strip().lower()
+        if normalized_class_id in class_ids:
+            raise ValueError(f"Duplicate class_id in player classes: {class_id}")
+        if normalized_class_name in class_names:
+            raise ValueError(f"Duplicate class name in player classes: {name}")
+
+        raw_gear_ids = raw_class.get("starting_gear_template_ids", [])
+        raw_spell_ids = raw_class.get("starting_spell_ids", [])
+        raw_skill_ids = raw_class.get("starting_skill_ids", [])
+        raw_equipped_gear_ids = raw_class.get("starting_equipped_gear_template_ids", [])
+        raw_item_ids = raw_class.get("starting_item_ids", [])
+        raw_attribute_ranges = raw_class.get("attribute_ranges", {})
+        if not isinstance(raw_gear_ids, list):
+            raise ValueError(
+                f"Player class '{class_id}' starting_gear_template_ids must be a list."
+            )
+        if not isinstance(raw_spell_ids, list):
+            raise ValueError(f"Player class '{class_id}' starting_spell_ids must be a list.")
+        if not isinstance(raw_skill_ids, list):
+            raise ValueError(f"Player class '{class_id}' starting_skill_ids must be a list.")
+        if not isinstance(raw_equipped_gear_ids, list):
+            raise ValueError(
+                f"Player class '{class_id}' starting_equipped_gear_template_ids must be a list."
+            )
+        if not isinstance(raw_item_ids, list):
+            raise ValueError(f"Player class '{class_id}' starting_item_ids must be a list.")
+        if not isinstance(raw_attribute_ranges, dict):
+            raise ValueError(f"Player class '{class_id}' attribute_ranges must be an object.")
+
+        attribute_ranges: dict[str, dict[str, int]] = {}
+        for attribute_id in configured_attribute_ids:
+            if attribute_id not in raw_attribute_ranges:
+                raise ValueError(
+                    f"Player class '{class_id}' must define attribute_ranges for '{attribute_id}'."
+                )
+
+            raw_range = raw_attribute_ranges.get(attribute_id)
+            if not isinstance(raw_range, dict):
+                raise ValueError(
+                    f"Player class '{class_id}' attribute_ranges['{attribute_id}'] must be an object."
+                )
+
+            min_value = int(raw_range.get("min", 0))
+            max_value = int(raw_range.get("max", 0))
+            if min_value > max_value:
+                raise ValueError(
+                    f"Player class '{class_id}' attribute_ranges['{attribute_id}'] has min > max."
+                )
+
+            attribute_ranges[attribute_id] = {
+                "min": min_value,
+                "max": max_value,
+            }
+
+        for attribute_id in raw_attribute_ranges.keys():
+            normalized_attribute_id = str(attribute_id).strip().lower()
+            if normalized_attribute_id not in configured_attribute_ids:
+                raise ValueError(
+                    f"Player class '{class_id}' attribute_ranges references unknown attribute: {attribute_id}"
+                )
+
+        gear_ids: list[str] = []
+        seen_gear_ids: set[str] = set()
+        for raw_template_id in raw_gear_ids:
+            template_id = str(raw_template_id).strip()
+            if not template_id:
+                continue
+            normalized_template_id = template_id.lower()
+            if normalized_template_id in seen_gear_ids:
+                continue
+            if get_gear_template_by_id(template_id) is None:
+                raise ValueError(
+                    f"Player class '{class_id}' references unknown gear template: {template_id}"
+                )
+            seen_gear_ids.add(normalized_template_id)
+            gear_ids.append(template_id)
+
+        spell_ids: list[str] = []
+        seen_spell_ids: set[str] = set()
+        for raw_spell_id in raw_spell_ids:
+            spell_id = str(raw_spell_id).strip()
+            if not spell_id:
+                continue
+            normalized_spell_id = spell_id.lower()
+            if normalized_spell_id in seen_spell_ids:
+                continue
+            if get_spell_by_id(spell_id) is None:
+                raise ValueError(f"Player class '{class_id}' references unknown spell: {spell_id}")
+            seen_spell_ids.add(normalized_spell_id)
+            spell_ids.append(spell_id)
+
+        skill_ids: list[str] = []
+        seen_skill_ids: set[str] = set()
+        for raw_skill_id in raw_skill_ids:
+            skill_id = str(raw_skill_id).strip()
+            if not skill_id:
+                continue
+            normalized_skill_id = skill_id.lower()
+            if normalized_skill_id in seen_skill_ids:
+                continue
+            if get_skill_by_id(skill_id) is None:
+                raise ValueError(f"Player class '{class_id}' references unknown skill: {skill_id}")
+            seen_skill_ids.add(normalized_skill_id)
+            skill_ids.append(skill_id)
+
+        equipped_gear_ids: list[str] = []
+        seen_equipped_gear_ids: set[str] = set()
+        for raw_template_id in raw_equipped_gear_ids:
+            template_id = str(raw_template_id).strip()
+            if not template_id:
+                continue
+            normalized_template_id = template_id.lower()
+            if normalized_template_id in seen_equipped_gear_ids:
+                continue
+            if get_gear_template_by_id(template_id) is None:
+                raise ValueError(
+                    f"Player class '{class_id}' references unknown gear template: {template_id}"
+                )
+            seen_equipped_gear_ids.add(normalized_template_id)
+            equipped_gear_ids.append(template_id)
+
+        item_ids: list[str] = []
+        seen_item_ids: set[str] = set()
+        for raw_template_id in raw_item_ids:
+            template_id = str(raw_template_id).strip()
+            if not template_id:
+                continue
+            normalized_template_id = template_id.lower()
+            if normalized_template_id in seen_item_ids:
+                continue
+            if get_item_template_by_id(template_id) is None:
+                raise ValueError(f"Player class '{class_id}' references unknown item template: {template_id}")
+            seen_item_ids.add(normalized_template_id)
+            item_ids.append(template_id)
+
+        class_ids.add(normalized_class_id)
+        class_names.add(normalized_class_name)
+        normalized_classes.append({
+            "class_id": class_id.strip(),
+            "name": name.strip(),
+            "description": str(raw_class.get("description", "")).strip(),
+            "attribute_ranges": attribute_ranges,
+            "starting_gear_template_ids": gear_ids,
+            "starting_equipped_gear_template_ids": equipped_gear_ids,
+            "starting_item_ids": item_ids,
+            "starting_spell_ids": spell_ids,
+            "starting_skill_ids": skill_ids,
+            "is_default": bool(raw_class.get("is_default", False)),
+        })
+
+    if not normalized_classes:
+        raise ValueError("At least one player class must be defined.")
+
+    default_class_count = sum(1 for player_class in normalized_classes if player_class["is_default"])
+    if default_class_count == 0:
+        raise ValueError("One player class must set is_default to true.")
+    if default_class_count > 1:
+        raise ValueError("Only one player class can set is_default to true.")
+
+    return normalized_classes
+
+
+def get_player_class_by_id(class_id: str) -> dict | None:
+    normalized = class_id.strip().lower()
+    for player_class in load_player_classes():
+        if str(player_class.get("class_id", "")).strip().lower() == normalized:
+            return player_class
+    return None
+
+
+def get_default_player_class() -> dict:
+    for player_class in load_player_classes():
+        if bool(player_class.get("is_default", False)):
+            return player_class
+    raise ValueError("No default player class is configured.")

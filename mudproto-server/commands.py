@@ -1,3 +1,9 @@
+import random
+import re
+import uuid
+
+from attribute_config import get_player_class_by_id, load_attributes, load_player_classes
+from assets import get_item_template_by_id, load_item_templates, load_skills, load_spells
 from combat import (
     begin_attack,
     cast_spell,
@@ -12,25 +18,6 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from attribute_config import load_attributes
-from grammar import indefinite_article, with_article
-from inventory import is_item_equippable, resolve_equipment_selector
-from assets import get_item_template_by_id, get_player_class_by_id, load_item_templates, load_player_classes, load_skills, load_spells
-from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
-from player_state_db import (
-    character_exists,
-    create_character,
-    get_character_by_name,
-    load_player_state,
-    normalize_character_name,
-    save_player_state,
-    verify_character_credentials,
-)
-import random
-import re
-import uuid
-from settings import COMBAT_ROUND_INTERVAL_SECONDS, PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
-
 from display import (
     build_part,
     display_command_result,
@@ -41,8 +28,26 @@ from display import (
     display_prompt,
     display_room,
 )
+from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
+from grammar import indefinite_article, with_article
+from inventory import is_item_equippable, resolve_equipment_selector
 from models import ClientSession, ItemState
-from settings import FLEE_SUCCESS_CHANCE
+from player_state_db import (
+    character_exists,
+    create_character,
+    get_character_by_name,
+    load_player_state,
+    normalize_character_name,
+    save_player_state,
+    verify_character_credentials,
+)
+from settings import (
+    COMBAT_ROUND_INTERVAL_SECONDS,
+    FLEE_SUCCESS_CHANCE,
+    PLAYER_REFERENCE_MAX_HP,
+    PLAYER_REFERENCE_MAX_MANA,
+    PLAYER_REFERENCE_MAX_VIGOR,
+)
 from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged
 from sessions import (
     get_active_character_session,

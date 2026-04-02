@@ -101,8 +101,8 @@ lives in `protocol.py`.
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
 | `display.py` | Display message building (room, inventory, equipment, attributes, spells, skills, prompt), color/item-highlight logic. |
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
-| `attribute_config.py` | Attribute/rules config loaders for character attributes, wear slots, regeneration, hand weight, and combat severity. |
-| `assets.py` | Content asset loaders for gear, items, rooms, NPCs, spells, skills, and player classes with structural and cross-reference validation. |
+| `attribute_config.py` | Attribute/rules config loaders for character attributes, player classes, wear slots, regeneration, hand weight, and combat severity. |
+| `assets.py` | Content asset loaders for gear, items, rooms, NPCs, spells, and skills with structural and cross-reference validation. |
 | `player_state_db.py` | SQLite persistence: character credentials, full session serialization/deserialization. |
 | `world.py` | `Room` dataclass including exits and NPC spawn config. |
 | `battle_round_ticks.py` | Per-round support effect processing during combat. |
