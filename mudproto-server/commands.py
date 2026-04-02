@@ -88,6 +88,11 @@ def initial_auth_prompt(session: ClientSession) -> OutboundMessage:
     ])
 
 
+def login_prompt(session: ClientSession) -> OutboundMessage:
+    """Minimal login prompt (bare "> ") for re-entry after death or other events."""
+    return display_prompt(session)
+
+
 def _build_class_prompt(session: ClientSession) -> OutboundMessage:
     classes = load_player_classes()
     parts: list[dict] = [

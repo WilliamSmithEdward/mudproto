@@ -587,13 +587,11 @@ def _process_combat_round_timers(session: ClientSession, entities: list[EntitySt
 
 
 def _consume_entity_action_lag(entity: EntityState) -> bool:
-    if entity.skill_lag_rounds_remaining <= 0 and entity.spell_lag_rounds_remaining <= 0:
-        return False
-
     if entity.skill_lag_rounds_remaining > 0:
         entity.skill_lag_rounds_remaining -= 1
-    if entity.spell_lag_rounds_remaining > 0:
-        entity.spell_lag_rounds_remaining -= 1
+    if entity.spell_lag_rounds_remaining <= 0:
+        return False
+    entity.spell_lag_rounds_remaining -= 1
     return True
 
 

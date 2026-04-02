@@ -10,7 +10,7 @@ import websockets
 
 from battle_round_ticks import process_non_combat_support_round
 from combat import get_engaged_entities, initialize_session_entities, resolve_combat_round, tick_out_of_combat_cooldowns
-from commands import dispatch_message, execute_command, initial_auth_prompt, parse_command
+from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt, parse_command
 from display import (
     build_display,
     build_part,
@@ -432,7 +432,7 @@ async def combat_round_loop() -> None:
                         continue
                     reset_session_to_login(actor_session)
                     if actor_session.is_connected:
-                        await send_outbound(actor_session.websocket, initial_auth_prompt(actor_session))
+                        await send_outbound(actor_session.websocket, login_prompt(actor_session))
 
     except asyncio.CancelledError:
         raise
@@ -479,7 +479,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
             if session.pending_death_logout:
                 reset_session_to_login(session)
-                await send_outbound(session.websocket, initial_auth_prompt(session))
+                await send_outbound(session.websocket, login_prompt(session))
                 continue
 
             if message.get("type") == "input":
