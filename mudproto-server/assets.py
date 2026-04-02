@@ -321,6 +321,13 @@ def load_npc_templates() -> list[dict]:
         if spell_use_chance < 0.0 or spell_use_chance > 1.0:
             raise ValueError(f"NPC '{npc_id}' spell_use_chance must be between 0.0 and 1.0.")
 
+        max_vigor = max(0, int(raw_npc.get("max_vigor", 0)))
+        vigor = int(raw_npc.get("vigor", max_vigor))
+        if vigor < 0:
+            raise ValueError(f"NPC '{npc_id}' vigor must be zero or greater.")
+        if vigor > max_vigor:
+            vigor = max_vigor
+
         max_mana = max(0, int(raw_npc.get("max_mana", 0)))
         mana = int(raw_npc.get("mana", max_mana))
         if mana < 0:
@@ -360,6 +367,8 @@ def load_npc_templates() -> list[dict]:
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
             "main_hand_weapon_template_id": str(raw_npc.get("main_hand_weapon_template_id", "")).strip(),
             "off_hand_weapon_template_id": str(raw_npc.get("off_hand_weapon_template_id", "")).strip(),
+            "vigor": vigor,
+            "max_vigor": max_vigor,
             "mana": mana,
             "max_mana": max_mana,
             "skill_use_chance": skill_use_chance,

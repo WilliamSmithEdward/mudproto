@@ -119,6 +119,8 @@ class EntityState:
     pronoun_possessive: str = "its"
     main_hand_weapon_template_id: str = ""
     off_hand_weapon_template_id: str = ""
+    vigor: int = 0
+    max_vigor: int = 0
     mana: int = 0
     max_mana: int = 0
     skill_use_chance: float = 0.35

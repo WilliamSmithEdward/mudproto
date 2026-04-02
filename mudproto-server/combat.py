@@ -143,7 +143,9 @@ def _apply_entity_secondary_restore(entity: EntityState, effect: str, amount: in
         entity.mana = min(entity.max_mana, entity.mana + amount)
         return entity.mana - before
     if effect == "vigor":
-        return 0
+        before = entity.vigor
+        entity.vigor = min(entity.max_vigor, entity.vigor + amount)
+        return entity.vigor - before
 
     before = entity.hit_points
     entity.hit_points = min(entity.max_hit_points, entity.hit_points + amount)
@@ -896,6 +898,9 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         normalized_skill_id = str(skill.get("skill_id", "")).strip()
         if normalized_skill_id and entity.skill_cooldowns.get(normalized_skill_id, 0) > 0:
             continue
+        vigor_cost = max(0, int(skill.get("vigor_cost", 0)))
+        if entity.vigor < vigor_cost:
+            continue
         available_skills.append(skill)
 
     if not available_skills:
@@ -905,6 +910,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
     skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
     cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+    vigor_cost = max(0, int(skill.get("vigor_cost", 0)))
     scaling_bonus = _resolve_entity_skill_scale_bonus(entity, skill)
 
     description = str(skill.get("description", "")).strip()
@@ -922,6 +928,8 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             build_part(description),
         ])
 
+    entity.vigor = max(0, entity.vigor - vigor_cost)
+
     if skill_type == "support" and cast_type == "self":
         support_effect = str(skill.get("support_effect", "")).strip().lower()
         support_amount = max(0, int(skill.get("support_amount", 0)))
@@ -930,6 +938,10 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
         if support_effect == "heal":
             entity.hit_points = min(entity.max_hit_points, entity.hit_points + total_support_amount)
+        elif support_effect == "vigor":
+            entity.vigor = min(entity.max_vigor, entity.vigor + total_support_amount)
+        elif support_effect == "mana":
+            entity.mana = min(entity.max_mana, entity.mana + total_support_amount)
         if support_context:
             append_newline_if_needed(parts)
             parts.append(build_part(support_context))
@@ -1038,6 +1050,8 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
 
         if support_effect == "heal":
             entity.hit_points = min(entity.max_hit_points, entity.hit_points + support_amount)
+        elif support_effect == "vigor":
+            entity.vigor = min(entity.max_vigor, entity.vigor + support_amount)
         elif support_effect == "mana":
             entity.mana = min(entity.max_mana, entity.mana + support_amount)
 
@@ -1404,6 +1418,8 @@ def initialize_session_entities(session: ClientSession) -> None:
                     pronoun_possessive=str(template.get("pronoun_possessive", "its")).strip().lower() or "its",
                     main_hand_weapon_template_id=str(template.get("main_hand_weapon_template_id", "")).strip(),
                     off_hand_weapon_template_id=str(template.get("off_hand_weapon_template_id", "")).strip(),
+                    vigor=max(0, int(template.get("vigor", template.get("max_vigor", 0)))),
+                    max_vigor=max(0, int(template.get("max_vigor", 0))),
                     mana=max(0, int(template.get("mana", template.get("max_mana", 0)))),
                     max_mana=max(0, int(template.get("max_mana", 0))),
                     skill_use_chance=max(0.0, min(1.0, float(template.get("skill_use_chance", 0.35)))),

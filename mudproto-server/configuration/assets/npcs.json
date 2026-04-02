@@ -17,6 +17,8 @@
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.training-sword",
       "off_hand_weapon_template_id": "weapon.scout-dagger",
+      "vigor": 48,
+      "max_vigor": 48,
       "skill_use_chance": 0.35,
       "skill_ids": ["skill.jab", "skill.overhead-crack"]
     },
@@ -37,6 +39,8 @@
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.training-sword",
       "off_hand_weapon_template_id": "",
+      "vigor": 24,
+      "max_vigor": 24,
       "mana": 120,
       "max_mana": 120,
       "skill_use_chance": 0.15,
