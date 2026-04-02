@@ -2,6 +2,7 @@ import asyncio
 import json
 import sys
 from datetime import datetime, timezone
+from typing import Any, TypeAlias
 
 import websockets
 
@@ -49,6 +50,10 @@ COLOR_MAP = {
 }
 
 
+Part: TypeAlias = dict[str, Any]
+Line: TypeAlias = list[Part]
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -79,34 +84,32 @@ def style_text(text: str, fg: str | None = None, bold: bool = False) -> str:
     return f"{prefix}{text}{Ansi.RESET}"
 
 
-def render_parts(parts: list[dict]) -> str:
-    rendered: list[str] = []
+def render_part(part: Part) -> str:
+    text = str(part.get("text", ""))
+    fg = part.get("fg")
+    bold = bool(part.get("bold", False))
 
-    for part in parts:
-        if not isinstance(part, dict):
-            continue
+    # Whitespace-only text should remain unstyled to preserve exact spacing.
+    if text.strip() == "":
+        return text
 
-        text = str(part.get("text", ""))
-        fg = part.get("fg")
-        bold = bool(part.get("bold", False))
-
-        if text.strip() == "":
-            rendered.append(text)
-        else:
-            rendered.append(style_text(text, fg, bold))
-
-    return "".join(rendered)
+    return style_text(text, fg, bold)
 
 
-def render_lines(lines: list[list[dict]]) -> str:
-    rendered_lines: list[str] = []
+def render_parts(parts: list[Part]) -> str:
+    return "".join(render_part(part) for part in parts if isinstance(part, dict))
 
-    for line in lines:
-        if not isinstance(line, list):
-            continue
-        rendered_lines.append(render_parts(line))
 
+def render_lines(lines: list[Line]) -> str:
+    rendered_lines = [render_parts(line) for line in lines if isinstance(line, list)]
     return "\n".join(rendered_lines)
+
+
+def _extract_lines(payload: dict, key: str) -> list[Line]:
+    candidate = payload.get(key)
+    if not isinstance(candidate, list):
+        return []
+    return [line for line in candidate if isinstance(line, list)]
 
 
 def write_line(text: str) -> None:
@@ -121,12 +124,15 @@ async def send_json(websocket, message: dict) -> None:
 
 def render_display_message(message: dict) -> None:
     payload = message.get("payload", {})
-    prompt_lines = payload.get("prompt_lines") or []
-    lines = payload.get("lines") or []
+    if not isinstance(payload, dict):
+        return
+
+    prompt_lines = _extract_lines(payload, "prompt_lines")
+    lines = _extract_lines(payload, "lines")
     starts_on_new_line = bool(payload.get("starts_on_new_line", False))
 
-    has_lines = isinstance(lines, list) and len(lines) > 0
-    has_prompt_lines = isinstance(prompt_lines, list) and len(prompt_lines) > 0
+    has_lines = len(lines) > 0
+    has_prompt_lines = len(prompt_lines) > 0
 
     if starts_on_new_line:
         sys.stdout.write("\n")
@@ -136,7 +142,6 @@ def render_display_message(message: dict) -> None:
 
     if has_prompt_lines:
         sys.stdout.write(render_lines(prompt_lines))
-        sys.stdout.flush()
 
     sys.stdout.flush()
 
