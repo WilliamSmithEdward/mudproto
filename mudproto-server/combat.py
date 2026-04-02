@@ -583,10 +583,17 @@ def _process_combat_round_timers(session: ClientSession, entities: list[EntitySt
     for entity in entities:
         _decrement_cooldowns(entity.skill_cooldowns)
         _decrement_cooldowns(entity.spell_cooldowns)
-        if entity.skill_lag_rounds_remaining > 0:
-            entity.skill_lag_rounds_remaining -= 1
-        if entity.spell_lag_rounds_remaining > 0:
-            entity.spell_lag_rounds_remaining -= 1
+
+
+def _consume_entity_action_lag(entity: EntityState) -> bool:
+    if entity.skill_lag_rounds_remaining <= 0 and entity.spell_lag_rounds_remaining <= 0:
+        return False
+
+    if entity.skill_lag_rounds_remaining > 0:
+        entity.skill_lag_rounds_remaining -= 1
+    if entity.spell_lag_rounds_remaining > 0:
+        entity.spell_lag_rounds_remaining -= 1
+    return True
 
 
 def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> int:
@@ -1591,6 +1598,9 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
 
     entity = attacker
     if not entity.is_alive:
+        return
+
+    if _consume_entity_action_lag(entity):
         return
 
     # Skills are additive and do not consume the entity's melee turn.
