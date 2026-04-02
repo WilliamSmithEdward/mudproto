@@ -270,23 +270,7 @@ def normalize_direction(direction: str) -> str:
 
 
 def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMessage) -> OutboundResult:
-    auto_entities = maybe_auto_engage_current_room(session)
-    if not auto_entities:
-        return room_display
-
-    payload = room_display.get("payload") if isinstance(room_display, dict) else None
-    if isinstance(payload, dict):
-        lines = payload.get("lines")
-        if isinstance(lines, list):
-            for auto_entity in auto_entities:
-                lines.extend([
-                    [],
-                    build_line(
-                        build_part(auto_entity.name),
-                        build_part(" notices you and attacks!", "bright_white"),
-                    ),
-                ])
-
+    maybe_auto_engage_current_room(session)
     return room_display
 
 

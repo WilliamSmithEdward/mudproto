@@ -9,7 +9,7 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from battle_round_ticks import process_non_combat_support_round
-from combat import get_engaged_entities, initialize_session_entities, resolve_combat_round, tick_out_of_combat_cooldowns
+from combat import get_engaged_entities, initialize_session_entities, maybe_auto_engage_current_room, resolve_combat_round, tick_out_of_combat_cooldowns
 from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt, parse_command
 from display import (
     build_display,
@@ -102,7 +102,6 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
                                 continue
                             original_text = str(part.get("text", ""))
                             part["text"] = third_personize_text(original_text, actor_name)
-            copied_payload["starts_on_new_line"] = True
             copied_lines = copied_payload.get("lines")
             if isinstance(copied_lines, list):
                 copied_payload["lines"] = [[], []] + copied_lines
@@ -306,6 +305,11 @@ async def command_scheduler_loop(session) -> None:
                 session.next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
             process_non_combat_support_round(session)
+
+            # Re-attempt auto-aggro periodically so hostile NPCs can engage
+            # without requiring player movement or explicit room refresh.
+            if session.is_authenticated and not session.combat.engaged_entity_ids:
+                maybe_auto_engage_current_room(session)
 
             if is_session_lagged(session):
                 continue

@@ -222,10 +222,12 @@ def build_display(
     else:
         display_lines.extend(_blank_lines(effective_blank_lines_after))
 
+    if starts_on_new_line:
+        display_lines = [[]] + display_lines
+
     return build_response("display", {
         "lines": display_lines,
         "prompt_lines": prompt_lines,
-        "starts_on_new_line": starts_on_new_line
     })
 
 

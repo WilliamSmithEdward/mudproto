@@ -129,13 +129,9 @@ def render_display_message(message: dict) -> None:
 
     prompt_lines = _extract_lines(payload, "prompt_lines")
     lines = _extract_lines(payload, "lines")
-    starts_on_new_line = bool(payload.get("starts_on_new_line", False))
 
     has_lines = len(lines) > 0
     has_prompt_lines = len(prompt_lines) > 0
-
-    if starts_on_new_line:
-        sys.stdout.write("\n")
 
     if has_lines:
         sys.stdout.write(render_lines(lines))
