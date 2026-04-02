@@ -473,6 +473,34 @@ Rendering invariants:
 - Third-personisation should change wording only; it should not change spacing
   structure or intended event chronology.
 
+Combat messaging consistency contract (player / NPC / room broadcast):
+- Combat events must describe the same underlying action across contexts:
+  player-facing actor lines, NPC-to-player lines, and room observer broadcasts.
+- Wording must stay cast-type aware in every context:
+  `self` -> "on yourself" / "on themselves"
+  `target` -> explicit target reference where available
+  `aoe` -> room-wide phrasing (for example "across the room")
+- Default observer action lines should remain aligned with actor lines for the
+  same action verb and ability name (`uses` vs `casts`), with only perspective
+  changes.
+- Context templates (`observer_action`, `observer_context`) may customize
+  flavor text, but action lines still flow through unified cast-type
+  enforcement logic so they cannot contradict target scope.
+- If a target selector was explicit for a targeted action, observer/broadcast
+  lines should include that target label when possible.
+- Support, damage, restore, and death follow-up lines must preserve ordering
+  across actor and observer outputs so all participants see the same sequence
+  of events.
+
+Nuances:
+- NPC self-support actions must not be phrased as targeting the player.
+- Fallback messages are part of the contract, not throwaway text; they should
+  be treated as canonical behavior for consistency.
+- Custom observer action templates are normalized like fallback lines
+  (punctuation + cast-type scope enforcement), then broadcast.
+- Broadcast consistency means semantic parity, not identical grammar: observer
+  lines should remain third-person while preserving intent, scope, and timing.
+
 Room broadcasts use `room_broadcast_lines` and are third-personised via
 `grammar.py::third_personize_text()`.
 

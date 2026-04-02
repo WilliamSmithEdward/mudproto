@@ -349,13 +349,29 @@ def load_npc_templates() -> list[dict]:
             seen_spell_ids.add(normalized_spell_id)
             normalized_spell_ids.append(spell_id)
 
+        normalized_skill_ids: list[str] = []
+        seen_skill_ids: set[str] = set()
+        for raw_skill_id in raw_skill_ids:
+            skill_id = str(raw_skill_id).strip()
+            if not skill_id:
+                continue
+            normalized_skill_id = skill_id.lower()
+            if normalized_skill_id in seen_skill_ids:
+                continue
+            if get_skill_by_id(skill_id) is None:
+                raise ValueError(f"NPC '{npc_id}' references unknown skill: {skill_id}")
+            seen_skill_ids.add(normalized_skill_id)
+            normalized_skill_ids.append(skill_id)
+
+        power_level = max(0, int(raw_npc.get("power_level", 1)))
+
         npc_ids.add(npc_id)
         normalized_npcs.append({
             "npc_id": npc_id,
             "name": name,
             "hit_points": hit_points,
             "max_hit_points": max_hit_points,
-            "power_leveL": max(0, int(raw_npc.get("power_leveL", 1))),
+            "power_level": power_level,
             "attacks_per_round": int(raw_npc.get("attacks_per_round", 1)),
             "hit_roll_modifier": int(raw_npc.get("hit_roll_modifier", 0)),
             "armor_class": int(raw_npc.get("armor_class", 10)),
@@ -373,7 +389,7 @@ def load_npc_templates() -> list[dict]:
             "mana": mana,
             "max_mana": max_mana,
             "skill_use_chance": skill_use_chance,
-            "skill_ids": [str(skill_id).strip() for skill_id in raw_skill_ids if str(skill_id).strip()],
+            "skill_ids": normalized_skill_ids,
             "spell_use_chance": spell_use_chance,
             "spell_ids": normalized_spell_ids,
             "loot_items": normalized_loot_items,

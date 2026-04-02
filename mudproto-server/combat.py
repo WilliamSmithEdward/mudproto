@@ -123,6 +123,60 @@ def _observer_context_from_player_context(context: str, target_text: str | None 
     return resolved
 
 
+def _default_observer_action_line(
+    actor_name: str,
+    action_verb: str,
+    ability_name: str,
+    cast_type: str,
+    target_label: str | None = None,
+) -> str:
+    if cast_type == "self":
+        return f"{actor_name} {action_verb} {ability_name} on themselves."
+    if cast_type == "target" and target_label:
+        return f"{actor_name} {action_verb} {ability_name} on {target_label}."
+    if cast_type == "aoe":
+        return f"{actor_name} {action_verb} {ability_name} across the room."
+    return f"{actor_name} {action_verb} {ability_name}."
+
+
+def _normalize_observer_sentence(text: str) -> str:
+    normalized = text.strip()
+    if not normalized:
+        return ""
+    if normalized[-1] not in ".!?":
+        normalized += "."
+    return normalized
+
+
+def _resolve_observer_action_line(
+    actor_name: str,
+    action_verb: str,
+    ability_name: str,
+    cast_type: str,
+    target_label: str | None = None,
+    observer_action: str = "",
+) -> str:
+    canonical_line = _default_observer_action_line(actor_name, action_verb, ability_name, cast_type, target_label)
+    rendered_custom = _normalize_observer_sentence(_render_observer_template(observer_action, actor_name))
+    if not rendered_custom:
+        return canonical_line
+
+    lowered = rendered_custom.lower()
+
+    if cast_type == "self" and "on themselves" not in lowered:
+        return f"{rendered_custom.rstrip('.!?')} on themselves."
+
+    if cast_type == "aoe" and "across the room" not in lowered:
+        return f"{rendered_custom.rstrip('.!?')} across the room."
+
+    if cast_type == "target" and target_label:
+        lowered_target = target_label.lower()
+        if f" on {lowered_target}" not in lowered and f" at {lowered_target}" not in lowered:
+            return f"{rendered_custom.rstrip('.!?')} on {target_label}."
+
+    return rendered_custom
+
+
 def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, str]:
     restore_effect = str(ability.get("restore_effect", "")).strip().lower()
     restore_ratio = float(ability.get("restore_ratio", ability.get("life_steal_ratio", 0.0)))
@@ -935,7 +989,13 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         _set_player_skill_cooldown(session, skill)
         _apply_player_skill_lag(session, skill)
         observer_lines = [
-            _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} uses {skill_name}.",
+            _resolve_observer_action_line(
+                actor_name,
+                "uses",
+                skill_name,
+                cast_type,
+                observer_action=observer_action,
+            ),
         ]
         support_observer_context = observer_context or _observer_context_from_player_context(support_context)
         if support_observer_context:
@@ -1049,7 +1109,14 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     _apply_player_skill_lag(session, skill)
     target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
     observer_lines = [
-        _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} uses {skill_name}.",
+        _resolve_observer_action_line(
+            actor_name,
+            "uses",
+            skill_name,
+            cast_type,
+            target_label=target_label,
+            observer_action=observer_action,
+        ),
     ]
     damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
     if damage_observer_context:
@@ -1100,13 +1167,18 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     scaling_bonus = _resolve_entity_skill_scale_bonus(entity, skill)
 
     description = str(skill.get("description", "")).strip()
+    cast_target_text = " on you!"
+    if skill_type == "support" and cast_type == "self":
+        cast_target_text = " on themselves!"
+    elif cast_type == "aoe":
+        cast_target_text = " across the room!"
     
     append_newline_if_needed(parts)
     parts.extend([
         build_part(with_article(entity.name, capitalize=True)),
         build_part(" uses "),
         build_part(skill_name),
-        build_part(" on you!"),
+        build_part(cast_target_text),
     ])
     if description:
         parts.extend([
@@ -1218,13 +1290,18 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
     spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
     cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
     mana_cost = max(0, int(spell.get("mana_cost", 0)))
+    cast_target_text = " at you!"
+    if spell_type == "support" and cast_type == "self":
+        cast_target_text = " on themselves!"
+    elif cast_type == "aoe":
+        cast_target_text = " across the room!"
 
     append_newline_if_needed(parts)
     parts.extend([
         build_part(with_article(entity.name, capitalize=True)),
         build_part(" casts "),
         build_part(spell_name),
-        build_part("!"),
+        build_part(cast_target_text),
     ])
 
     entity.mana = max(0, entity.mana - mana_cost)
@@ -1431,7 +1508,13 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 build_part(support_context),
             ])
             observer_lines = [
-                _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} casts {spell_name}.",
+                _resolve_observer_action_line(
+                    actor_name,
+                    "casts",
+                    spell_name,
+                    cast_type,
+                    observer_action=observer_action,
+                ),
             ]
             support_observer_context = observer_context or _observer_context_from_player_context(support_context)
             if support_observer_context:
@@ -1485,7 +1568,13 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             build_part(support_context),
         ]
         observer_lines = [
-            _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} casts {spell_name}.",
+            _resolve_observer_action_line(
+                actor_name,
+                "casts",
+                spell_name,
+                cast_type,
+                observer_action=observer_action,
+            ),
         ]
         support_observer_context = observer_context or _observer_context_from_player_context(support_context)
         if support_observer_context:
@@ -1605,7 +1694,14 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
 
     target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
     observer_lines = [
-        _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} casts {spell_name}.",
+        _resolve_observer_action_line(
+            actor_name,
+            "casts",
+            spell_name,
+            cast_type,
+            target_label=target_label,
+            observer_action=observer_action,
+        ),
     ]
     damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
     if damage_observer_context:
@@ -1660,7 +1756,7 @@ def initialize_session_entities(session: ClientSession) -> None:
                     int(template.get("hit_points", 1)),
                     int(template.get("max_hit_points", template.get("hit_points", 1))),
                 )
-                entity.power_level = max(0, int(template.get("power_leveL", 1)))
+                entity.power_level = max(0, int(template.get("power_level", 1)))
                 entity.attacks_per_round = max(1, int(template.get("attacks_per_round", 1)))
                 entity.hit_roll_modifier = int(template.get("hit_roll_modifier", 0))
                 entity.armor_class = int(template.get("armor_class", 10))
