@@ -86,11 +86,29 @@ class MudProtoGuiClient:
         output_frame = tk.Frame(container, bg="black")
         output_frame.pack(fill="both", expand=True)
 
-        y_scrollbar = tk.Scrollbar(output_frame)
-        y_scrollbar.pack(side="right", fill="y")
+        self.y_scrollbar = tk.Scrollbar(
+            output_frame,
+            bg="#111111",
+            troughcolor="#000000",
+            activebackground="#333333",
+            highlightbackground="#000000",
+            highlightcolor="#000000",
+            relief="flat",
+            borderwidth=0,
+        )
+        self.y_scrollbar.pack(side="right", fill="y")
 
-        x_scrollbar = tk.Scrollbar(output_frame, orient="horizontal")
-        x_scrollbar.pack(side="bottom", fill="x")
+        self.x_scrollbar = tk.Scrollbar(
+            output_frame,
+            orient="horizontal",
+            bg="#111111",
+            troughcolor="#000000",
+            activebackground="#333333",
+            highlightbackground="#000000",
+            highlightcolor="#000000",
+            relief="flat",
+            borderwidth=0,
+        )
 
         self.output_text = tk.Text(
             output_frame,
@@ -104,13 +122,13 @@ class MudProtoGuiClient:
             font=self.base_font,
             padx=10,
             pady=10,
-            yscrollcommand=y_scrollbar.set,
-            xscrollcommand=x_scrollbar.set,
+            yscrollcommand=self.y_scrollbar.set,
+            xscrollcommand=self._on_xscroll,
         )
         self.output_text.pack(side="left", fill="both", expand=True)
         self.output_text.configure(state="disabled")
-        y_scrollbar.config(command=self.output_text.yview)
-        x_scrollbar.config(command=self.output_text.xview)
+        self.y_scrollbar.config(command=self.output_text.yview)
+        self.x_scrollbar.config(command=self.output_text.xview)
 
         input_frame = tk.Frame(container, bg="black")
         input_frame.pack(fill="x", pady=(8, 0))
@@ -207,8 +225,6 @@ class MudProtoGuiClient:
             self.on_close()
             return "break"
 
-        self.append_system_message(f"> {user_text}", fg="bright_green")
-
         future = asyncio.run_coroutine_threadsafe(self._send_text_async(user_text), self.network_loop)
 
         def _report_result() -> None:
@@ -256,6 +272,17 @@ class MudProtoGuiClient:
         self.input_entry.delete(0, tk.END)
         self.input_entry.insert(0, text)
         self.input_entry.icursor(tk.END)
+
+    def _on_xscroll(self, first: float | str, last: float | str) -> None:
+        first_value = float(first)
+        last_value = float(last)
+        self.x_scrollbar.set(first_value, last_value)
+        if first_value <= 0.0 and last_value >= 1.0:
+            if self.x_scrollbar.winfo_ismapped():
+                self.x_scrollbar.pack_forget()
+        else:
+            if not self.x_scrollbar.winfo_ismapped():
+                self.x_scrollbar.pack(side="bottom", fill="x", before=self.y_scrollbar)
 
     def _set_prompt_text(self, text: str) -> None:
         self.append_parts(
@@ -311,7 +338,7 @@ class MudProtoGuiClient:
         self.output_text.configure(state="disabled")
         self.output_text.see(tk.END)
 
-    def _append_line_group(self, lines: list[Line]) -> None:
+    def _append_line_group(self, lines: list[Line], *, trailing_blank_line: bool = False) -> None:
         if not lines:
             return
 
@@ -331,7 +358,12 @@ class MudProtoGuiClient:
                 else:
                     self.output_text.insert(tk.END, text)
 
-        self.output_ends_with_newline = bool(lines and not lines[-1])
+        if trailing_blank_line:
+            self.output_text.insert(tk.END, "\n")
+            self.output_ends_with_newline = True
+        else:
+            self.output_ends_with_newline = bool(lines and not lines[-1])
+
         self.output_text.configure(state="disabled")
         self.output_text.see(tk.END)
 
@@ -347,7 +379,7 @@ class MudProtoGuiClient:
             return
 
         self._append_line_group(_extract_lines(payload, "lines"))
-        self._append_line_group(_extract_lines(payload, "prompt_lines"))
+        self._append_line_group(_extract_lines(payload, "prompt_lines"), trailing_blank_line=True)
 
     def clear_output(self) -> None:
         self.output_text.configure(state="normal")
