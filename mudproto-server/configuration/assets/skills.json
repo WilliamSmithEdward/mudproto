@@ -14,7 +14,7 @@
     "scaling_multiplier": 2.50,
     "damage_context": "[a/an] [verb] snapped backward by a sharp jab.",
     "observer_action": "[actor_name] snaps out a quick jab.",
-    "lag_rounds": 0,
+    "lag_rounds": 1,
     "cooldown_rounds": 1
   },
   {
@@ -32,7 +32,7 @@
     "scaling_multiplier": 3.00,
     "damage_context": "[a/an] [verb] taken by a crushing overhead strike.",
     "observer_action": "[actor_name] raises [actor_possessive] weapon and brings it down in a crushing arc.",
-    "lag_rounds": 1,
+    "lag_rounds": 2,
     "cooldown_rounds": 3
   },
   {
@@ -50,7 +50,7 @@
     "support_context": "A measured breath steadies your posture and closes shallow wounds.",
     "observer_action": "[actor_name] slows [actor_possessive] breathing and settles into a guarded stance.",
     "observer_context": "A measured breath steadies [actor_possessive] posture and closes shallow wounds.",
-    "lag_rounds": 0,
+    "lag_rounds": 1,
     "cooldown_rounds": 4
   }
 ]

@@ -1754,10 +1754,12 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         response, skill_applied = use_skill(session, skill, target_name)
         if skill_applied and session.combat.engaged_entity_ids:
-            try:
-                apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
-            except RuntimeError:
-                pass
+            lag_rounds = max(0, int(skill.get("lag_rounds", 0)))
+            if lag_rounds > 0:
+                try:
+                    apply_lag(session, lag_rounds * COMBAT_ROUND_INTERVAL_SECONDS)
+                except RuntimeError:
+                    pass
         return response
 
     return display_error(f"Unknown command: {verb}", session)
