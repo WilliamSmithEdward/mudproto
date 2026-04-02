@@ -368,6 +368,7 @@ def load_player_classes() -> list[dict]:
         raw_equipped_gear_ids = raw_class.get("starting_equipped_gear_template_ids", [])
         raw_item_ids = raw_class.get("starting_item_ids", [])
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
+        raw_resource_progression = raw_class.get("resource_progression", {})
         if not isinstance(raw_gear_ids, list):
             raise ValueError(
                 f"Player class '{class_id}' starting_gear_template_ids must be a list."
@@ -384,6 +385,8 @@ def load_player_classes() -> list[dict]:
             raise ValueError(f"Player class '{class_id}' starting_item_ids must be a list.")
         if not isinstance(raw_attribute_ranges, dict):
             raise ValueError(f"Player class '{class_id}' attribute_ranges must be an object.")
+        if not isinstance(raw_resource_progression, dict):
+            raise ValueError(f"Player class '{class_id}' resource_progression must be an object.")
 
         attribute_ranges: dict[str, dict[str, int]] = {}
         for attribute_id in configured_attribute_ids:
@@ -416,6 +419,45 @@ def load_player_classes() -> list[dict]:
                 raise ValueError(
                     f"Player class '{class_id}' attribute_ranges references unknown attribute: {attribute_id}"
                 )
+
+        normalized_resource_progression: dict[str, dict] = {}
+        for resource_key, default_attribute in (("hit_points", "con"), ("vigor", "dex"), ("mana", "wis")):
+            raw_resource = raw_resource_progression.get(resource_key, {})
+            if not isinstance(raw_resource, dict):
+                raise ValueError(
+                    f"Player class '{class_id}' resource_progression['{resource_key}'] must be an object."
+                )
+
+            base = int(raw_resource.get("base", 0))
+            attribute_id = str(raw_resource.get("attribute_id", default_attribute)).strip().lower() or default_attribute
+            attribute_multiplier = float(raw_resource.get("attribute_multiplier", 1.0))
+            per_level_min = int(raw_resource.get("per_level_min", 0))
+            per_level_max = int(raw_resource.get("per_level_max", 0))
+
+            if base <= 0:
+                raise ValueError(
+                    f"Player class '{class_id}' resource_progression['{resource_key}'].base must be > 0."
+                )
+            if attribute_id not in configured_attribute_ids:
+                raise ValueError(
+                    f"Player class '{class_id}' resource_progression['{resource_key}'] references unknown attribute_id '{attribute_id}'."
+                )
+            if attribute_multiplier < 0.0:
+                raise ValueError(
+                    f"Player class '{class_id}' resource_progression['{resource_key}'].attribute_multiplier must be >= 0.0."
+                )
+            if per_level_min < 0 or per_level_max < 0:
+                raise ValueError(
+                    f"Player class '{class_id}' resource_progression['{resource_key}'] per-level values must be >= 0."
+                )
+
+            normalized_resource_progression[resource_key] = {
+                "base": base,
+                "attribute_id": attribute_id,
+                "attribute_multiplier": attribute_multiplier,
+                "per_level_min": per_level_min,
+                "per_level_max": per_level_max,
+            }
 
         gear_ids: list[str] = []
         seen_gear_ids: set[str] = set()
@@ -503,6 +545,7 @@ def load_player_classes() -> list[dict]:
             "starting_item_ids": item_ids,
             "starting_spell_ids": spell_ids,
             "starting_skill_ids": skill_ids,
+            "resource_progression": normalized_resource_progression,
             "is_default": bool(raw_class.get("is_default", False)),
         })
 

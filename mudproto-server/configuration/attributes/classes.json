@@ -10,6 +10,29 @@
       "dex": { "min": 8, "max": 14 },
       "con": { "min": 8, "max": 14 }
     },
+    "resource_progression": {
+      "hit_points": {
+        "base": 120,
+        "attribute_id": "con",
+        "attribute_multiplier": 5.0,
+        "per_level_min": 6,
+        "per_level_max": 12
+      },
+      "vigor": {
+        "base": 80,
+        "attribute_id": "dex",
+        "attribute_multiplier": 3.0,
+        "per_level_min": 3,
+        "per_level_max": 7
+      },
+      "mana": {
+        "base": 110,
+        "attribute_id": "wis",
+        "attribute_multiplier": 4.0,
+        "per_level_min": 4,
+        "per_level_max": 9
+      }
+    },
     "starting_gear_template_ids": [
       "armor.test-ring-amber",
       "armor.test-ring-azure",

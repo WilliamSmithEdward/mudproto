@@ -34,6 +34,8 @@ from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, g
 from grammar import indefinite_article, with_article
 from inventory import is_item_equippable, resolve_equipment_selector
 from models import ClientSession, ItemState
+from player_resources import get_player_resource_caps
+from player_resources import clamp_player_resources_to_caps
 from player_state_db import (
     character_exists,
     create_character,
@@ -46,9 +48,6 @@ from player_state_db import (
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
     FLEE_SUCCESS_CHANCE,
-    PLAYER_REFERENCE_MAX_HP,
-    PLAYER_REFERENCE_MAX_MANA,
-    PLAYER_REFERENCE_MAX_VIGOR,
 )
 from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged
 from sessions import (
@@ -146,7 +145,7 @@ def _complete_login(session: ClientSession, character_record: dict, *, is_new_ch
     if not resumed_from_active:
         loaded_state = load_player_state(session, player_key=character_key)
         if not loaded_state:
-            apply_player_class(session, class_id)
+            apply_player_class(session, class_id, initialize_progression=True)
         elif class_id:
             session.player.class_id = class_id
 
@@ -156,6 +155,8 @@ def _complete_login(session: ClientSession, character_record: dict, *, is_new_ch
         session.player.current_room_id = login_room_id
     else:
         ensure_player_attributes(session)
+
+    clamp_player_resources_to_caps(session)
 
     session.is_authenticated = True
     session.is_connected = True
@@ -634,17 +635,18 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     current_value = 0
     max_value = 0
     effect_label = ""
+    caps = get_player_resource_caps(session)
     if effect_target == "hit_points":
         current_value = session.status.hit_points
-        max_value = PLAYER_REFERENCE_MAX_HP
+        max_value = caps["hit_points"]
         effect_label = "HP"
     elif effect_target == "mana":
         current_value = session.status.mana
-        max_value = PLAYER_REFERENCE_MAX_MANA
+        max_value = caps["mana"]
         effect_label = "Mana"
     elif effect_target == "vigor":
         current_value = session.status.vigor
-        max_value = PLAYER_REFERENCE_MAX_VIGOR
+        max_value = caps["vigor"]
         effect_label = "Vigor"
     else:
         return display_error(f"{misc_item.name} cannot be used.", session)

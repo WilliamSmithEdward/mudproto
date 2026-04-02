@@ -4,9 +4,9 @@ from equipment import list_worn_items
 from inventory import is_item_equippable
 from grammar import capitalize_after_newlines
 from experience import get_xp_to_next_level
+from player_resources import get_player_resource_caps
 from models import ClientSession
 from protocol import build_response
-from settings import PLAYER_REFERENCE_MAX_HP
 from sessions import is_session_lagged, list_authenticated_room_players
 from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_corpses, list_room_entities
 from world import Room, get_room
@@ -157,7 +157,8 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
         exit_letters = "None"
 
     status = session.status
-    me_condition, me_condition_color = get_health_condition(status.hit_points, PLAYER_REFERENCE_MAX_HP)
+    caps = get_player_resource_caps(session)
+    me_condition, me_condition_color = get_health_condition(status.hit_points, caps["hit_points"])
 
     parts = [
         build_part(f"{status.hit_points}H", me_condition_color, True),
@@ -346,7 +347,8 @@ def display_pong(session: ClientSession) -> dict:
 
 def display_whoami(session: ClientSession) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
-    me_condition, me_condition_color = get_health_condition(session.status.hit_points, PLAYER_REFERENCE_MAX_HP)
+    caps = get_player_resource_caps(session)
+    me_condition, me_condition_color = get_health_condition(session.status.hit_points, caps["hit_points"])
     engaged_entity = get_engaged_entity(session)
 
     parts = [

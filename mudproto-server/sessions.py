@@ -7,6 +7,7 @@ from assets import get_gear_template_by_id, get_item_template_by_id
 from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
 from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState, QueuedCommand
+from player_resources import clamp_player_resources_to_caps, initialize_player_progression
 from player_state_db import save_player_state
 from protocol import utc_now_iso
 from settings import (
@@ -134,7 +135,13 @@ def _equip_starting_gear_by_template_id(session: ClientSession, template_id: str
         wear_item(session, item)
 
 
-def apply_player_class(session: ClientSession, class_id: str | None = None, *, roll_attributes: bool = False) -> None:
+def apply_player_class(
+    session: ClientSession,
+    class_id: str | None = None,
+    *,
+    roll_attributes: bool = False,
+    initialize_progression: bool = False,
+) -> None:
     player_class = get_default_player_class()
     if class_id is not None:
         matched_class = get_player_class_by_id(class_id)
@@ -194,6 +201,11 @@ def apply_player_class(session: ClientSession, class_id: str | None = None, *, r
             continue
         session.known_skill_ids.append(str(skill_id).strip())
         known_skill_ids.add(normalized_skill_id)
+
+    if initialize_progression:
+        initialize_player_progression(session)
+    else:
+        clamp_player_resources_to_caps(session)
 
 
 def get_connection_count() -> int:

@@ -20,6 +20,7 @@ class PlayerState:
     attributes: dict[str, int] = field(default_factory=dict)
     level: int = 1
     experience_points: int = 0
+    resource_level_gains: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass

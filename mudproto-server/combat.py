@@ -5,6 +5,7 @@ import uuid
 
 from grammar import with_article
 from experience import award_experience
+from player_resources import get_player_resource_caps, roll_level_resource_gains
 from assets import get_gear_template_by_id, get_npc_template_by_id, get_skill_by_id, get_spell_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_text import (
@@ -29,9 +30,6 @@ from sessions import active_character_sessions, connected_clients
 from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
-    PLAYER_REFERENCE_MAX_HP,
-    PLAYER_REFERENCE_MAX_MANA,
-    PLAYER_REFERENCE_MAX_VIGOR,
 )
 from world import WORLD
 
@@ -54,11 +52,21 @@ def _append_experience_gain_parts(session: ClientSession, entity: EntityState, p
     ])
 
     if new_level > old_level:
+        resource_gains = roll_level_resource_gains(session, old_level, new_level)
         append_newline_if_needed(parts)
         parts.extend([
             build_part_fn("You advance to level ", "bright_green", True),
             build_part_fn(str(new_level), "bright_green", True),
             build_part_fn("!", "bright_green", True),
+        ])
+        append_newline_if_needed(parts)
+        parts.extend([
+            build_part_fn("Level gains: ", "bright_white"),
+            build_part_fn(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
+            build_part_fn(" ", "bright_white"),
+            build_part_fn(f"+{int(resource_gains.get('vigor', 0))}V", "bright_yellow", True),
+            build_part_fn(" ", "bright_white"),
+            build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
         ])
 
 
@@ -148,17 +156,19 @@ def _apply_player_secondary_restore(session: ClientSession, effect: str, amount:
     if amount <= 0:
         return 0
 
+    caps = get_player_resource_caps(session)
+
     if effect == "mana":
         before = session.status.mana
-        session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + amount)
+        session.status.mana = min(caps["mana"], session.status.mana + amount)
         return session.status.mana - before
     if effect == "vigor":
         before = session.status.vigor
-        session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + amount)
+        session.status.vigor = min(caps["vigor"], session.status.vigor + amount)
         return session.status.vigor - before
 
     before = session.status.hit_points
-    session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + amount)
+    session.status.hit_points = min(caps["hit_points"], session.status.hit_points + amount)
     return session.status.hit_points - before
 
 
@@ -870,15 +880,16 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             ), False
 
         session.status.vigor -= vigor_cost
+        caps = get_player_resource_caps(session)
 
         total_support_amount = max(0, support_amount + scaling_bonus)
 
         if support_effect == "heal":
-            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + total_support_amount)
+            session.status.hit_points = min(caps["hit_points"], session.status.hit_points + total_support_amount)
         elif support_effect == "vigor":
-            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + total_support_amount)
+            session.status.vigor = min(caps["vigor"], session.status.vigor + total_support_amount)
         else:
-            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + total_support_amount)
+            session.status.mana = min(caps["mana"], session.status.mana + total_support_amount)
 
         if support_context:
             parts.extend([
@@ -1373,12 +1384,13 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             ]
 
             rolled_support_amount, _, _, _, _ = _roll_player_support_amount(session, spell, support_effect)
+            caps = get_player_resource_caps(session)
             if support_effect == "heal":
-                status.hit_points = min(PLAYER_REFERENCE_MAX_HP, status.hit_points + rolled_support_amount)
+                status.hit_points = min(caps["hit_points"], status.hit_points + rolled_support_amount)
             elif support_effect == "vigor":
-                status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, status.vigor + rolled_support_amount)
+                status.vigor = min(caps["vigor"], status.vigor + rolled_support_amount)
             else:
-                status.mana = min(PLAYER_REFERENCE_MAX_MANA, status.mana + rolled_support_amount)
+                status.mana = min(caps["mana"], status.mana + rolled_support_amount)
             parts.extend([
                 build_part("\n"),
                 build_part(support_context),

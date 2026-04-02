@@ -2,7 +2,8 @@ import asyncio
 import random
 
 from models import ClientSession
-from settings import COMBAT_ROUND_INTERVAL_SECONDS, PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
+from player_resources import get_player_resource_caps
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
 
 
 def _roll_support_effect_amount(effect) -> int:
@@ -15,6 +16,7 @@ def _roll_support_effect_amount(effect) -> int:
 
 
 def process_battle_round_support_effects(session: ClientSession) -> None:
+    caps = get_player_resource_caps(session)
     for effect in list(session.active_support_effects):
         if effect.support_mode != "battle_rounds":
             continue
@@ -27,11 +29,11 @@ def process_battle_round_support_effects(session: ClientSession) -> None:
             continue
 
         if effect.support_effect == "heal":
-            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + applied_amount)
+            session.status.hit_points = min(caps["hit_points"], session.status.hit_points + applied_amount)
         elif effect.support_effect == "vigor":
-            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + applied_amount)
+            session.status.vigor = min(caps["vigor"], session.status.vigor + applied_amount)
         elif effect.support_effect == "mana":
-            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + applied_amount)
+            session.status.mana = min(caps["mana"], session.status.mana + applied_amount)
 
         effect.remaining_rounds -= 1
         if effect.remaining_rounds <= 0:

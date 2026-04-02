@@ -2,7 +2,7 @@ import random
 
 from attribute_config import load_regeneration_config
 from models import ClientSession
-from settings import PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
+from player_resources import get_player_resource_caps
 
 
 def _roll_support_effect_amount(effect) -> int:
@@ -16,6 +16,7 @@ def _roll_support_effect_amount(effect) -> int:
 
 def process_game_hour_tick(session: ClientSession) -> list[str]:
     expired_spell_names: list[str] = []
+    caps = get_player_resource_caps(session)
 
     regeneration_config = load_regeneration_config()
     resources = regeneration_config.get("resources", {}) if isinstance(regeneration_config, dict) else {}
@@ -30,9 +31,9 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
         return max(0.0, resolved_percent)
 
     resource_specs = [
-        ("hit_points", "hit_points", PLAYER_REFERENCE_MAX_HP),
-        ("vigor", "vigor", PLAYER_REFERENCE_MAX_VIGOR),
-        ("mana", "mana", PLAYER_REFERENCE_MAX_MANA),
+        ("hit_points", "hit_points", int(caps["hit_points"])),
+        ("vigor", "vigor", int(caps["vigor"])),
+        ("mana", "mana", int(caps["mana"])),
     ]
     for resource_key, status_field, max_value in resource_specs:
         resource_config = resources.get(resource_key, {}) if isinstance(resources, dict) else {}
@@ -68,11 +69,11 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
         applied_amount = _roll_support_effect_amount(effect)
 
         if effect.support_effect == "heal":
-            session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + applied_amount)
+            session.status.hit_points = min(caps["hit_points"], session.status.hit_points + applied_amount)
         elif effect.support_effect == "vigor":
-            session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + applied_amount)
+            session.status.vigor = min(caps["vigor"], session.status.vigor + applied_amount)
         elif effect.support_effect == "mana":
-            session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + applied_amount)
+            session.status.mana = min(caps["mana"], session.status.mana + applied_amount)
 
         effect.remaining_hours -= 1
         if effect.remaining_hours <= 0:

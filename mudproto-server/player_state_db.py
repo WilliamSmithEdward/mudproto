@@ -287,6 +287,10 @@ def _serialize_session(session: ClientSession) -> dict:
             "attributes": {key: int(value) for key, value in session.player.attributes.items()},
             "level": int(session.player.level),
             "experience_points": int(session.player.experience_points),
+            "resource_level_gains": {
+                str(resource_key): int(value)
+                for resource_key, value in dict(session.player.resource_level_gains or {}).items()
+            },
         },
         "player_combat": {
             "attack_damage": int(session.player_combat.attack_damage),
@@ -364,6 +368,13 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
         loaded_level = max(1, int(raw_player.get("level", 0)))
         derived_level = get_level_for_experience(session.player.experience_points)
         session.player.level = max(loaded_level, derived_level)
+        raw_resource_level_gains = raw_player.get("resource_level_gains", {})
+        if isinstance(raw_resource_level_gains, dict):
+            session.player.resource_level_gains = {
+                str(resource_key).strip().lower(): max(0, int(value))
+                for resource_key, value in raw_resource_level_gains.items()
+                if str(resource_key).strip()
+            }
         raw_attributes = raw_player.get("attributes", {})
         if isinstance(raw_attributes, dict):
             session.player.attributes = {
