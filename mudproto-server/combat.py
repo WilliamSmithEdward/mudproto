@@ -762,7 +762,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         if support_observer_context:
             observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
-        result = display_command_result(session, parts)
+        result = display_command_result(session, parts, blank_lines_before=0)
         return _attach_room_broadcast_lines(result, observer_lines), True
 
     clear_combat_if_invalid(session)
@@ -882,7 +882,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     for destroyed_name in destroyed_entity_names:
         observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
 
-    result = display_command_result(session, parts)
+    result = display_command_result(session, parts, blank_lines_before=0)
     return _attach_room_broadcast_lines(result, observer_lines), True
 
 
