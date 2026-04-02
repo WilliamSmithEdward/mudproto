@@ -49,8 +49,12 @@ def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
         cleaned = str(line).strip()
         if not cleaned:
             continue
+
+        is_death_line = cleaned.lower().endswith(" is dead!")
+        fg = "bright_red" if is_death_line else "bright_white"
+        bold = is_death_line
         broadcast_lines.append([
-            {"text": cleaned, "fg": "bright_white", "bold": False}
+            {"text": cleaned, "fg": fg, "bold": bold}
         ])
 
     if broadcast_lines:
@@ -151,6 +155,30 @@ def _apply_entity_secondary_restore(entity: EntityState, effect: str, amount: in
     before = entity.hit_points
     entity.hit_points = min(entity.max_hit_points, entity.hit_points + amount)
     return entity.hit_points - before
+
+
+def _process_entity_battle_round_support_effects(entity: EntityState) -> None:
+    for effect in list(entity.active_support_effects):
+        if effect.support_mode != "battle_rounds":
+            continue
+
+        _apply_entity_secondary_restore(entity, effect.support_effect, effect.support_amount)
+
+        effect.remaining_rounds -= 1
+        if effect.remaining_rounds <= 0:
+            entity.active_support_effects.remove(effect)
+
+
+def process_entity_game_hour_tick(entity: EntityState) -> None:
+    for effect in list(entity.active_support_effects):
+        if effect.support_mode != "timed":
+            continue
+
+        _apply_entity_secondary_restore(entity, effect.support_effect, effect.support_amount)
+
+        effect.remaining_hours -= 1
+        if effect.remaining_hours <= 0:
+            entity.active_support_effects.remove(effect)
 
 
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
@@ -582,6 +610,7 @@ def _process_combat_round_timers(session: ClientSession, entities: list[EntitySt
     _decrement_cooldowns(session.combat.skill_cooldowns)
 
     for entity in entities:
+        _process_entity_battle_round_support_effects(entity)
         _decrement_cooldowns(entity.skill_cooldowns)
         _decrement_cooldowns(entity.spell_cooldowns)
 
@@ -1052,14 +1081,42 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
     if spell_type == "support" and cast_type == "self":
         support_effect = str(spell.get("support_effect", "")).strip().lower()
         support_amount = max(0, int(spell.get("support_amount", 0)))
+        support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
+        duration_hours = max(0, int(spell.get("duration_hours", 0)))
+        duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
         support_context = str(spell.get("support_context", "")).strip()
 
-        if support_effect == "heal":
-            entity.hit_points = min(entity.max_hit_points, entity.hit_points + support_amount)
-        elif support_effect == "vigor":
-            entity.vigor = min(entity.max_vigor, entity.vigor + support_amount)
-        elif support_effect == "mana":
-            entity.mana = min(entity.max_mana, entity.mana + support_amount)
+        if support_mode == "instant":
+            if support_effect == "heal":
+                entity.hit_points = min(entity.max_hit_points, entity.hit_points + support_amount)
+            elif support_effect == "vigor":
+                entity.vigor = min(entity.max_vigor, entity.vigor + support_amount)
+            elif support_effect == "mana":
+                entity.mana = min(entity.max_mana, entity.mana + support_amount)
+        elif support_mode in {"timed", "battle_rounds"}:
+            spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
+            refreshed = False
+            for active_effect in entity.active_support_effects:
+                if active_effect.spell_id != spell_id:
+                    continue
+                active_effect.support_mode = support_mode
+                active_effect.support_effect = support_effect
+                active_effect.support_amount = support_amount
+                active_effect.remaining_hours = duration_hours
+                active_effect.remaining_rounds = duration_rounds
+                refreshed = True
+                break
+
+            if not refreshed:
+                entity.active_support_effects.append(ActiveSupportEffectState(
+                    spell_id=spell_id,
+                    spell_name=spell_name,
+                    support_mode=support_mode,
+                    support_effect=support_effect,
+                    support_amount=support_amount,
+                    remaining_hours=duration_hours,
+                    remaining_rounds=duration_rounds,
+                ))
 
         if support_context:
             append_newline_if_needed(parts)
@@ -1601,9 +1658,11 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
     if _consume_entity_action_lag(entity):
         return
 
-    # Skills are additive and do not consume the entity's melee turn.
-    _entity_try_cast_spell(session, entity, parts)
-    _entity_try_use_skill(session, entity, parts)
+    # Allow at most one special action (spell or skill) per round.
+    # Keep existing priority: try spell first, then skill if no spell fired.
+    casted_spell = _entity_try_cast_spell(session, entity, parts)
+    if not casted_spell:
+        _entity_try_use_skill(session, entity, parts)
 
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)

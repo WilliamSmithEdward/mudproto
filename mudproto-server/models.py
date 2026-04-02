@@ -131,6 +131,7 @@ class EntityState:
     spell_ids: list[str] = field(default_factory=list)
     spell_cooldowns: dict[str, int] = field(default_factory=dict)
     spell_lag_rounds_remaining: int = 0
+    active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
 
 
 def _build_default_equipment_state() -> EquipmentState:

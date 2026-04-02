@@ -373,11 +373,13 @@ When an entity dies:
 
 ### Support Effects
 
-- `ActiveSupportEffectState` tracked on the session.
-- **Timed** (`remaining_hours`): processed by `game_hour_ticks.py` each
-  game hour.
-- **Battle-round** (`remaining_rounds`): processed by
-  `battle_round_ticks.py` each combat round.
+- `ActiveSupportEffectState` tracked on player sessions and NPC entities.
+- **Timed** (`remaining_hours`): player effects are processed by
+  `game_hour_ticks.py`; NPC effects are processed from the global tick loop
+  via `combat.py::process_entity_game_hour_tick()`.
+- **Battle-round** (`remaining_rounds`): player effects are processed by
+  `battle_round_ticks.py`; NPC effects are processed in
+  `combat.py::_process_combat_round_timers()`.
 
 ---
 
@@ -427,6 +429,14 @@ Rendering invariants:
   what the server sends.
 - A blank line before a prompt is represented by leading empty entries in
   `prompt_lines`.
+- When an event is visible to both actor and observers, `room_broadcast_lines`
+  should preserve the same event ordering as actor-facing `lines` whenever
+  possible.
+- Styling should remain semantically consistent between actor and broadcast
+  output for shared events (example: death announcements stay bright red/bold
+  in both views).
+- Third-personisation should change wording only; it should not change spacing
+  structure or intended event chronology.
 
 Room broadcasts use `room_broadcast_lines` and are third-personised via
 `grammar.py::third_personize_text()`.

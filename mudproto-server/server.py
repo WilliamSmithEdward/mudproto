@@ -9,7 +9,14 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from battle_round_ticks import process_non_combat_support_round
-from combat import get_engaged_entities, initialize_session_entities, maybe_auto_engage_current_room, resolve_combat_round, tick_out_of_combat_cooldowns
+from combat import (
+    get_engaged_entities,
+    initialize_session_entities,
+    maybe_auto_engage_current_room,
+    process_entity_game_hour_tick,
+    resolve_combat_round,
+    tick_out_of_combat_cooldowns,
+)
 from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt, parse_command
 from display import (
     build_display,
@@ -40,6 +47,7 @@ from sessions import (
     is_session_lagged,
     register_client,
     reset_session_to_login,
+    shared_world_entities,
     touch_session,
 )
 from game_hour_ticks import process_game_hour_tick
@@ -349,6 +357,11 @@ async def game_tick_loop() -> None:
             await asyncio.sleep(sleep_seconds)
 
             next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
+
+            for entity in list(shared_world_entities.values()):
+                if not getattr(entity, "is_alive", False):
+                    continue
+                process_entity_game_hour_tick(entity)
 
     except asyncio.CancelledError:
         raise

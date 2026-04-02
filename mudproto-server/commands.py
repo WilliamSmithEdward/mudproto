@@ -970,10 +970,10 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 build_part("\n"),
                 build_part("Items:", "bright_white", True),
             ])
-            for index, loot_item in enumerate(loot_items, start=1):
+            for loot_item in loot_items:
                 parts.extend([
                     build_part("\n"),
-                    build_part(f" - {index}. ", "bright_white"),
+                    build_part(" - ", "bright_white"),
                     build_part(loot_item.name, _item_highlight_color(loot_item), True),
                 ])
         else:

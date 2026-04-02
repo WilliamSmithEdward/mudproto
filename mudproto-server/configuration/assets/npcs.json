@@ -47,8 +47,7 @@
       "skill_ids": ["skill.jab"],
       "spell_use_chance": 0.55,
       "spell_ids": [
-        "spell.arc-bolt",
-        "spell.life-siphon"
+        "spell.regeneration-ward"
       ]
     }
   ]
