@@ -18,7 +18,7 @@
     "cooldown_rounds": 1
   },
   {
-    "skill_id": "skill.overhead.crack",
+    "skill_id": "skill.overhead-crack",
     "name": "Overhead Crack",
     "description": "A heavy overhead blow that leaves the attacker open.",
     "skill_type": "damage",
@@ -36,7 +36,7 @@
     "cooldown_rounds": 3
   },
   {
-    "skill_id": "skill.guard.breath",
+    "skill_id": "skill.guard-breath",
     "name": "Guard Breath",
     "description": "Steady breath and reset posture to recover.",
     "skill_type": "support",

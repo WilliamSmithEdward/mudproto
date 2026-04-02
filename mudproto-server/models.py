@@ -119,10 +119,16 @@ class EntityState:
     pronoun_possessive: str = "its"
     main_hand_weapon_template_id: str = ""
     off_hand_weapon_template_id: str = ""
+    mana: int = 0
+    max_mana: int = 0
     skill_use_chance: float = 0.35
     skill_ids: list[str] = field(default_factory=list)
     skill_cooldowns: dict[str, int] = field(default_factory=dict)
     skill_lag_rounds_remaining: int = 0
+    spell_use_chance: float = 0.25
+    spell_ids: list[str] = field(default_factory=list)
+    spell_cooldowns: dict[str, int] = field(default_factory=dict)
+    spell_lag_rounds_remaining: int = 0
 
 
 def _build_default_equipment_state() -> EquipmentState:

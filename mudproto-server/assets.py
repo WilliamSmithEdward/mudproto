@@ -307,9 +307,40 @@ def load_npc_templates() -> list[dict]:
         if not isinstance(raw_skill_ids, list):
             raise ValueError(f"NPC '{npc_id}' skill_ids must be a list.")
 
+        raw_spell_ids = raw_npc.get("spell_ids", [])
+        if raw_spell_ids is None:
+            raw_spell_ids = []
+        if not isinstance(raw_spell_ids, list):
+            raise ValueError(f"NPC '{npc_id}' spell_ids must be a list.")
+
         skill_use_chance = float(raw_npc.get("skill_use_chance", 0.35))
         if skill_use_chance < 0.0 or skill_use_chance > 1.0:
             raise ValueError(f"NPC '{npc_id}' skill_use_chance must be between 0.0 and 1.0.")
+
+        spell_use_chance = float(raw_npc.get("spell_use_chance", 0.25))
+        if spell_use_chance < 0.0 or spell_use_chance > 1.0:
+            raise ValueError(f"NPC '{npc_id}' spell_use_chance must be between 0.0 and 1.0.")
+
+        max_mana = max(0, int(raw_npc.get("max_mana", 0)))
+        mana = int(raw_npc.get("mana", max_mana))
+        if mana < 0:
+            raise ValueError(f"NPC '{npc_id}' mana must be zero or greater.")
+        if mana > max_mana:
+            mana = max_mana
+
+        normalized_spell_ids: list[str] = []
+        seen_spell_ids: set[str] = set()
+        for raw_spell_id in raw_spell_ids:
+            spell_id = str(raw_spell_id).strip()
+            if not spell_id:
+                continue
+            normalized_spell_id = spell_id.lower()
+            if normalized_spell_id in seen_spell_ids:
+                continue
+            if get_spell_by_id(spell_id) is None:
+                raise ValueError(f"NPC '{npc_id}' references unknown spell: {spell_id}")
+            seen_spell_ids.add(normalized_spell_id)
+            normalized_spell_ids.append(spell_id)
 
         npc_ids.add(npc_id)
         normalized_npcs.append({
@@ -329,8 +360,12 @@ def load_npc_templates() -> list[dict]:
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
             "main_hand_weapon_template_id": str(raw_npc.get("main_hand_weapon_template_id", "")).strip(),
             "off_hand_weapon_template_id": str(raw_npc.get("off_hand_weapon_template_id", "")).strip(),
+            "mana": mana,
+            "max_mana": max_mana,
             "skill_use_chance": skill_use_chance,
             "skill_ids": [str(skill_id).strip() for skill_id in raw_skill_ids if str(skill_id).strip()],
+            "spell_use_chance": spell_use_chance,
+            "spell_ids": normalized_spell_ids,
             "loot_items": normalized_loot_items,
         })
 
@@ -380,6 +415,14 @@ def load_spells() -> list[dict]:
         dice_sides = int(raw_spell.get("damage_dice_sides", 0))
         damage_modifier = int(raw_spell.get("damage_modifier", 0))
         damage_context = str(raw_spell.get("damage_context", "")).strip()
+        restore_effect = str(raw_spell.get("restore_effect", "")).strip().lower()
+        restore_ratio = float(raw_spell.get("restore_ratio", raw_spell.get("life_steal_ratio", 0.0)))
+        if not restore_effect and restore_ratio > 0.0 and "life_steal_ratio" in raw_spell:
+            restore_effect = "heal"
+        restore_context = str(raw_spell.get("restore_context", raw_spell.get("life_steal_context", ""))).strip()
+        observer_restore_context = str(
+            raw_spell.get("observer_restore_context", raw_spell.get("observer_life_steal_context", ""))
+        ).strip()
         support_effect = str(raw_spell.get("support_effect", "")).strip().lower()
         support_amount = int(raw_spell.get("support_amount", 0))
         duration_hours = int(raw_spell.get("duration_hours", 0))
@@ -408,10 +451,20 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Spell asset '{spell_id}' duration_hours must be zero or greater.")
         if duration_rounds < 0:
             raise ValueError(f"Spell asset '{spell_id}' duration_rounds must be zero or greater.")
+        if restore_ratio < 0.0 or restore_ratio > 1.0:
+            raise ValueError(f"Spell asset '{spell_id}' restore_ratio must be between 0.0 and 1.0.")
         if support_mode not in {"timed", "instant", "battle_rounds"}:
             raise ValueError(
                 f"Spell asset '{spell_id}' support_mode must be 'timed', 'instant', or 'battle_rounds'."
             )
+        if restore_effect and restore_effect not in {"heal", "vigor", "mana"}:
+            raise ValueError(
+                f"Spell asset '{spell_id}' restore_effect must be one of: heal, vigor, mana."
+            )
+        if restore_ratio > 0.0 and not restore_effect:
+            raise ValueError(f"Spell asset '{spell_id}' restore_ratio requires restore_effect.")
+        if spell_type != "damage" and restore_ratio > 0.0:
+            raise ValueError(f"Spell asset '{spell_id}' restore_ratio is only supported on damage spells.")
 
         if spell_type == "support" and support_effect not in {"heal", "vigor", "mana"}:
             raise ValueError(
@@ -439,6 +492,13 @@ def load_spells() -> list[dict]:
             "damage_dice_sides": dice_sides,
             "damage_modifier": damage_modifier,
             "damage_context": damage_context,
+            "restore_effect": restore_effect,
+            "restore_ratio": restore_ratio,
+            "restore_context": restore_context,
+            "observer_restore_context": observer_restore_context,
+            "life_steal_ratio": restore_ratio if restore_effect == "heal" else 0.0,
+            "life_steal_context": restore_context if restore_effect == "heal" else "",
+            "observer_life_steal_context": observer_restore_context if restore_effect == "heal" else "",
             "support_effect": support_effect,
             "support_amount": support_amount,
             "duration_hours": duration_hours,
@@ -506,6 +566,10 @@ def load_skills() -> list[dict]:
         scaling_attribute_id = str(raw_skill.get("scaling_attribute_id", "")).strip().lower()
         scaling_multiplier = float(raw_skill.get("scaling_multiplier", 0.0))
         damage_context = str(raw_skill.get("damage_context", "")).strip()
+        restore_effect = str(raw_skill.get("restore_effect", "")).strip().lower()
+        restore_ratio = float(raw_skill.get("restore_ratio", 0.0))
+        restore_context = str(raw_skill.get("restore_context", "")).strip()
+        observer_restore_context = str(raw_skill.get("observer_restore_context", "")).strip()
         support_effect = str(raw_skill.get("support_effect", "")).strip().lower()
         support_amount = int(raw_skill.get("support_amount", 0))
         support_context = str(raw_skill.get("support_context", "")).strip()
@@ -526,6 +590,8 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' vigor_cost must be zero or greater.")
         if scaling_multiplier < 0:
             raise ValueError(f"Skill asset '{skill_id}' scaling_multiplier must be zero or greater.")
+        if restore_ratio < 0.0 or restore_ratio > 1.0:
+            raise ValueError(f"Skill asset '{skill_id}' restore_ratio must be between 0.0 and 1.0.")
         if support_amount < 0:
             raise ValueError(f"Skill asset '{skill_id}' support_amount must be zero or greater.")
         if lag_rounds < 0:
@@ -536,6 +602,14 @@ def load_skills() -> list[dict]:
             raise ValueError(
                 f"Skill asset '{skill_id}' references unknown scaling_attribute_id '{scaling_attribute_id}'."
             )
+        if restore_effect and restore_effect not in {"heal", "vigor", "mana"}:
+            raise ValueError(
+                f"Skill asset '{skill_id}' restore_effect must be one of: heal, vigor, mana."
+            )
+        if restore_ratio > 0.0 and not restore_effect:
+            raise ValueError(f"Skill asset '{skill_id}' restore_ratio requires restore_effect.")
+        if skill_type != "damage" and restore_ratio > 0.0:
+            raise ValueError(f"Skill asset '{skill_id}' restore_ratio is only supported on damage skills.")
 
         if skill_type == "support":
             if support_effect not in {"heal", "vigor", "mana"}:
@@ -564,6 +638,10 @@ def load_skills() -> list[dict]:
             "scaling_attribute_id": scaling_attribute_id,
             "scaling_multiplier": scaling_multiplier,
             "damage_context": damage_context,
+            "restore_effect": restore_effect,
+            "restore_ratio": restore_ratio,
+            "restore_context": restore_context,
+            "observer_restore_context": observer_restore_context,
             "support_effect": support_effect,
             "support_amount": support_amount,
             "support_context": support_context,

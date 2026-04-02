@@ -4,7 +4,7 @@ import re
 import uuid
 
 from grammar import with_article
-from assets import get_gear_template_by_id, get_npc_template_by_id, get_skill_by_id
+from assets import get_gear_template_by_id, get_npc_template_by_id, get_skill_by_id, get_spell_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_text import (
     append_newline_if_needed,
@@ -85,6 +85,69 @@ def _observer_context_from_player_context(context: str, target_text: str | None 
     if resolved.startswith("You "):
         resolved = f"{resolved[4:]}"
     return resolved
+
+
+def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, str]:
+    restore_effect = str(ability.get("restore_effect", "")).strip().lower()
+    restore_ratio = float(ability.get("restore_ratio", ability.get("life_steal_ratio", 0.0)))
+    if not restore_effect and restore_ratio > 0.0 and float(ability.get("life_steal_ratio", 0.0)) > 0.0:
+        restore_effect = "heal"
+
+    restore_context = str(ability.get("restore_context", ability.get("life_steal_context", ""))).strip()
+    observer_restore_context = str(
+        ability.get("observer_restore_context", ability.get("observer_life_steal_context", ""))
+    ).strip()
+    return restore_effect, max(0.0, min(1.0, restore_ratio)), restore_context, observer_restore_context
+
+
+def _player_restore_fallback(effect: str) -> str:
+    if effect == "mana":
+        return "Arcane current rushes back into your spirit."
+    if effect == "vigor":
+        return "Battle fervor surges back through your limbs."
+    return "Stolen vitality surges back through your veins."
+
+
+def _observer_restore_fallback(effect: str) -> str:
+    if effect == "mana":
+        return "Arcane current recoils into [actor_name], renewing [actor_object]."
+    if effect == "vigor":
+        return "Battle fervor surges back through [actor_possessive] limbs."
+    return "Vital force recoils into [actor_name], renewing [actor_object]."
+
+
+def _apply_player_secondary_restore(session: ClientSession, effect: str, amount: int) -> int:
+    if amount <= 0:
+        return 0
+
+    if effect == "mana":
+        before = session.status.mana
+        session.status.mana = min(PLAYER_REFERENCE_MAX_MANA, session.status.mana + amount)
+        return session.status.mana - before
+    if effect == "vigor":
+        before = session.status.vigor
+        session.status.vigor = min(PLAYER_REFERENCE_MAX_VIGOR, session.status.vigor + amount)
+        return session.status.vigor - before
+
+    before = session.status.hit_points
+    session.status.hit_points = min(PLAYER_REFERENCE_MAX_HP, session.status.hit_points + amount)
+    return session.status.hit_points - before
+
+
+def _apply_entity_secondary_restore(entity: EntityState, effect: str, amount: int) -> int:
+    if amount <= 0:
+        return 0
+
+    if effect == "mana":
+        before = entity.mana
+        entity.mana = min(entity.max_mana, entity.mana + amount)
+        return entity.mana - before
+    if effect == "vigor":
+        return 0
+
+    before = entity.hit_points
+    entity.hit_points = min(entity.max_hit_points, entity.hit_points + amount)
+    return entity.hit_points - before
 
 
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
@@ -517,8 +580,11 @@ def _process_combat_round_timers(session: ClientSession, entities: list[EntitySt
 
     for entity in entities:
         _decrement_cooldowns(entity.skill_cooldowns)
+        _decrement_cooldowns(entity.spell_cooldowns)
         if entity.skill_lag_rounds_remaining > 0:
             entity.skill_lag_rounds_remaining -= 1
+        if entity.spell_lag_rounds_remaining > 0:
+            entity.spell_lag_rounds_remaining -= 1
 
 
 def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> int:
@@ -570,6 +636,20 @@ def _apply_entity_skill_lag(entity: EntityState, skill: dict) -> None:
     lag_rounds = max(0, int(skill.get("lag_rounds", 0)))
     if lag_rounds > 0:
         entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, lag_rounds)
+
+
+def _set_entity_spell_cooldown(entity: EntityState, spell: dict) -> None:
+    cooldown_rounds = max(0, int(spell.get("cooldown_rounds", 0)))
+    if cooldown_rounds > 0:
+        spell_id = str(spell.get("spell_id", "")).strip()
+        if spell_id:
+            entity.spell_cooldowns[spell_id] = cooldown_rounds
+
+
+def _apply_entity_spell_lag(entity: EntityState, spell: dict) -> None:
+    lag_rounds = max(0, int(spell.get("lag_rounds", 0)))
+    if lag_rounds > 0:
+        entity.spell_lag_rounds_remaining = max(entity.spell_lag_rounds_remaining, lag_rounds)
 
 
 def use_skill(session: ClientSession, skill: dict, target_name: str | None = None) -> tuple[dict, bool]:
@@ -714,6 +794,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     session.status.vigor -= vigor_cost
 
     total_damage = roll_skill_damage(skill) + scaling_bonus
+    restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(skill)
+    total_damage_dealt = 0
     destroyed_entity_names: list[str] = []
 
     for entity in damage_targets:
@@ -724,7 +806,9 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             resolved_context += "."
 
         if total_damage > 0:
+            dealt = min(entity.hit_points, total_damage)
             entity.hit_points = max(0, entity.hit_points - total_damage)
+            total_damage_dealt += max(0, dealt)
             if resolved_context:
                 parts.append(build_part(resolved_context))
             else:
@@ -763,6 +847,16 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                         build_part("."),
                     ])
 
+    restored_amount = 0
+    if restore_ratio > 0.0 and total_damage_dealt > 0:
+        restore_amount = int(total_damage_dealt * restore_ratio)
+        restored_amount = _apply_player_secondary_restore(session, restore_effect, restore_amount)
+        if restored_amount > 0:
+            parts.extend([
+                build_part("\n"),
+                build_part(restore_context or _player_restore_fallback(restore_effect)),
+            ])
+
     _set_player_skill_cooldown(session, skill)
     _apply_player_skill_lag(session, skill)
     target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
@@ -772,6 +866,11 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
     if damage_observer_context:
         observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
+    if restored_amount > 0:
+        observer_lines.append(_render_observer_template(
+            observer_restore_context or _observer_restore_fallback(restore_effect),
+            actor_name,
+        ))
     for destroyed_name in destroyed_entity_names:
         observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is destroyed.")
 
@@ -842,9 +941,17 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     if skill_type == "damage" and cast_type in {"target", "aoe"}:
         total_damage = roll_skill_damage(skill) + scaling_bonus
         damage_context = str(skill.get("damage_context", "")).strip()
+        restore_effect, restore_ratio, _, observer_restore_context = _resolve_secondary_restore_fields(skill)
+        damage_dealt = 0
 
         if total_damage > 0:
+            damage_dealt = min(session.status.hit_points, total_damage)
             session.status.hit_points = max(0, session.status.hit_points - total_damage)
+
+        restored_amount = 0
+        if restore_ratio > 0.0 and damage_dealt > 0:
+            restore_amount = int(damage_dealt * restore_ratio)
+            restored_amount = _apply_entity_secondary_restore(entity, restore_effect, restore_amount)
 
         append_newline_if_needed(parts)
         if damage_context:
@@ -865,8 +972,127 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
                 build_part("."),
             ])
 
+        if restored_amount > 0:
+            append_newline_if_needed(parts)
+            rendered_restore_context = _render_observer_template(
+                observer_restore_context or _observer_restore_fallback(restore_effect),
+                with_article(entity.name, capitalize=True),
+            )
+            parts.append(build_part(rendered_restore_context))
+
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)
+        return True
+
+    return False
+
+
+def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
+    from display import build_part
+
+    if not entity.spell_ids:
+        return False
+
+    chance = max(0.0, min(1.0, float(entity.spell_use_chance)))
+    if random.random() >= chance:
+        return False
+
+    available_spells: list[dict] = []
+    for spell_id in entity.spell_ids:
+        spell = get_spell_by_id(spell_id)
+        if spell is None:
+            continue
+        normalized_spell_id = str(spell.get("spell_id", "")).strip()
+        if normalized_spell_id and entity.spell_cooldowns.get(normalized_spell_id, 0) > 0:
+            continue
+
+        mana_cost = max(0, int(spell.get("mana_cost", 0)))
+        if entity.mana < mana_cost:
+            continue
+
+        available_spells.append(spell)
+
+    if not available_spells:
+        return False
+
+    spell = random.choice(available_spells)
+    spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
+    spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
+    cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
+    mana_cost = max(0, int(spell.get("mana_cost", 0)))
+
+    append_newline_if_needed(parts)
+    parts.extend([
+        build_part(with_article(entity.name, capitalize=True)),
+        build_part(" casts "),
+        build_part(spell_name),
+        build_part("!"),
+    ])
+
+    entity.mana = max(0, entity.mana - mana_cost)
+
+    if spell_type == "support" and cast_type == "self":
+        support_effect = str(spell.get("support_effect", "")).strip().lower()
+        support_amount = max(0, int(spell.get("support_amount", 0)))
+        support_context = str(spell.get("support_context", "")).strip()
+
+        if support_effect == "heal":
+            entity.hit_points = min(entity.max_hit_points, entity.hit_points + support_amount)
+        elif support_effect == "mana":
+            entity.mana = min(entity.max_mana, entity.mana + support_amount)
+
+        if support_context:
+            append_newline_if_needed(parts)
+            parts.append(build_part(support_context))
+
+        _set_entity_spell_cooldown(entity, spell)
+        _apply_entity_spell_lag(entity, spell)
+        return True
+
+    if spell_type == "damage" and cast_type in {"target", "aoe"}:
+        spell_damage = roll_spell_damage(spell)
+        damage_context = str(spell.get("damage_context", "")).strip()
+        restore_effect, restore_ratio, _, observer_restore_context = _resolve_secondary_restore_fields(spell)
+        damage_dealt = 0
+
+        if spell_damage > 0:
+            damage_dealt = min(session.status.hit_points, spell_damage)
+            session.status.hit_points = max(0, session.status.hit_points - spell_damage)
+
+        restored_amount = 0
+        if restore_ratio > 0.0 and damage_dealt > 0:
+            restore_amount = int(damage_dealt * restore_ratio)
+            restored_amount = _apply_entity_secondary_restore(entity, restore_effect, restore_amount)
+
+        append_newline_if_needed(parts)
+        if damage_context:
+            resolved_context = damage_context.replace("[a/an]", "you").replace("[verb]", "are")
+            if not resolved_context.endswith("."):
+                resolved_context += "."
+            parts.append(build_part(resolved_context))
+        elif spell_damage > 0:
+            parts.extend([
+                build_part("You are struck by "),
+                build_part(spell_name),
+                build_part("."),
+            ])
+        else:
+            parts.extend([
+                build_part("You resist "),
+                build_part(spell_name),
+                build_part("."),
+            ])
+
+        if restored_amount > 0:
+            append_newline_if_needed(parts)
+            rendered_restore_context = _render_observer_template(
+                observer_restore_context or _observer_restore_fallback(restore_effect),
+                with_article(entity.name, capitalize=True),
+            )
+            parts.append(build_part(rendered_restore_context))
+
+        _set_entity_spell_cooldown(entity, spell)
+        _apply_entity_spell_lag(entity, spell)
         return True
 
     return False
@@ -1038,6 +1264,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     status.mana -= mana_cost
 
     total_damage = roll_spell_damage(spell)
+    restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(spell)
+    total_damage_dealt = 0
     destroyed_entity_names: list[str] = []
 
     parts = [
@@ -1055,7 +1283,9 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             resolved_context += "."
 
         if total_damage > 0:
+            dealt = min(entity.hit_points, total_damage)
             entity.hit_points = max(0, entity.hit_points - total_damage)
+            total_damage_dealt += max(0, dealt)
             if resolved_context:
                 parts.append(build_part(resolved_context))
             else:
@@ -1094,6 +1324,16 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                         build_part("."),
                     ])
 
+    restored_amount = 0
+    if restore_ratio > 0.0 and total_damage_dealt > 0:
+        restore_amount = int(total_damage_dealt * restore_ratio)
+        restored_amount = _apply_player_secondary_restore(session, restore_effect, restore_amount)
+        if restored_amount > 0:
+            parts.extend([
+                build_part("\n"),
+                build_part(restore_context or _player_restore_fallback(restore_effect)),
+            ])
+
     target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
     observer_lines = [
         _render_observer_template(observer_action, actor_name) if observer_action else f"{actor_name} casts {spell_name}.",
@@ -1101,6 +1341,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
     if damage_observer_context:
         observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
+    if restored_amount > 0:
+        observer_lines.append(_render_observer_template(
+            observer_restore_context or _observer_restore_fallback(restore_effect),
+            actor_name,
+        ))
     for destroyed_name in destroyed_entity_names:
         observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is destroyed.")
 
@@ -1159,8 +1404,12 @@ def initialize_session_entities(session: ClientSession) -> None:
                     pronoun_possessive=str(template.get("pronoun_possessive", "its")).strip().lower() or "its",
                     main_hand_weapon_template_id=str(template.get("main_hand_weapon_template_id", "")).strip(),
                     off_hand_weapon_template_id=str(template.get("off_hand_weapon_template_id", "")).strip(),
+                    mana=max(0, int(template.get("mana", template.get("max_mana", 0)))),
+                    max_mana=max(0, int(template.get("max_mana", 0))),
                     skill_use_chance=max(0.0, min(1.0, float(template.get("skill_use_chance", 0.35)))),
                     skill_ids=[str(skill_id).strip() for skill_id in template.get("skill_ids", []) if str(skill_id).strip()],
+                    spell_use_chance=max(0.0, min(1.0, float(template.get("spell_use_chance", 0.25)))),
+                    spell_ids=[str(spell_id).strip() for spell_id in template.get("spell_ids", []) if str(spell_id).strip()],
                 )
                 session.entities[entity.entity_id] = entity
 
@@ -1329,6 +1578,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
         return
 
     # Skills are additive and do not consume the entity's melee turn.
+    _entity_try_cast_spell(session, entity, parts)
     _entity_try_use_skill(session, entity, parts)
 
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)

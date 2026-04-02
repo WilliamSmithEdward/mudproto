@@ -12,7 +12,7 @@
     "damage_context": "[a/an] is jolted by crackling force."
   },
   {
-    "spell_id": "spell.ember.lance",
+    "spell_id": "spell.ember-lance",
     "name": "Ember Lance",
     "description": "A fan of burning embers that scorches nearby enemies.",
     "spell_type": "damage",
@@ -24,7 +24,7 @@
     "damage_context": "[a/an] is singed badly."
   },
   {
-    "spell_id": "spell.second.wind",
+    "spell_id": "spell.second-wind",
     "name": "Second Wind",
     "description": "Channel calm focus to recover vigor.",
     "spell_type": "support",
@@ -36,7 +36,7 @@
     "support_context": "Steady focus settles over you, sharpening your breath and resolve."
   },
   {
-    "spell_id": "spell.mending.light",
+    "spell_id": "spell.mending-light",
     "name": "Mending Light",
     "description": "Seal wounds with a gentle restorative pulse.",
     "spell_type": "support",
@@ -60,7 +60,7 @@
     "support_context": "Ambient ether gathers around you, restoring your arcane focus."
   },
   {
-    "spell_id": "spell.healing.light",
+    "spell_id": "spell.healing-light",
     "name": "Healing Light",
     "description": "A sudden restorative pulse that immediately heals your wounds.",
     "spell_type": "support",
@@ -72,7 +72,7 @@
     "support_context": "A sudden wave of restorative light surges through you, mending injuries at once."
   },
   {
-    "spell_id": "spell.regeneration.ward",
+    "spell_id": "spell.regeneration-ward",
     "name": "Regeneration Ward",
     "description": "A steady restorative ward that heals you each battle round, even outside combat.",
     "spell_type": "support",
@@ -85,5 +85,33 @@
     "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
     "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
     "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle."
+  },
+  {
+    "spell_id": "spell.arc-bolt",
+    "name": "Arc Bolt",
+    "description": "A rigid line of blue force cracks outward.",
+    "spell_type": "damage",
+    "cast_type": "target",
+    "mana_cost": 14,
+    "damage_dice_count": 6,
+    "damage_dice_sides": 16,
+    "damage_modifier": 6,
+    "damage_context": "[a/an] [verb] blasted by snapping arc-light."
+  },
+  {
+    "spell_id": "spell.life-siphon",
+    "name": "Life Siphon",
+    "description": "Threads of crimson light loop back to the caster.",
+    "spell_type": "damage",
+    "cast_type": "target",
+    "mana_cost": 18,
+    "damage_dice_count": 6,
+    "damage_dice_sides": 14,
+    "damage_modifier": 5,
+    "damage_context": "[a/an] [verb] drained by grasping crimson threads.",
+    "restore_effect": "heal",
+    "restore_ratio": 0.5,
+    "restore_context": "Crimson vitality floods back into you.",
+    "observer_restore_context": "Crimson vitality recoils into [actor_name], renewing [actor_object]."
   }
 ]

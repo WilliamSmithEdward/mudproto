@@ -26,15 +26,15 @@
     ],
     "starting_spell_ids": [
       "spell.spark",
-      "spell.mending.light",
-      "spell.ember.lance",
-      "spell.healing.light",
-      "spell.regeneration.ward"
+      "spell.mending-light",
+      "spell.ember-lance",
+      "spell.healing-light",
+      "spell.regeneration-ward"
     ],
     "starting_skill_ids": [
-      "skill.guard.breath",
+      "skill.guard-breath",
       "skill.jab",
-      "skill.overhead.crack"
+      "skill.overhead-crack"
     ],
     "is_default": true
   }

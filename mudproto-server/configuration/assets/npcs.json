@@ -18,7 +18,34 @@
       "main_hand_weapon_template_id": "weapon.training-sword",
       "off_hand_weapon_template_id": "weapon.scout-dagger",
       "skill_use_chance": 0.35,
-      "skill_ids": ["skill.jab", "skill.overhead.crack"]
+      "skill_ids": ["skill.jab", "skill.overhead-crack"]
+    },
+    {
+      "npc_id": "npc.sanctum-invoker",
+      "name": "Sanctum Invoker",
+      "hit_points": 220,
+      "max_hit_points": 220,
+      "power_leveL": 4,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 1,
+      "armor_class": 11,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 35,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "main_hand_weapon_template_id": "weapon.training-sword",
+      "off_hand_weapon_template_id": "",
+      "mana": 120,
+      "max_mana": 120,
+      "skill_use_chance": 0.15,
+      "skill_ids": ["skill.jab"],
+      "spell_use_chance": 0.55,
+      "spell_ids": [
+        "spell.arc-bolt",
+        "spell.life-siphon"
+      ]
     }
   ]
 }

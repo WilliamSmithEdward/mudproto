@@ -4,7 +4,8 @@
     "title": "Prototype Chamber",
     "description": "A plain stone chamber used for early server testing.",
     "exits": {
-      "north": "hall"
+      "north": "hall",
+      "east": "sanctum"
     }
   },
   {
@@ -19,6 +20,20 @@
     ],
     "exits": {
       "south": "start"
+    }
+  },
+  {
+    "room_id": "sanctum",
+    "title": "Whispering Sanctum",
+    "description": "Rune-etched stone and drifting embers hum with unstable arcane current.",
+    "npcs": [
+      {
+        "npc_id": "npc.sanctum-invoker",
+        "count": 1
+      }
+    ],
+    "exits": {
+      "west": "start"
     }
   }
 ]
