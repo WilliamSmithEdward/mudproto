@@ -770,11 +770,17 @@ def _consume_entity_action_lag(entity: EntityState) -> bool:
 def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> int:
     scaling_attribute_id = str(skill.get("scaling_attribute_id", "")).strip().lower()
     scaling_multiplier = max(0.0, float(skill.get("scaling_multiplier", 0.0)))
-    if not scaling_attribute_id or scaling_multiplier <= 0:
-        return 0
+    level_scaling_multiplier = max(0.0, float(skill.get("level_scaling_multiplier", 1.0)))
 
-    attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
-    return max(0, int(attribute_value * scaling_multiplier))
+    scaling_bonus = 0
+    if scaling_attribute_id and scaling_multiplier > 0.0:
+        attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
+        scaling_bonus += int(attribute_value * scaling_multiplier)
+
+    if level_scaling_multiplier > 0.0:
+        scaling_bonus += int(max(1, int(session.player.level)) * level_scaling_multiplier)
+
+    return max(0, scaling_bonus)
 
 
 def _resolve_entity_skill_scale_bonus(entity: EntityState, skill: dict) -> int:

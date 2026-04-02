@@ -370,7 +370,9 @@ When an entity dies:
 ### Skills
 
 - Cost vigor. Defined in `skills.json`.
-- Scale with an attribute via `scaling_attribute_id` × `scaling_multiplier`.
+- Player skills scale with an attribute via `scaling_attribute_id` × `scaling_multiplier`
+  and also add `level` × `level_scaling_multiplier`. NPC skill usage continues
+  to scale from `power_level` × `scaling_multiplier`.
 - Have cooldowns (rounds). `usable_out_of_combat` flag.
 - Used via `<skill_name> [target]` (longest-prefix match on known skills).
 

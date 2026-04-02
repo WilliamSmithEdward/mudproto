@@ -621,6 +621,7 @@ def load_skills() -> list[dict]:
         usable_out_of_combat = bool(raw_skill.get("usable_out_of_combat", False))
         scaling_attribute_id = str(raw_skill.get("scaling_attribute_id", "")).strip().lower()
         scaling_multiplier = float(raw_skill.get("scaling_multiplier", 0.0))
+        level_scaling_multiplier = float(raw_skill.get("level_scaling_multiplier", 1.0))
         damage_context = str(raw_skill.get("damage_context", "")).strip()
         restore_effect = str(raw_skill.get("restore_effect", "")).strip().lower()
         restore_ratio = float(raw_skill.get("restore_ratio", 0.0))
@@ -646,6 +647,8 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' vigor_cost must be zero or greater.")
         if scaling_multiplier < 0:
             raise ValueError(f"Skill asset '{skill_id}' scaling_multiplier must be zero or greater.")
+        if level_scaling_multiplier < 0.0:
+            raise ValueError(f"Skill asset '{skill_id}' level_scaling_multiplier must be zero or greater.")
         if restore_ratio < 0.0 or restore_ratio > 1.0:
             raise ValueError(f"Skill asset '{skill_id}' restore_ratio must be between 0.0 and 1.0.")
         if support_amount < 0:
@@ -693,6 +696,7 @@ def load_skills() -> list[dict]:
             "usable_out_of_combat": usable_out_of_combat,
             "scaling_attribute_id": scaling_attribute_id,
             "scaling_multiplier": scaling_multiplier,
+            "level_scaling_multiplier": level_scaling_multiplier,
             "damage_context": damage_context,
             "restore_effect": restore_effect,
             "restore_ratio": restore_ratio,
