@@ -151,6 +151,21 @@ def _resource_color(current: int, maximum: int) -> str:
     return "bright_green"
 
 
+def _format_effect_remaining_duration(effect) -> str:
+    support_mode = str(getattr(effect, "support_mode", "timed")).strip().lower() or "timed"
+    if support_mode == "battle_rounds":
+        rounds = max(0, int(getattr(effect, "remaining_rounds", 0)))
+        label = "round" if rounds == 1 else "rounds"
+        return f"{rounds} {label}"
+
+    if support_mode == "timed":
+        hours = max(0, int(getattr(effect, "remaining_hours", 0)))
+        label = "hour" if hours == 1 else "hours"
+        return f"{hours} {label}"
+
+    return "lingering"
+
+
 def display_score(session: ClientSession) -> OutboundMessage:
     caps = get_player_resource_caps(session)
     xp_total = max(0, int(session.player.experience_points))
@@ -218,6 +233,35 @@ def display_score(session: ClientSession) -> OutboundMessage:
             build_part("): ", "bright_white"),
             build_part(str(value), "bright_green", True),
         ])
+
+    parts.extend([
+        build_part("\n"),
+        build_part("----------------------------------", "bright_black"),
+        build_part("\n"),
+        build_part("Active Effects", "bright_white", True),
+    ])
+
+    active_effects = sorted(
+        list(session.active_support_effects),
+        key=lambda effect: str(getattr(effect, "spell_name", "")).lower(),
+    )
+    if not active_effects:
+        parts.extend([
+            build_part("\n"),
+            build_part(" - None", "bright_black"),
+        ])
+    else:
+        for effect in active_effects:
+            effect_name = str(getattr(effect, "spell_name", "Effect")).strip() or "Effect"
+            duration_text = _format_effect_remaining_duration(effect)
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(effect_name, "bright_magenta", True),
+                build_part(" (", "bright_white"),
+                build_part(duration_text, "bright_yellow", True),
+                build_part(" remaining)", "bright_white"),
+            ])
 
     parts.extend([
         build_part("\n"),
@@ -1315,7 +1359,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         return display_command_result(session, parts)
 
-    if verb in {"score", "sc"}:
+    if verb in {"score", "scor", "sco", "sc"}:
         return display_score(session)
 
     if verb in {"spell", "spells", "sp", "spe", "spel"}:
