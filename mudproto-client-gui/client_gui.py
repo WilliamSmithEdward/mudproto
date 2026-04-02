@@ -131,7 +131,7 @@ class MudProtoGuiClient:
         self.x_scrollbar.config(command=self.output_text.xview)
 
         input_frame = tk.Frame(container, bg="black")
-        input_frame.pack(fill="x", pady=(8, 0))
+        input_frame.pack(fill="x", pady=(2, 0))
 
         entry_prefix = tk.Label(
             input_frame,
@@ -225,6 +225,7 @@ class MudProtoGuiClient:
             self.on_close()
             return "break"
 
+        self._advance_output_after_submit()
         future = asyncio.run_coroutine_threadsafe(self._send_text_async(user_text), self.network_loop)
 
         def _report_result() -> None:
@@ -272,6 +273,16 @@ class MudProtoGuiClient:
         self.input_entry.delete(0, tk.END)
         self.input_entry.insert(0, text)
         self.input_entry.icursor(tk.END)
+
+    def _advance_output_after_submit(self) -> None:
+        if self.output_ends_with_newline:
+            return
+
+        self.output_text.configure(state="normal")
+        self.output_text.insert(tk.END, "\n")
+        self.output_text.configure(state="disabled")
+        self.output_text.see(tk.END)
+        self.output_ends_with_newline = True
 
     def _on_xscroll(self, first: float | str, last: float | str) -> None:
         first_value = float(first)
@@ -338,7 +349,7 @@ class MudProtoGuiClient:
         self.output_text.configure(state="disabled")
         self.output_text.see(tk.END)
 
-    def _append_line_group(self, lines: list[Line], *, trailing_blank_line: bool = False) -> None:
+    def _append_line_group(self, lines: list[Line]) -> None:
         if not lines:
             return
 
@@ -358,12 +369,7 @@ class MudProtoGuiClient:
                 else:
                     self.output_text.insert(tk.END, text)
 
-        if trailing_blank_line:
-            self.output_text.insert(tk.END, "\n")
-            self.output_ends_with_newline = True
-        else:
-            self.output_ends_with_newline = bool(lines and not lines[-1])
-
+        self.output_ends_with_newline = bool(lines and not lines[-1])
         self.output_text.configure(state="disabled")
         self.output_text.see(tk.END)
 
@@ -378,13 +384,19 @@ class MudProtoGuiClient:
         if not isinstance(payload, dict):
             return
 
-        self._append_line_group(_extract_lines(payload, "lines"))
-        self._append_line_group(_extract_lines(payload, "prompt_lines"), trailing_blank_line=True)
+        lines = _extract_lines(payload, "lines")
+        prompt_lines = _extract_lines(payload, "prompt_lines")
+
+        if lines:
+            self._append_line_group(lines)
+        if prompt_lines:
+            self._append_line_group(prompt_lines)
 
     def clear_output(self) -> None:
         self.output_text.configure(state="normal")
         self.output_text.delete("1.0", tk.END)
         self.output_text.configure(state="disabled")
+        self.output_ends_with_newline = True
 
     def on_close(self) -> None:
         try:
