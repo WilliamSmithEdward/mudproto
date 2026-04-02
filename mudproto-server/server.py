@@ -21,7 +21,6 @@ from display import (
     display_force_prompt,
     display_prompt,
     display_room,
-    parts_to_lines,
 )
 from models import ClientSession
 from player_state_db import save_player_state
@@ -89,9 +88,9 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
         copied_message = json.loads(json.dumps(message))
         copied_payload = copied_message.get("payload")
         if isinstance(copied_payload, dict):
-            observer_parts = copied_payload.get("room_broadcast_parts")
-            if isinstance(observer_parts, list) and observer_parts:
-                copied_payload["lines"] = parts_to_lines(observer_parts)
+            observer_lines = copied_payload.get("room_broadcast_lines")
+            if isinstance(observer_lines, list) and observer_lines:
+                copied_payload["lines"] = observer_lines
             else:
                 copied_lines = copied_payload.get("lines")
                 if isinstance(copied_lines, list):
@@ -164,10 +163,7 @@ def _extract_display_lines(message: dict | None) -> list[list[dict]]:
 
     raw_lines = payload.get("lines")
     if not isinstance(raw_lines, list):
-        raw_parts = payload.get("parts")
-        if not isinstance(raw_parts, list):
-            return []
-        raw_lines = parts_to_lines(raw_parts)
+        return []
 
     extracted_lines = [line for line in raw_lines if isinstance(line, list)]
 
@@ -238,7 +234,12 @@ def _build_unified_room_round_display(
     if not merged_lines:
         return None
 
-    return build_display_lines(merged_lines, blank_lines_before=0, starts_on_new_line=True)
+    return build_display_lines(
+        merged_lines,
+        blank_lines_before=0,
+        blank_lines_after=1,
+        starts_on_new_line=True,
+    )
 
 
 async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *, prompt_observers: bool = True) -> None:

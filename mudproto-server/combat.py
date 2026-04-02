@@ -39,22 +39,22 @@ OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
 
 
-def _attach_room_broadcast_parts(outbound: dict, lines: list[str]) -> dict:
+def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
     payload = outbound.get("payload")
     if not isinstance(payload, dict):
         return outbound
 
-    parts: list[dict] = []
-    for index, line in enumerate(lines):
+    broadcast_lines: list[list[dict]] = []
+    for line in lines:
         cleaned = str(line).strip()
         if not cleaned:
             continue
-        if index > 0 and parts:
-            parts.append({"text": "\n", "fg": "bright_white", "bold": False})
-        parts.append({"text": cleaned, "fg": "bright_white", "bold": False})
+        broadcast_lines.append([
+            {"text": cleaned, "fg": "bright_white", "bold": False}
+        ])
 
-    if parts:
-        payload["room_broadcast_parts"] = parts
+    if broadcast_lines:
+        payload["room_broadcast_lines"] = broadcast_lines
     return outbound
 
 
@@ -763,7 +763,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
         result = display_command_result(session, parts)
-        return _attach_room_broadcast_parts(result, observer_lines), True
+        return _attach_room_broadcast_lines(result, observer_lines), True
 
     clear_combat_if_invalid(session)
 
@@ -883,7 +883,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
 
     result = display_command_result(session, parts)
-    return _attach_room_broadcast_parts(result, observer_lines), True
+    return _attach_room_broadcast_lines(result, observer_lines), True
 
 
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
@@ -1204,7 +1204,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
             result = display_command_result(session, parts)
-            return _attach_room_broadcast_parts(result, observer_lines), True
+            return _attach_room_broadcast_lines(result, observer_lines), True
 
         refreshed = False
         for active_effect in session.active_support_effects:
@@ -1244,7 +1244,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             observer_lines.append(_render_observer_template(support_observer_context, actor_name))
 
         result = display_command_result(session, parts)
-        return _attach_room_broadcast_parts(result, observer_lines), True
+        return _attach_room_broadcast_lines(result, observer_lines), True
 
     if spell_type != "damage":
         return display_error(f"Spell '{spell_name}' has unsupported spell_type '{spell_type}'.", session), False
@@ -1370,7 +1370,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
 
     result = display_command_result(session, parts)
-    return _attach_room_broadcast_parts(result, observer_lines), True
+    return _attach_room_broadcast_lines(result, observer_lines), True
 
 
 def initialize_session_entities(session: ClientSession) -> None:
@@ -1771,7 +1771,7 @@ def resolve_combat_round(
         payload = result.get("payload") if isinstance(result, dict) else None
         if isinstance(payload, dict):
             actor_name = session.authenticated_character_name or "Someone"
-            payload["room_broadcast_parts"] = build_player_death_broadcast_parts(actor_name)
+            payload["room_broadcast_lines"] = [build_player_death_broadcast_parts(actor_name)]
 
         return result
 

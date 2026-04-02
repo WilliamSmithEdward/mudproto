@@ -77,7 +77,7 @@ Responsibilities:
     "prompt_lines": [[{ "text": "575H 119V 160M> " }]],
     "prompt_blank_lines_before": 1,
     "starts_on_new_line": false,
-    "room_broadcast_parts": []
+    "room_broadcast_lines": []
   }
 }
 ```
@@ -269,7 +269,7 @@ Raw input
   └─ Authenticated + not lagged → execute_command()
   ↓
   send_outbound() → client
-  optional room_broadcast_parts → other players in room
+  optional room_broadcast_lines → other players in room
 ```
 
 ### Lag & Queuing
@@ -418,7 +418,7 @@ Key builders:
 - `build_prompt_parts()` — HP/vigor/mana (color-coded), coins, tick
   countdown, engaged-entity condition, exits.
 
-Room broadcasts use `room_broadcast_parts` and are third-personised via
+Room broadcasts use `room_broadcast_lines` and are third-personised via
 `grammar.py::third_personize_text()`.
 
 ---

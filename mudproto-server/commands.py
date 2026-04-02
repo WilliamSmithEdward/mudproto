@@ -21,6 +21,7 @@ from combat import (
 from display import (
     build_line,
     build_part,
+    parts_to_lines,
     display_command_result,
     display_equipment,
     display_error,
@@ -718,7 +719,7 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
                 build_part("\n", "bright_white"),
                 build_part(observer_context, "bright_white"),
             ])
-        payload["room_broadcast_parts"] = room_parts
+        payload["room_broadcast_lines"] = parts_to_lines(room_parts)
 
     return result
 

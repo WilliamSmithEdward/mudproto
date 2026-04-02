@@ -484,6 +484,7 @@ def display_combat_round_result(session: ClientSession, parts: list[dict]) -> di
     return build_display(
         parts,
         blank_lines_before=0,
+        blank_lines_after=1,
         prompt_after=False,
         starts_on_new_line=True
     )
