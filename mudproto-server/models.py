@@ -18,6 +18,8 @@ class PlayerState:
     current_room_id: str = "start"
     class_id: str = ""
     attributes: dict[str, int] = field(default_factory=dict)
+    level: int = 1
+    experience_points: int = 0
 
 
 @dataclass
@@ -115,6 +117,7 @@ class EntityState:
     off_hand_attacks_per_round: int = 0
     off_hand_hit_roll_modifier: int = 0
     coin_reward: int = 0
+    experience_reward: int = 0
     loot_items: list[ItemState] = field(default_factory=list)
     is_alive: bool = True
     spawn_sequence: int = 0

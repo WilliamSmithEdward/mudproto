@@ -11,6 +11,7 @@ PLAYER_CLASSES_FILE = ATTRIBUTE_CONFIG_ROOT / "classes.json"
 REGENERATION_FILE = ATTRIBUTE_CONFIG_ROOT / "regeneration.json"
 HAND_WEIGHT_FILE = ATTRIBUTE_CONFIG_ROOT / "hand_weight.json"
 COMBAT_SEVERITY_FILE = ATTRIBUTE_CONFIG_ROOT / "combat_severity.json"
+EXPERIENCE_TABLE_FILE = ATTRIBUTE_CONFIG_ROOT / "experience.json"
 
 
 def _read_json_attribute_config(path: Path) -> object:
@@ -272,6 +273,56 @@ def load_combat_severity_config() -> dict:
     return {
         "tiers": normalized_tiers,
     }
+
+
+@lru_cache(maxsize=1)
+def load_experience_table() -> list[dict]:
+    raw_config = _read_json_attribute_config(EXPERIENCE_TABLE_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Experience config file must contain an object: {EXPERIENCE_TABLE_FILE}")
+
+    raw_levels = raw_config.get("levels", [])
+    if not isinstance(raw_levels, list) or not raw_levels:
+        raise ValueError("Experience config field 'levels' must be a non-empty list.")
+
+    normalized_levels: list[dict] = []
+    seen_levels: set[int] = set()
+    for raw_level in raw_levels:
+        if not isinstance(raw_level, dict):
+            raise ValueError("Experience levels entries must be objects.")
+
+        level = int(raw_level.get("level", 0))
+        total_experience = int(raw_level.get("total_experience", 0))
+        if level <= 0:
+            raise ValueError("Experience levels must use level >= 1.")
+        if total_experience < 0:
+            raise ValueError("Experience level total_experience must be >= 0.")
+        if level in seen_levels:
+            raise ValueError(f"Duplicate level in experience table: {level}")
+        seen_levels.add(level)
+
+        normalized_levels.append({
+            "level": level,
+            "total_experience": total_experience,
+        })
+
+    normalized_levels.sort(key=lambda row: int(row["level"]))
+    if int(normalized_levels[0]["level"]) != 1 or int(normalized_levels[0]["total_experience"]) != 0:
+        raise ValueError("Experience table must start at level 1 with total_experience 0.")
+
+    previous_total = -1
+    previous_level = 0
+    for row in normalized_levels:
+        level = int(row["level"])
+        total_experience = int(row["total_experience"])
+        if level != previous_level + 1:
+            raise ValueError("Experience levels must be contiguous (1, 2, 3, ...).")
+        if total_experience <= previous_total:
+            raise ValueError("Experience total_experience values must be strictly increasing.")
+        previous_level = level
+        previous_total = total_experience
+
+    return normalized_levels
 
 
 @lru_cache(maxsize=1)

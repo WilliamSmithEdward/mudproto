@@ -362,6 +362,7 @@ def load_npc_templates() -> list[dict]:
             "off_hand_attacks_per_round": int(raw_npc.get("off_hand_attacks_per_round", 0)),
             "off_hand_hit_roll_modifier": int(raw_npc.get("off_hand_hit_roll_modifier", 0)),
             "coin_reward": max(0, int(raw_npc.get("coin_reward", 0))),
+            "experience_reward": max(0, int(raw_npc.get("experience_reward", 0))),
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
             "is_ally": bool(raw_npc.get("is_ally", False)),
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",

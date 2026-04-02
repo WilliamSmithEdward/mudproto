@@ -3,6 +3,7 @@ import asyncio
 from equipment import list_worn_items
 from inventory import is_item_equippable
 from grammar import capitalize_after_newlines
+from experience import get_xp_to_next_level
 from models import ClientSession
 from protocol import build_response
 from settings import PLAYER_REFERENCE_MAX_HP
@@ -162,6 +163,13 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
         build_part(f"{status.hit_points}H", me_condition_color, True),
         build_part(f" {status.vigor}V {status.mana}M {status.coins}C", "bright_white"),
     ]
+
+    xp_to_next_level = get_xp_to_next_level(session.player.experience_points)
+    parts.extend([
+        build_part(" [XP:", "bright_white"),
+        build_part(str(xp_to_next_level), "bright_cyan", True),
+        build_part("]", "bright_white"),
+    ])
 
     tick_seconds_remaining = _get_tick_seconds_remaining(session)
     if tick_seconds_remaining is not None:
@@ -346,6 +354,13 @@ def display_whoami(session: ClientSession) -> dict:
         build_part(session.player.current_room_id, "bright_green", True),
         build_part(". Class: ", "bright_white"),
         build_part(session.player.class_id or "unassigned", "bright_cyan", True),
+        build_part(". Level: ", "bright_white"),
+        build_part(str(max(1, int(session.player.level))), "bright_magenta", True),
+        build_part(". XP: ", "bright_white"),
+        build_part(str(max(0, int(session.player.experience_points))), "bright_cyan", True),
+        build_part(" (to next ", "bright_white"),
+        build_part(str(get_xp_to_next_level(session.player.experience_points)), "bright_cyan", True),
+        build_part(")", "bright_white"),
         build_part(". Attributes: ", "bright_white"),
         build_part(
             ", ".join(

@@ -105,7 +105,7 @@ lives in `protocol.py`.
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
 | `display.py` | Display message building (room, inventory, equipment, attributes, spells, skills, prompt), color/item-highlight logic. |
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
-| `attribute_config.py` | Attribute/rules config loaders for character attributes, player classes, wear slots, regeneration, hand weight, and combat severity. |
+| `attribute_config.py` | Attribute/rules config loaders for character attributes, player classes, wear slots, regeneration, hand weight, combat severity, and experience progression. |
 | `assets.py` | Content asset loaders for gear, items, rooms, NPCs, spells, and skills with structural and cross-reference validation. |
 | `player_state_db.py` | SQLite persistence: character credentials, full session serialization/deserialization. |
 | `world.py` | `Room` dataclass including exits and NPC spawn config. |
@@ -387,6 +387,16 @@ When an entity dies:
   `support_scaling_attribute_id` is specified; NPC casts default to
   `power_level` scaling.
 
+### Experience & Levels
+
+- Progression thresholds are configured in
+  `configuration/attributes/experience.json`.
+- Player XP and level are stored in `PlayerState` and persisted by
+  `player_state_db.py`.
+- NPC templates support `experience_reward`; XP is awarded when players kill
+  NPCs.
+- Combat output includes XP gain lines and level-up lines when applicable.
+
 ---
 
 ## 10. Equipment & Inventory
@@ -425,8 +435,8 @@ Key builders:
 - `display_room()` — room title, description, exits, NPCs, corpses, items,
   coins, other players.
 - `display_inventory()`, `display_equipment()`, `display_attributes()`.
-- `build_prompt_parts()` — HP/vigor/mana (color-coded), coins, tick
-  countdown, engaged-entity condition, exits.
+- `build_prompt_parts()` — HP/vigor/mana (color-coded), coins, XP-to-next,
+  tick countdown, engaged-entity condition, exits.
 
 Rendering invariants:
 - All newline behavior is server-owned and encoded in JSON via empty line

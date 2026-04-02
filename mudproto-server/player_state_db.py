@@ -5,6 +5,7 @@ import secrets
 from datetime import datetime, timezone
 
 from models import ActiveSupportEffectState, ClientSession, ItemState
+from experience import get_level_for_experience
 from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH
 
 
@@ -284,6 +285,8 @@ def _serialize_session(session: ClientSession) -> dict:
             "current_room_id": session.player.current_room_id,
             "class_id": session.player.class_id,
             "attributes": {key: int(value) for key, value in session.player.attributes.items()},
+            "level": int(session.player.level),
+            "experience_points": int(session.player.experience_points),
         },
         "player_combat": {
             "attack_damage": int(session.player_combat.attack_damage),
@@ -357,6 +360,10 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
         if room_id:
             session.player.current_room_id = room_id
         session.player.class_id = class_id
+        session.player.experience_points = max(0, int(raw_player.get("experience_points", session.player.experience_points)))
+        loaded_level = max(1, int(raw_player.get("level", 0)))
+        derived_level = get_level_for_experience(session.player.experience_points)
+        session.player.level = max(loaded_level, derived_level)
         raw_attributes = raw_player.get("attributes", {})
         if isinstance(raw_attributes, dict):
             session.player.attributes = {

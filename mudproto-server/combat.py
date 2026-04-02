@@ -4,6 +4,7 @@ import re
 import uuid
 
 from grammar import with_article
+from experience import award_experience
 from assets import get_gear_template_by_id, get_npc_template_by_id, get_skill_by_id, get_spell_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_text import (
@@ -37,6 +38,28 @@ from world import WORLD
 
 OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
+
+
+def _append_experience_gain_parts(session: ClientSession, entity: EntityState, parts: list[dict], build_part_fn) -> None:
+    experience_reward = max(0, int(getattr(entity, "experience_reward", 0)))
+    gained, old_level, new_level, _ = award_experience(session, experience_reward)
+    if gained <= 0:
+        return
+
+    append_newline_if_needed(parts)
+    parts.extend([
+        build_part_fn("You gain ", "bright_white"),
+        build_part_fn(str(gained), "bright_cyan", True),
+        build_part_fn(" experience.", "bright_white"),
+    ])
+
+    if new_level > old_level:
+        append_newline_if_needed(parts)
+        parts.extend([
+            build_part_fn("You advance to level ", "bright_green", True),
+            build_part_fn(str(new_level), "bright_green", True),
+            build_part_fn("!", "bright_green", True),
+        ])
 
 
 def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
@@ -947,6 +970,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         if entity.hit_points <= 0:
             entity.is_alive = False
             spawn_corpse_for_entity(session, entity)
+            _append_experience_gain_parts(session, entity, parts, build_part)
             destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
@@ -1503,6 +1527,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         if entity.hit_points <= 0:
             entity.is_alive = False
             spawn_corpse_for_entity(session, entity)
+            _append_experience_gain_parts(session, entity, parts, build_part)
             destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
@@ -1594,6 +1619,7 @@ def initialize_session_entities(session: ClientSession) -> None:
                     off_hand_attacks_per_round=max(0, int(template.get("off_hand_attacks_per_round", 0))),
                     off_hand_hit_roll_modifier=int(template.get("off_hand_hit_roll_modifier", 0)),
                     coin_reward=max(0, int(template.get("coin_reward", 0))),
+                    experience_reward=max(0, int(template.get("experience_reward", 0))),
                     loot_items=loot_items,
                     spawn_sequence=session.entity_spawn_counter,
                     is_aggro=bool(template.get("is_aggro", False)),
@@ -1668,6 +1694,7 @@ def spawn_dummy(session: ClientSession) -> dict:
         power_level=6,
         attacks_per_round=1,
         coin_reward=12,
+        experience_reward=10,
         spawn_sequence=next_spawn_sequence,
     )
     session.entities[entity_id] = entity
@@ -1900,6 +1927,7 @@ def resolve_combat_round(
         if entity.is_alive:
             entity.is_alive = False
         spawn_corpse_for_entity(session, entity)
+        _append_experience_gain_parts(session, entity, parts, build_part)
 
     # Announce entity death immediately after the lethal hit is resolved.
     if entity_died_this_round:
