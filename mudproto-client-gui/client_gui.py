@@ -1,4 +1,5 @@
 import asyncio
+import ctypes
 import json
 import threading
 import tkinter as tk
@@ -15,22 +16,48 @@ Line: TypeAlias = list[Part]
 
 COLOR_MAP = {
     "black": "#000000",
-    "red": "#ff5555",
-    "green": "#50fa7b",
-    "yellow": "#f1fa8c",
-    "blue": "#8be9fd",
-    "magenta": "#ff79c6",
-    "cyan": "#8be9fd",
-    "white": "#f8f8f2",
-    "bright_black": "#6272a4",
-    "bright_red": "#ff6e6e",
-    "bright_green": "#69ff94",
-    "bright_yellow": "#ffffa5",
-    "bright_blue": "#a4ffff",
-    "bright_magenta": "#ff92df",
-    "bright_cyan": "#a4ffff",
-    "bright_white": "#ffffff",
+    "red": "#c50f1f",
+    "green": "#13a10e",
+    "yellow": "#c19c00",
+    "blue": "#0037da",
+    "magenta": "#881798",
+    "cyan": "#3a96dd",
+    "white": "#cccccc",
+    "bright_black": "#767676",
+    "bright_red": "#e74856",
+    "bright_green": "#16c60c",
+    "bright_yellow": "#f9f1a5",
+    "bright_blue": "#3b78ff",
+    "bright_magenta": "#b4009e",
+    "bright_cyan": "#61d6d6",
+    "bright_white": "#f2f2f2",
 }
+
+
+def configure_windows_dpi_awareness() -> None:
+    if not hasattr(ctypes, "windll"):
+        return
+
+    try:
+        # Preferred on modern Windows: per-monitor DPI awareness v2.
+        dpi_aware_v2 = ctypes.c_void_p(-4)
+        if ctypes.windll.user32.SetProcessDpiAwarenessContext(dpi_aware_v2):
+            return
+    except Exception:
+        pass
+
+    try:
+        # Fallback for Windows 8.1+
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        return
+    except Exception:
+        pass
+
+    try:
+        # Legacy fallback
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
 
 
 def utc_now_iso() -> str:
@@ -64,7 +91,7 @@ class MudProtoGuiClient:
         self.network_thread = threading.Thread(target=self._run_network_loop, daemon=True)
 
         self.root.title("MudProto GUI Client")
-        self.root.geometry("1000x680")
+        self.root.geometry("1440x1149")
         self.root.configure(bg="black")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -438,6 +465,7 @@ class MudProtoGuiClient:
 
 
 def main() -> None:
+    configure_windows_dpi_awareness()
     root = tk.Tk()
     MudProtoGuiClient(root)
     root.mainloop()
