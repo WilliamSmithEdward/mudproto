@@ -2,6 +2,7 @@ import asyncio
 import json
 import threading
 import tkinter as tk
+from tkinter import ttk
 from datetime import datetime, timezone
 from typing import Any, TypeAlias
 
@@ -80,34 +81,58 @@ class MudProtoGuiClient:
         self.connect()
 
     def _build_widgets(self) -> None:
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass
+
+        style.configure(
+            "MudProto.Vertical.TScrollbar",
+            background="#1f1f1f",
+            darkcolor="#1f1f1f",
+            lightcolor="#1f1f1f",
+            troughcolor="#070707",
+            bordercolor="#070707",
+            arrowcolor="#b8b8b8",
+            relief="flat",
+        )
+        style.map(
+            "MudProto.Vertical.TScrollbar",
+            background=[("active", "#323232")],
+        )
+        style.configure(
+            "MudProto.Horizontal.TScrollbar",
+            background="#1f1f1f",
+            darkcolor="#1f1f1f",
+            lightcolor="#1f1f1f",
+            troughcolor="#070707",
+            bordercolor="#070707",
+            arrowcolor="#b8b8b8",
+            relief="flat",
+        )
+        style.map(
+            "MudProto.Horizontal.TScrollbar",
+            background=[("active", "#323232")],
+        )
+
         container = tk.Frame(self.root, bg="black")
         container.pack(fill="both", expand=True, padx=8, pady=8)
 
         output_frame = tk.Frame(container, bg="black")
         output_frame.pack(fill="both", expand=True)
 
-        self.y_scrollbar = tk.Scrollbar(
+        self.y_scrollbar = ttk.Scrollbar(
             output_frame,
-            bg="#111111",
-            troughcolor="#000000",
-            activebackground="#333333",
-            highlightbackground="#000000",
-            highlightcolor="#000000",
-            relief="flat",
-            borderwidth=0,
+            orient="vertical",
+            style="MudProto.Vertical.TScrollbar",
         )
         self.y_scrollbar.pack(side="right", fill="y")
 
-        self.x_scrollbar = tk.Scrollbar(
+        self.x_scrollbar = ttk.Scrollbar(
             output_frame,
             orient="horizontal",
-            bg="#111111",
-            troughcolor="#000000",
-            activebackground="#333333",
-            highlightbackground="#000000",
-            highlightcolor="#000000",
-            relief="flat",
-            borderwidth=0,
+            style="MudProto.Horizontal.TScrollbar",
         )
 
         self.output_text = tk.Text(
@@ -131,7 +156,7 @@ class MudProtoGuiClient:
         self.x_scrollbar.config(command=self.output_text.xview)
 
         input_frame = tk.Frame(container, bg="black")
-        input_frame.pack(fill="x", pady=(2, 0))
+        input_frame.pack(fill="x", pady=(0, 0))
 
         entry_prefix = tk.Label(
             input_frame,
