@@ -553,6 +553,92 @@ def display_inventory(session: ClientSession) -> dict:
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
+def _find_room_merchant(session: ClientSession | None):
+    if session is None:
+        return None
+
+    room_id = str(getattr(session.player, "current_room_id", "")).strip()
+    if not room_id:
+        return None
+
+    merchants = [
+        entity
+        for entity in list_room_entities(session, room_id)
+        if getattr(entity, "is_alive", False) and bool(getattr(entity, "is_merchant", False))
+    ]
+    merchants.sort(key=lambda entity: str(getattr(entity, "name", "")).lower())
+    return merchants[0] if merchants else None
+
+
+def _merchant_quote_parts(merchant_name: str, quote: str) -> list[dict]:
+    return [
+        build_part(merchant_name, "bright_white", False),
+        build_part(' says, "', "bright_white"),
+        build_part(quote, "bright_white", False),
+        build_part('"', "bright_white"),
+    ]
+
+
+def _build_lore_error_parts(message: str, session: ClientSession | None = None) -> list[dict]:
+    cleaned = str(message).strip()
+    lowered = cleaned.lower()
+    merchant = _find_room_merchant(session)
+
+    if merchant is not None:
+        merchant_name = str(getattr(merchant, "name", "Merchant")).strip() or "Merchant"
+        if "not sold here" in lowered or "no longer available" in lowered:
+            return _merchant_quote_parts(merchant_name, "I'm sorry, I don't have that item.")
+        if "out of stock" in lowered:
+            return _merchant_quote_parts(merchant_name, "I'm afraid we've sold the last of that for now.")
+        if "need " in lowered and " coins" in lowered:
+            return _merchant_quote_parts(merchant_name, "You'll need a heavier purse for that one.")
+        if "doesn't exist in your inventory" in lowered:
+            return _merchant_quote_parts(merchant_name, "I can only bargain for what you are actually carrying.")
+
+    if lowered.startswith("usage:"):
+        usage_text = cleaned.split(":", 1)[1].strip() if ":" in cleaned else cleaned
+        return [
+            build_part("You pause, trying to recall the proper form: ", "bright_white"),
+            build_part(usage_text, "bright_white", False),
+        ]
+
+    if "unknown command" in lowered:
+        return [build_part("Those words carry no meaning here.", "bright_white", False)]
+    if "not enough mana" in lowered:
+        return [build_part("Your inner reserves are too thin for that working.", "bright_white", False)]
+    if "not enough vigor" in lowered:
+        return [build_part("Your body lacks the vigor for that effort just now.", "bright_white", False)]
+    if "you are not engaged with anything" in lowered:
+        return [build_part("No foe presently presses you.", "bright_white", False)]
+    if "already fighting" in lowered:
+        return [build_part("You are already locked in battle.", "bright_white", False)]
+    if "no target named" in lowered:
+        return [build_part("No such figure stands here before you.", "bright_white", False)]
+    if "doesn't exist in your inventory" in lowered:
+        return [build_part("You search your belongings, but find nothing of the sort.", "bright_white", False)]
+    if "cannot be used" in lowered or "cannot be equipped" in lowered or "cannot be worn" in lowered or "cannot be wielded" in lowered or "cannot be held" in lowered:
+        return [build_part("That would not serve you in that way.", "bright_white", False)]
+    if "there are no coins on the ground" in lowered:
+        return [build_part("Not a single coin glints at your feet.", "bright_white", False)]
+    if "no corpse matching" in lowered:
+        return [build_part("No such corpse lies here.", "bright_white", False)]
+    if "cannot go" in lowered or "destination room not found" in lowered:
+        return [build_part("The way does not open for you there.", "bright_white", False)]
+    if "current room not found" in lowered:
+        return [build_part("The world around you wavers strangely for a moment.", "bright_white", False)]
+
+    if not cleaned:
+        cleaned = "Something feels amiss."
+
+    if cleaned[-1] not in ".!?":
+        cleaned += "."
+
+    return [
+        build_part("A warning stirs within you: ", "bright_white"),
+        build_part(cleaned, "bright_white", False),
+    ]
+
+
 def display_error(message: str, session: ClientSession | None = None) -> dict:
     prompt_after = False
     prompt_parts: list[dict] | None = None
@@ -561,7 +647,7 @@ def display_error(message: str, session: ClientSession | None = None) -> dict:
         prompt_after, prompt_parts = resolve_prompt(session, True)
 
     return build_display(
-        [build_part(f"Error: {message}", "bright_red", True)],
+        _build_lore_error_parts(message, session),
         prompt_after=prompt_after,
         prompt_parts=prompt_parts,
     )
