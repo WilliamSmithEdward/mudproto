@@ -91,6 +91,7 @@ def load_gear_templates() -> list[dict]:
             "weapon_type": str(raw_template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
             "can_hold": bool(raw_template.get("can_hold", False)) if normalized_slot == "weapon" else False,
             "weight": max(0, int(raw_template.get("weight", 0))),
+            "coin_value": max(0, int(raw_template.get("coin_value", 0))),
             "damage_dice_count": int(raw_template.get("damage_dice_count", 0)),
             "damage_dice_sides": int(raw_template.get("damage_dice_sides", 0)),
             "damage_roll_modifier": int(raw_template.get("damage_roll_modifier", 0)),
@@ -152,6 +153,7 @@ def load_item_templates() -> list[dict]:
             "effect_type": effect_type,
             "effect_target": effect_target,
             "effect_amount": effect_amount,
+            "coin_value": max(0, int(raw_template.get("coin_value", 0))),
             "use_lag_seconds": use_lag_seconds,
             "observer_action": str(raw_template.get("observer_action", "")).strip(),
             "observer_context": str(raw_template.get("observer_context", "")).strip(),
@@ -301,6 +303,38 @@ def load_npc_templates() -> list[dict]:
                 "keywords": [str(keyword).strip().lower() for keyword in raw_loot_keywords if str(keyword).strip()],
             })
 
+        is_merchant = bool(raw_npc.get("is_merchant", False))
+        raw_merchant_inventory_template_ids = raw_npc.get("merchant_inventory_template_ids", [])
+        if raw_merchant_inventory_template_ids is None:
+            raw_merchant_inventory_template_ids = []
+        if not isinstance(raw_merchant_inventory_template_ids, list):
+            raise ValueError(f"NPC '{npc_id}' merchant_inventory_template_ids must be a list.")
+
+        merchant_inventory_template_ids: list[str] = []
+        seen_merchant_template_ids: set[str] = set()
+        for raw_template_id in raw_merchant_inventory_template_ids:
+            template_id = str(raw_template_id).strip()
+            if not template_id:
+                continue
+            normalized_template_id = template_id.lower()
+            if normalized_template_id in seen_merchant_template_ids:
+                continue
+            if get_gear_template_by_id(template_id) is None and get_item_template_by_id(template_id) is None:
+                raise ValueError(f"NPC '{npc_id}' references unknown merchant stock item: {template_id}")
+            seen_merchant_template_ids.add(normalized_template_id)
+            merchant_inventory_template_ids.append(template_id)
+
+        merchant_buy_markup = float(raw_npc.get("merchant_buy_markup", 1.0))
+        if merchant_buy_markup <= 0.0:
+            raise ValueError(f"NPC '{npc_id}' merchant_buy_markup must be greater than zero.")
+
+        merchant_sell_ratio = float(raw_npc.get("merchant_sell_ratio", 0.5))
+        if merchant_sell_ratio < 0.0 or merchant_sell_ratio > 1.0:
+            raise ValueError(f"NPC '{npc_id}' merchant_sell_ratio must be between 0.0 and 1.0.")
+
+        if is_merchant and not merchant_inventory_template_ids:
+            raise ValueError(f"Merchant NPC '{npc_id}' must define merchant_inventory_template_ids.")
+
         raw_skill_ids = raw_npc.get("skill_ids", [])
         if raw_skill_ids is None:
             raw_skill_ids = []
@@ -381,6 +415,10 @@ def load_npc_templates() -> list[dict]:
             "experience_reward": max(0, int(raw_npc.get("experience_reward", 0))),
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
             "is_ally": bool(raw_npc.get("is_ally", False)),
+            "is_merchant": is_merchant,
+            "merchant_inventory_template_ids": merchant_inventory_template_ids,
+            "merchant_buy_markup": merchant_buy_markup,
+            "merchant_sell_ratio": merchant_sell_ratio,
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
             "main_hand_weapon_template_id": str(raw_npc.get("main_hand_weapon_template_id", "")).strip(),
             "off_hand_weapon_template_id": str(raw_npc.get("off_hand_weapon_template_id", "")).strip(),

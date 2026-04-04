@@ -1,9 +1,10 @@
+import math
 import random
 import re
 import uuid
 
 from attribute_config import get_player_class_by_id, load_attributes, load_player_classes
-from assets import get_item_template_by_id, load_item_templates, load_skills, load_spells
+from assets import get_gear_template_by_id, get_item_template_by_id, load_item_templates, load_skills, load_spells
 from combat import (
     begin_attack,
     cast_spell,
@@ -33,7 +34,7 @@ from display import (
 )
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from grammar import indefinite_article, with_article
-from inventory import is_item_equippable, resolve_equipment_selector
+from inventory import build_equippable_item_from_template, is_item_equippable, resolve_equipment_selector
 from models import ClientSession, ItemState
 from experience import get_xp_to_next_level
 from player_resources import clamp_player_resources_to_caps, get_player_resource_caps
@@ -989,6 +990,242 @@ def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
     ]
 
 
+def _tokenize_selector_value(value: str) -> set[str]:
+    return {token for token in re.findall(r"[a-zA-Z0-9]+", value.strip().lower()) if token}
+
+
+def _parse_trade_selector(selector: str) -> tuple[int | None, list[str], str | None]:
+    normalized = selector.strip().lower()
+    if not normalized:
+        return None, [], "Provide an item selector."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, [], "Provide an item selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, [], "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, [], "Provide at least one selector keyword after the index."
+
+    return requested_index, parts, None
+
+
+def _get_trade_template_by_id(template_id: str) -> tuple[dict | None, str | None]:
+    gear_template = get_gear_template_by_id(template_id)
+    if gear_template is not None:
+        return gear_template, "Gear"
+
+    item_template = get_item_template_by_id(template_id)
+    if item_template is not None:
+        return item_template, "Item"
+
+    return None, None
+
+
+def _resolve_template_coin_value(template: dict, *, template_kind: str) -> int:
+    explicit_value = max(0, int(template.get("coin_value", 0)))
+    if explicit_value > 0:
+        return explicit_value
+
+    if template_kind == "Gear":
+        slot = str(template.get("slot", "")).strip().lower()
+        if slot == "weapon":
+            return max(
+                5,
+                12
+                + max(0, int(template.get("damage_dice_count", 0))) * max(0, int(template.get("damage_dice_sides", 0)))
+                + max(0, int(template.get("damage_roll_modifier", 0))) * 3
+                + max(0, int(template.get("hit_roll_modifier", 0))) * 3
+                + max(0, int(template.get("attack_damage_bonus", 0))) * 5
+                + max(0, int(template.get("attacks_per_round_bonus", 0))) * 8
+                + max(0, int(template.get("weight", 0))),
+            )
+
+        return max(
+            4,
+            10
+            + max(0, int(template.get("armor_class_bonus", 0))) * 12
+            + len(template.get("wear_slots", [])) * 2
+            + max(0, int(template.get("weight", 0))),
+        )
+
+    return max(
+        3,
+        8
+        + max(0, int(template.get("effect_amount", 0))) // 2
+        + int(max(0.0, float(template.get("use_lag_seconds", 0.0))) * 5),
+    )
+
+
+def _resolve_item_coin_value(item: ItemState) -> int:
+    template_id = str(getattr(item, "template_id", "")).strip()
+    if template_id:
+        template, template_kind = _get_trade_template_by_id(template_id)
+        if template is not None and template_kind is not None:
+            return _resolve_template_coin_value(template, template_kind=template_kind)
+
+    if is_item_equippable(item):
+        return _resolve_template_coin_value({
+            "slot": item.slot,
+            "damage_dice_count": item.damage_dice_count,
+            "damage_dice_sides": item.damage_dice_sides,
+            "damage_roll_modifier": item.damage_roll_modifier,
+            "hit_roll_modifier": item.hit_roll_modifier,
+            "attack_damage_bonus": item.attack_damage_bonus,
+            "attacks_per_round_bonus": item.attacks_per_round_bonus,
+            "armor_class_bonus": item.armor_class_bonus,
+            "wear_slots": list(item.wear_slots),
+            "weight": item.weight,
+        }, template_kind="Gear")
+
+    return max(1, 2 + len(_tokenize_selector_value(item.name)) + max(0, int(getattr(item, "weight", 0))))
+
+
+def _list_room_merchants(session: ClientSession):
+    merchants = [
+        entity
+        for entity in session.entities.values()
+        if entity.room_id == session.player.current_room_id
+        and entity.is_alive
+        and bool(getattr(entity, "is_merchant", False))
+    ]
+    merchants.sort(key=lambda entity: (entity.name.lower(), entity.spawn_sequence, entity.entity_id))
+    return merchants
+
+
+def _resolve_room_merchant(session: ClientSession):
+    merchants = _list_room_merchants(session)
+    if not merchants:
+        return None, "There is no merchant here."
+    return merchants[0], None
+
+
+def _get_merchant_buy_price(merchant, template: dict, *, template_kind: str) -> int:
+    base_value = _resolve_template_coin_value(template, template_kind=template_kind)
+    markup = max(0.1, float(getattr(merchant, "merchant_buy_markup", 1.0)))
+    return max(1, int(math.ceil(base_value * markup)))
+
+
+def _get_merchant_sale_offer(merchant, item: ItemState) -> int:
+    base_value = _resolve_item_coin_value(item)
+    sell_ratio = max(0.0, min(1.0, float(getattr(merchant, "merchant_sell_ratio", 0.5))))
+    return max(1, int(math.floor(base_value * sell_ratio)))
+
+
+def _build_merchant_stock_entries(merchant) -> list[dict[str, object]]:
+    entries: list[dict[str, object]] = []
+    for template_id in getattr(merchant, "merchant_inventory_template_ids", []):
+        template, template_kind = _get_trade_template_by_id(str(template_id))
+        if template is None or template_kind is None:
+            continue
+
+        entries.append({
+            "template_id": str(template.get("template_id", template_id)).strip(),
+            "template": template,
+            "template_kind": template_kind,
+            "name": str(template.get("name", "Item")).strip() or "Item",
+            "keywords": [str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
+            "price": _get_merchant_buy_price(merchant, template, template_kind=template_kind),
+        })
+
+    return entries
+
+
+def _resolve_merchant_stock_selector(merchant, selector: str):
+    requested_index, selector_parts, parse_error = _parse_trade_selector(selector)
+    if parse_error is not None:
+        return None, parse_error
+
+    matches = []
+    for entry in _build_merchant_stock_entries(merchant):
+        keywords = _tokenize_selector_value(str(entry["name"]))
+        keywords.update(_tokenize_selector_value(str(entry["template_id"])))
+        keywords.update(_tokenize_selector_value(" ".join(entry.get("keywords", []))))
+        if all(keyword in keywords for keyword in selector_parts):
+            matches.append(entry)
+
+    if not matches:
+        return None, f"{selector} is not sold here."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} matching stock item(s) found for '{selector}'."
+        return matches[requested_index - 1], None
+
+    return matches[0], None
+
+
+def _build_inventory_item_from_template(template: dict) -> ItemState:
+    if str(template.get("slot", "")).strip().lower() in {"weapon", "armor"}:
+        return build_equippable_item_from_template(template)
+
+    return ItemState(
+        item_id=f"item-{uuid.uuid4().hex[:8]}",
+        template_id=str(template.get("template_id", "")).strip(),
+        name=str(template.get("name", "Item")).strip() or "Item",
+        description=str(template.get("description", "")),
+        keywords=[str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
+    )
+
+
+def _resolve_owned_trade_item(session: ClientSession, selector: str):
+    inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
+    if inventory_item is not None:
+        return inventory_item, None
+
+    equipped_item, equipped_error = resolve_equipped_selector(session, selector)
+    if equipped_item is not None:
+        return equipped_item, None
+
+    return None, inventory_error or equipped_error or f"{selector} doesn't exist in your inventory."
+
+
+def _remove_owned_trade_item(session: ClientSession, item: ItemState) -> None:
+    if item.item_id in session.inventory_items:
+        session.inventory_items.pop(item.item_id, None)
+        return
+
+    if item.item_id in session.equipment.equipped_items:
+        unequip_item(session, item)
+        session.inventory_items.pop(item.item_id, None)
+
+
+def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage:
+    rows = [
+        [
+            str(entry["name"]),
+            str(entry["template_kind"]),
+            f"{int(entry['price'])} coins",
+        ]
+        for entry in _build_merchant_stock_entries(merchant)
+    ]
+    title = f"{merchant.name}'s Wares"
+    parts = build_menu_table_parts(
+        title,
+        ["Item", "Type", "Price"],
+        rows,
+        column_colors=["bright_magenta", "bright_cyan", "bright_yellow"],
+        column_alignments=["left", "left", "right"],
+        empty_message="Nothing is for sale right now.",
+    )
+    parts.extend([
+        build_part("\n"),
+        build_part("Commands: ", "bright_white"),
+        build_part("buy <item>", "bright_yellow", True),
+        build_part(", ", "bright_white"),
+        build_part("sell <item>", "bright_yellow", True),
+        build_part(", ", "bright_white"),
+        build_part("val <item>", "bright_yellow", True),
+    ])
+    return display_command_result(session, parts)
+
+
 def _find_spell_by_name(spell_name: str) -> dict | None:
     normalized = spell_name.strip().lower()
     if not normalized:
@@ -1463,6 +1700,91 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
     if verb in {"inventory", "inv", "i"}:
         return display_inventory(session)
+
+    if verb in {"list", "li", "lis"}:
+        merchant, resolve_error = _resolve_room_merchant(session)
+        if merchant is None:
+            return display_error(resolve_error or "There is no merchant here.", session)
+        return _display_merchant_stock(session, merchant)
+
+    if verb == "buy":
+        merchant, resolve_error = _resolve_room_merchant(session)
+        if merchant is None:
+            return display_error(resolve_error or "There is no merchant here.", session)
+
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
+        if not selector:
+            return display_error("Usage: buy <item>", session)
+
+        stock_entry, stock_error = _resolve_merchant_stock_selector(merchant, selector)
+        if stock_entry is None:
+            return display_error(stock_error or f"{selector} is not sold here.", session)
+
+        item_name = str(stock_entry["name"]).strip() or "Item"
+        price = int(stock_entry["price"])
+        if session.status.coins < price:
+            return display_error(f"You need {price} coins to buy {item_name}.", session)
+
+        purchased_item = _build_inventory_item_from_template(stock_entry["template"])
+        session.status.coins -= price
+        session.inventory_items[purchased_item.item_id] = purchased_item
+
+        return display_command_result(session, [
+            build_part("You buy ", "bright_white"),
+            *_build_item_reference_parts(purchased_item),
+            build_part(" for ", "bright_white"),
+            build_part(f"{price} coins", "bright_cyan", True),
+            build_part(".", "bright_white"),
+        ])
+
+    if verb == "sell":
+        merchant, resolve_error = _resolve_room_merchant(session)
+        if merchant is None:
+            return display_error(resolve_error or "There is no merchant here.", session)
+
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
+        if not selector:
+            return display_error("Usage: sell <item>", session)
+
+        owned_item, item_error = _resolve_owned_trade_item(session, selector)
+        if owned_item is None:
+            return display_error(item_error or f"{selector} doesn't exist in your inventory.", session)
+
+        offer = _get_merchant_sale_offer(merchant, owned_item)
+        _remove_owned_trade_item(session, owned_item)
+        session.status.coins += offer
+
+        return display_command_result(session, [
+            build_part(merchant.name, "bright_cyan", True),
+            build_part(" buys ", "bright_white"),
+            *_build_item_reference_parts(owned_item),
+            build_part(" for ", "bright_white"),
+            build_part(f"{offer} coins", "bright_yellow", True),
+            build_part(".", "bright_white"),
+        ])
+
+    if verb in {"val", "value"}:
+        merchant, resolve_error = _resolve_room_merchant(session)
+        if merchant is None:
+            return display_error(resolve_error or "There is no merchant here.", session)
+
+        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
+        if not selector:
+            return display_error("Usage: val <item>", session)
+
+        owned_item, item_error = _resolve_owned_trade_item(session, selector)
+        if owned_item is None:
+            return display_error(item_error or f"{selector} doesn't exist in your inventory.", session)
+
+        offer = _get_merchant_sale_offer(merchant, owned_item)
+        return display_command_result(session, [
+            build_part(merchant.name, "bright_cyan", True),
+            build_part(" offers ", "bright_white"),
+            build_part(f"{offer} coins", "bright_yellow", True),
+            build_part(" for ", "bright_white"),
+            *_build_item_reference_parts(owned_item),
+            build_part(".", "bright_white"),
+        ])
 
     if verb in {"attributes", "attribute", "attr", "attrs", "stats", "stat"}:
         configured_attributes = load_attributes()

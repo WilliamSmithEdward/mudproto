@@ -124,6 +124,10 @@ class EntityState:
     spawn_sequence: int = 0
     is_aggro: bool = False
     is_ally: bool = False
+    is_merchant: bool = False
+    merchant_inventory_template_ids: list[str] = field(default_factory=list)
+    merchant_buy_markup: float = 1.0
+    merchant_sell_ratio: float = 0.5
     pronoun_possessive: str = "its"
     main_hand_weapon_template_id: str = ""
     off_hand_weapon_template_id: str = ""

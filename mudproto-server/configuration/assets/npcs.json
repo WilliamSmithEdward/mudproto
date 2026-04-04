@@ -78,6 +78,46 @@
         "skill.overhead-crack",
         "skill.guard-breath"
       ]
+    },
+    {
+      "npc_id": "npc.south-market-merchant",
+      "name": "Quartermaster Vessa",
+      "hit_points": 180,
+      "max_hit_points": 180,
+      "power_level": 1,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 0,
+      "armor_class": 10,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 0,
+      "experience_reward": 0,
+      "is_aggro": false,
+      "is_ally": true,
+      "is_merchant": true,
+      "merchant_inventory_template_ids": [
+        "item.potion.mending",
+        "item.potion.mana",
+        "weapon.training-sword",
+        "weapon.training-dagger",
+        "armor.vanguard-jacket",
+        "armor.vanguard-boots",
+        "armor.arcanist-robe",
+        "armor.arcanist-wraps"
+      ],
+      "merchant_buy_markup": 1.0,
+      "merchant_sell_ratio": 0.55,
+      "pronoun_possessive": "her",
+      "main_hand_weapon_template_id": "",
+      "off_hand_weapon_template_id": "",
+      "vigor": 0,
+      "max_vigor": 0,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.0,
+      "skill_ids": [],
+      "spell_use_chance": 0.0,
+      "spell_ids": []
     }
   ]
 }

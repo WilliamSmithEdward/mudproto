@@ -8,6 +8,7 @@
     "weapon_type": "sword",
     "can_hold": false,
     "weight": 6,
+    "coin_value": 24,
     "damage_dice_count": 3,
     "damage_dice_sides": 5,
     "damage_roll_modifier": 1,
@@ -24,6 +25,7 @@
     "weapon_type": "dagger",
     "can_hold": true,
     "weight": 4,
+    "coin_value": 18,
     "damage_dice_count": 2,
     "damage_dice_sides": 4,
     "damage_roll_modifier": 0,
@@ -40,6 +42,7 @@
     "weapon_type": "dagger",
     "can_hold": false,
     "weight": 3,
+    "coin_value": 14,
     "damage_dice_count": 2,
     "damage_dice_sides": 3,
     "damage_roll_modifier": 0,
@@ -56,6 +59,7 @@
     "weapon_type": "sword",
     "can_hold": false,
     "weight": 7,
+    "coin_value": 58,
     "damage_dice_count": 4,
     "damage_dice_sides": 6,
     "damage_roll_modifier": 2,
@@ -71,6 +75,7 @@
     "description": "A reinforced jacket worn by front-line trainees.",
     "keywords": ["vanguard", "jacket", "chest"],
     "weight": 10,
+    "coin_value": 30,
     "armor_class_bonus": 2
   },
   {
@@ -81,6 +86,7 @@
     "description": "Heavy boots built for marching and impact.",
     "keywords": ["vanguard", "boots", "feet"],
     "weight": 6,
+    "coin_value": 20,
     "armor_class_bonus": 1
   },
   {
@@ -91,6 +97,7 @@
     "description": "A rune-lined robe favored by novice arcanists.",
     "keywords": ["arcanist", "robe", "chest"],
     "weight": 4,
+    "coin_value": 26,
     "armor_class_bonus": 1
   },
   {
@@ -101,6 +108,7 @@
     "description": "Light hand wraps that steady precise gestures.",
     "keywords": ["arcanist", "wraps", "hands"],
     "weight": 1,
+    "coin_value": 16,
     "armor_class_bonus": 1
   },
   {

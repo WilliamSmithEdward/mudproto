@@ -5,7 +5,22 @@
     "description": "A plain stone chamber used for early server testing.",
     "exits": {
       "north": "hall",
-      "east": "sanctum"
+      "east": "sanctum",
+      "south": "south-market"
+    }
+  },
+  {
+    "room_id": "south-market",
+    "title": "South Market",
+    "description": "A sheltered trade nook of canvas awnings and tidy crates opens here, warm with lamplight and the scent of oil and leather.",
+    "npcs": [
+      {
+        "npc_id": "npc.south-market-merchant",
+        "count": 1
+      }
+    ],
+    "exits": {
+      "north": "start"
     }
   },
   {

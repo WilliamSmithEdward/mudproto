@@ -1773,6 +1773,14 @@ def initialize_session_entities(session: ClientSession) -> None:
                 entity.spawn_sequence = session.entity_spawn_counter
                 entity.is_aggro = bool(template.get("is_aggro", False))
                 entity.is_ally = bool(template.get("is_ally", False))
+                entity.is_merchant = bool(template.get("is_merchant", False))
+                entity.merchant_inventory_template_ids = [
+                    str(template_id).strip()
+                    for template_id in template.get("merchant_inventory_template_ids", [])
+                    if str(template_id).strip()
+                ]
+                entity.merchant_buy_markup = max(0.1, float(template.get("merchant_buy_markup", 1.0)))
+                entity.merchant_sell_ratio = max(0.0, min(1.0, float(template.get("merchant_sell_ratio", 0.5))))
                 entity.pronoun_possessive = str(template.get("pronoun_possessive", "its")).strip().lower() or "its"
                 entity.main_hand_weapon_template_id = str(template.get("main_hand_weapon_template_id", "")).strip()
                 entity.off_hand_weapon_template_id = str(template.get("off_hand_weapon_template_id", "")).strip()

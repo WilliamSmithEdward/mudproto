@@ -33,6 +33,8 @@ COLOR_MAP = {
     "bright_white": "#f2f2f2",
 }
 
+OUTPUT_WRAP_COLUMN = 100
+
 
 def configure_windows_dpi_awareness() -> None:
     if not hasattr(ctypes, "windll"):
@@ -101,6 +103,7 @@ class MudProtoGuiClient:
         self.history_index: int | None = None
         self.history_stash = ""
         self.output_ends_with_newline = True
+        self.wrap_column = OUTPUT_WRAP_COLUMN
 
         self._build_widgets()
         self.network_thread.start()
@@ -368,6 +371,63 @@ class MudProtoGuiClient:
             )
         return tag_name
 
+    def _wrap_line_parts(self, parts: list[Part]) -> list[Line]:
+        if self.wrap_column <= 0:
+            return [parts]
+
+        wrapped_lines: list[Line] = []
+        current_line: Line = []
+        current_length = 0
+
+        def flush_line() -> None:
+            nonlocal current_line, current_length
+            wrapped_lines.append(current_line)
+            current_line = []
+            current_length = 0
+
+        def append_chunk(text: str, fg: str | None, bold: bool) -> None:
+            nonlocal current_length
+            if not text:
+                return
+            current_line.append({
+                "text": text,
+                "fg": fg or "bright_white",
+                "bold": bold,
+            })
+            current_length += len(text)
+
+        for part in parts:
+            if not isinstance(part, dict):
+                continue
+
+            remaining = str(part.get("text", ""))
+            fg = part.get("fg") if isinstance(part.get("fg"), str) else None
+            bold = bool(part.get("bold", False))
+
+            while remaining:
+                available = max(1, self.wrap_column - current_length)
+                if len(remaining) <= available:
+                    append_chunk(remaining, fg, bold)
+                    break
+
+                split_at = remaining.rfind(" ", 0, available + 1)
+                if split_at <= 0:
+                    split_at = available
+                    chunk = remaining[:split_at]
+                    remaining = remaining[split_at:]
+                else:
+                    chunk = remaining[:split_at]
+                    remaining = remaining[split_at + 1:]
+
+                append_chunk(chunk.rstrip(), fg, bold)
+                flush_line()
+                remaining = remaining.lstrip()
+
+        if current_line or not wrapped_lines:
+            wrapped_lines.append(current_line)
+
+        return wrapped_lines
+
     def append_parts(
         self,
         parts: list[Part],
@@ -380,17 +440,21 @@ class MudProtoGuiClient:
             self.output_text.insert(tk.END, "\n")
             self.output_ends_with_newline = True
 
-        for part in parts:
-            if not isinstance(part, dict):
-                continue
-            text = str(part.get("text", ""))
-            fg = part.get("fg") if isinstance(part.get("fg"), str) else None
-            bold = bool(part.get("bold", False))
-            tag = self._ensure_tag(self.output_text, fg, bold)
-            if tag is not None:
-                self.output_text.insert(tk.END, text, tag)
-            else:
-                self.output_text.insert(tk.END, text)
+        wrapped_lines = self._wrap_line_parts(parts)
+        for line_index, wrapped_parts in enumerate(wrapped_lines):
+            if line_index > 0:
+                self.output_text.insert(tk.END, "\n")
+            for part in wrapped_parts:
+                if not isinstance(part, dict):
+                    continue
+                text = str(part.get("text", ""))
+                fg = part.get("fg") if isinstance(part.get("fg"), str) else None
+                bold = bool(part.get("bold", False))
+                tag = self._ensure_tag(self.output_text, fg, bold)
+                if tag is not None:
+                    self.output_text.insert(tk.END, text, tag)
+                else:
+                    self.output_text.insert(tk.END, text)
 
         if add_newline:
             self.output_text.insert(tk.END, "\n")
@@ -406,20 +470,24 @@ class MudProtoGuiClient:
             return
 
         self.output_text.configure(state="normal")
+        wrote_any_line = False
         for line_index, parts in enumerate(lines):
-            if line_index > 0:
-                self.output_text.insert(tk.END, "\n")
-            for part in parts:
-                if not isinstance(part, dict):
-                    continue
-                text = str(part.get("text", ""))
-                fg = part.get("fg") if isinstance(part.get("fg"), str) else None
-                bold = bool(part.get("bold", False))
-                tag = self._ensure_tag(self.output_text, fg, bold)
-                if tag is not None:
-                    self.output_text.insert(tk.END, text, tag)
-                else:
-                    self.output_text.insert(tk.END, text)
+            wrapped_lines = self._wrap_line_parts(parts)
+            for wrapped_index, wrapped_parts in enumerate(wrapped_lines):
+                if wrote_any_line or line_index > 0 or wrapped_index > 0:
+                    self.output_text.insert(tk.END, "\n")
+                wrote_any_line = True
+                for part in wrapped_parts:
+                    if not isinstance(part, dict):
+                        continue
+                    text = str(part.get("text", ""))
+                    fg = part.get("fg") if isinstance(part.get("fg"), str) else None
+                    bold = bool(part.get("bold", False))
+                    tag = self._ensure_tag(self.output_text, fg, bold)
+                    if tag is not None:
+                        self.output_text.insert(tk.END, text, tag)
+                    else:
+                        self.output_text.insert(tk.END, text)
 
         self.output_ends_with_newline = bool(lines and not lines[-1])
         self.output_text.configure(state="disabled")

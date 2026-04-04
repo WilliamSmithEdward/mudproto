@@ -7,8 +7,22 @@
     "effect_type": "restore",
     "effect_target": "mana",
     "effect_amount": 50,
+    "coin_value": 18,
     "use_lag_seconds": 0,
     "observer_action": "[actor_name] drinks a potion of mana.",
     "observer_context": "Arcane focus gathers around [actor_object]."
+  },
+  {
+    "template_id": "item.potion.mending",
+    "name": "Potion of Mending",
+    "description": "A small crimson draught that closes bruises and shallow cuts.",
+    "keywords": ["potion", "mending", "healing"],
+    "effect_type": "restore",
+    "effect_target": "hit_points",
+    "effect_amount": 45,
+    "coin_value": 16,
+    "use_lag_seconds": 0,
+    "observer_action": "[actor_name] drinks a potion of mending.",
+    "observer_context": "Fresh color returns to [actor_object]."
   }
 ]
