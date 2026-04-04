@@ -106,7 +106,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.3",
+        "version": "2.4",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
@@ -140,6 +140,7 @@ def build_instruction_payload() -> dict[str, object]:
         "id_collision_prevention": {
             "guid_suffix_required": True,
             "rule": "Append a GUID to every newly created asset ID and to payload_id to prevent collisions with existing or future content.",
+            "override_exception": "If the goal is to intentionally override an existing base-game asset, reuse the original asset ID exactly instead of appending a GUID.",
             "applies_to": [
                 "payload_id",
                 "gear[].template_id",
@@ -150,16 +151,22 @@ def build_instruction_payload() -> dict[str, object]:
                 "rooms[].room_id",
                 "zones[].zone_id"
             ],
-            "reference_rule": "All cross-references inside the payload must use the same GUID-suffixed IDs.",
+            "reference_rule": "All cross-references inside the payload must use the same GUID-suffixed IDs, unless the payload is intentionally overriding an existing base-game asset by reusing its original ID.",
             "example": {
                 "base_slug": "npc.sanctum-archivist",
                 "generated_id": "npc.sanctum-archivist-550e8400-e29b-41d4-a716-446655440000"
             }
         },
+        "conflict_resolution": {
+            "policy": "On asset ID conflict, the LLM payload should override the base-game definition.",
+            "rule": "If the user wants to replace or modify an existing asset, reuse that asset's ID in the payload and provide the full replacement definition.",
+            "scope": ["gear", "items", "spells", "skills", "npcs", "rooms", "zones"]
+        },
         "top_level_schema": asset_schemas["payload_bundle"],
         "generation_rules": [
             "Keep all IDs unique within their asset type.",
-            "Append a GUID suffix to every new asset ID and payload_id.",
+            "Append a GUID suffix to every new asset ID and payload_id unless you are intentionally overriding an existing base-game asset.",
+            "If an asset is meant to override base-game content, reuse the base asset ID exactly and treat the payload definition as the replacement.",
             "Use lowercase IDs and keywords to match project conventions.",
             "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
             "Every asset section must be present and must be a JSON array, even when empty.",

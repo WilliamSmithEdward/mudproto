@@ -62,9 +62,15 @@ def _load_llm_payload_section(section_name: str) -> list[dict]:
         for raw_entry in raw_entries:
             if not isinstance(raw_entry, dict):
                 raise ValueError(f"LLM payload '{path.name}' section '{section_name}' entries must be objects.")
-            merged_entries.append(raw_entry)
+            merged_entry = dict(raw_entry)
+            merged_entry["__source_payload_file"] = path.name
+            merged_entries.append(merged_entry)
 
     return merged_entries
+
+
+def _is_llm_payload_override(raw_entry: dict) -> bool:
+    return bool(str(raw_entry.get("__source_payload_file", "")).strip())
 
 
 def _normalize_keywords(raw_keywords: object, *, context: str) -> list[str]:
@@ -93,8 +99,8 @@ def load_gear_templates() -> list[dict]:
         raise ValueError(f"Gear asset file must contain a list: {GEAR_FILE}")
     raw_templates = list(raw_templates) + _load_llm_payload_section("gear")
 
-    template_ids: set[str] = set()
-    normalized_templates: list[dict] = []
+    normalized_templates_by_id: dict[str, dict] = {}
+    ordered_template_ids: list[str] = []
 
     for raw_template in raw_templates:
         if not isinstance(raw_template, dict):
@@ -102,8 +108,10 @@ def load_gear_templates() -> list[dict]:
 
         template_id, name, normalized_keywords = _normalize_template_identity(raw_template, context="Gear asset")
         slot = raw_template.get("slot")
+        normalized_template_id = template_id.strip().lower()
+        is_payload_override = _is_llm_payload_override(raw_template)
 
-        if template_id in template_ids:
+        if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate gear template_id: {template_id}")
         if not isinstance(slot, str) or not slot.strip():
             raise ValueError(f"Gear asset '{template_id}' must include a non-empty slot.")
@@ -112,8 +120,6 @@ def load_gear_templates() -> list[dict]:
             raise ValueError(
                 f"Gear asset '{template_id}' slot must be 'weapon' or 'armor'."
             )
-
-        template_ids.add(template_id)
 
         raw_wear_slots = raw_template.get("wear_slots", [])
         if raw_wear_slots is None:
@@ -130,7 +136,10 @@ def load_gear_templates() -> list[dict]:
         if armor_class_bonus < 0:
             raise ValueError(f"Gear asset '{template_id}' armor_class_bonus must be zero or greater.")
 
-        normalized_templates.append({
+        if normalized_template_id not in normalized_templates_by_id:
+            ordered_template_ids.append(normalized_template_id)
+
+        normalized_templates_by_id[normalized_template_id] = {
             "template_id": template_id,
             "name": name,
             "slot": normalized_slot,
@@ -148,9 +157,9 @@ def load_gear_templates() -> list[dict]:
             "attacks_per_round_bonus": int(raw_template.get("attacks_per_round_bonus", 0)),
             "armor_class_bonus": armor_class_bonus,
             "wear_slots": wear_slots,
-        })
+        }
 
-    return normalized_templates
+    return [normalized_templates_by_id[template_id] for template_id in ordered_template_ids]
 
 
 def get_gear_template_by_id(template_id: str) -> dict | None:
@@ -168,8 +177,8 @@ def load_item_templates() -> list[dict]:
         raise ValueError(f"Item asset file must contain a list: {ITEMS_FILE}")
     raw_templates = list(raw_templates) + _load_llm_payload_section("items")
 
-    template_ids: set[str] = set()
-    normalized_templates: list[dict] = []
+    normalized_templates_by_id: dict[str, dict] = {}
+    ordered_template_ids: list[str] = []
     allowed_effect_targets = {"hit_points", "mana", "vigor"}
 
     for raw_template in raw_templates:
@@ -181,8 +190,10 @@ def load_item_templates() -> list[dict]:
         effect_target = str(raw_template.get("effect_target", "")).strip().lower()
         effect_amount = int(raw_template.get("effect_amount", 0))
         use_lag_seconds = max(0.0, float(raw_template.get("use_lag_seconds", 0.0)))
+        normalized_template_id = template_id.strip().lower()
+        is_payload_override = _is_llm_payload_override(raw_template)
 
-        if template_id in template_ids:
+        if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate item template_id: {template_id}")
         if effect_type != "restore":
             raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
@@ -193,8 +204,9 @@ def load_item_templates() -> list[dict]:
         if effect_amount <= 0:
             raise ValueError(f"Item asset '{template_id}' effect_amount must be greater than zero.")
 
-        template_ids.add(template_id)
-        normalized_templates.append({
+        if normalized_template_id not in normalized_templates_by_id:
+            ordered_template_ids.append(normalized_template_id)
+        normalized_templates_by_id[normalized_template_id] = {
             "template_id": template_id,
             "name": name,
             "description": str(raw_template.get("description", "")),
@@ -206,9 +218,9 @@ def load_item_templates() -> list[dict]:
             "use_lag_seconds": use_lag_seconds,
             "observer_action": str(raw_template.get("observer_action", "")).strip(),
             "observer_context": str(raw_template.get("observer_context", "")).strip(),
-        })
+        }
 
-    return normalized_templates
+    return [normalized_templates_by_id[template_id] for template_id in ordered_template_ids]
 
 
 def get_item_template_by_id(template_id: str) -> dict | None:
@@ -226,8 +238,8 @@ def load_zones() -> list[dict]:
         raise ValueError(f"Zone asset file must contain a list: {ZONES_FILE}")
     raw_zones = list(raw_zones) + _load_llm_payload_section("zones")
 
-    normalized_zones: list[dict] = []
-    zone_ids: set[str] = set()
+    normalized_zones_by_id: dict[str, dict] = {}
+    ordered_zone_ids: list[str] = []
 
     for raw_zone in raw_zones:
         if not isinstance(raw_zone, dict):
@@ -235,11 +247,13 @@ def load_zones() -> list[dict]:
 
         zone_id = str(raw_zone.get("zone_id", "")).strip()
         name = str(raw_zone.get("name", "")).strip()
+        normalized_zone_id = zone_id.lower()
+        is_payload_override = _is_llm_payload_override(raw_zone)
         if not zone_id:
             raise ValueError("Zone asset entries must include a non-empty string zone_id.")
         if not name:
             raise ValueError(f"Zone asset '{zone_id}' must include a non-empty name.")
-        if zone_id in zone_ids:
+        if normalized_zone_id in normalized_zones_by_id and not is_payload_override:
             raise ValueError(f"Duplicate zone_id in zone assets: {zone_id}")
 
         raw_repopulate_game_hours = raw_zone.get("repopulate_game_hours")
@@ -250,14 +264,15 @@ def load_zones() -> list[dict]:
         if repopulate_game_hours < 0:
             raise ValueError(f"Zone asset '{zone_id}' repopulate_game_hours must be zero or greater.")
 
-        zone_ids.add(zone_id)
-        normalized_zones.append({
+        if normalized_zone_id not in normalized_zones_by_id:
+            ordered_zone_ids.append(normalized_zone_id)
+        normalized_zones_by_id[normalized_zone_id] = {
             "zone_id": zone_id,
             "name": name,
             "repopulate_game_hours": repopulate_game_hours,
-        })
+        }
 
-    return normalized_zones
+    return [normalized_zones_by_id[zone_id] for zone_id in ordered_zone_ids]
 
 
 def get_zone_by_id(zone_id: str) -> dict | None:
@@ -275,8 +290,8 @@ def load_rooms() -> list[dict]:
         raise ValueError(f"Room asset file must contain a list: {ROOMS_FILE}")
     raw_rooms = list(raw_rooms) + _load_llm_payload_section("rooms")
 
-    room_ids: set[str] = set()
-    normalized_rooms: list[dict] = []
+    normalized_rooms_by_id: dict[str, dict] = {}
+    ordered_room_ids: list[str] = []
 
     for raw_room in raw_rooms:
         if not isinstance(raw_room, dict):
@@ -288,10 +303,12 @@ def load_rooms() -> list[dict]:
         zone_id = str(raw_room.get("zone_id", "")).strip()
         exits = raw_room.get("exits", {})
         room_npcs = raw_room.get("npcs", [])
+        normalized_room_id = str(room_id).strip().lower() if isinstance(room_id, str) else ""
+        is_payload_override = _is_llm_payload_override(raw_room)
 
         if not isinstance(room_id, str) or not room_id.strip():
             raise ValueError("Room asset entries must include a non-empty string room_id.")
-        if room_id in room_ids:
+        if normalized_room_id in normalized_rooms_by_id and not is_payload_override:
             raise ValueError(f"Duplicate room_id in room assets: {room_id}")
         if not isinstance(title, str) or not title.strip():
             raise ValueError(f"Room asset '{room_id}' must include a non-empty title.")
@@ -332,17 +349,18 @@ def load_rooms() -> list[dict]:
                 "count": spawn_count,
             })
 
-        room_ids.add(room_id)
-        normalized_rooms.append({
+        if normalized_room_id not in normalized_rooms_by_id:
+            ordered_room_ids.append(normalized_room_id)
+        normalized_rooms_by_id[normalized_room_id] = {
             "room_id": room_id,
             "title": title,
             "description": description,
             "zone_id": zone_id,
             "exits": normalized_exits,
             "npcs": normalized_npcs,
-        })
+        }
 
-    return normalized_rooms
+    return [normalized_rooms_by_id[room_id] for room_id in ordered_room_ids]
 
 
 @lru_cache(maxsize=1)
@@ -357,17 +375,19 @@ def load_npc_templates() -> list[dict]:
     if not isinstance(raw_npcs, list):
         raise ValueError("NPC asset field 'npcs' must be a list.")
 
-    normalized_npcs: list[dict] = []
-    npc_ids: set[str] = set()
+    normalized_npcs_by_id: dict[str, dict] = {}
+    ordered_npc_ids: list[str] = []
 
     for raw_npc in raw_npcs:
         if not isinstance(raw_npc, dict):
             raise ValueError("NPC entries must be objects.")
 
         npc_id = str(raw_npc.get("npc_id", "")).strip()
+        normalized_npc_id = npc_id.lower()
+        is_payload_override = _is_llm_payload_override(raw_npc)
         if not npc_id:
             raise ValueError("NPC entries must include npc_id.")
-        if npc_id in npc_ids:
+        if normalized_npc_id in normalized_npcs_by_id and not is_payload_override:
             raise ValueError(f"Duplicate npc_id in npc assets: {npc_id}")
 
         name = str(raw_npc.get("name", "")).strip()
@@ -538,8 +558,9 @@ def load_npc_templates() -> list[dict]:
 
         power_level = max(0, int(raw_npc.get("power_level", 1)))
 
-        npc_ids.add(npc_id)
-        normalized_npcs.append({
+        if normalized_npc_id not in normalized_npcs_by_id:
+            ordered_npc_ids.append(normalized_npc_id)
+        normalized_npcs_by_id[normalized_npc_id] = {
             "npc_id": npc_id,
             "name": name,
             "hit_points": hit_points,
@@ -573,9 +594,9 @@ def load_npc_templates() -> list[dict]:
             "spell_use_chance": spell_use_chance,
             "spell_ids": normalized_spell_ids,
             "loot_items": normalized_loot_items,
-        })
+        }
 
-    return normalized_npcs
+    return [normalized_npcs_by_id[npc_id] for npc_id in ordered_npc_ids]
 
 
 def get_npc_template_by_id(npc_id: str) -> dict | None:
@@ -593,9 +614,9 @@ def load_spells() -> list[dict]:
         raise ValueError(f"Spell asset file must contain a list: {SPELLS_FILE}")
     raw_spells = list(raw_spells) + _load_llm_payload_section("spells")
 
-    spell_ids: set[str] = set()
-    spell_names: set[str] = set()
-    normalized_spells: list[dict] = []
+    normalized_spells_by_id: dict[str, dict] = {}
+    ordered_spell_ids: list[str] = []
+    spell_name_to_id: dict[str, str] = {}
     configured_attribute_ids = {
         str(attribute.get("attribute_id", "")).strip().lower()
         for attribute in load_attributes()
@@ -613,12 +634,24 @@ def load_spells() -> list[dict]:
             raise ValueError("Spell asset entries must include a non-empty string spell_id.")
         if not isinstance(name, str) or not name.strip():
             raise ValueError(f"Spell asset '{spell_id}' must include a non-empty name.")
-        if spell_id in spell_ids:
-            raise ValueError(f"Duplicate spell_id in spell assets: {spell_id}")
 
+        normalized_spell_id = spell_id.strip().lower()
         normalized_name = name.strip().lower()
-        if normalized_name in spell_names:
+        is_payload_override = _is_llm_payload_override(raw_spell)
+        existing_name = ""
+        if normalized_spell_id in normalized_spells_by_id:
+            existing_name = str(normalized_spells_by_id[normalized_spell_id].get("name", "")).strip().lower()
+            if not is_payload_override:
+                raise ValueError(f"Duplicate spell_id in spell assets: {spell_id}")
+
+        if normalized_name in spell_name_to_id and spell_name_to_id[normalized_name] != normalized_spell_id:
             raise ValueError(f"Duplicate spell name in spell assets: {name}")
+        if existing_name and existing_name != normalized_name and spell_name_to_id.get(existing_name) == normalized_spell_id:
+            del spell_name_to_id[existing_name]
+
+        if normalized_spell_id not in normalized_spells_by_id:
+            ordered_spell_ids.append(normalized_spell_id)
+        spell_name_to_id[normalized_name] = normalized_spell_id
 
         school = str(raw_spell.get("school", "")).strip()
 
@@ -723,9 +756,7 @@ def load_spells() -> list[dict]:
                 f"Spell asset '{spell_id}' damage_scaling_attribute_id '{damage_scaling_attribute_id}' is unknown."
             )
 
-        spell_ids.add(spell_id)
-        spell_names.add(normalized_name)
-        normalized_spells.append({
+        normalized_spells_by_id[normalized_spell_id] = {
             "spell_id": spell_id.strip(),
             "name": name.strip(),
             "school": school,
@@ -760,9 +791,9 @@ def load_spells() -> list[dict]:
             "support_context": support_context,
             "observer_action": observer_action,
             "observer_context": observer_context,
-        })
+        }
 
-    return normalized_spells
+    return [normalized_spells_by_id[spell_id] for spell_id in ordered_spell_ids]
 
 
 def get_spell_by_id(spell_id: str) -> dict | None:
@@ -780,9 +811,9 @@ def load_skills() -> list[dict]:
         raise ValueError(f"Skill asset file must contain a list: {SKILLS_FILE}")
     raw_skills = list(raw_skills) + _load_llm_payload_section("skills")
 
-    skill_ids: set[str] = set()
-    skill_names: set[str] = set()
-    normalized_skills: list[dict] = []
+    normalized_skills_by_id: dict[str, dict] = {}
+    ordered_skill_ids: list[str] = []
+    skill_name_to_id: dict[str, str] = {}
     configured_attribute_ids = {
         str(attribute.get("attribute_id", "")).strip().lower()
         for attribute in load_attributes()
@@ -800,12 +831,24 @@ def load_skills() -> list[dict]:
             raise ValueError("Skill asset entries must include a non-empty string skill_id.")
         if not isinstance(name, str) or not name.strip():
             raise ValueError(f"Skill asset '{skill_id}' must include a non-empty name.")
-        if skill_id in skill_ids:
-            raise ValueError(f"Duplicate skill_id in skill assets: {skill_id}")
 
+        normalized_skill_id = skill_id.strip().lower()
         normalized_name = name.strip().lower()
-        if normalized_name in skill_names:
+        is_payload_override = _is_llm_payload_override(raw_skill)
+        existing_name = ""
+        if normalized_skill_id in normalized_skills_by_id:
+            existing_name = str(normalized_skills_by_id[normalized_skill_id].get("name", "")).strip().lower()
+            if not is_payload_override:
+                raise ValueError(f"Duplicate skill_id in skill assets: {skill_id}")
+
+        if normalized_name in skill_name_to_id and skill_name_to_id[normalized_name] != normalized_skill_id:
             raise ValueError(f"Duplicate skill name in skill assets: {name}")
+        if existing_name and existing_name != normalized_name and skill_name_to_id.get(existing_name) == normalized_skill_id:
+            del skill_name_to_id[existing_name]
+
+        if normalized_skill_id not in normalized_skills_by_id:
+            ordered_skill_ids.append(normalized_skill_id)
+        skill_name_to_id[normalized_name] = normalized_skill_id
 
         skill_type = str(raw_skill.get("skill_type", "damage")).strip().lower() or "damage"
         cast_type = str(raw_skill.get("cast_type", "")).strip().lower()
@@ -879,9 +922,7 @@ def load_skills() -> list[dict]:
             if not damage_context:
                 raise ValueError(f"Skill asset '{skill_id}' damage skills must define damage_context.")
 
-        skill_ids.add(skill_id)
-        skill_names.add(normalized_name)
-        normalized_skills.append({
+        normalized_skills_by_id[normalized_skill_id] = {
             "skill_id": skill_id.strip(),
             "name": name.strip(),
             "description": str(raw_skill.get("description", "")).strip(),
@@ -907,9 +948,9 @@ def load_skills() -> list[dict]:
             "observer_context": observer_context,
             "lag_rounds": lag_rounds,
             "cooldown_rounds": cooldown_rounds,
-        })
+        }
 
-    return normalized_skills
+    return [normalized_skills_by_id[skill_id] for skill_id in ordered_skill_ids]
 
 
 def get_skill_by_id(skill_id: str) -> dict | None:
