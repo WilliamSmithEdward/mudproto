@@ -134,7 +134,7 @@ def build_entity_attack_parts(
     parts.extend([
         build_part(subject),
         build_part(" "),
-        build_part(top_verb, SEVERITY_COLOR_MAP.get(severity, "bright_white"), True),
+        build_part(top_verb),
         build_part(f" you with {pronoun} "),
         build_part(attack_verb),
         build_part("."),

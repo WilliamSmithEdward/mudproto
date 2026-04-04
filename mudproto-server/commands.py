@@ -721,6 +721,15 @@ def _build_corpse_label(source_name: str) -> str:
     return f"{source_name} corpse"
 
 
+def _selector_prefix_matches_keywords(parts: list[str], keywords: set[str]) -> bool:
+    if not parts or not keywords:
+        return False
+    return all(
+        any(keyword.startswith(part) for keyword in keywords)
+        for part in parts
+    )
+
+
 def _resolve_room_player_selector(session: ClientSession, selector_text: str) -> tuple[ClientSession | None, str | None]:
     normalized = selector_text.strip().lower()
     if not normalized:
@@ -733,6 +742,8 @@ def _resolve_room_player_selector(session: ClientSession, selector_text: str) ->
     if not room_players:
         return None, f"No player named '{selector_text}' is here."
 
+    query_parts = [part for part in re.findall(r"[a-zA-Z0-9]+", normalized) if part]
+
     if "." not in normalized:
         exact_match: ClientSession | None = None
         partial_match: ClientSession | None = None
@@ -740,10 +751,13 @@ def _resolve_room_player_selector(session: ClientSession, selector_text: str) ->
             player_name = (player_session.authenticated_character_name or "").strip().lower()
             if not player_name:
                 continue
+
             if player_name == normalized:
                 exact_match = player_session
                 break
-            if normalized in player_name and partial_match is None:
+
+            player_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", player_name) if token}
+            if _selector_prefix_matches_keywords(query_parts, player_keywords) and partial_match is None:
                 partial_match = player_session
 
         if exact_match is not None:
@@ -770,7 +784,7 @@ def _resolve_room_player_selector(session: ClientSession, selector_text: str) ->
     for player_session in room_players:
         player_name = (player_session.authenticated_character_name or "").strip().lower()
         keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", player_name) if token}
-        if all(keyword in keywords for keyword in parts):
+        if _selector_prefix_matches_keywords(parts, keywords):
             matches.append(player_session)
 
     if not matches:
@@ -1688,7 +1702,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
                 session,
                 session.player.current_room_id,
                 target_text,
-                living_only=False,
+                living_only=True,
             )
             if entity_target is not None:
                 return display_entity_summary(session, entity_target)

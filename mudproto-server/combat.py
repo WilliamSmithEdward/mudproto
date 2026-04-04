@@ -475,6 +475,15 @@ def _entity_name_keywords(name: str) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
 
 
+def _selector_prefix_matches_keywords(parts: list[str], keywords: set[str]) -> bool:
+    if not parts or not keywords:
+        return False
+    return all(
+        any(keyword.startswith(part) for keyword in keywords)
+        for part in parts
+    )
+
+
 def _corpse_keywords(corpse: CorpseState) -> set[str]:
     keywords = _entity_name_keywords(corpse.source_name)
     keywords.add("corpse")
@@ -509,6 +518,8 @@ def resolve_room_entity_selector(
         if entity.is_alive or not living_only
     ]
 
+    query_parts = [part for part in re.findall(r"[a-zA-Z0-9]+", normalized) if part]
+
     # Backward-compatible free text lookup for plain names.
     if "." not in normalized:
         exact_match: EntityState | None = None
@@ -518,7 +529,7 @@ def resolve_room_entity_selector(
             if entity_name == normalized:
                 exact_match = entity
                 break
-            if normalized in entity_name and partial_match is None:
+            if _selector_prefix_matches_keywords(query_parts, _entity_name_keywords(entity.name)) and partial_match is None:
                 partial_match = entity
         if exact_match is not None:
             return exact_match, None
@@ -543,13 +554,13 @@ def resolve_room_entity_selector(
     all_matches: list[EntityState] = []
     for entity in all_room_entities:
         keywords = _entity_name_keywords(entity.name)
-        if all(keyword in keywords for keyword in parts):
+        if _selector_prefix_matches_keywords(parts, keywords):
             all_matches.append(entity)
 
     matches: list[EntityState] = []
     for entity in room_entities:
         keywords = _entity_name_keywords(entity.name)
-        if all(keyword in keywords for keyword in parts):
+        if _selector_prefix_matches_keywords(parts, keywords):
             matches.append(entity)
 
     if not matches:
