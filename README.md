@@ -17,6 +17,37 @@
 
 ---
 
+## Quick Start
+
+```bash
+# Clone
+git clone https://github.com/WilliamSmithEdward/mudproto.git
+cd mudproto
+
+# Set up environment
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # macOS / Linux
+
+pip install websockets
+
+# Start the server
+cd mudproto-server
+python server.py
+
+# In a second terminal — connect a client
+cd mudproto-client
+python client.py
+
+# Or launch the GUI client
+cd ..\mudproto-client-gui
+python client_gui.py
+```
+
+Type `start` to create a character and choose a class. Good first commands are `look` and `inventory`. In the south market you can `buy potion`; in the northern hall you can `attack scout`, `jab scout`, and `flee`.
+
+---
+
 ## Overview
 
 MudProto is a modern take on the classic **Multi-User Dungeon**: a shared fantasy world with real-time combat, spells, skills, merchants, and persistent characters. Content and progression are driven by JSON, while the server remains the source of truth for every rule, roll, and result.
@@ -142,37 +173,6 @@ mudproto/
 ```
 
 **Modular Python server · terminal + GUI clients · JSON-driven game data**
-
----
-
-## Quick Start
-
-```bash
-# Clone
-git clone https://github.com/WilliamSmithEdward/mudproto.git
-cd mudproto
-
-# Set up environment
-python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS / Linux
-
-pip install websockets
-
-# Start the server
-cd mudproto-server
-python server.py
-
-# In a second terminal — connect a client
-cd mudproto-client
-python client.py
-
-# Or launch the GUI client
-cd ..\mudproto-client-gui
-python client_gui.py
-```
-
-Type `start` to create a character and choose a class. Good first commands are `look` and `inventory`. In the south market you can `buy potion`; in the northern hall you can `attack scout`, `jab scout`, and `flee`.
 
 ---
 
