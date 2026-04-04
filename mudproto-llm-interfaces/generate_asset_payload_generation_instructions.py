@@ -9,7 +9,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 ASSET_ROOT = REPO_ROOT / "mudproto-server" / "configuration" / "assets"
 TEMPLATE_ROOT = ASSET_ROOT / "templates"
-LLM_PAYLOAD_ROOT = ASSET_ROOT / "llm-payloads"
+ASSET_PAYLOAD_ROOT = ASSET_ROOT / "asset-payloads"
 OUTPUT_FILE = SCRIPT_DIR / "asset_payload_generation_instructions.json"
 
 BASE_ASSET_FILES = {
@@ -66,12 +66,12 @@ def load_base_assets() -> dict[str, object]:
     }
 
 
-def load_llm_payloads() -> list[dict[str, object]]:
-    if not LLM_PAYLOAD_ROOT.exists():
+def load_asset_payloads() -> list[dict[str, object]]:
+    if not ASSET_PAYLOAD_ROOT.exists():
         return []
 
     payloads: list[dict[str, object]] = []
-    for path in sorted(LLM_PAYLOAD_ROOT.glob("*.json")):
+    for path in sorted(ASSET_PAYLOAD_ROOT.glob("*.json")):
         if not path.is_file():
             continue
         payloads.append({
@@ -103,7 +103,7 @@ def _count_list_entries(value: object) -> int:
     return len(value) if isinstance(value, list) else 0
 
 
-def build_asset_counts(base_assets: dict[str, object], llm_payloads: list[dict[str, object]]) -> dict[str, int]:
+def build_asset_counts(base_assets: dict[str, object], asset_payloads: list[dict[str, object]]) -> dict[str, int]:
     raw_npcs = base_assets.get("npcs", {})
     npc_entries = raw_npcs.get("npcs", []) if isinstance(raw_npcs, dict) else []
 
@@ -115,21 +115,21 @@ def build_asset_counts(base_assets: dict[str, object], llm_payloads: list[dict[s
         "skills": _count_list_entries(base_assets.get("skills", [])),
         "spells": _count_list_entries(base_assets.get("spells", [])),
         "zones": _count_list_entries(base_assets.get("zones", [])),
-        "llm_payload_files": len(llm_payloads),
+        "asset_payload_files": len(asset_payloads),
     }
 
 
 def build_instruction_payload() -> dict[str, object]:
     base_assets = load_base_assets()
-    llm_payloads = load_llm_payloads()
+    asset_payloads = load_asset_payloads()
     asset_schemas = load_asset_schemas()
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.5",
+        "version": "2.6",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
-        "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
+        "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
+        "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
         "response_contract": {
             "format": "Return one raw JSON object only.",
             "delivery_requirement": "The final result should be provided as a downloadable `.json` file, not just pasted as prose or wrapped in Markdown.",
@@ -180,7 +180,7 @@ def build_instruction_payload() -> dict[str, object]:
         "conflict_resolution": {
             "policy": "On asset ID conflict, the LLM payload should override the base-game definition.",
             "rule": "If the user wants to replace or modify an existing asset, reuse that asset's ID in the payload and provide the full replacement definition.",
-            "room_merge_behavior": "If multiple LLM payloads target the same room ID, merge the room exits across those payloads while keeping all other room fields from the last loaded room definition.",
+            "room_merge_behavior": "If multiple asset payloads target the same room ID, merge the room exits across those payloads while keeping all other room fields from the last loaded room definition.",
             "other_asset_behavior": "For gear, items, spells, skills, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
             "scope": ["gear", "items", "spells", "skills", "npcs", "rooms", "zones"]
         },
@@ -189,12 +189,12 @@ def build_instruction_payload() -> dict[str, object]:
             "Keep all IDs unique within their asset type.",
             "Append a GUID suffix to every new asset ID and payload_id unless you are intentionally overriding an existing base-game asset.",
             "If an asset is meant to override base-game content, reuse the base asset ID exactly and treat the payload definition as the replacement.",
-            "If multiple payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
+            "If multiple asset payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
             "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
             "Use lowercase IDs and keywords to match project conventions.",
             "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
             "Every asset section must be present and must be a JSON array, even when empty.",
-            "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/llm-payloads/`.",
+            "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/asset-payloads/`.",
             "Only use fields supported by the schemas below.",
             "Only reference assets that exist in the base game or in this same payload.",
             "Preserve MudProto's existing fantasy tone and naming style.",
@@ -231,9 +231,9 @@ def build_instruction_payload() -> dict[str, object]:
             "mudproto-server/configuration/assets/templates/"
         ],
         "current_game_assets": {
-            "counts": build_asset_counts(base_assets, llm_payloads),
+            "counts": build_asset_counts(base_assets, asset_payloads),
             "base_assets": base_assets,
-            "llm_payloads": llm_payloads,
+            "asset_payloads": asset_payloads,
         },
         "starter_template": {
             "payload_id": "example-bundle-<GUID>",

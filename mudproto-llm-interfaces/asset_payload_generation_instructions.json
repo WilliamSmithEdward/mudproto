@@ -1,9 +1,9 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.5",
-  "generated_at_utc": "2026-04-04T17:39:48.959555+00:00",
-  "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
-  "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
+  "version": "2.6",
+  "generated_at_utc": "2026-04-04T18:57:48.495033+00:00",
+  "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
+  "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
     "format": "Return one raw JSON object only.",
     "delivery_requirement": "The final result should be provided as a downloadable `.json` file, not just pasted as prose or wrapped in Markdown.",
@@ -54,7 +54,7 @@
   "conflict_resolution": {
     "policy": "On asset ID conflict, the LLM payload should override the base-game definition.",
     "rule": "If the user wants to replace or modify an existing asset, reuse that asset's ID in the payload and provide the full replacement definition.",
-    "room_merge_behavior": "If multiple LLM payloads target the same room ID, merge the room exits across those payloads while keeping all other room fields from the last loaded room definition.",
+    "room_merge_behavior": "If multiple asset payloads target the same room ID, merge the room exits across those payloads while keeping all other room fields from the last loaded room definition.",
     "other_asset_behavior": "For gear, items, spells, skills, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
     "scope": [
       "gear",
@@ -104,12 +104,12 @@
     "Keep all IDs unique within their asset type.",
     "Append a GUID suffix to every new asset ID and payload_id unless you are intentionally overriding an existing base-game asset.",
     "If an asset is meant to override base-game content, reuse the base asset ID exactly and treat the payload definition as the replacement.",
-    "If multiple payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
+    "If multiple asset payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
     "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
     "Use lowercase IDs and keywords to match project conventions.",
     "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
     "Every asset section must be present and must be a JSON array, even when empty.",
-    "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/llm-payloads/`.",
+    "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/asset-payloads/`.",
     "Only use fields supported by the schemas below.",
     "Only reference assets that exist in the base game or in this same payload.",
     "Preserve MudProto's existing fantasy tone and naming style.",
@@ -1009,7 +1009,7 @@
       "skills": 3,
       "spells": 9,
       "zones": 3,
-      "llm_payload_files": 1
+      "asset_payload_files": 1
     },
     "base_assets": {
       "gear": [
@@ -1844,7 +1844,7 @@
         }
       ]
     },
-    "llm_payloads": [
+    "asset_payloads": [
       {
         "file_name": "dark-knight-outpost.json",
         "content": {

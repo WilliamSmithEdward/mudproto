@@ -14,8 +14,8 @@ ZONES_FILE = CONFIGURABLE_ASSET_ROOT / "zones.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
-LLM_PAYLOADS_DIR = CONFIGURABLE_ASSET_ROOT / "llm-payloads"
-SUPPORTED_LLM_PAYLOAD_SECTIONS = ("gear", "items", "zones", "rooms", "spells", "skills", "npcs")
+ASSET_PAYLOADS_DIR = CONFIGURABLE_ASSET_ROOT / "asset-payloads"
+SUPPORTED_ASSET_PAYLOAD_SECTIONS = ("gear", "items", "zones", "rooms", "spells", "skills", "npcs")
 
 
 def _read_json_asset(path: Path) -> object:
@@ -24,44 +24,44 @@ def _read_json_asset(path: Path) -> object:
 
 
 @lru_cache(maxsize=1)
-def _load_llm_payload_documents() -> tuple[tuple[Path, dict], ...]:
-    if not LLM_PAYLOADS_DIR.exists():
+def _load_asset_payload_documents() -> tuple[tuple[Path, dict], ...]:
+    if not ASSET_PAYLOADS_DIR.exists():
         return tuple()
 
     payload_documents: list[tuple[Path, dict]] = []
-    for path in sorted(LLM_PAYLOADS_DIR.glob("*.json")):
+    for path in sorted(ASSET_PAYLOADS_DIR.glob("*.json")):
         if not path.is_file():
             continue
 
         raw_payload = _read_json_asset(path)
         if not isinstance(raw_payload, dict):
-            raise ValueError(f"LLM payload file must contain an object: {path}")
+            raise ValueError(f"Asset payload file must contain an object: {path}")
 
-        for section_name in SUPPORTED_LLM_PAYLOAD_SECTIONS:
+        for section_name in SUPPORTED_ASSET_PAYLOAD_SECTIONS:
             raw_section = raw_payload.get(section_name, [])
             if raw_section is None:
                 raw_section = []
             if not isinstance(raw_section, list):
-                raise ValueError(f"LLM payload '{path.name}' field '{section_name}' must be a list.")
+                raise ValueError(f"Asset payload '{path.name}' field '{section_name}' must be a list.")
 
         payload_documents.append((path, raw_payload))
 
     return tuple(payload_documents)
 
 
-def _load_llm_payload_section(section_name: str) -> list[dict]:
-    if section_name not in SUPPORTED_LLM_PAYLOAD_SECTIONS:
-        raise ValueError(f"Unsupported LLM payload section '{section_name}'.")
+def _load_asset_payload_section(section_name: str) -> list[dict]:
+    if section_name not in SUPPORTED_ASSET_PAYLOAD_SECTIONS:
+        raise ValueError(f"Unsupported asset payload section '{section_name}'.")
 
     merged_entries: list[dict] = []
-    for path, raw_payload in _load_llm_payload_documents():
+    for path, raw_payload in _load_asset_payload_documents():
         raw_entries = raw_payload.get(section_name, [])
         if raw_entries is None:
             continue
 
         for raw_entry in raw_entries:
             if not isinstance(raw_entry, dict):
-                raise ValueError(f"LLM payload '{path.name}' section '{section_name}' entries must be objects.")
+                raise ValueError(f"Asset payload '{path.name}' section '{section_name}' entries must be objects.")
             merged_entry = dict(raw_entry)
             merged_entry["__source_payload_file"] = path.name
             merged_entries.append(merged_entry)
@@ -69,7 +69,7 @@ def _load_llm_payload_section(section_name: str) -> list[dict]:
     return merged_entries
 
 
-def _is_llm_payload_override(raw_entry: dict) -> bool:
+def _is_asset_payload_override(raw_entry: dict) -> bool:
     return bool(str(raw_entry.get("__source_payload_file", "")).strip())
 
 
@@ -97,7 +97,7 @@ def load_gear_templates() -> list[dict]:
     raw_templates = _read_json_asset(GEAR_FILE)
     if not isinstance(raw_templates, list):
         raise ValueError(f"Gear asset file must contain a list: {GEAR_FILE}")
-    raw_templates = list(raw_templates) + _load_llm_payload_section("gear")
+    raw_templates = list(raw_templates) + _load_asset_payload_section("gear")
 
     normalized_templates_by_id: dict[str, dict] = {}
     ordered_template_ids: list[str] = []
@@ -109,7 +109,7 @@ def load_gear_templates() -> list[dict]:
         template_id, name, normalized_keywords = _normalize_template_identity(raw_template, context="Gear asset")
         slot = raw_template.get("slot")
         normalized_template_id = template_id.strip().lower()
-        is_payload_override = _is_llm_payload_override(raw_template)
+        is_payload_override = _is_asset_payload_override(raw_template)
 
         if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate gear template_id: {template_id}")
@@ -175,7 +175,7 @@ def load_item_templates() -> list[dict]:
     raw_templates = _read_json_asset(ITEMS_FILE)
     if not isinstance(raw_templates, list):
         raise ValueError(f"Item asset file must contain a list: {ITEMS_FILE}")
-    raw_templates = list(raw_templates) + _load_llm_payload_section("items")
+    raw_templates = list(raw_templates) + _load_asset_payload_section("items")
 
     normalized_templates_by_id: dict[str, dict] = {}
     ordered_template_ids: list[str] = []
@@ -191,7 +191,7 @@ def load_item_templates() -> list[dict]:
         effect_amount = int(raw_template.get("effect_amount", 0))
         use_lag_seconds = max(0.0, float(raw_template.get("use_lag_seconds", 0.0)))
         normalized_template_id = template_id.strip().lower()
-        is_payload_override = _is_llm_payload_override(raw_template)
+        is_payload_override = _is_asset_payload_override(raw_template)
 
         if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate item template_id: {template_id}")
@@ -236,7 +236,7 @@ def load_zones() -> list[dict]:
     raw_zones = _read_json_asset(ZONES_FILE)
     if not isinstance(raw_zones, list):
         raise ValueError(f"Zone asset file must contain a list: {ZONES_FILE}")
-    raw_zones = list(raw_zones) + _load_llm_payload_section("zones")
+    raw_zones = list(raw_zones) + _load_asset_payload_section("zones")
 
     normalized_zones_by_id: dict[str, dict] = {}
     ordered_zone_ids: list[str] = []
@@ -248,7 +248,7 @@ def load_zones() -> list[dict]:
         zone_id = str(raw_zone.get("zone_id", "")).strip()
         name = str(raw_zone.get("name", "")).strip()
         normalized_zone_id = zone_id.lower()
-        is_payload_override = _is_llm_payload_override(raw_zone)
+        is_payload_override = _is_asset_payload_override(raw_zone)
         if not zone_id:
             raise ValueError("Zone asset entries must include a non-empty string zone_id.")
         if not name:
@@ -288,7 +288,7 @@ def load_rooms() -> list[dict]:
     raw_rooms = _read_json_asset(ROOMS_FILE)
     if not isinstance(raw_rooms, list):
         raise ValueError(f"Room asset file must contain a list: {ROOMS_FILE}")
-    raw_rooms = list(raw_rooms) + _load_llm_payload_section("rooms")
+    raw_rooms = list(raw_rooms) + _load_asset_payload_section("rooms")
 
     normalized_rooms_by_id: dict[str, dict] = {}
     ordered_room_ids: list[str] = []
@@ -304,7 +304,7 @@ def load_rooms() -> list[dict]:
         exits = raw_room.get("exits", {})
         room_npcs = raw_room.get("npcs", [])
         normalized_room_id = str(room_id).strip().lower() if isinstance(room_id, str) else ""
-        is_payload_override = _is_llm_payload_override(raw_room)
+        is_payload_override = _is_asset_payload_override(raw_room)
 
         if not isinstance(room_id, str) or not room_id.strip():
             raise ValueError("Room asset entries must include a non-empty string room_id.")
@@ -377,7 +377,7 @@ def load_npc_templates() -> list[dict]:
     if not isinstance(raw_config, dict):
         raise ValueError(f"NPC asset file must contain an object: {NPCS_FILE}")
 
-    raw_npcs = list(raw_config.get("npcs", [])) + _load_llm_payload_section("npcs")
+    raw_npcs = list(raw_config.get("npcs", [])) + _load_asset_payload_section("npcs")
     if raw_npcs is None:
         raw_npcs = []
     if not isinstance(raw_npcs, list):
@@ -392,7 +392,7 @@ def load_npc_templates() -> list[dict]:
 
         npc_id = str(raw_npc.get("npc_id", "")).strip()
         normalized_npc_id = npc_id.lower()
-        is_payload_override = _is_llm_payload_override(raw_npc)
+        is_payload_override = _is_asset_payload_override(raw_npc)
         if not npc_id:
             raise ValueError("NPC entries must include npc_id.")
         if normalized_npc_id in normalized_npcs_by_id and not is_payload_override:
@@ -620,7 +620,7 @@ def load_spells() -> list[dict]:
     raw_spells = _read_json_asset(SPELLS_FILE)
     if not isinstance(raw_spells, list):
         raise ValueError(f"Spell asset file must contain a list: {SPELLS_FILE}")
-    raw_spells = list(raw_spells) + _load_llm_payload_section("spells")
+    raw_spells = list(raw_spells) + _load_asset_payload_section("spells")
 
     normalized_spells_by_id: dict[str, dict] = {}
     ordered_spell_ids: list[str] = []
@@ -645,7 +645,7 @@ def load_spells() -> list[dict]:
 
         normalized_spell_id = spell_id.strip().lower()
         normalized_name = name.strip().lower()
-        is_payload_override = _is_llm_payload_override(raw_spell)
+        is_payload_override = _is_asset_payload_override(raw_spell)
         existing_name = ""
         if normalized_spell_id in normalized_spells_by_id:
             existing_name = str(normalized_spells_by_id[normalized_spell_id].get("name", "")).strip().lower()
@@ -817,7 +817,7 @@ def load_skills() -> list[dict]:
     raw_skills = _read_json_asset(SKILLS_FILE)
     if not isinstance(raw_skills, list):
         raise ValueError(f"Skill asset file must contain a list: {SKILLS_FILE}")
-    raw_skills = list(raw_skills) + _load_llm_payload_section("skills")
+    raw_skills = list(raw_skills) + _load_asset_payload_section("skills")
 
     normalized_skills_by_id: dict[str, dict] = {}
     ordered_skill_ids: list[str] = []
@@ -842,7 +842,7 @@ def load_skills() -> list[dict]:
 
         normalized_skill_id = skill_id.strip().lower()
         normalized_name = name.strip().lower()
-        is_payload_override = _is_llm_payload_override(raw_skill)
+        is_payload_override = _is_asset_payload_override(raw_skill)
         existing_name = ""
         if normalized_skill_id in normalized_skills_by_id:
             existing_name = str(normalized_skills_by_id[normalized_skill_id].get("name", "")).strip().lower()

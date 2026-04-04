@@ -8,7 +8,7 @@ This document describes the workflow for using an AI model to generate MudProto 
 
 MudProto supports content bundles dropped into:
 
-- `mudproto-server/configuration/assets/llm-payloads/`
+- `mudproto-server/configuration/assets/asset-payloads/`
 
 These payloads are loaded alongside the base asset files and can:
 - add new gear, items, spells, skills, NPCs, rooms, and zones
@@ -46,11 +46,11 @@ If the model only pastes JSON in chat, save it manually as a `.json` file before
 ### 3. Place the file here
 Drop the generated file into:
 
-- `mudproto-server/configuration/assets/llm-payloads/`
+- `mudproto-server/configuration/assets/asset-payloads/`
 
 Example:
 
-- `mudproto-server/configuration/assets/llm-payloads/dark-knight-outpost.json`
+- `mudproto-server/configuration/assets/asset-payloads/dark-knight-outpost.json`
 
 ### 4. Restart the server
 Asset payloads are cached by the loader, so restart the server after adding or changing a payload.
@@ -150,7 +150,7 @@ When asking an LLM to generate content, provide:
 
 A good final instruction is:
 
-> Return a single downloadable `.json` file suitable for placement in `mudproto-server/configuration/assets/llm-payloads/`.
+> Return a single downloadable `.json` file suitable for placement in `mudproto-server/configuration/assets/asset-payloads/`.
 
 ---
 
@@ -170,7 +170,7 @@ Before keeping a generated payload:
 ## Related files
 
 - `mudproto-llm-interfaces/asset_payload_generation_instructions.json`
-- `mudproto-server/configuration/assets/llm-payloads/`
+- `mudproto-server/configuration/assets/asset-payloads/`
 - `mudproto-server/configuration/assets/templates/`
 - `mudproto-server/configuration/attributes/templates/`
 - `ASSET_GENERATION.md`
