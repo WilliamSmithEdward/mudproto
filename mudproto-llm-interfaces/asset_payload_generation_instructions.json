@@ -119,6 +119,7 @@
     "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
     "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
     "Only reference assets that exist in the base game or in this same payload.",
+    "Valid room exit directions are north, east, south, west, up, and down, and generated room connections should use only those direction keys.",
     "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
     "Preserve MudProto's existing fantasy tone and naming style.",
     "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
