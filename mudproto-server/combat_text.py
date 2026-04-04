@@ -6,7 +6,7 @@ from settings import PLAYER_REFERENCE_MAX_HP
 SEVERITY_COLOR_MAP = {
     "miss": "bright_red",
     "massacre": "bright_green",
-    "annihilate": "blue",
+    "annihilate": "bright_blue",
     "obliterate": "orange",
 }
 

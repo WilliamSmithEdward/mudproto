@@ -83,6 +83,42 @@
       ]
     },
     {
+      "npc_id": "npc.ashen-reliquary-exarch",
+      "name": "Ashen Reliquary Exarch",
+      "hit_points": 360,
+      "max_hit_points": 360,
+      "power_level": 8,
+      "respawn": true,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 4,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 3,
+      "coin_reward": 95,
+      "experience_reward": 120,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "main_hand_weapon_template_id": "weapon.exarch-doomblade",
+      "off_hand_weapon_template_id": "weapon.exarch-emberfang",
+      "vigor": 110,
+      "max_vigor": 110,
+      "mana": 180,
+      "max_mana": 180,
+      "skill_use_chance": 0.5,
+      "skill_ids": [
+        "skill.jab",
+        "skill.overhead-crack",
+        "skill.guard-breath"
+      ],
+      "spell_use_chance": 0.65,
+      "spell_ids": [
+        "spell.spark",
+        "spell.ember-lance",
+        "spell.regeneration-ward"
+      ]
+    },
+    {
       "npc_id": "npc.south-market-merchant",
       "name": "Quartermaster Vessa",
       "hit_points": 180,

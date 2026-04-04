@@ -68,7 +68,23 @@
       }
     ],
     "exits": {
-      "west": "start"
+      "west": "start",
+      "south": "reliquary"
+    }
+  },
+  {
+    "room_id": "reliquary",
+    "title": "Ashen Reliquary",
+    "description": "Obsidian pillars and old cinder braziers crowd this sunken vault, where warded steel hums like a storm about to break.",
+    "zone_id": "zone.whispering-sanctum",
+    "npcs": [
+      {
+        "npc_id": "npc.ashen-reliquary-exarch",
+        "count": 1
+      }
+    ],
+    "exits": {
+      "north": "sanctum"
     }
   }
 ]
