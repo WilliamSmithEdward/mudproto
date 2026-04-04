@@ -112,11 +112,11 @@ def get_item_keywords(item: ItemState) -> set[str]:
 def parse_item_selector(selector: str) -> tuple[int | None, list[str], str | None]:
     normalized = selector.strip().lower()
     if not normalized:
-        return None, [], "Provide equipment keywords, e.g. training.sword"
+        return None, [], "Provide equipment keywords, e.g. training sword"
 
-    parts = [part for part in normalized.split(".") if part]
+    parts = [part for part in re.split(r"[.\s]+", normalized) if part]
     if not parts:
-        return None, [], "Provide equipment keywords, e.g. training.sword"
+        return None, [], "Provide equipment keywords, e.g. training sword"
 
     match_index: int | None = None
     if parts[0].isdigit():

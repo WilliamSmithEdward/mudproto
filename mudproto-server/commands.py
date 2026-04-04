@@ -38,7 +38,13 @@ from display import (
 )
 from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from grammar import indefinite_article, with_article
-from inventory import build_equippable_item_from_template, is_item_equippable, resolve_equipment_selector
+from inventory import (
+    build_equippable_item_from_template,
+    get_item_keywords,
+    is_item_equippable,
+    parse_item_selector,
+    resolve_equipment_selector,
+)
 from models import ClientSession, ItemState
 from experience import get_xp_to_next_level
 from player_resources import clamp_player_resources_to_caps, get_player_resource_caps
@@ -774,6 +780,164 @@ def _display_corpse_examination(session: ClientSession, corpse) -> OutboundResul
     return display_command_result(session, parts)
 
 
+def _normalize_item_look_selector(selector_text: str) -> tuple[str, bool]:
+    cleaned = re.sub(r"\s+", " ", selector_text.strip())
+    lowered = cleaned.lower()
+
+    if lowered.startswith("at "):
+        cleaned = cleaned[3:].strip()
+        lowered = cleaned.lower()
+
+    search_room = False
+    for suffix in (" in the room", " in room", " on the ground", " on ground"):
+        if lowered.endswith(suffix):
+            cleaned = cleaned[:-len(suffix)].strip()
+            search_room = True
+            break
+
+    return cleaned, search_room
+
+
+def _resolve_item_location_label(session: ClientSession, item: ItemState, *, default_label: str = "Inventory") -> str:
+    if session.equipment.equipped_main_hand_id == item.item_id:
+        return "Main hand"
+    if session.equipment.equipped_off_hand_id == item.item_id:
+        return "Off hand"
+
+    for wear_slot, worn_item_id in session.equipment.worn_item_ids.items():
+        if worn_item_id == item.item_id:
+            return f"Worn on {wear_slot.replace('_', ' ')}"
+
+    if item.item_id in session.inventory_items:
+        return "Inventory"
+
+    return default_label
+
+
+def _resolve_item_kind_label(item: ItemState) -> str:
+    if is_item_equippable(item):
+        return "Weapon" if item.slot == "weapon" else "Armor"
+    return "Item"
+
+
+def _format_item_wear_slots(item: ItemState) -> str:
+    wear_slots = [str(slot).strip().lower() for slot in item.wear_slots if str(slot).strip()]
+    if not wear_slots and str(item.wear_slot).strip():
+        wear_slots = [str(item.wear_slot).strip().lower()]
+    return ", ".join(slot.replace("_", " ").title() for slot in wear_slots)
+
+
+def _format_item_hand_usage(item: ItemState) -> str:
+    if not is_item_equippable(item) or item.slot != "weapon":
+        return ""
+    return "Main hand or off hand" if bool(item.can_hold) else "Main hand"
+
+
+def _format_item_damage_profile(item: ItemState) -> str:
+    dice_count = max(0, int(getattr(item, "damage_dice_count", 0)))
+    dice_sides = max(0, int(getattr(item, "damage_dice_sides", 0)))
+    modifier = int(getattr(item, "damage_roll_modifier", 0))
+
+    if dice_count <= 0 or dice_sides <= 0:
+        return str(max(0, modifier)) if modifier else "—"
+
+    profile = f"{dice_count}d{dice_sides}"
+    if modifier > 0:
+        return f"{profile}+{modifier}"
+    if modifier < 0:
+        return f"{profile}{modifier}"
+    return profile
+
+
+def _display_item_examination(session: ClientSession, item: ItemState, *, default_location: str = "Inventory") -> OutboundResult:
+    kind_label = _resolve_item_kind_label(item)
+    location_label = _resolve_item_location_label(session, item, default_label=default_location)
+    rows: list[list[str]] = [
+        ["Type", kind_label],
+        ["Location", location_label],
+    ]
+
+    if kind_label == "Weapon":
+        weapon_type = str(getattr(item, "weapon_type", "") or "weapon").replace("_", " ").title()
+        rows.append(["Weapon Type", weapon_type])
+    elif kind_label == "Armor":
+        wear_slot_label = _format_item_wear_slots(item)
+        if wear_slot_label:
+            rows.append(["Wear Slot", wear_slot_label])
+
+    parts = build_menu_table_parts(
+        str(getattr(item, "name", "Item")).strip() or "Item",
+        ["Field", "Details"],
+        rows,
+        column_colors=["bright_cyan", "bright_white"],
+        column_alignments=["left", "left"],
+    )
+
+    description = str(getattr(item, "description", "")).strip() or "No description is available for this item."
+    parts.extend([
+        build_part("\n"),
+        build_part("Description", "bright_white", True),
+        build_part("\n"),
+        build_part(description, "bright_white"),
+    ])
+
+    return display_command_result(session, parts)
+
+
+def _resolve_owned_item_selector(session: ClientSession, selector: str) -> tuple[ItemState | None, str | None, str | None]:
+    requested_index, keywords, parse_error = parse_item_selector(selector)
+    if parse_error is not None:
+        return None, None, parse_error
+
+    candidates: list[tuple[int, str, ItemState]] = []
+    seen_item_ids: set[str] = set()
+
+    for location_label, item in list_worn_items(session):
+        if item.item_id in seen_item_ids:
+            continue
+        seen_item_ids.add(item.item_id)
+        candidates.append((0, str(location_label).strip() or "equipped", item))
+
+    for item in session.inventory_items.values():
+        if item.item_id in seen_item_ids:
+            continue
+        seen_item_ids.add(item.item_id)
+        candidates.append((1, "inventory", item))
+
+    candidates.sort(key=lambda entry: (entry[0], entry[2].name.lower(), entry[2].item_id))
+
+    matches: list[tuple[ItemState, str]] = []
+    for _, location_label, item in candidates:
+        item_keywords = get_item_keywords(item)
+        if all(keyword in item_keywords for keyword in keywords):
+            matches.append((item, location_label))
+
+    if not matches:
+        return None, None, f"You are not carrying or wearing anything matching '{selector}'."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, None, f"Only {len(matches)} match(es) found for '{selector}'."
+        selected_item, location_label = matches[requested_index - 1]
+        return selected_item, location_label, None
+
+    selected_item, location_label = matches[0]
+    return selected_item, location_label, None
+
+
+def _resolve_room_ground_item_selector(session: ClientSession, room_id: str, selector: str) -> tuple[ItemState | None, str | None]:
+    matches, requested_index, selector_error = _resolve_room_ground_matches(session, room_id, selector)
+    if selector_error is not None:
+        return None, selector_error
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} match(es) found for '{selector}'."
+        return matches[requested_index - 1], None
+
+    return matches[0], None
+
+
 def _selector_prefix_matches_keywords(parts: list[str], keywords: set[str]) -> bool:
     if not parts or not keywords:
         return False
@@ -852,31 +1016,17 @@ def _resolve_room_player_selector(session: ClientSession, selector_text: str) ->
 
 
 def _resolve_inventory_selector(session: ClientSession, selector: str):
-    normalized = selector.strip().lower()
-    if not normalized:
-        return None, "Provide an inventory selector."
-
-    parts = [part for part in normalized.split(".") if part]
-    if not parts:
-        return None, "Provide an inventory selector."
-
-    requested_index: int | None = None
-    if parts[0].isdigit():
-        requested_index = int(parts[0])
-        parts = parts[1:]
-        if requested_index <= 0:
-            return None, "Selector index must be 1 or greater."
-
-    if not parts:
-        return None, "Provide at least one selector keyword after the index."
+    requested_index, keywords, parse_error = parse_item_selector(selector)
+    if parse_error is not None:
+        return None, parse_error
 
     inventory_items = list(session.inventory_items.values())
     inventory_items.sort(key=lambda item: item.name.lower())
 
     matches = []
     for item in inventory_items:
-        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
-        if all(keyword in keywords for keyword in parts):
+        item_keywords = get_item_keywords(item)
+        if all(keyword in item_keywords for keyword in keywords):
             matches.append(item)
 
     if not matches:
@@ -891,23 +1041,9 @@ def _resolve_inventory_selector(session: ClientSession, selector: str):
 
 
 def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
-    normalized = selector.strip().lower()
-    if not normalized:
-        return None, "Provide an inventory selector."
-
-    parts = [part for part in normalized.split(".") if part]
-    if not parts:
-        return None, "Provide an inventory selector."
-
-    requested_index: int | None = None
-    if parts[0].isdigit():
-        requested_index = int(parts[0])
-        parts = parts[1:]
-        if requested_index <= 0:
-            return None, "Selector index must be 1 or greater."
-
-    if not parts:
-        return None, "Provide at least one selector keyword after the index."
+    requested_index, keywords, parse_error = parse_item_selector(selector)
+    if parse_error is not None:
+        return None, parse_error
 
     misc_items = [
         item
@@ -918,8 +1054,8 @@ def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
 
     matches = []
     for item in misc_items:
-        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
-        if all(keyword in keywords for keyword in parts):
+        item_keywords = get_item_keywords(item)
+        if all(keyword in item_keywords for keyword in keywords):
             matches.append(item)
 
     if not matches:
@@ -949,28 +1085,14 @@ def _list_room_ground_items(session: ClientSession, room_id: str):
 
 
 def _resolve_room_ground_matches(session: ClientSession, room_id: str, selector: str):
-    normalized = selector.strip().lower()
-    if not normalized:
-        return [], None, "Provide an item selector."
-
-    parts = [part for part in normalized.split(".") if part]
-    if not parts:
-        return [], None, "Provide an item selector."
-
-    requested_index: int | None = None
-    if parts[0].isdigit():
-        requested_index = int(parts[0])
-        parts = parts[1:]
-        if requested_index <= 0:
-            return [], None, "Selector index must be 1 or greater."
-
-    if not parts:
-        return [], None, "Provide at least one selector keyword after the index."
+    requested_index, keywords, parse_error = parse_item_selector(selector)
+    if parse_error is not None:
+        return [], None, parse_error
 
     matches = []
     for item in _list_room_ground_items(session, room_id):
-        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
-        if all(keyword in keywords for keyword in parts):
+        item_keywords = get_item_keywords(item)
+        if all(keyword in item_keywords for keyword in keywords):
             matches.append(item)
 
     if not matches:
@@ -1747,14 +1869,32 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         if args:
             target_text = " ".join(args).strip()
-            player_target, _ = _resolve_room_player_selector(session, target_text)
+            normalized_selector, search_room_item = _normalize_item_look_selector(target_text)
+            if not normalized_selector:
+                return display_room(session, room)
+
+            if search_room_item:
+                room_item, room_item_error = _resolve_room_ground_item_selector(
+                    session,
+                    session.player.current_room_id,
+                    normalized_selector,
+                )
+                if room_item is not None:
+                    return _display_item_examination(session, room_item, default_location="Room")
+                return display_error(room_item_error or f"No room item matches '{normalized_selector}'.", session)
+
+            owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
+            if owned_item is not None:
+                return _display_item_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
+
+            player_target, _ = _resolve_room_player_selector(session, normalized_selector)
             if player_target is not None:
                 return display_player_summary(session, player_target)
 
             entity_target, entity_error = resolve_room_entity_selector(
                 session,
                 session.player.current_room_id,
-                target_text,
+                normalized_selector,
                 living_only=True,
             )
             if entity_target is not None:
@@ -1763,12 +1903,12 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             corpse_target, _ = resolve_room_corpse_selector(
                 session,
                 session.player.current_room_id,
-                target_text,
+                normalized_selector,
             )
             if corpse_target is not None:
                 return _display_corpse_examination(session, corpse_target)
 
-            return display_error(entity_error or f"No target named '{target_text}' is here.", session)
+            return display_error(entity_error or f"No target named '{normalized_selector}' is here.", session)
 
         return display_room(session, room)
 
@@ -1782,15 +1922,33 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     if verb in {"ex", "exa", "exam", "exami", "examin", "examine"}:
         selector_text = " ".join(args).strip()
         if not selector_text:
-            return display_error("Usage: examine <corpse selector>", session)
+            return display_error("Usage: examine <item|corpse selector> [in room]", session)
+
+        normalized_selector, search_room_item = _normalize_item_look_selector(selector_text)
+        if not normalized_selector:
+            return display_error("Usage: examine <item|corpse selector> [in room]", session)
+
+        if search_room_item:
+            room_item, room_item_error = _resolve_room_ground_item_selector(
+                session,
+                session.player.current_room_id,
+                normalized_selector,
+            )
+            if room_item is not None:
+                return _display_item_examination(session, room_item, default_location="Room")
+            return display_error(room_item_error or f"No room item matches '{normalized_selector}'.", session)
+
+        owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
+        if owned_item is not None:
+            return _display_item_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
 
         corpse, resolve_error = resolve_room_corpse_selector(
             session,
             session.player.current_room_id,
-            selector_text,
+            normalized_selector,
         )
         if corpse is None:
-            return display_error(resolve_error or f"No corpse matching '{selector_text}' is here.", session)
+            return display_error(resolve_error or f"No corpse matching '{normalized_selector}' is here.", session)
 
         return _display_corpse_examination(session, corpse)
 
