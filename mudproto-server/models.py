@@ -124,6 +124,8 @@ class EntityState:
     off_hand_hit_roll_modifier: int = 0
     coin_reward: int = 0
     experience_reward: int = 0
+    experience_contributor_keys: set[str] = field(default_factory=set)
+    experience_reward_claimed: bool = False
     loot_items: list[ItemState] = field(default_factory=list)
     inventory_items: list[ItemState] = field(default_factory=list)
     is_alive: bool = True
@@ -175,6 +177,7 @@ class ClientSession:
     command_queue: list[QueuedCommand] = field(default_factory=list)
     scheduler_task: Optional[asyncio.Task] = None
     prompt_pending_after_lag: bool = False
+    pending_private_lines: list[list[dict]] = field(default_factory=list)
     entities: dict[str, EntityState] = field(default_factory=dict)
     entity_spawn_counter: int = 0
     corpses: dict[str, CorpseState] = field(default_factory=dict)

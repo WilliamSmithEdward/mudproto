@@ -273,6 +273,24 @@ def _extract_display_lines(message: dict | None) -> list[list[dict]]:
     return extracted_lines
 
 
+def _consume_pending_private_lines(session: ClientSession) -> list[list[dict]]:
+    pending_lines = [line for line in session.pending_private_lines if isinstance(line, list)]
+    session.pending_private_lines = []
+    return pending_lines
+
+
+def _append_private_lines_to_payload(payload: dict, session: ClientSession) -> None:
+    pending_lines = _consume_pending_private_lines(session)
+    if not pending_lines:
+        return
+
+    existing_lines = payload.get("lines")
+    normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
+    if normalized_existing and normalized_existing[-1]:
+        normalized_existing.append([])
+    payload["lines"] = normalized_existing + pending_lines
+
+
 def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tuple[list[list[dict]], list[list[dict]]]:
     player_lines: list[list[dict]] = []
     retaliation_lines: list[list[dict]] = []
@@ -328,6 +346,11 @@ def _build_unified_room_round_display(
         retaliation_phase_lines.extend(retaliation_lines)
 
     merged_lines = player_phase_lines + retaliation_phase_lines
+    pending_private_lines = _consume_pending_private_lines(recipient_session)
+    if pending_private_lines:
+        if merged_lines and merged_lines[-1]:
+            merged_lines.append([])
+        merged_lines.extend(pending_private_lines)
     if not merged_lines:
         return None
 
@@ -351,6 +374,7 @@ async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *
                 if isinstance(message, dict) and message.get("type") == "display":
                     payload = message.get("payload")
                     if isinstance(payload, dict):
+                        _append_private_lines_to_payload(payload, peer)
                         prompt_lines = [build_prompt_parts(peer)]
                         if payload.get("lines"):
                             prompt_lines = [[]] + prompt_lines

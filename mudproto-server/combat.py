@@ -45,9 +45,24 @@ OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
 
 
-def _append_experience_gain_parts(session: ClientSession, entity: EntityState, parts: list[dict], build_part_fn) -> None:
-    experience_reward = max(0, int(getattr(entity, "experience_reward", 0)))
-    gained, old_level, new_level, _ = award_experience(session, experience_reward)
+def _session_contributor_key(session: ClientSession) -> str:
+    return (session.player_state_key or session.client_id).strip().lower()
+
+
+def _mark_entity_contributor(session: ClientSession, entity: EntityState) -> None:
+    contributor_key = _session_contributor_key(session)
+    if contributor_key:
+        entity.experience_contributor_keys.add(contributor_key)
+
+
+def _append_experience_gain_notification(
+    session: ClientSession,
+    gained: int,
+    old_level: int,
+    new_level: int,
+    parts: list[dict],
+    build_part_fn,
+) -> None:
     if gained <= 0:
         return
 
@@ -75,6 +90,105 @@ def _append_experience_gain_parts(session: ClientSession, entity: EntityState, p
             build_part_fn(" ", "bright_white"),
             build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
         ])
+
+
+def _iter_experience_contributor_sessions(contributor_keys: set[str], *, room_id: str) -> list[ClientSession]:
+    if not contributor_keys:
+        return []
+
+    normalized_keys = {str(key).strip().lower() for key in contributor_keys if str(key).strip()}
+    normalized_room_id = str(room_id).strip()
+    if not normalized_keys or not normalized_room_id:
+        return []
+
+    matched_sessions: list[ClientSession] = []
+    seen_keys: set[str] = set()
+    for session in list(active_character_sessions.values()) + list(connected_clients.values()):
+        if not session.is_authenticated:
+            continue
+        if str(session.player.current_room_id).strip() != normalized_room_id:
+            continue
+        session_key = _session_contributor_key(session)
+        if not session_key or session_key not in normalized_keys or session_key in seen_keys:
+            continue
+        matched_sessions.append(session)
+        seen_keys.add(session_key)
+
+    return matched_sessions
+
+
+def _queue_experience_gain_notification(session: ClientSession, gained: int, old_level: int, new_level: int) -> None:
+    if gained <= 0:
+        return
+
+    from display import build_part, parts_to_lines
+
+    notification_parts: list[dict] = []
+    _append_experience_gain_notification(
+        session,
+        gained,
+        old_level,
+        new_level,
+        notification_parts,
+        build_part,
+    )
+    notification_lines = parts_to_lines(notification_parts)
+    if not notification_lines:
+        return
+
+    if session.pending_private_lines and session.pending_private_lines[-1]:
+        session.pending_private_lines.append([])
+    session.pending_private_lines.extend(notification_lines)
+
+
+def _award_shared_entity_experience(session: ClientSession, entity: EntityState, parts: list[dict], build_part_fn) -> None:
+    if bool(getattr(entity, "experience_reward_claimed", False)):
+        return
+
+    experience_reward = max(0, int(getattr(entity, "experience_reward", 0)))
+    if experience_reward <= 0:
+        entity.experience_reward_claimed = True
+        entity.experience_contributor_keys.clear()
+        return
+
+    contributor_keys = set(getattr(entity, "experience_contributor_keys", set()))
+    current_key = _session_contributor_key(session)
+    if current_key:
+        contributor_keys.add(current_key)
+
+    rewarded_keys: set[str] = set()
+    for contributor_session in _iter_experience_contributor_sessions(contributor_keys, room_id=entity.room_id):
+        contributor_key = _session_contributor_key(contributor_session)
+        if not contributor_key or contributor_key in rewarded_keys:
+            continue
+
+        gained, old_level, new_level, _ = award_experience(contributor_session, experience_reward)
+        rewarded_keys.add(contributor_key)
+        if contributor_key == current_key:
+            _append_experience_gain_notification(
+                contributor_session,
+                gained,
+                old_level,
+                new_level,
+                parts,
+                build_part_fn,
+            )
+        else:
+            _queue_experience_gain_notification(contributor_session, gained, old_level, new_level)
+
+    if current_key and current_key not in rewarded_keys:
+        gained, old_level, new_level, _ = award_experience(session, experience_reward)
+        _append_experience_gain_notification(
+            session,
+            gained,
+            old_level,
+            new_level,
+            parts,
+            build_part_fn,
+        )
+
+    entity.experience_reward_claimed = True
+    entity.experience_contributor_keys.clear()
 
 
 def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
@@ -1153,6 +1267,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
+            _mark_entity_contributor(session, entity)
             dealt = min(entity.hit_points, total_damage)
             entity.hit_points = max(0, entity.hit_points - total_damage)
             total_damage_dealt += max(0, dealt)
@@ -1176,7 +1291,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         if entity.hit_points <= 0:
             entity.is_alive = False
             spawn_corpse_for_entity(session, entity)
-            _append_experience_gain_parts(session, entity, parts, build_part)
+            _award_shared_entity_experience(session, entity, parts, build_part)
             destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
@@ -1757,6 +1872,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
+            _mark_entity_contributor(session, entity)
             dealt = min(entity.hit_points, total_damage)
             entity.hit_points = max(0, entity.hit_points - total_damage)
             total_damage_dealt += max(0, dealt)
@@ -1780,7 +1896,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         if entity.hit_points <= 0:
             entity.is_alive = False
             spawn_corpse_for_entity(session, entity)
-            _append_experience_gain_parts(session, entity, parts, build_part)
+            _award_shared_entity_experience(session, entity, parts, build_part)
             destroyed_entity_names.append(entity.name)
             parts.extend([
                 build_part("\n"),
@@ -2230,6 +2346,7 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
             weapon,
             player_level=session.player.level,
         )
+        _mark_entity_contributor(session, entity)
         entity.hit_points = max(0, entity.hit_points - rolled_damage)
         parts.extend(build_player_attack_parts(
             entity_name=entity.name,
@@ -2386,7 +2503,7 @@ def resolve_combat_round(
         if entity.is_alive:
             entity.is_alive = False
         spawn_corpse_for_entity(session, entity)
-        _append_experience_gain_parts(session, entity, parts, build_part)
+        _award_shared_entity_experience(session, entity, parts, build_part)
 
     # Announce entity death immediately after the lethal hit is resolved.
     if entity_died_this_round:
