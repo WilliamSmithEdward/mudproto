@@ -945,15 +945,6 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
     actor_name = session.authenticated_character_name or "Someone"
 
-    if skill_type == "damage":
-        peaceful_target = _find_peaceful_target(
-            session,
-            target_name=target_name if cast_type == "target" else None,
-            include_room_scan=(cast_type == "aoe"),
-        )
-        if peaceful_target is not None:
-            return _display_peaceful_warning(session, peaceful_target), False
-
     if get_engaged_entity(session) is None and not usable_out_of_combat:
         return display_error(f"{skill_name} can only be used while in combat.", session), False
 
@@ -1051,6 +1042,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     clear_combat_if_invalid(session)
 
     damage_targets: list[EntityState] = []
+    peaceful_targets_for_feedback: list[EntityState] = []
     if cast_type == "target":
         entity: EntityState | None = None
         if target_name:
@@ -1066,12 +1058,21 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             entity = get_engaged_entity(session)
             if entity is None:
                 return display_error("Target skill requires a target: skill <name> <target>", session), False
-        damage_targets.append(entity)
+        if bool(getattr(entity, "is_peaceful", False)):
+            peaceful_targets_for_feedback.append(entity)
+        else:
+            damage_targets.append(entity)
     elif cast_type == "aoe":
         for entity in list_room_entities(session, session.player.current_room_id):
-            if entity.is_alive and not entity.is_ally:
-                damage_targets.append(entity)
-        if not damage_targets:
+            if not entity.is_alive:
+                continue
+            if bool(getattr(entity, "is_peaceful", False)):
+                peaceful_targets_for_feedback.append(entity)
+                continue
+            if entity.is_ally:
+                continue
+            damage_targets.append(entity)
+        if not damage_targets and not peaceful_targets_for_feedback:
             return display_error("No valid hostile targets in the room.", session), False
     else:
         return display_error(f"Damage skill '{skill_name}' cannot be cast as '{cast_type}'.", session), False
@@ -1138,6 +1139,12 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                         build_part(with_article(next_target.name)),
                         build_part("."),
                     ])
+
+    if not damage_targets and peaceful_targets_for_feedback:
+        parts.extend([
+            build_part("\n"),
+            build_part(f"{peaceful_targets_for_feedback[0].name} remains untouched."),
+        ])
 
     restored_amount = 0
     if restore_ratio > 0.0 and total_damage_dealt > 0:
@@ -1501,15 +1508,6 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     if cast_type not in {"self", "target", "aoe"}:
         return display_error(f"Spell '{spell_name}' has unsupported cast_type '{cast_type}'.", session), False
 
-    if spell_type == "damage":
-        peaceful_target = _find_peaceful_target(
-            session,
-            target_name=target_name if cast_type == "target" else None,
-            include_room_scan=(cast_type == "aoe"),
-        )
-        if peaceful_target is not None:
-            return _display_peaceful_warning(session, peaceful_target), False
-
     if spell_type == "support":
         if cast_type != "self":
             return display_error(f"Support spell '{spell_name}' must be cast_type 'self'.", session), False
@@ -1647,6 +1645,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     clear_combat_if_invalid(session)
 
     damage_targets: list[EntityState] = []
+    peaceful_targets_for_feedback: list[EntityState] = []
     if cast_type == "target":
         entity: EntityState | None = None
         if target_name:
@@ -1662,16 +1661,22 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             entity = get_engaged_entity(session)
             if entity is None:
                 return display_error("Target spell requires a target: cast 'spell' <target>", session), False
-        damage_targets.append(entity)
+        if bool(getattr(entity, "is_peaceful", False)):
+            peaceful_targets_for_feedback.append(entity)
+        else:
+            damage_targets.append(entity)
     elif cast_type == "aoe":
         for entity in list_room_entities(session, session.player.current_room_id):
             if not entity.is_alive:
+                continue
+            if bool(getattr(entity, "is_peaceful", False)):
+                peaceful_targets_for_feedback.append(entity)
                 continue
             if entity.is_ally:
                 continue
             damage_targets.append(entity)
 
-        if not damage_targets:
+        if not damage_targets and not peaceful_targets_for_feedback:
             return display_error("No valid hostile targets in the room.", session), False
     else:
         return display_error(f"Damage spell '{spell_name}' cannot be cast as '{cast_type}'.", session), False
@@ -1739,6 +1744,12 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                         build_part(with_article(next_target.name)),
                         build_part("."),
                     ])
+
+    if not damage_targets and peaceful_targets_for_feedback:
+        parts.extend([
+            build_part("\n"),
+            build_part(f"{peaceful_targets_for_feedback[0].name} remains untouched."),
+        ])
 
     restored_amount = 0
     if restore_ratio > 0.0 and total_damage_dealt > 0:
