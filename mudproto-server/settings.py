@@ -59,7 +59,7 @@ OFFLINE_LOOP_SLEEP_SECONDS = float(_OFFLINE.get("loop_sleep_seconds", 0.5))
 OFFLINE_FLEE_INTERVAL_SECONDS = float(_OFFLINE.get("flee_interval_seconds", 2.0))
 OFFLINE_SAFE_HOURS_TO_DISCONNECT = int(_OFFLINE.get("safe_hours_to_disconnect", 5))
 
-DATABASE_DIRECTORY = SERVER_ROOT / str(_DATABASE.get("directory", "DB"))
+DATABASE_DIRECTORY = SERVER_ROOT / (str(_DATABASE.get("directory", "db")).strip() or "db")
 DATABASE_FILENAME = str(_DATABASE.get("filename", "mudproto.sqlite3")).strip() or "mudproto.sqlite3"
 PLAYER_STATE_DB_PATH = DATABASE_DIRECTORY / DATABASE_FILENAME
 DEFAULT_PLAYER_STATE_KEY = str(_DATABASE.get("player_key", "default")).strip() or "default"

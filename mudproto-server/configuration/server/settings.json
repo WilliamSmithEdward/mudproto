@@ -25,7 +25,7 @@
     "safe_hours_to_disconnect": 5
   },
   "database": {
-    "directory": "DB",
+    "directory": "db",
     "filename": "mudproto.sqlite3",
     "player_key": "default"
   },

@@ -2,7 +2,7 @@
 
 This server persists player state in SQLite.
 
-- DB file: `DB/mudproto.sqlite3`
+- DB file: `db/mudproto.sqlite3`
 - Primary table: `player_state`
 - Primary key: `player_key`
 - Default player key: `default`
@@ -12,7 +12,7 @@ This server persists player state in SQLite.
 ## Initialization
 
 - The database is auto-initialized on first server run.
-- If `DB/mudproto.sqlite3` does not exist, the server creates it and creates required tables.
+- If `db/mudproto.sqlite3` does not exist, the server creates it and creates required tables.
 
 ## Server Tuning
 
@@ -25,13 +25,13 @@ Offline character behavior is configured in `configuration/server/settings.json`
 ## Backup
 
 1. Stop the server process to avoid copying a live-writing DB.
-2. Copy `DB/mudproto.sqlite3` to a backup location.
+2. Copy `db/mudproto.sqlite3` to a backup location.
 3. Keep timestamped backups.
 
 ## Restore
 
 1. Stop the server process.
-2. Replace `DB/mudproto.sqlite3` with the backup copy.
+2. Replace `db/mudproto.sqlite3` with the backup copy.
 3. Start the server.
 
 ## Inspect Data
@@ -39,7 +39,7 @@ Offline character behavior is configured in `configuration/server/settings.json`
 Using sqlite3 CLI:
 
 ```powershell
-sqlite3 DB/mudproto.sqlite3
+sqlite3 db/mudproto.sqlite3
 .tables
 SELECT player_key, updated_at FROM player_state;
 SELECT json_extract(state_json, '$.player.current_room_id') AS room FROM player_state WHERE player_key='default';
@@ -58,7 +58,7 @@ Player max reference values are stored in `player_settings`:
 Update example:
 
 ```powershell
-sqlite3 DB/mudproto.sqlite3 "UPDATE player_settings SET setting_value=650, updated_at=datetime('now') WHERE setting_key='reference_max_hp';"
+sqlite3 db/mudproto.sqlite3 "UPDATE player_settings SET setting_value=650, updated_at=datetime('now') WHERE setting_key='reference_max_hp';"
 ```
 
 ## Character Login Room
@@ -69,7 +69,7 @@ This is intentionally separate from the last room saved in `player_state`.
 Update example:
 
 ```powershell
-sqlite3 DB/mudproto.sqlite3 "UPDATE characters SET login_room_id='start', updated_at=datetime('now') WHERE character_key='alice';"
+sqlite3 db/mudproto.sqlite3 "UPDATE characters SET login_room_id='start', updated_at=datetime('now') WHERE character_key='alice';"
 ```
 
 ## Configurable Attributes
@@ -98,7 +98,7 @@ Per-character attribute values are persisted in `player_state.state_json` under:
 Run occasionally after many updates/deletes:
 
 ```powershell
-sqlite3 DB/mudproto.sqlite3 "VACUUM;"
+sqlite3 db/mudproto.sqlite3 "VACUUM;"
 ```
 
 ## Schema Notes
@@ -109,4 +109,4 @@ sqlite3 DB/mudproto.sqlite3 "VACUUM;"
 ## Corruption Handling
 
 - If the DB is corrupted and cannot be opened, restore from backup.
-- If no backup exists, delete `DB/mudproto.sqlite3` and restart server (player state resets).
+- If no backup exists, delete `db/mudproto.sqlite3` and restart server (player state resets).
