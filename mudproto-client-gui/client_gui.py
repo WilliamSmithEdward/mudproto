@@ -35,6 +35,7 @@ COLOR_MAP = {
 }
 
 OUTPUT_WRAP_COLUMN = 100
+RECONNECT_INTERVAL_MS = 5000
 
 
 def configure_windows_dpi_awareness() -> None:
@@ -92,6 +93,9 @@ class MudProtoGuiClient:
         self.websocket = None
         self.network_loop = asyncio.new_event_loop()
         self.network_thread = threading.Thread(target=self._run_network_loop, daemon=True)
+        self._connecting = False
+        self._closing = False
+        self._reconnect_job: str | None = None
 
         self.root.title("MudProto GUI Client")
         self.root.geometry("1440x1149")
@@ -332,15 +336,51 @@ class MudProtoGuiClient:
         asyncio.set_event_loop(self.network_loop)
         self.network_loop.run_forever()
 
+    def _cancel_reconnect(self) -> None:
+        if self._reconnect_job is None:
+            return
+        try:
+            self.root.after_cancel(self._reconnect_job)
+        except tk.TclError:
+            pass
+        self._reconnect_job = None
+
+    def _schedule_reconnect(self) -> None:
+        if self._closing or self.websocket is not None or self._connecting:
+            return
+        if self._reconnect_job is not None:
+            return
+
+        self.append_system_message("Connection lost. Reconnecting in 5 seconds...", "bright_yellow")
+        try:
+            self._reconnect_job = self.root.after(RECONNECT_INTERVAL_MS, self._attempt_reconnect)
+        except tk.TclError:
+            self._reconnect_job = None
+
+    def _attempt_reconnect(self) -> None:
+        self._reconnect_job = None
+        if self._closing or self.websocket is not None or self._connecting:
+            return
+
+        self.append_system_message(f"Reconnecting to {self.uri}...", "bright_cyan")
+        self.connect()
+
     def connect(self) -> None:
+        if self._closing or self.websocket is not None or self._connecting:
+            return
+
+        self._cancel_reconnect()
+        self._connecting = True
         asyncio.run_coroutine_threadsafe(self._connect_async(), self.network_loop)
 
     async def _connect_async(self) -> None:
-        if self.websocket is not None:
+        if self._closing or self.websocket is not None:
+            self._connecting = False
             return
 
         try:
             self.websocket = await websockets.connect(self.uri)
+            self.root.after(0, self._cancel_reconnect)
             self.root.after(0, self._set_prompt_text, "Connected. Waiting for server prompt...")
             self.root.after(0, self.append_system_message, f"Connected to {self.uri}", "bright_green")
             await self._receive_loop()
@@ -348,6 +388,10 @@ class MudProtoGuiClient:
             self.websocket = None
             self.root.after(0, self._set_prompt_text, "Disconnected")
             self.root.after(0, self.append_system_message, f"Connection error: {exc}", "bright_red")
+        finally:
+            self._connecting = False
+            if not self._closing and self.websocket is None:
+                self.root.after(0, self._schedule_reconnect)
 
     async def _receive_loop(self) -> None:
         websocket = self.websocket
@@ -638,6 +682,9 @@ class MudProtoGuiClient:
         self.output_ends_with_newline = True
 
     def on_close(self) -> None:
+        self._closing = True
+        self._cancel_reconnect()
+
         try:
             asyncio.run_coroutine_threadsafe(self._close_async(), self.network_loop)
         except Exception:

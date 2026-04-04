@@ -17,6 +17,7 @@ class QueuedCommand:
 class PlayerState:
     current_room_id: str = "start"
     class_id: str = ""
+    gender: str = "unspecified"
     attributes: dict[str, int] = field(default_factory=dict)
     level: int = 1
     experience_points: int = 0
@@ -192,6 +193,7 @@ class ClientSession:
     player_state_key: str = ""
     pending_character_name: str = ""
     pending_password: str = ""
+    pending_gender: str = ""
     login_room_id: str = "start"
     is_connected: bool = True
     disconnected_by_server: bool = False

@@ -54,18 +54,64 @@ def capitalize_after_newlines(text: str) -> str:
     return "".join(result)
 
 
-def third_personize_text(text: str, actor_name: str) -> str:
+def normalize_player_gender(value: str | None, *, allow_unspecified: bool = True) -> str | None:
+    normalized = str(value or "").strip().lower()
+    aliases = {
+        "m": "male",
+        "male": "male",
+        "f": "female",
+        "female": "female",
+    }
+    if normalized in aliases:
+        return aliases[normalized]
+    if allow_unspecified and normalized in {"", "u", "unspecified", "unknown", "none"}:
+        return "unspecified"
+    return None
+
+
+def _guess_player_pronouns(actor_name: str) -> tuple[str, str, str, str]:
+    normalized = re.sub(r"[^a-z]", "", actor_name.strip().lower())
+    if not normalized:
+        return "they", "them", "their", "themselves"
+
+    feminine_names = {
+        "lucia", "anna", "maria", "sophia", "olivia", "isabella", "eva", "elena", "luna", "clara",
+    }
+    masculine_names = {
+        "william", "liam", "noah", "james", "lucas", "henry", "oliver", "jack", "leo", "arthur",
+    }
+
+    if normalized in feminine_names or normalized.endswith(("a", "ia", "na", "la", "ra")):
+        return "she", "her", "her", "herself"
+    if normalized in masculine_names or normalized.endswith(("o", "os", "us", "er", "or")):
+        return "he", "him", "his", "himself"
+    return "they", "them", "their", "themselves"
+
+
+def resolve_player_pronouns(*, actor_name: str = "", actor_gender: str | None = None) -> tuple[str, str, str, str]:
+    normalized_gender = normalize_player_gender(actor_gender)
+    if normalized_gender == "female":
+        return "she", "her", "her", "herself"
+    if normalized_gender == "male":
+        return "he", "him", "his", "himself"
+    return _guess_player_pronouns(actor_name)
+
+
+def third_personize_text(text: str, actor_name: str, actor_gender: str | None = None) -> str:
     if not text:
         return text
 
-    possessive = f"{actor_name}'" if actor_name.endswith("s") else f"{actor_name}'s"
+    _, _, possessive_pronoun, reflexive_pronoun = resolve_player_pronouns(
+        actor_name=actor_name,
+        actor_gender=actor_gender,
+    )
     rewritten = text
     rewritten = re.sub(r"\byou are\b", f"{actor_name} is", rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byou were\b", f"{actor_name} was", rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byou have\b", f"{actor_name} has", rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byou do\b", f"{actor_name} does", rewritten, flags=re.IGNORECASE)
-    rewritten = re.sub(r"\byourself\b", "themselves", rewritten, flags=re.IGNORECASE)
-    rewritten = re.sub(r"\byour\b", possessive, rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byourself\b", reflexive_pronoun, rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byour\b", possessive_pronoun, rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byou\b", actor_name, rewritten, flags=re.IGNORECASE)
 
     def _rewrite_subject_verb(match: re.Match[str]) -> str:

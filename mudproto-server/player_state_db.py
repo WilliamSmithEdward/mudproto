@@ -4,6 +4,7 @@ import hashlib
 import secrets
 from datetime import datetime, timezone
 
+from grammar import normalize_player_gender
 from models import ActiveSupportEffectState, ClientSession, ItemState
 from experience import get_level_for_experience
 from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH
@@ -30,12 +31,19 @@ def initialize_player_state_db() -> None:
                 password_salt TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 class_id TEXT NOT NULL,
+                gender TEXT NOT NULL DEFAULT 'unspecified',
                 login_room_id TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
             """
         )
+        character_columns = {
+            str(row["name"]).strip().lower()
+            for row in connection.execute("PRAGMA table_info(characters)").fetchall()
+        }
+        if "gender" not in character_columns:
+            connection.execute("ALTER TABLE characters ADD COLUMN gender TEXT NOT NULL DEFAULT 'unspecified'")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS player_state (
@@ -77,7 +85,7 @@ def get_character_by_name(character_name: str) -> dict | None:
     with _connect() as connection:
         row = connection.execute(
             """
-            SELECT character_key, character_name, class_id, login_room_id
+            SELECT character_key, character_name, class_id, gender, login_room_id
             FROM characters
             WHERE character_key = ?
             """,
@@ -91,6 +99,7 @@ def get_character_by_name(character_name: str) -> dict | None:
         "character_key": str(row["character_key"]),
         "character_name": str(row["character_name"]),
         "class_id": str(row["class_id"]),
+        "gender": normalize_player_gender(str(row["gender"]), allow_unspecified=True) or "unspecified",
         "login_room_id": str(row["login_room_id"]),
     }
 
@@ -104,6 +113,7 @@ def create_character(
     character_name: str,
     password: str,
     class_id: str,
+    gender: str,
     login_room_id: str,
 ) -> dict:
     normalized_name = normalize_character_name(character_name)
@@ -112,6 +122,10 @@ def create_character(
 
     if not password.strip():
         raise ValueError("Password cannot be empty.")
+
+    normalized_gender = normalize_player_gender(gender, allow_unspecified=False)
+    if normalized_gender is None:
+        raise ValueError("Character gender must be male or female.")
 
     character_key = _character_key(normalized_name)
     salt = secrets.token_hex(16)
@@ -135,11 +149,12 @@ def create_character(
                 password_salt,
                 password_hash,
                 class_id,
+                gender,
                 login_room_id,
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 character_key,
@@ -147,6 +162,7 @@ def create_character(
                 salt,
                 password_hash,
                 class_id.strip(),
+                normalized_gender,
                 login_room_id.strip(),
                 now_iso,
                 now_iso,
@@ -158,6 +174,7 @@ def create_character(
         "character_key": character_key,
         "character_name": normalized_name,
         "class_id": class_id.strip(),
+        "gender": normalized_gender,
         "login_room_id": login_room_id.strip(),
     }
 
@@ -172,7 +189,7 @@ def verify_character_credentials(character_name: str, password: str) -> dict | N
     with _connect() as connection:
         row = connection.execute(
             """
-            SELECT character_key, character_name, password_salt, password_hash, class_id, login_room_id
+            SELECT character_key, character_name, password_salt, password_hash, class_id, gender, login_room_id
             FROM characters
             WHERE character_key = ?
             """,
@@ -191,6 +208,7 @@ def verify_character_credentials(character_name: str, password: str) -> dict | N
         "character_key": str(row["character_key"]),
         "character_name": str(row["character_name"]),
         "class_id": str(row["class_id"]),
+        "gender": normalize_player_gender(str(row["gender"]), allow_unspecified=True) or "unspecified",
         "login_room_id": str(row["login_room_id"]),
     }
 
@@ -288,6 +306,7 @@ def _serialize_session(session: ClientSession) -> dict:
         "player": {
             "current_room_id": session.player.current_room_id,
             "class_id": session.player.class_id,
+            "gender": normalize_player_gender(session.player.gender, allow_unspecified=True) or "unspecified",
             "attributes": {key: int(value) for key, value in session.player.attributes.items()},
             "level": int(session.player.level),
             "experience_points": int(session.player.experience_points),
@@ -368,6 +387,10 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
         if room_id:
             session.player.current_room_id = room_id
         session.player.class_id = class_id
+        session.player.gender = normalize_player_gender(
+            raw_player.get("gender", session.player.gender),
+            allow_unspecified=True,
+        ) or "unspecified"
         session.player.experience_points = max(0, int(raw_player.get("experience_points", session.player.experience_points)))
         loaded_level = max(1, int(raw_player.get("level", 0)))
         derived_level = get_level_for_experience(session.player.experience_points)

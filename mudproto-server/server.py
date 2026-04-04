@@ -150,7 +150,11 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
                             if not isinstance(part, dict):
                                 continue
                             original_text = str(part.get("text", ""))
-                            part["text"] = third_personize_text(original_text, actor_name)
+                            part["text"] = third_personize_text(
+                                original_text,
+                                actor_name,
+                                origin_session.player.gender,
+                            )
                         _fix_observer_line_grammar(line, actor_name)
                         filtered_lines.append(line)
                     copied_payload["lines"] = filtered_lines

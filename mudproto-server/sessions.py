@@ -424,8 +424,10 @@ def reset_session_to_login(session: ClientSession) -> None:
     session.auth_stage = "awaiting_character_or_start"
     session.authenticated_character_name = ""
     session.player_state_key = ""
+    session.player.gender = "unspecified"
     session.pending_character_name = ""
     session.pending_password = ""
+    session.pending_gender = ""
     session.lag_until_monotonic = None
     session.pending_death_logout = False
 

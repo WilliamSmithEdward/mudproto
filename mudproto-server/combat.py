@@ -3,7 +3,7 @@ import random
 import re
 import uuid
 
-from grammar import with_article
+from grammar import resolve_player_pronouns, with_article
 from experience import award_experience
 from player_resources import get_player_resource_caps, roll_level_resource_gains
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id, get_skill_by_id, get_spell_by_id
@@ -100,10 +100,19 @@ def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
     return outbound
 
 
-def _render_observer_template(template_text: str, actor_name: str) -> str:
-    actor_object = "them"
-    actor_possessive = "their"
-    actor_subject = actor_name
+def _render_observer_template(template_text: str, actor_name: str, actor_gender: str | None = None) -> str:
+    resolved_gender = actor_gender
+    if not resolved_gender:
+        normalized_actor_name = actor_name.strip().lower()
+        for active_session in active_character_sessions.values():
+            if active_session.authenticated_character_name.strip().lower() == normalized_actor_name:
+                resolved_gender = active_session.player.gender
+                break
+
+    actor_subject, actor_object, actor_possessive, _ = resolve_player_pronouns(
+        actor_name=actor_name,
+        actor_gender=resolved_gender,
+    )
     return (
         template_text
         .replace("[actor_name]", actor_name)

@@ -37,7 +37,7 @@ from display import (
     display_room,
 )
 from equipment import HAND_BOTH, HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
-from grammar import indefinite_article, with_article
+from grammar import indefinite_article, normalize_player_gender, resolve_player_pronouns, with_article
 from inventory import (
     build_equippable_item_from_template,
     get_item_keywords,
@@ -118,6 +118,16 @@ def initial_auth_prompt(session: ClientSession) -> OutboundMessage:
 def login_prompt(session: ClientSession) -> OutboundMessage:
     """Minimal login prompt (bare "> ") for re-entry after death or other events."""
     return display_prompt(session)
+
+
+def _build_gender_prompt(session: ClientSession) -> OutboundMessage:
+    return display_command_result(session, [
+        build_part("Choose a gender: ", "bright_white"),
+        build_part("male", "bright_cyan", True),
+        build_part(" or ", "bright_white"),
+        build_part("female", "bright_magenta", True),
+        build_part(".", "bright_white"),
+    ])
 
 
 def _build_class_prompt(session: ClientSession) -> OutboundMessage:
@@ -410,12 +420,17 @@ def _complete_login(session: ClientSession, character_record: dict, *, is_new_ch
     character_name = str(character_record.get("character_name", "")).strip()
     class_id = str(character_record.get("class_id", "")).strip()
     login_room_id = str(character_record.get("login_room_id", "")).strip() or "start"
+    session.player.gender = normalize_player_gender(
+        character_record.get("gender", session.player.gender),
+        allow_unspecified=True,
+    ) or "unspecified"
 
     session.player_state_key = character_key
     session.authenticated_character_name = character_name
     session.login_room_id = login_room_id
     session.pending_character_name = ""
     session.pending_password = ""
+    session.pending_gender = ""
 
     resumed_from_active = hydrate_session_from_active_character(session, character_key)
 
@@ -513,6 +528,7 @@ def _process_auth_input(session: ClientSession, input_text: str) -> OutboundResu
             return display_error(f"Character '{normalized_name}' already exists.", session)
 
         session.pending_character_name = normalized_name
+        session.pending_gender = ""
         session.auth_stage = "awaiting_new_character_password"
         return display_command_result(session, [
             build_part("Enter a password for your character.", "bright_white"),
@@ -523,6 +539,15 @@ def _process_auth_input(session: ClientSession, input_text: str) -> OutboundResu
             return display_error("Password cannot be empty.", session)
 
         session.pending_password = input_text
+        session.auth_stage = "awaiting_new_character_gender"
+        return _build_gender_prompt(session)
+
+    if session.auth_stage == "awaiting_new_character_gender":
+        selected_gender = normalize_player_gender(input_text, allow_unspecified=False)
+        if selected_gender is None:
+            return display_error("Choose male or female.", session)
+
+        session.pending_gender = selected_gender
         session.auth_stage = "awaiting_new_character_class"
         return _build_class_prompt(session)
 
@@ -535,6 +560,7 @@ def _process_auth_input(session: ClientSession, input_text: str) -> OutboundResu
             character_name=session.pending_character_name,
             password=session.pending_password,
             class_id=str(selected_class.get("class_id", "")).strip(),
+            gender=session.pending_gender,
             login_room_id="start",
         )
         return _complete_login(session, created, is_new_character=True)
@@ -1241,21 +1267,26 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
 
     if not observer_action:
         observer_action = f"{actor_name} uses {item_article} {item_name}."
+
+    actor_subject_pronoun, actor_object_pronoun, actor_possessive_pronoun, _ = resolve_player_pronouns(
+        actor_name=actor_name,
+        actor_gender=session.player.gender,
+    )
     observer_action = (
         observer_action
         .replace("[actor_name]", actor_name)
-        .replace("[actor_subject]", actor_name)
-        .replace("[actor_object]", "them")
-        .replace("[actor_possessive]", "their")
+        .replace("[actor_subject]", actor_subject_pronoun)
+        .replace("[actor_object]", actor_object_pronoun)
+        .replace("[actor_possessive]", actor_possessive_pronoun)
     )
 
     if observer_context:
         observer_context = (
             observer_context
             .replace("[actor_name]", actor_name)
-            .replace("[actor_subject]", actor_name)
-            .replace("[actor_object]", "them")
-            .replace("[actor_possessive]", "their")
+            .replace("[actor_subject]", actor_subject_pronoun)
+            .replace("[actor_object]", actor_object_pronoun)
+            .replace("[actor_possessive]", actor_possessive_pronoun)
         )
 
     result = display_command_result(session, [
