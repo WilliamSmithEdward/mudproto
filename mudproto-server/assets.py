@@ -429,9 +429,41 @@ def load_npc_templates() -> list[dict]:
                 raise ValueError(f"NPC '{npc_id}' loot item '{loot_name}' keywords must be a list.")
 
             normalized_loot_items.append({
+                "template_id": str(raw_loot_item.get("template_id", "")).strip(),
                 "name": loot_name,
                 "description": str(raw_loot_item.get("description", "")),
                 "keywords": [str(keyword).strip().lower() for keyword in raw_loot_keywords if str(keyword).strip()],
+            })
+
+        raw_inventory_items = raw_npc.get("inventory_items", [])
+        if raw_inventory_items is None:
+            raw_inventory_items = []
+        if not isinstance(raw_inventory_items, list):
+            raise ValueError(f"NPC '{npc_id}' inventory_items must be a list.")
+
+        normalized_inventory_items: list[dict] = []
+        for raw_inventory_item in raw_inventory_items:
+            if isinstance(raw_inventory_item, str):
+                raw_inventory_item = {
+                    "template_id": str(raw_inventory_item).strip(),
+                    "quantity": 1,
+                }
+            if not isinstance(raw_inventory_item, dict):
+                raise ValueError(f"NPC '{npc_id}' inventory_items entries must be objects or template_id strings.")
+
+            template_id = str(raw_inventory_item.get("template_id", "")).strip()
+            if not template_id:
+                raise ValueError(f"NPC '{npc_id}' inventory_items entries must include template_id.")
+            if get_gear_template_by_id(template_id) is None and get_item_template_by_id(template_id) is None:
+                raise ValueError(f"NPC '{npc_id}' references unknown inventory item template: {template_id}")
+
+            quantity = int(raw_inventory_item.get("quantity", 1))
+            if quantity <= 0:
+                raise ValueError(f"NPC '{npc_id}' inventory item '{template_id}' quantity must be 1 or greater.")
+
+            normalized_inventory_items.append({
+                "template_id": template_id,
+                "quantity": quantity,
             })
 
         is_merchant = bool(raw_npc.get("is_merchant", False))
@@ -601,6 +633,7 @@ def load_npc_templates() -> list[dict]:
             "skill_ids": normalized_skill_ids,
             "spell_use_chance": spell_use_chance,
             "spell_ids": normalized_spell_ids,
+            "inventory_items": normalized_inventory_items,
             "loot_items": normalized_loot_items,
         }
 

@@ -6,7 +6,7 @@ import uuid
 from grammar import with_article
 from experience import award_experience
 from player_resources import get_player_resource_caps, roll_level_resource_gains
-from assets import get_gear_template_by_id, get_npc_template_by_id, get_skill_by_id, get_spell_by_id
+from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id, get_skill_by_id, get_spell_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_text import (
     append_newline_if_needed,
@@ -721,6 +721,15 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
 
         loot_item = build_equippable_item_from_template(template, item_id=f"loot-{uuid.uuid4().hex[:8]}")
         loot_items[loot_item.item_id] = loot_item
+
+    for carried_item in list(getattr(entity, "inventory_items", [])) + list(getattr(entity, "loot_items", [])):
+        if not isinstance(carried_item, ItemState):
+            continue
+        loot_items[carried_item.item_id] = carried_item
+
+    entity.inventory_items = []
+    entity.loot_items = []
+
     corpse = CorpseState(
         corpse_id=corpse_id,
         source_entity_id=entity.entity_id,
@@ -1836,6 +1845,48 @@ def _build_loot_items_from_template(template: dict) -> list[ItemState]:
     return loot_items
 
 
+def _build_inventory_items_from_template(template: dict) -> list[ItemState]:
+    inventory_items: list[ItemState] = []
+    for raw_inventory_item in template.get("inventory_items", []):
+        if not isinstance(raw_inventory_item, dict):
+            continue
+
+        template_id = str(raw_inventory_item.get("template_id", "")).strip()
+        if not template_id:
+            continue
+
+        quantity = max(0, int(raw_inventory_item.get("quantity", 1)))
+        if quantity <= 0:
+            continue
+
+        gear_template = get_gear_template_by_id(template_id)
+        item_template = get_item_template_by_id(template_id) if gear_template is None else None
+        resolved_template = gear_template or item_template
+        if resolved_template is None:
+            continue
+
+        for _ in range(quantity):
+            if gear_template is not None:
+                inventory_item = build_equippable_item_from_template(
+                    gear_template,
+                    item_id=f"npc-item-{uuid.uuid4().hex[:8]}",
+                )
+            else:
+                inventory_item = ItemState(
+                    item_id=f"npc-item-{uuid.uuid4().hex[:8]}",
+                    template_id=str(resolved_template.get("template_id", template_id)).strip(),
+                    name=str(resolved_template.get("name", "Item")).strip() or "Item",
+                    description=str(resolved_template.get("description", "")),
+                    keywords=[
+                        str(keyword).strip().lower()
+                        for keyword in resolved_template.get("keywords", [])
+                        if str(keyword).strip()
+                    ],
+                )
+            inventory_items.append(inventory_item)
+    return inventory_items
+
+
 def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: int) -> EntityState:
     entity = EntityState(
         f"npc-{uuid.uuid4().hex[:8]}",
@@ -1854,6 +1905,7 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.coin_reward = max(0, int(template.get("coin_reward", 0)))
     entity.experience_reward = max(0, int(template.get("experience_reward", 0)))
     entity.loot_items = _build_loot_items_from_template(template)
+    entity.inventory_items = _build_inventory_items_from_template(template)
     entity.spawn_sequence = spawn_sequence
     entity.is_aggro = bool(template.get("is_aggro", False))
     entity.is_ally = bool(template.get("is_ally", False))

@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.6",
-  "generated_at_utc": "2026-04-04T19:19:47.469132+00:00",
+  "generated_at_utc": "2026-04-04T19:26:01.487206+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -519,11 +519,35 @@
           "required": false,
           "default": []
         },
+        "inventory_items": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "entry_schema": {
+            "template_id": {
+              "type": "string",
+              "required": true,
+              "notes": "Must match an existing gear or item template id. These items transfer to the corpse on NPC death."
+            },
+            "quantity": {
+              "type": "integer",
+              "required": false,
+              "default": 1,
+              "minimum": 1
+            }
+          }
+        },
         "loot_items": {
           "type": "array[object]",
           "required": false,
           "default": [],
           "entry_schema": {
+            "template_id": {
+              "type": "string",
+              "required": false,
+              "default": "",
+              "notes": "Optional existing gear or item template id for the corpse drop."
+            },
             "name": {
               "type": "string",
               "required": true

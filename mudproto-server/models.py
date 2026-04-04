@@ -122,6 +122,7 @@ class EntityState:
     coin_reward: int = 0
     experience_reward: int = 0
     loot_items: list[ItemState] = field(default_factory=list)
+    inventory_items: list[ItemState] = field(default_factory=list)
     is_alive: bool = True
     spawn_sequence: int = 0
     is_aggro: bool = False
