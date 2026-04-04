@@ -44,6 +44,7 @@ class CombatState:
     opening_attacker: Optional[str] = None
     skip_melee_rounds: int = 0
     skill_cooldowns: dict[str, int] = field(default_factory=dict)
+    item_cooldowns: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass

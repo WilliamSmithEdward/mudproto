@@ -11,6 +11,7 @@ PLAYER_CLASSES_FILE = ATTRIBUTE_CONFIG_ROOT / "classes.json"
 REGENERATION_FILE = ATTRIBUTE_CONFIG_ROOT / "regeneration.json"
 HAND_WEIGHT_FILE = ATTRIBUTE_CONFIG_ROOT / "hand_weight.json"
 COMBAT_SEVERITY_FILE = ATTRIBUTE_CONFIG_ROOT / "combat_severity.json"
+ITEM_USAGE_FILE = ATTRIBUTE_CONFIG_ROOT / "item_usage.json"
 LEVEL_SCALING_FILE = ATTRIBUTE_CONFIG_ROOT / "level_scaling.json"
 EXPERIENCE_TABLE_FILE = ATTRIBUTE_CONFIG_ROOT / "experience.json"
 
@@ -273,6 +274,27 @@ def load_combat_severity_config() -> dict:
 
     return {
         "tiers": normalized_tiers,
+    }
+
+
+@lru_cache(maxsize=1)
+def load_item_usage_config() -> dict:
+    raw_config = _read_json_attribute_config(ITEM_USAGE_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Item usage config file must contain an object: {ITEM_USAGE_FILE}")
+
+    raw_potion = raw_config.get("potion", {})
+    if not isinstance(raw_potion, dict):
+        raise ValueError("Item usage config field 'potion' must be an object.")
+
+    cooldown_rounds = int(raw_potion.get("cooldown_rounds", 0))
+    if cooldown_rounds < 0:
+        raise ValueError("Item usage config 'potion.cooldown_rounds' must be zero or greater.")
+
+    return {
+        "potion": {
+            "cooldown_rounds": cooldown_rounds,
+        }
     }
 
 

@@ -866,6 +866,7 @@ def _decrement_cooldowns(cooldowns: dict[str, int]) -> None:
 
 def _process_combat_round_timers(session: ClientSession, entities: list[EntityState]) -> None:
     _decrement_cooldowns(session.combat.skill_cooldowns)
+    _decrement_cooldowns(session.combat.item_cooldowns)
 
     for entity in entities:
         _process_entity_battle_round_support_effects(entity)
@@ -923,8 +924,9 @@ def _set_entity_skill_cooldown(entity: EntityState, skill: dict) -> None:
 
 
 def tick_out_of_combat_cooldowns(session: ClientSession) -> None:
-    """Decrement player skill cooldowns for sessions not currently in combat."""
+    """Decrement player combat-tracked cooldowns for sessions not currently in combat."""
     _decrement_cooldowns(session.combat.skill_cooldowns)
+    _decrement_cooldowns(session.combat.item_cooldowns)
 
 
 def _apply_player_skill_lag(session: ClientSession, skill: dict) -> None:

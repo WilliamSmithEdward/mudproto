@@ -3,7 +3,7 @@ import random
 import re
 import uuid
 
-from attribute_config import get_player_class_by_id, load_attributes, load_player_classes
+from attribute_config import get_player_class_by_id, load_attributes, load_item_usage_config, load_player_classes
 from assets import get_gear_template_by_id, get_item_template_by_id, load_item_templates, load_skills, load_spells
 from combat import (
     begin_attack,
@@ -880,6 +880,24 @@ def _find_item_template_for_misc_item(misc_item) -> dict | None:
     return None
 
 
+def _is_potion_template(template: dict) -> bool:
+    template_name = str(template.get("name", "")).strip().lower()
+    keywords = {
+        str(keyword).strip().lower()
+        for keyword in template.get("keywords", [])
+        if str(keyword).strip()
+    }
+    return "potion" in keywords or "potion" in template_name
+
+
+def _get_potion_cooldown_rounds() -> int:
+    config = load_item_usage_config()
+    potion_config = config.get("potion", {}) if isinstance(config, dict) else {}
+    if not isinstance(potion_config, dict):
+        return 0
+    return max(0, int(potion_config.get("cooldown_rounds", 0)))
+
+
 def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     if not selector.strip():
         return display_error("Usage: use <item>", session)
@@ -899,6 +917,16 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
 
     if effect_type != "restore" or effect_amount <= 0:
         return display_error(f"{misc_item.name} cannot be used.", session)
+
+    is_potion = _is_potion_template(template)
+    potion_cooldown_key = "potion"
+    if is_potion:
+        remaining_rounds = int(session.combat.item_cooldowns.get(potion_cooldown_key, 0))
+        if remaining_rounds > 0:
+            return display_error(
+                f"You must wait {remaining_rounds} more battle round(s) before using another potion.",
+                session,
+            )
 
     current_value = 0
     max_value = 0
@@ -925,6 +953,11 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     restored_amount = min(effect_amount, max_value - current_value)
     setattr(session.status, effect_target, current_value + restored_amount)
     session.inventory_items.pop(misc_item.item_id, None)
+
+    if is_potion:
+        cooldown_rounds = _get_potion_cooldown_rounds()
+        if cooldown_rounds > 0:
+            session.combat.item_cooldowns[potion_cooldown_key] = cooldown_rounds
 
     if use_lag_seconds > 0:
         try:
