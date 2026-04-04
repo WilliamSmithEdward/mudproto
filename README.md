@@ -2,39 +2,37 @@
 
 # ⚔️ MudProto
 
-**A real-time multiplayer MUD engine built from scratch in Python.**
+**A server-authoritative multiplayer MUD built in Python.**
 
-*Async WebSocket server · Rich terminal client · Data-driven world*
+*Async WebSocket server · Terminal and GUI clients · Tabletop-inspired fantasy systems*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![WebSockets](https://img.shields.io/badge/WebSockets-async-4B8BBE)](https://websockets.readthedocs.io)
 [![SQLite](https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
-[![Lines of Code](https://img.shields.io/badge/Lines_of_Code-7%2C600+-brightgreen)]()
 
 </div>
 
-\
-![Alt text](/images/mudproto_01.png)
+![MudProto gameplay screenshot](/images/mudproto_01.png)
 
 ---
 
-## The Pitch
+## Overview
 
-MudProto is a ground-up implementation of a **Multi-User Dungeon** — the genre that paved the way from tabletop RPGs to modern MMOs. It features real-time combat with multi-NPC engagement, a data-driven spell and skill system, persistent characters, and a rich ANSI terminal client — all running over a lightweight async WebSocket protocol.
+MudProto is a modern take on the classic **Multi-User Dungeon**: a shared fantasy world with real-time combat, spells, skills, merchants, and persistent characters. Content and progression are driven by JSON, while the server remains the source of truth for every rule, roll, and result.
 
-> **Built with agentic AI workflows.** MudProto was designed, architected, and developed using an AI-assisted engineering process — leveraging autonomous coding agents for implementation, refactoring, architectural audits, and iterative design. The project demonstrates how a single developer can ship a complex, systems-heavy codebase at velocity by treating AI as a full development partner.
+Designed as both a playable game and a clean systems project, MudProto emphasizes readable architecture, server-authoritative gameplay, and an extensible content pipeline suited to ongoing iteration.
 
 ---
 
-## Features
+## Highlights
 
 ### 🗡️ Combat Engine
 - **Multi-NPC engagement** — fight several enemies at once, each retaliating independently.
 - **Room-round consolidation** — all players in a room see a unified, chronological combat log each round.
 - **Opening-round mechanics** — first-strike advantage with half-strength opener and full retaliation.
 - **Damage severity tiers** — *barely grazes* through *obliterates*, scaled to target max HP.
-- **Flee with risk** — 50% success chance; failure means another round of punishment.
+- **Flee with uncertainty** — escaping is possible, but never guaranteed.
 
 ### 🧙 Spells & Skills
 - **Mana-based spells** — targeted damage, AoE, self-heal, vigor restore, mana restore.
@@ -59,10 +57,11 @@ MudProto is a ground-up implementation of a **Multi-User Dungeon** — the genre
 - **Offline processing** — disconnected characters auto-flee combat, regenerate, and gracefully disconnect after 5 safe hours.
 - **Seamless reconnect** — resume an active session mid-combat with full state hydration.
 
-### 🖥️ Terminal Client
-- **Generic renderer** — zero game logic; renders structured display parts with ANSI color and bold.
-- **Dynamic prompt** — color-coded HP/vigor/mana, coins, engaged enemy condition, room exits.
-- **Queue feedback** — lag-blocked commands silently queued; prompt reappears when lag expires.
+### 🖥️ Clients
+- **Terminal client** — ANSI-rendered output with a compact, readable prompt.
+- **GUI client** — a Tk-based interface that consumes the same server protocol.
+- **Shared protocol** — both clients stay thin; all game logic remains server-side.
+- **Queue feedback** — lag-blocked commands are queued cleanly and the prompt returns when ready.
 
 ---
 
@@ -70,9 +69,9 @@ MudProto is a ground-up implementation of a **Multi-User Dungeon** — the genre
 
 ```
 ┌──────────────────────┐         WebSocket          ┌─────────────────────────┐
-│   Terminal Client    │◄──────────────────────────►│     Game Server         │
+│       Clients        │◄──────────────────────────►│     Game Server         │
 │                      │   JSON envelopes           │                         │
-│  • ANSI rendering    │   { type, source,          │  • Command parsing      │
+│  • ANSI / Tk render  │   { type, source,          │  • Command parsing      │
 │  • Raw input send    │     timestamp, payload }   │  • Combat resolution    │
 │  • Prompt display    │                            │  • Spell / skill engine │
 │  • /quit             │                            │  • Persistence (SQLite) │
@@ -81,7 +80,7 @@ MudProto is a ground-up implementation of a **Multi-User Dungeon** — the genre
                                                     └─────────────────────────┘
 ```
 
-The **client sends raw text**; the **server sends structured display instructions**. All game meaning lives server-side. See [`ARCHITECTURE.md`](mudproto-server/ARCHITECTURE.md) for the full technical deep-dive.
+The **client sends raw text**; the **server sends structured display instructions**. All game meaning lives server-side. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full technical deep-dive.
 
 ---
 
@@ -95,7 +94,9 @@ The **client sends raw text**; the **server sends structured display instruction
 | Configuration | JSON asset files with eager validation |
 | Client rendering | ANSI escape codes (no curses dependency) |
 
-**Zero external server dependencies** beyond `websockets`. No ORM, no framework — just the standard library and clean async Python.
+**Minimal dependencies** beyond `websockets`. No framework, no ORM — just the standard library and straightforward async Python.
+
+This makes the project easy to inspect, run locally, and adapt for experiments in multiplayer game architecture.
 
 ---
 
@@ -103,8 +104,11 @@ The **client sends raw text**; the **server sends structured display instruction
 
 ```
 mudproto/
+├── ARCHITECTURE.md                  # Full technical architecture doc
 ├── mudproto-client/
 │   └── client.py                    # Generic WebSocket terminal client
+├── mudproto-client-gui/
+│   └── client_gui.py                # Optional GUI client
 │
 ├── mudproto-server/
 │   ├── server.py                    # Entry point, tick loops, room broadcasts
@@ -126,7 +130,6 @@ mudproto/
 │   ├── world.py                     # Room model
 │   ├── battle_round_ticks.py        # Per-round support effect processing
 │   ├── game_hour_ticks.py           # Regen & timed support processing
-│   ├── ARCHITECTURE.md              # Full technical architecture doc
 │   └── configuration/
 │       ├── server/settings.json     # Network, timing, combat, gameplay
 │       ├── assets/                  # gear, items, npcs, rooms, spells, skills
@@ -160,35 +163,27 @@ python server.py
 # In a second terminal — connect a client
 cd mudproto-client
 python client.py
+
+# Or launch the GUI client
+cd ..\mudproto-client-gui
+python client_gui.py
 ```
 
-Type `start` to create a character, pick a class, and you're in. Try `look`, `jab`, `inventory`, `cast 'Healing Light'`, or `flee` if things get dicey.
+Type `start` to create a character and choose a class. From there, try `look`, `north`, `attack scout`, `jab scout`, `inventory`, `buy potion`, and `flee`.
 
 ---
 
-## Design Philosophy
+## Why This Project Stands Out
 
-**Server is king.** The client is a generic terminal — it doesn't know what a sword is. Every command, every damage roll, every color choice is decided server-side and sent as structured display instructions. This makes the protocol extensible to any future client (web, mobile, GUI) without touching game logic.
-
-**Data over code.** Rooms, NPCs, spells, skills, gear, classes, and attributes are all defined in JSON. Adding a new sword or spell is a config change, not a code change.
-
-**Agentic development.** This project was built using AI-powered development workflows — from initial architecture decisions through multi-module refactors, gameplay audits, and documentation. The codebase reflects a tight feedback loop between human design intent and AI implementation velocity.
-
----
-
-## Developed With Agentic AI
-
-MudProto is a case study in **human + AI collaborative engineering**:
-
-- **Architecture & design** — high-level system design driven by human vision, refined through AI-assisted exploration of trade-offs.
-- **Implementation** — modules built and iterated with autonomous coding agents handling boilerplate, cross-module consistency, and mechanical refactors.
-- **Refactoring at scale** — multi-file renames, model unifications, and deprecation sweeps executed by agents with human review.
-- **Quality assurance** — gameplay audits, runtime smoke tests, and static analysis performed by agents to validate end-to-end correctness after every change.
-- **Documentation** — architecture docs and this README generated from live codebase analysis, not guesswork.
-
-The result: a complex, multi-system game engine developed and iterated at a pace that would typically require a team — delivered by one developer with the right tools.
+- **Server-authoritative gameplay** — commands, combat resolution, cooldowns, and messaging all live on the server.
+- **Data-driven content** — rooms, NPCs, spells, skills, items, and progression are defined in JSON for easy iteration.
+- **Thin clients, stable protocol** — the same message format powers both the terminal and GUI clients.
+- **Small, readable systems** — the codebase is organized into focused modules so mechanics can be extended without losing clarity.
+- **Classic fantasy tone** — the project keeps a bit of dungeon-crawl character without losing technical clarity.
 
 ---
+
+MudProto aims to keep the spirit of classic tabletop-inspired fantasy while staying practical to run, read, and extend.
 
 <div align="center">
 

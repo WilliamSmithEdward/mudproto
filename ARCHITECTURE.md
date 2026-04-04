@@ -10,18 +10,19 @@ game meaning; the client is a dumb renderer.
 
 ## 1. Client / Server Boundary
 
-### Client (`mudproto-client/client.py`)
+### Clients (`mudproto-client/client.py`, `mudproto-client-gui/client_gui.py`)
 
-The client is **generic** — it contains zero game-specific logic.
+Both clients are **generic renderers** — they contain zero game-specific logic.
 
 Responsibilities:
 - Open and maintain the WebSocket connection.
 - Send raw user input to the server as `input` messages.
-- Render `display` messages (ANSI color, bold, prompts).
-- Handle local-only commands (`/quit`).
+- Render `display` messages and prompts.
+- Handle local-only client actions such as `/quit`.
 
-The client must **not** know command semantics, game mechanics, or
-rendering rules beyond color/bold.
+The terminal client renders ANSI output; the GUI client renders the same
+structured payload in a Tk-based interface. Neither client should know
+command semantics or gameplay rules.
 
 ### Server (`mudproto-server/`)
 
@@ -65,16 +66,20 @@ Responsibilities:
   "source": "mudproto-server",
   "timestamp": "2026-03-28T12:34:56Z",
   "payload": {
-    "parts": [
-      { "text": "You see ", "fg": "bright_white", "bold": false },
-      { "text": "an orc",  "fg": "bright_magenta", "bold": true },
-      { "text": ".",        "fg": "bright_white",   "bold": false }
+    "lines": [
+      [],
+      [
+        { "text": "You see ", "fg": "bright_white", "bold": false },
+        { "text": "an orc",  "fg": "bright_magenta", "bold": true },
+        { "text": ".",        "fg": "bright_white",   "bold": false }
+      ]
     ],
-    "blank_lines_before": 1,
-    "prompt_after": true,
-    "prompt_parts": [{ "text": "575H 119V 160M> " }],
+    "prompt_lines": [
+      [],
+      [{ "text": "575H 119V 160M> " }]
+    ],
     "starts_on_new_line": false,
-    "room_broadcast_parts": []
+    "room_broadcast_lines": []
   }
 }
 ```
@@ -101,9 +106,10 @@ lives in `protocol.py`.
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
 | `display.py` | Display message building (room, inventory, equipment, attributes, spells, skills, prompt), color/item-highlight logic. |
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
-| `assets.py` | JSON asset/config loaders (LRU-cached) with structural and cross-reference validation. |
+| `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
+| `assets.py` | Content asset loaders for gear, items, rooms, zones, NPCs, spells, and skills with structural and cross-reference validation. |
 | `player_state_db.py` | SQLite persistence: character credentials, full session serialization/deserialization. |
-| `world.py` | `Room` dataclass including exits and NPC spawn config. |
+| `world.py` | `Room` and `Zone` dataclasses, including room zone membership and repopulation metadata. |
 | `battle_round_ticks.py` | Per-round support effect processing during combat. |
 | `game_hour_ticks.py` | Per-hour regeneration (HP/vigor/mana) and timed support effect processing. |
 
@@ -120,21 +126,25 @@ configuration/
                            # offline, database, assets sections
   assets/
     gear.json              # weapon & armor templates (damage, AC, slots)
-    items.json             # consumable item templates
-    npcs.json              # NPC templates (HP, attacks, loot, skills)
-    rooms.json             # world rooms (exits, NPC spawns)
+    items.json             # consumable item templates and restore effects
+    npcs.json              # NPC templates (HP, AI, loot, merchant inventory)
+    rooms.json             # world rooms (exits, zone_id, NPC spawns)
+    zones.json             # zone membership and repop timing in game hours
     spells.json            # player spells (damage/support, mana cost)
     skills.json            # player skills (vigor cost, scaling, cooldown)
   attributes/
     character_attributes.json   # attribute definitions (STR, DEX, CON, INT, WIS)
-    classes.json                # player classes, starting_gear_template_ids,
-                                # starting_equipped_gear_template_ids, spells, skills
+    classes.json                # player classes, starting gear, spells, skills
+    combat_severity.json        # text thresholds and severity tuning
+    experience.json             # XP required per level
     hand_weight.json            # weapon STR requirements
+    item_usage.json             # consumable cooldown rules (for example potions)
+    level_scaling.json          # player melee hit/damage scaling by level
     regeneration.json           # regen rates per attribute & resource
     wear_slots.json             # armor slot options (left/right, head, chest, etc.)
 ```
 
-Loaders in `assets.py` are **LRU-cached** (loaded once per process) and
+Loaders in `assets.py` and `attribute_config.py` are **LRU-cached** (loaded once per process) and
 eagerly validate:
 - No duplicate IDs.
 - Required fields and correct types.
@@ -193,7 +203,7 @@ power level, weapon template IDs, skill list, and cooldown tracking.
 - `player` (room, class, attributes), `status` (HP/vigor/mana/coins)
 - `player_combat` (attack damage, attacks per round)
 - `equipment`, `inventory_items`
-- `combat` (engaged entities, cooldowns, opening attacker)
+- `combat` (engaged entities, opening attacker, skill and item cooldowns)
 - `entities`, `corpses`, `room_coin_piles`, `room_ground_items` (shared
   world references)
 - `known_spell_ids`, `known_skill_ids`, `active_support_effects`
@@ -313,7 +323,7 @@ Resolution lives in `inventory.py` (inventory/ground selectors) and
    block so everyone in the room sees the full picture.
 6. Send display + force prompt to each player.
 
-Out-of-combat sessions still get their skill cooldowns decremented each
+Out-of-combat sessions still get their skill and item cooldowns decremented each
 tick.
 
 ### Opening Round
@@ -362,8 +372,10 @@ When an entity dies:
 
 ### Cooldowns
 
-- Player: `combat.skill_cooldowns[skill_id]` decremented each combat
-  round (and out-of-combat via `tick_out_of_combat_cooldowns`).
+- Player skills: `combat.skill_cooldowns[skill_id]` decremented each combat
+  round and also while out of combat via `tick_out_of_combat_cooldowns()`.
+- Player consumables: `combat.item_cooldowns["potion"]` enforces the global
+  potion reuse lockout, configured by `configuration/attributes/item_usage.json`.
 - NPC: `entity.skill_cooldowns` + `skill_lag_rounds_remaining`.
 
 ### Support Effects
@@ -402,19 +414,28 @@ consistently across inventory, room, loot, and action-message contexts.
 
 ## 11. Display & Rendering
 
-Display messages are built in `display.py` as structured `parts` arrays.
-Each part carries `text`, optional `fg` color, and optional `bold` flag.
-The client renders these as ANSI-colored terminal output.
+Display messages are built in `display.py` and sent as structured JSON `lines`.
+Each line is an array of styled text parts, where each part carries `text`,
+optional `fg` color, and optional `bold` flag. Both the terminal client and the
+GUI client render these line arrays from the same server payload.
 
 Key builders:
-- `build_display()` — assembles final protocol payload.
+- `build_display()` — assembles final protocol payload with structural `lines`.
 - `display_room()` — room title, description, exits, NPCs, corpses, items,
   coins, other players.
 - `display_inventory()`, `display_equipment()`, `display_attributes()`.
-- `build_prompt_parts()` — HP/vigor/mana (color-coded), coins, tick
-  countdown, engaged-entity condition, exits.
+- `build_prompt_parts()` — HP/vigor/mana (color-coded), coins, XP-to-next,
+  engaged-entity condition, and exits.
 
-Room broadcasts use `room_broadcast_parts` and are third-personised via
+Rendering invariants:
+- Newline behavior is server-owned and represented by empty line entries (`[]`)
+  inside `lines` and `prompt_lines`.
+- Clients do not invent spacing for server messages; they render the supplied
+  structure.
+- When an event is visible to both the actor and observers, `room_broadcast_lines`
+  should preserve the same event ordering whenever possible.
+
+Room broadcasts use `room_broadcast_lines` and are third-personised via
 `grammar.py::third_personize_text()`.
 
 ---
@@ -485,16 +506,23 @@ auto-disconnect.
 
 ---
 
-## 15. World & NPC Spawning
+## 15. World, Zones & NPC Spawning
 
-Rooms are defined in `rooms.json` with exits (direction → room ID) and NPC
-spawn configs (template ID + count).
+Rooms are defined in `rooms.json` with exits (direction → room ID), `zone_id`,
+and NPC spawn configs (template ID + count). Zones are defined in `zones.json`
+with `room_ids` and `repopulate_game_hours`.
 
-`combat.py::initialize_session_entities()` iterates every room's spawn
-config and instantiates `EntityState` copies. Entities are added to the
-shared world dict so all players interact with the same NPC instances.
+`combat.py::initialize_session_entities()` and the zone repopulation helpers
+instantiate `EntityState` copies from NPC templates. Shared entities live in the
+world dict so all players interact with the same NPC instances.
 
-Aggro NPCs (`is_aggro: true`) auto-engage the player on room entry.
+Key behaviors:
+- Aggro NPCs (`is_aggro: true`) auto-engage the player on room entry.
+- Peaceful NPCs can remain valid spell targets for messaging, but offensive
+  effects do not apply to them.
+- Merchant NPCs expose `merchant_inventory` with finite or infinite stock.
+- Zone repopulation is occupancy-aware: if players are present, a due repop is
+  delayed until the next eligible game-hour tick when the zone is empty.
 
 ---
 
@@ -516,39 +544,48 @@ Aggro NPCs (`is_aggro: true`) auto-engage the player on room entry.
 
 ```
 mudproto/
+  ARCHITECTURE.md                # this file (canonical architecture doc)
+  README.md
   mudproto-client/
-    client.py                    # generic WebSocket terminal client
+    client.py                    # generic ANSI terminal client
+  mudproto-client-gui/
+    client_gui.py                # generic Tk GUI client
   mudproto-server/
-    ARCHITECTURE.md              # this file
-    server.py                    # async server entry point & tick loops
-    protocol.py                  # envelope helpers & validation
+    server.py                    # async server entry point and tick loops
+    protocol.py                  # envelope helpers and validation
     models.py                    # all core dataclasses
     settings.py                  # typed constants from settings.json + DB bootstrap
-    sessions.py                  # session registry & lifecycle
-    commands.py                  # command parsing & all player commands
-    combat.py                    # combat resolution & entity management
+    sessions.py                  # session registry and lifecycle
+    commands.py                  # command parsing and all player commands
+    combat.py                    # combat resolution, AI, and repopulation helpers
     combat_text.py               # damage-severity message templates
-    damage.py                    # damage & hit-chance math
-    equipment.py                 # equip/wear/unequip mechanics
-    inventory.py                 # item equippability, selectors, template hydration
+    damage.py                    # damage and hit-chance math
+    equipment.py                 # equip, wear, and unequip mechanics
+    inventory.py                 # item selectors and template hydration
     display.py                   # display builders (room, inventory, prompt, etc.)
-    grammar.py                   # shared text/grammar transforms
-    assets.py                    # JSON asset loaders with validation
+    grammar.py                   # shared text and grammar transforms
+    attribute_config.py          # attribute and rules config loaders
+    assets.py                    # content asset loaders with validation
     player_state_db.py           # SQLite persistence
-    world.py                     # Room dataclass
+    world.py                     # Room and Zone dataclasses
     battle_round_ticks.py        # per-round support effect processing
-    game_hour_ticks.py           # per-hour regen & timed support processing
+    game_hour_ticks.py           # per-hour regen and timed support processing
     configuration/
       server/settings.json
       assets/gear.json
       assets/items.json
       assets/npcs.json
       assets/rooms.json
+      assets/zones.json
       assets/spells.json
       assets/skills.json
       attributes/character_attributes.json
       attributes/classes.json
+      attributes/combat_severity.json
+      attributes/experience.json
       attributes/hand_weight.json
+      attributes/item_usage.json
+      attributes/level_scaling.json
       attributes/regeneration.json
       attributes/wear_slots.json
     db/                          # SQLite database directory (runtime)
