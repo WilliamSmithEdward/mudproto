@@ -9,6 +9,14 @@
     {"level": 7, "total_experience": 1400},
     {"level": 8, "total_experience": 1900},
     {"level": 9, "total_experience": 2500},
-    {"level": 10, "total_experience": 3200}
+    {"level": 10, "total_experience": 3200},
+    {"level": 11, "total_experience": 4000},
+    {"level": 12, "total_experience": 4900},
+    {"level": 13, "total_experience": 5950},
+    {"level": 14, "total_experience": 7150},
+    {"level": 15, "total_experience": 8550},
+    {"level": 16, "total_experience": 10150},
+    {"level": 17, "total_experience": 11950},
+    {"level": 18, "total_experience": 14000}
   ]
 }

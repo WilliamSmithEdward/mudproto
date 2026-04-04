@@ -130,6 +130,25 @@ def _observer_context_from_player_context(context: str, target_text: str | None 
     return resolved
 
 
+def _resolve_combat_context(context: str, *, target_text: str, verb: str) -> str:
+    resolved = str(context).strip()
+    if not resolved:
+        return ""
+
+    resolved = resolved.replace("[a/an]", target_text)
+    resolved = resolved.replace("[verb]", verb)
+
+    if target_text.strip().lower() == "you":
+        resolved = re.sub(r"\byou is\b", "you are", resolved, flags=re.IGNORECASE)
+        resolved = re.sub(r"\byou has\b", "you have", resolved, flags=re.IGNORECASE)
+        if resolved.startswith("you "):
+            resolved = f"You{resolved[3:]}"
+
+    if resolved and not resolved.endswith("."):
+        resolved += "."
+    return resolved
+
+
 def _default_observer_action_line(
     actor_name: str,
     action_verb: str,
@@ -1100,9 +1119,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     for entity in damage_targets:
         parts.append(build_part("\n"))
         named_target = with_article(entity.name, capitalize=True)
-        resolved_context = damage_context.replace("[a/an]", named_target).replace("[verb]", "is")
-        if resolved_context and not resolved_context.endswith("."):
-            resolved_context += "."
+        resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
             dealt = min(entity.hit_points, total_damage)
@@ -1288,9 +1305,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
         append_newline_if_needed(parts)
         if damage_context:
-            resolved_context = damage_context.replace("[a/an]", "you").replace("[verb]", "are")
-            if not resolved_context.endswith("."):
-                resolved_context += "."
+            resolved_context = _resolve_combat_context(damage_context, target_text="you", verb="are")
             parts.append(build_part(resolved_context))
         elif total_damage > 0:
             parts.extend([
@@ -1353,6 +1368,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
     spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
     cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
     mana_cost = max(0, int(spell.get("mana_cost", 0)))
+    observer_context = str(spell.get("observer_context", "")).strip()
     cast_target_text = " at you!"
     if spell_type == "support" and cast_type == "self":
         cast_target_text = " on themselves!"
@@ -1428,8 +1444,12 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
                 ))
 
         if support_context:
+            rendered_support_context = observer_context or _observer_context_from_player_context(support_context)
             append_newline_if_needed(parts)
-            parts.append(build_part(support_context))
+            parts.append(build_part(_render_observer_template(
+                rendered_support_context,
+                with_article(entity.name, capitalize=True),
+            )))
 
         _set_entity_spell_cooldown(entity, spell)
         _apply_entity_spell_lag(entity, spell)
@@ -1452,9 +1472,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
 
         append_newline_if_needed(parts)
         if damage_context:
-            resolved_context = damage_context.replace("[a/an]", "you").replace("[verb]", "are")
-            if not resolved_context.endswith("."):
-                resolved_context += "."
+            resolved_context = _resolve_combat_context(damage_context, target_text="you", verb="are")
             parts.append(build_part(resolved_context))
         elif spell_damage > 0:
             parts.extend([
@@ -1705,9 +1723,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         parts.append(build_part("\n"))
 
         named_target = with_article(entity.name, capitalize=True)
-        resolved_context = damage_context.replace("[a/an]", named_target)
-        if resolved_context and not resolved_context.endswith("."):
-            resolved_context += "."
+        resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
             dealt = min(entity.hit_points, total_damage)
