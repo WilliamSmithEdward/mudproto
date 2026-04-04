@@ -10,6 +10,7 @@ SERVER_ROOT = Path(__file__).resolve().parent
 GEAR_FILE = CONFIGURABLE_ASSET_ROOT / "gear.json"
 ITEMS_FILE = CONFIGURABLE_ASSET_ROOT / "items.json"
 ROOMS_FILE = CONFIGURABLE_ASSET_ROOT / "rooms.json"
+ZONES_FILE = CONFIGURABLE_ASSET_ROOT / "zones.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
@@ -171,6 +172,54 @@ def get_item_template_by_id(template_id: str) -> dict | None:
 
 
 @lru_cache(maxsize=1)
+def load_zones() -> list[dict]:
+    raw_zones = _read_json_asset(ZONES_FILE)
+    if not isinstance(raw_zones, list):
+        raise ValueError(f"Zone asset file must contain a list: {ZONES_FILE}")
+
+    normalized_zones: list[dict] = []
+    zone_ids: set[str] = set()
+
+    for raw_zone in raw_zones:
+        if not isinstance(raw_zone, dict):
+            raise ValueError("Zone asset entries must be objects.")
+
+        zone_id = str(raw_zone.get("zone_id", "")).strip()
+        name = str(raw_zone.get("name", "")).strip()
+        if not zone_id:
+            raise ValueError("Zone asset entries must include a non-empty string zone_id.")
+        if not name:
+            raise ValueError(f"Zone asset '{zone_id}' must include a non-empty name.")
+        if zone_id in zone_ids:
+            raise ValueError(f"Duplicate zone_id in zone assets: {zone_id}")
+
+        raw_repopulate_game_hours = raw_zone.get("repopulate_game_hours")
+        if raw_repopulate_game_hours is None:
+            raw_repopulate_game_hours = 1 if bool(raw_zone.get("repopulate_each_game_hour", False)) else 0
+
+        repopulate_game_hours = int(raw_repopulate_game_hours)
+        if repopulate_game_hours < 0:
+            raise ValueError(f"Zone asset '{zone_id}' repopulate_game_hours must be zero or greater.")
+
+        zone_ids.add(zone_id)
+        normalized_zones.append({
+            "zone_id": zone_id,
+            "name": name,
+            "repopulate_game_hours": repopulate_game_hours,
+        })
+
+    return normalized_zones
+
+
+def get_zone_by_id(zone_id: str) -> dict | None:
+    normalized = zone_id.strip().lower()
+    for zone in load_zones():
+        if str(zone.get("zone_id", "")).strip().lower() == normalized:
+            return zone
+    return None
+
+
+@lru_cache(maxsize=1)
 def load_rooms() -> list[dict]:
     raw_rooms = _read_json_asset(ROOMS_FILE)
     if not isinstance(raw_rooms, list):
@@ -186,6 +235,7 @@ def load_rooms() -> list[dict]:
         room_id = raw_room.get("room_id")
         title = raw_room.get("title")
         description = raw_room.get("description")
+        zone_id = str(raw_room.get("zone_id", "")).strip()
         exits = raw_room.get("exits", {})
         room_npcs = raw_room.get("npcs", [])
 
@@ -197,6 +247,8 @@ def load_rooms() -> list[dict]:
             raise ValueError(f"Room asset '{room_id}' must include a non-empty title.")
         if not isinstance(description, str) or not description.strip():
             raise ValueError(f"Room asset '{room_id}' must include a non-empty description.")
+        if not zone_id:
+            raise ValueError(f"Room asset '{room_id}' must include a non-empty zone_id.")
         if not isinstance(exits, dict):
             raise ValueError(f"Room asset '{room_id}' exits must be an object.")
         if room_npcs is None:
@@ -235,6 +287,7 @@ def load_rooms() -> list[dict]:
             "room_id": room_id,
             "title": title,
             "description": description,
+            "zone_id": zone_id,
             "exits": normalized_exits,
             "npcs": normalized_npcs,
         })
@@ -452,6 +505,7 @@ def load_npc_templates() -> list[dict]:
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
             "is_ally": bool(raw_npc.get("is_ally", False)),
             "is_peaceful": bool(raw_npc.get("is_peaceful", False)),
+            "respawn": bool(raw_npc.get("respawn", True)),
             "is_merchant": is_merchant,
             "merchant_inventory_template_ids": merchant_inventory_template_ids,
             "merchant_inventory": merchant_inventory,

@@ -56,6 +56,9 @@ Part: TypeAlias = dict[str, Any]
 Line: TypeAlias = list[Part]
 
 
+output_ends_with_newline = True
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -124,6 +127,20 @@ async def send_json(websocket, message: dict) -> None:
     await websocket.send(message_text)
 
 
+def _write_line_group(lines: list[Line]) -> None:
+    global output_ends_with_newline
+
+    if not lines:
+        return
+
+    if not output_ends_with_newline and lines[0]:
+        sys.stdout.write("\n")
+        output_ends_with_newline = True
+
+    sys.stdout.write(render_lines(lines))
+    output_ends_with_newline = bool(lines and not lines[-1])
+
+
 def render_display_message(message: dict) -> None:
     payload = message.get("payload", {})
     if not isinstance(payload, dict):
@@ -132,14 +149,11 @@ def render_display_message(message: dict) -> None:
     prompt_lines = _extract_lines(payload, "prompt_lines")
     lines = _extract_lines(payload, "lines")
 
-    has_lines = len(lines) > 0
-    has_prompt_lines = len(prompt_lines) > 0
+    if lines:
+        _write_line_group(lines)
 
-    if has_lines:
-        sys.stdout.write(render_lines(lines))
-
-    if has_prompt_lines:
-        sys.stdout.write(render_lines(prompt_lines))
+    if prompt_lines:
+        _write_line_group(prompt_lines)
 
     sys.stdout.flush()
 

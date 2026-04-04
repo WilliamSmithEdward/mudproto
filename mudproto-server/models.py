@@ -111,6 +111,7 @@ class EntityState:
     room_id: str
     hit_points: int
     max_hit_points: int
+    npc_id: str = ""
     power_level: int = 1
     attacks_per_round: int = 1
     hit_roll_modifier: int = 0
@@ -125,6 +126,7 @@ class EntityState:
     is_aggro: bool = False
     is_ally: bool = False
     is_peaceful: bool = False
+    respawn: bool = False
     is_merchant: bool = False
     merchant_inventory_template_ids: list[str] = field(default_factory=list)
     merchant_inventory: list[dict[str, object]] = field(default_factory=list)

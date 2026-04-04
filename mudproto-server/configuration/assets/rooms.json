@@ -3,6 +3,7 @@
     "room_id": "start",
     "title": "Prototype Chamber",
     "description": "A plain stone chamber used for early server testing.",
+    "zone_id": "zone.prototype-core",
     "exits": {
       "north": "hall",
       "east": "sanctum",
@@ -13,6 +14,7 @@
     "room_id": "south-market",
     "title": "South Market",
     "description": "A sheltered trade nook of canvas awnings and tidy crates opens here, warm with lamplight and the scent of oil and leather.",
+    "zone_id": "zone.prototype-core",
     "npcs": [
       {
         "npc_id": "npc.south-market-merchant",
@@ -27,6 +29,7 @@
     "room_id": "hall",
     "title": "Northern Hall",
     "description": "A narrow hall of cold stone extends here, quiet and still.",
+    "zone_id": "zone.northern-wing",
     "npcs": [
       {
         "npc_id": "npc.hall-scout",
@@ -42,6 +45,7 @@
     "room_id": "east-watch",
     "title": "Eastern Watch",
     "description": "A long watch corridor lit by guttering iron braziers and scarred by old blade marks.",
+    "zone_id": "zone.northern-wing",
     "npcs": [
       {
         "npc_id": "npc.east-watch-reaver",
@@ -56,6 +60,7 @@
     "room_id": "sanctum",
     "title": "Whispering Sanctum",
     "description": "Rune-etched stone and drifting embers hum with unstable arcane current.",
+    "zone_id": "zone.whispering-sanctum",
     "npcs": [
       {
         "npc_id": "npc.sanctum-invoker",

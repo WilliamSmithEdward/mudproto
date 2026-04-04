@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from assets import load_rooms
+from assets import load_rooms, load_zones
 
 
 @dataclass
@@ -8,29 +8,54 @@ class Room:
     room_id: str
     title: str
     description: str
+    zone_id: str = ""
     exits: dict[str, str] = field(default_factory=dict)
     npcs: list[dict] = field(default_factory=list)
 
 
 @dataclass
+class Zone:
+    zone_id: str
+    name: str
+    repopulate_game_hours: int = 0
+    room_ids: list[str] = field(default_factory=list)
+    pending_repopulation: bool = False
+    game_hours_since_repopulation: int = 0
+
+
+@dataclass
 class WorldState:
     rooms: dict[str, Room] = field(default_factory=dict)
+    zones: dict[str, Zone] = field(default_factory=dict)
 
 
 def build_default_world() -> WorldState:
     world = WorldState()
+
+    for zone_data in load_zones():
+        zone = Zone(
+            zone_id=zone_data["zone_id"],
+            name=zone_data["name"],
+            repopulate_game_hours=max(0, int(zone_data.get("repopulate_game_hours", 0))),
+        )
+        world.zones[zone.zone_id] = zone
 
     for room_data in load_rooms():
         room = Room(
             room_id=room_data["room_id"],
             title=room_data["title"],
             description=room_data["description"],
+            zone_id=room_data.get("zone_id", ""),
             exits=room_data["exits"],
             npcs=room_data.get("npcs", []),
         )
         world.rooms[room.room_id] = room
 
     for room in world.rooms.values():
+        if room.zone_id not in world.zones:
+            raise ValueError(f"Room '{room.room_id}' belongs to unknown zone '{room.zone_id}'.")
+        world.zones[room.zone_id].room_ids.append(room.room_id)
+
         for direction, destination_room_id in room.exits.items():
             if destination_room_id not in world.rooms:
                 raise ValueError(

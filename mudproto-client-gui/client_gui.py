@@ -585,6 +585,10 @@ class MudProtoGuiClient:
             return
 
         self.output_text.configure(state="normal")
+        if not self.output_ends_with_newline and lines[0]:
+            self.output_text.insert(tk.END, "\n")
+            self.output_ends_with_newline = True
+
         wrote_any_line = False
         for line_index, parts in enumerate(lines):
             wrapped_lines = self._wrap_line_parts(parts)

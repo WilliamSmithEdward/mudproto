@@ -6,6 +6,7 @@
       "hit_points": 250,
       "max_hit_points": 250,
       "power_level": 3,
+      "respawn": true,
       "attacks_per_round": 1,
       "hit_roll_modifier": 2,
       "armor_class": 10,
@@ -29,6 +30,7 @@
       "hit_points": 220,
       "max_hit_points": 220,
       "power_level": 4,
+      "respawn": true,
       "attacks_per_round": 1,
       "hit_roll_modifier": 1,
       "armor_class": 11,
@@ -58,6 +60,7 @@
       "hit_points": 280,
       "max_hit_points": 280,
       "power_level": 5,
+      "respawn": true,
       "attacks_per_round": 1,
       "hit_roll_modifier": 2,
       "armor_class": 11,
@@ -95,6 +98,7 @@
       "is_aggro": false,
       "is_ally": true,
       "is_peaceful": true,
+      "respawn": false,
       "is_merchant": true,
       "merchant_inventory": [
         {

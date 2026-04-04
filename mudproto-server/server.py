@@ -14,6 +14,7 @@ from combat import (
     initialize_session_entities,
     maybe_auto_engage_current_room,
     process_entity_game_hour_tick,
+    repopulate_game_hour_zones,
     resolve_combat_round,
     tick_out_of_combat_cooldowns,
 )
@@ -362,6 +363,8 @@ async def game_tick_loop() -> None:
                 if not getattr(entity, "is_alive", False):
                     continue
                 process_entity_game_hour_tick(entity)
+
+            repopulate_game_hour_zones()
 
     except asyncio.CancelledError:
         raise

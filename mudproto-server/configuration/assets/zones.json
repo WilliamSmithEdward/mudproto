@@ -1,0 +1,17 @@
+[
+  {
+    "zone_id": "zone.prototype-core",
+    "name": "Prototype Core",
+    "repopulate_game_hours": 0
+  },
+  {
+    "zone_id": "zone.northern-wing",
+    "name": "Northern Wing",
+    "repopulate_game_hours": 1
+  },
+  {
+    "zone_id": "zone.whispering-sanctum",
+    "name": "Whispering Sanctum",
+    "repopulate_game_hours": 1
+  }
+]
