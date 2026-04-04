@@ -109,8 +109,9 @@ class MudProtoGuiClient:
         self._window_is_active = True
 
         self._build_widgets()
-        self.root.bind("<FocusIn>", self._on_window_activated, add="+")
-        self.root.bind("<FocusOut>", self._on_window_deactivated, add="+")
+        self.root.bind_all("<FocusIn>", self._on_window_activated, add="+")
+        self.root.bind_all("<FocusOut>", self._on_window_deactivated, add="+")
+        self.root.bind_all("<KeyPress>", self._on_global_key_press, add="+")
         self.network_thread.start()
         self.append_system_message(f"Connecting to {self.uri}...", fg="bright_cyan")
         self.connect()
@@ -187,6 +188,9 @@ class MudProtoGuiClient:
         )
         self.output_text.pack(side="left", fill="both", expand=True)
         self.output_text.configure(state="disabled")
+        self.output_text.bind("<KeyPress>", self._on_global_key_press, add="+")
+        self.y_scrollbar.bind("<KeyPress>", self._on_global_key_press, add="+")
+        self.x_scrollbar.bind("<KeyPress>", self._on_global_key_press, add="+")
         self.y_scrollbar.config(command=self.output_text.yview)
         self.x_scrollbar.config(command=self.output_text.xview)
 
@@ -227,6 +231,15 @@ class MudProtoGuiClient:
         except tk.TclError:
             pass
 
+    def _schedule_input_focus_restore(self) -> None:
+        try:
+            if self.root.winfo_exists():
+                self._focus_restore_job = self.root.after(10, self._restore_input_focus)
+                self.root.after(60, self._restore_input_focus)
+                self.root.after(140, self._restore_input_focus)
+        except tk.TclError:
+            pass
+
     def _mark_window_inactive_if_needed(self) -> None:
         try:
             focused_widget = self.root.focus_displayof()
@@ -238,7 +251,7 @@ class MudProtoGuiClient:
 
     def _on_window_deactivated(self, _event=None) -> None:
         try:
-            self.root.after(1, self._mark_window_inactive_if_needed)
+            self.root.after(50, self._mark_window_inactive_if_needed)
         except tk.TclError:
             self._window_is_active = False
 
@@ -252,7 +265,68 @@ class MudProtoGuiClient:
                 self.root.after_cancel(self._focus_restore_job)
             except tk.TclError:
                 pass
-        self._focus_restore_job = self.root.after(10, self._restore_input_focus)
+        self._schedule_input_focus_restore()
+
+    def _on_global_key_press(self, event) -> str | None:
+        if event is None:
+            return None
+
+        widget = getattr(event, "widget", None)
+        if widget is self.input_entry:
+            return None
+
+        keysym = str(getattr(event, "keysym", "") or "")
+        event_char = str(getattr(event, "char", "") or "")
+
+        if keysym in {
+            "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R",
+            "Win_L", "Win_R", "Caps_Lock", "Num_Lock", "Escape",
+        }:
+            return None
+
+        try:
+            self.input_entry.focus_force()
+            self.input_entry.icursor(tk.END)
+        except tk.TclError:
+            return None
+
+        if keysym == "Return":
+            return self.on_submit()
+        if keysym == "BackSpace":
+            insert_index = int(self.input_entry.index(tk.INSERT))
+            if insert_index > 0:
+                self.input_entry.delete(insert_index - 1)
+            return "break"
+        if keysym == "Delete":
+            insert_index = int(self.input_entry.index(tk.INSERT))
+            current_text = self.input_entry.get()
+            if insert_index < len(current_text):
+                self.input_entry.delete(insert_index)
+            return "break"
+        if keysym == "Left":
+            insert_index = max(0, int(self.input_entry.index(tk.INSERT)) - 1)
+            self.input_entry.icursor(insert_index)
+            return "break"
+        if keysym == "Right":
+            insert_index = min(len(self.input_entry.get()), int(self.input_entry.index(tk.INSERT)) + 1)
+            self.input_entry.icursor(insert_index)
+            return "break"
+        if keysym == "Home":
+            self.input_entry.icursor(0)
+            return "break"
+        if keysym == "End":
+            self.input_entry.icursor(tk.END)
+            return "break"
+        if keysym == "Up":
+            return self.on_history_up()
+        if keysym == "Down":
+            return self.on_history_down()
+
+        if event_char and event_char.isprintable():
+            self.input_entry.insert(tk.INSERT, event_char)
+            return "break"
+
+        return None
 
     def _run_network_loop(self) -> None:
         asyncio.set_event_loop(self.network_loop)
