@@ -720,6 +720,12 @@ def _scan_visible_hostiles(session: ClientSession, room_id: str) -> list:
     return visible
 
 
+def _scan_visible_players(session: ClientSession, room_id: str) -> list[ClientSession]:
+    visible = list_authenticated_room_players(room_id, exclude_client_id=session.client_id)
+    visible.sort(key=lambda player_session: (player_session.authenticated_character_name.lower(), player_session.client_id))
+    return visible
+
+
 def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: str = "Enemies: ") -> bool:
     if not entities:
         return False
@@ -748,6 +754,39 @@ def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: s
         count = int(entry["count"])
         if count > 1:
             parts.append(build_part(f" [{count}]", "bright_cyan", True))
+
+    return True
+
+
+def _append_scan_player_summary(parts: list[dict], players: list[ClientSession], *, prefix: str = "Players: ") -> bool:
+    if not players:
+        return False
+
+    summarized: list[dict[str, str | int]] = []
+    for player_session in players:
+        player_name = player_session.authenticated_character_name.strip() or "Unknown"
+        normalized_name = player_name.lower()
+        if summarized and str(summarized[-1]["normalized_name"]) == normalized_name:
+            summarized[-1]["count"] = int(summarized[-1]["count"]) + 1
+            continue
+
+        summarized.append({
+            "normalized_name": normalized_name,
+            "name": player_name,
+            "count": 1,
+        })
+
+    if prefix:
+        parts.append(build_part(prefix, "bright_white", True))
+
+    for index, entry in enumerate(summarized):
+        if index > 0:
+            parts.append(build_part(", ", "bright_white"))
+
+        parts.append(build_part(str(entry["name"]), "bright_cyan", True))
+        count = int(entry["count"])
+        if count > 1:
+            parts.append(build_part(f" [{count}]", "bright_yellow", True))
 
     return True
 
@@ -782,18 +821,33 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             ])
 
             nearby_hostiles = _scan_visible_hostiles(session, destination_room_id)
-            if nearby_hostiles:
+            nearby_players = _scan_visible_players(session, destination_room_id)
+            if nearby_hostiles or nearby_players:
                 parts.append(build_part("  -  ", "bright_black"))
-                _append_scan_hostile_summary(parts, nearby_hostiles, prefix="")
+                appended_summary = False
+                if nearby_hostiles:
+                    appended_summary = _append_scan_hostile_summary(parts, nearby_hostiles, prefix="Enemies: ")
+                if nearby_players:
+                    if appended_summary:
+                        parts.append(build_part("  |  ", "bright_black"))
+                    _append_scan_player_summary(parts, nearby_players, prefix="Players: ")
 
     visible_enemies = _scan_visible_hostiles(session, room.room_id)
-    if visible_enemies:
+    visible_players = _scan_visible_players(session, room.room_id)
+    if visible_enemies or visible_players:
         parts.extend([
             build_part("\n"),
             build_part(_panel_divider(), "bright_black"),
             build_part("\n"),
+            build_part("Here: ", "bright_white", True),
         ])
-        _append_scan_hostile_summary(parts, visible_enemies, prefix="Here: ")
+        appended_summary = False
+        if visible_enemies:
+            appended_summary = _append_scan_hostile_summary(parts, visible_enemies, prefix="Enemies: ")
+        if visible_players:
+            if appended_summary:
+                parts.append(build_part("  |  ", "bright_black"))
+            _append_scan_player_summary(parts, visible_players, prefix="Players: ")
 
     return build_display(parts, blank_lines_before=0, prompt_after=prompt_after, prompt_parts=prompt_parts)
 

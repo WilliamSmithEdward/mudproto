@@ -1213,7 +1213,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     _set_player_skill_cooldown(session, skill)
     _apply_player_skill_lag(session, skill)
-    target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
+    target_label = with_article(damage_targets[0].name) if damage_targets else None
     observer_lines = [
         _resolve_observer_action_line(
             actor_name,
@@ -1815,7 +1815,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 build_part(restore_context or _player_restore_fallback(restore_effect)),
             ])
 
-    target_label = with_article(damage_targets[0].name, capitalize=True) if damage_targets else None
+    target_label = with_article(damage_targets[0].name) if damage_targets else None
     observer_lines = [
         _resolve_observer_action_line(
             actor_name,
