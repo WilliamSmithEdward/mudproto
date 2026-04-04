@@ -2158,7 +2158,7 @@ def spawn_dummy(session: ClientSession) -> dict:
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
-    from display import display_error
+    from display import display_error, display_force_prompt
 
     clear_combat_if_invalid(session)
     entity, resolve_error = resolve_room_entity_selector(
@@ -2179,7 +2179,9 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
 
     immediate_round = resolve_combat_round(session)
     if immediate_round is not None:
-        return immediate_round
+        if session.pending_death_logout:
+            return immediate_round
+        return [immediate_round, display_force_prompt(session)]
 
     return display_error(f"You fail to engage {entity.name}.", session)
 

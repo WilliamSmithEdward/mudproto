@@ -192,7 +192,15 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
                     copied_payload["lines"] = filtered_lines
             copied_lines = copied_payload.get("lines")
             if isinstance(copied_lines, list):
-                copied_payload["lines"] = [[], []] + copied_lines
+                normalized_lines = [line for line in copied_lines if isinstance(line, list)]
+                leading_blank_count = 0
+                while leading_blank_count < len(normalized_lines) and not normalized_lines[leading_blank_count]:
+                    leading_blank_count += 1
+                if normalized_lines:
+                    desired_leading_blank_count = 2
+                    copied_payload["lines"] = ([[]] * max(0, desired_leading_blank_count - leading_blank_count)) + normalized_lines
+                else:
+                    copied_payload["lines"] = normalized_lines
         broadcast_messages.append(copied_message)
 
     return broadcast_messages
@@ -345,7 +353,7 @@ async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *
                     if isinstance(payload, dict):
                         prompt_lines = [build_prompt_parts(peer)]
                         if payload.get("lines"):
-                            prompt_lines = [[], []] + prompt_lines
+                            prompt_lines = [[]] + prompt_lines
                         payload["prompt_lines"] = prompt_lines
         await send_outbound(peer.websocket, peer_messages)
 
@@ -393,6 +401,38 @@ def _prepend_display_lines(message: dict | None, lines: list[list[dict]]) -> dic
     else:
         payload["lines"] = normalized_prefix
     return message
+
+
+def _refresh_origin_room_display(origin_session: ClientSession, outbound: dict | list[dict], to_room_id: str) -> None:
+    destination_room = get_room(to_room_id)
+    if destination_room is None:
+        return
+
+    refreshed_display = display_room(origin_session, destination_room)
+    refreshed_payload = refreshed_display.get("payload") if isinstance(refreshed_display, dict) else None
+    if not isinstance(refreshed_payload, dict):
+        return
+
+    refreshed_lines = refreshed_payload.get("lines")
+    refreshed_prompt_lines = refreshed_payload.get("prompt_lines")
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    for message in messages:
+        if not isinstance(message, dict) or message.get("type") != "display":
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        movement = payload.get("movement")
+        if not isinstance(movement, dict):
+            continue
+        if str(movement.get("to_room_id", "")).strip() != str(to_room_id).strip():
+            continue
+
+        if isinstance(refreshed_lines, list):
+            payload["lines"] = json.loads(json.dumps(refreshed_lines))
+        if isinstance(refreshed_prompt_lines, list):
+            payload["prompt_lines"] = json.loads(json.dumps(refreshed_prompt_lines))
+        break
 
 
 def _resolve_follow_leader_name(follower_session: ClientSession) -> str:
@@ -571,6 +611,8 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             ])
             await send_outbound(follower.websocket, follow_display)
 
+        _refresh_origin_room_display(origin_session, outbound, to_room_id)
+
 
 async def send_json(websocket: ServerConnection, message: dict) -> bool:
     message_text = json.dumps(message)
@@ -625,8 +667,8 @@ async def command_scheduler_loop(session) -> None:
                 queued_command = session.command_queue.pop(0)
 
                 result = execute_command(session, queued_command.command_text)
-                await send_outbound(session.websocket, result)
                 await _handle_movement_side_effects(session, result)
+                await send_outbound(session.websocket, result)
                 if _looks_like_skill_spell_or_item_action(queued_command.command_text, result):
                     await _broadcast_non_combat_outbound_to_room(session, result)
                 continue
@@ -825,8 +867,8 @@ async def handle_connection(websocket: ServerConnection) -> None:
                 continue
 
             response = await dispatch_message(message, session)
-            await send_outbound(session.websocket, response)
             await _handle_movement_side_effects(session, response)
+            await send_outbound(session.websocket, response)
 
             if session.pending_death_logout:
                 reset_session_to_login(session)
