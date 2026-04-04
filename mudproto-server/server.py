@@ -291,6 +291,37 @@ def _append_private_lines_to_payload(payload: dict, session: ClientSession) -> N
     payload["lines"] = normalized_existing + pending_lines
 
 
+def _inject_private_lines_into_outbound(session: ClientSession, outbound: dict | list[dict]) -> dict | list[dict]:
+    pending_lines = _consume_pending_private_lines(session)
+    if not pending_lines:
+        return outbound
+
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    for message in messages:
+        if not isinstance(message, dict) or message.get("type") != "display":
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+
+        existing_lines = payload.get("lines")
+        normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
+        if normalized_existing and normalized_existing[-1]:
+            normalized_existing.append([])
+        payload["lines"] = normalized_existing + pending_lines
+        return outbound
+
+    notification_message = build_display_lines(
+        pending_lines,
+        blank_lines_before=0,
+        prompt_after=True,
+        prompt_parts=build_prompt_parts(session),
+    )
+    if isinstance(outbound, list):
+        return [notification_message, *outbound]
+    return [notification_message, outbound]
+
+
 def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tuple[list[list[dict]], list[list[dict]]]:
     player_lines: list[list[dict]] = []
     retaliation_lines: list[list[dict]] = []
@@ -346,11 +377,6 @@ def _build_unified_room_round_display(
         retaliation_phase_lines.extend(retaliation_lines)
 
     merged_lines = player_phase_lines + retaliation_phase_lines
-    pending_private_lines = _consume_pending_private_lines(recipient_session)
-    if pending_private_lines:
-        if merged_lines and merged_lines[-1]:
-            merged_lines.append([])
-        merged_lines.extend(pending_private_lines)
     if not merged_lines:
         return None
 
@@ -376,8 +402,16 @@ async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *
                     if isinstance(payload, dict):
                         _append_private_lines_to_payload(payload, peer)
                         prompt_lines = [build_prompt_parts(peer)]
-                        if payload.get("lines"):
-                            prompt_lines = [[]] + prompt_lines
+                        existing_lines = payload.get("lines")
+                        if isinstance(existing_lines, list) and existing_lines:
+                            trailing_blank_line = False
+                            for existing_line in reversed(existing_lines):
+                                if not isinstance(existing_line, list):
+                                    continue
+                                trailing_blank_line = not existing_line
+                                break
+                            prompt_blank_count = 1 if trailing_blank_line else 2
+                            prompt_lines = ([[]] * prompt_blank_count) + prompt_lines
                         payload["prompt_lines"] = prompt_lines
         await send_outbound(peer.websocket, peer_messages)
 
@@ -692,6 +726,7 @@ async def command_scheduler_loop(session) -> None:
 
                 result = execute_command(session, queued_command.command_text)
                 await _handle_movement_side_effects(session, result)
+                result = _inject_private_lines_into_outbound(session, result)
                 await send_outbound(session.websocket, result)
                 if _looks_like_skill_spell_or_item_action(queued_command.command_text, result):
                     await _broadcast_non_combat_outbound_to_room(session, result)
@@ -841,6 +876,7 @@ async def combat_round_loop() -> None:
                     outbounds = [unified_display]
                     if not skip_prompt:
                         outbounds.append(display_force_prompt(recipient))
+                    outbounds = _inject_private_lines_into_outbound(recipient, outbounds)
                     await send_outbound(recipient.websocket, outbounds)
 
                 for actor_session, _ in round_results:
@@ -892,6 +928,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
             response = await dispatch_message(message, session)
             await _handle_movement_side_effects(session, response)
+            response = _inject_private_lines_into_outbound(session, response)
             await send_outbound(session.websocket, response)
 
             if session.pending_death_logout:

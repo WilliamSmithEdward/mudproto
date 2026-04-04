@@ -76,6 +76,7 @@ def _append_experience_gain_notification(
     if new_level > old_level:
         resource_gains = roll_level_resource_gains(session, old_level, new_level)
         append_newline_if_needed(parts)
+        parts.append(build_part_fn("\n"))
         parts.extend([
             build_part_fn("You advance to level ", "bright_green", True),
             build_part_fn(str(new_level), "bright_green", True),
@@ -164,28 +165,11 @@ def _award_shared_entity_experience(session: ClientSession, entity: EntityState,
 
         gained, old_level, new_level, _ = award_experience(contributor_session, experience_reward)
         rewarded_keys.add(contributor_key)
-        if contributor_key == current_key:
-            _append_experience_gain_notification(
-                contributor_session,
-                gained,
-                old_level,
-                new_level,
-                parts,
-                build_part_fn,
-            )
-        else:
-            _queue_experience_gain_notification(contributor_session, gained, old_level, new_level)
+        _queue_experience_gain_notification(contributor_session, gained, old_level, new_level)
 
     if current_key and current_key not in rewarded_keys:
         gained, old_level, new_level, _ = award_experience(session, experience_reward)
-        _append_experience_gain_notification(
-            session,
-            gained,
-            old_level,
-            new_level,
-            parts,
-            build_part_fn,
-        )
+        _queue_experience_gain_notification(session, gained, old_level, new_level)
 
     entity.experience_reward_claimed = True
     entity.experience_contributor_keys.clear()
