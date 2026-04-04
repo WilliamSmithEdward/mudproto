@@ -721,6 +721,59 @@ def _build_corpse_label(source_name: str) -> str:
     return f"{source_name} corpse"
 
 
+def _display_corpse_examination(session: ClientSession, corpse) -> OutboundResult:
+    rows: list[list[str]] = [["Coins", str(max(0, int(corpse.coins)))]]
+    row_cell_colors: list[list[str]] = [["bright_cyan", "bright_cyan"]]
+
+    loot_items = list(corpse.loot_items.values())
+    loot_items.sort(key=lambda item: item.name.lower())
+    if loot_items:
+        item_counts: dict[str, int] = {}
+        item_names: dict[str, str] = {}
+        item_colors: dict[str, str] = {}
+        item_order: list[str] = []
+
+        for loot_item in loot_items:
+            normalized_name = loot_item.name.strip().lower()
+            if not normalized_name:
+                continue
+            if normalized_name not in item_counts:
+                item_counts[normalized_name] = 0
+                item_names[normalized_name] = loot_item.name
+                item_colors[normalized_name] = _item_highlight_color(loot_item)
+                item_order.append(normalized_name)
+            item_counts[normalized_name] += 1
+
+        for item_key in item_order:
+            count = item_counts[item_key]
+            item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
+            rows.append(["Item", item_label])
+            row_cell_colors.append(["bright_magenta", item_colors[item_key]])
+    else:
+        rows.append(["Items", "None"])
+        row_cell_colors.append(["bright_magenta", "bright_black"])
+
+    parts = build_menu_table_parts(
+        _build_corpse_label(corpse.source_name),
+        ["Loot", "Contents"],
+        rows,
+        column_colors=["bright_cyan", "bright_white"],
+        row_cell_colors=row_cell_colors,
+        column_alignments=["left", "left"],
+    )
+    parts.extend([
+        build_part("\n"),
+        build_part("Commands: ", "bright_white"),
+        build_part("get <item> <corpse>", "bright_yellow", True),
+        build_part(", ", "bright_white"),
+        build_part("get coins <corpse>", "bright_yellow", True),
+        build_part(", ", "bright_white"),
+        build_part("get all <corpse>", "bright_yellow", True),
+    ])
+
+    return display_command_result(session, parts)
+
+
 def _selector_prefix_matches_keywords(parts: list[str], keywords: set[str]) -> bool:
     if not parts or not keywords:
         return False
@@ -1707,6 +1760,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             if entity_target is not None:
                 return display_entity_summary(session, entity_target)
 
+            corpse_target, _ = resolve_room_corpse_selector(
+                session,
+                session.player.current_room_id,
+                target_text,
+            )
+            if corpse_target is not None:
+                return _display_corpse_examination(session, corpse_target)
+
             return display_error(entity_error or f"No target named '{target_text}' is here.", session)
 
         return display_room(session, room)
@@ -1731,38 +1792,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if corpse is None:
             return display_error(resolve_error or f"No corpse matching '{selector_text}' is here.", session)
 
-        parts = [
-            build_part("You examine ", "bright_white"),
-            build_part(_build_corpse_label(corpse.source_name), "bright_yellow", True),
-            build_part(".", "bright_white"),
-        ]
-
-        parts.extend([
-            build_part("\n"),
-            build_part("Coins: ", "bright_white"),
-            build_part(str(corpse.coins), "bright_cyan", True),
-        ])
-
-        loot_items = list(corpse.loot_items.values())
-        loot_items.sort(key=lambda item: item.name.lower())
-        if loot_items:
-            parts.extend([
-                build_part("\n"),
-                build_part("Items:", "bright_white", True),
-            ])
-            for loot_item in loot_items:
-                parts.extend([
-                    build_part("\n"),
-                    build_part(" - ", "bright_white"),
-                    build_part(loot_item.name, _item_highlight_color(loot_item), True),
-                ])
-        else:
-            parts.extend([
-                build_part("\n"),
-                build_part("No lootable items remain.", "bright_white"),
-            ])
-
-        return display_command_result(session, parts)
+        return _display_corpse_examination(session, corpse)
 
     if verb == "get":
         if len(args) == 1:

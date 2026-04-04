@@ -133,11 +133,14 @@ def build_instruction_payload() -> dict[str, object]:
         "response_contract": {
             "format": "Return one raw JSON object only.",
             "delivery_requirement": "The final result should be provided as a downloadable `.json` file, not just pasted as prose or wrapped in Markdown.",
+            "schema_conformance_requirement": "Every asset and the top-level payload must conform exactly to the provided schemas with no deviation, no extra fields, no renamed fields, no omitted required fields, and no unsupported structures.",
             "forbidden": [
                 "markdown code fences",
                 "comments",
                 "explanatory prose before or after the JSON",
-                "trailing commas"
+                "trailing commas",
+                "extra fields not present in the provided schemas",
+                "schema deviations of any kind"
             ],
             "filename_guidance": "Use a short kebab-case filename such as sanctum-library-expansion.json",
             "interactive_behavior": "If the user has not yet provided enough design direction, ask concise clarifying questions first and do not emit the final JSON payload until those answers are known."
@@ -195,9 +198,12 @@ def build_instruction_payload() -> dict[str, object]:
             "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
             "Every asset section must be present and must be a JSON array, even when empty.",
             "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/asset-payloads/`.",
+            "Conform every asset and the top-level payload exactly to the provided schemas with no deviation.",
             "Only use fields supported by the schemas below.",
+            "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
             "Only reference assets that exist in the base game or in this same payload.",
             "Preserve MudProto's existing fantasy tone and naming style.",
+            "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
             "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition."
         ],
         "cross_reference_requirements": [
@@ -219,8 +225,9 @@ def build_instruction_payload() -> dict[str, object]:
         ],
         "minimum_quality_bar": [
             "Descriptions should be concise and usable in-game.",
-            "Room titles and NPC names should sound like they belong in MudProto.",
+            "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
             "Combat/support context strings should be ready for player-facing text.",
+            "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
             "Merchant inventories should be sensible for the NPC role.",
             "Avoid overpowered numbers unless explicitly requested."
         ],
