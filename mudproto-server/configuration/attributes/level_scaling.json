@@ -1,7 +1,7 @@
 {
   "melee": {
     "hit_roll": {
-      "levels_per_bonus": 5,
+      "levels_per_bonus": 1,
       "bonus_per_step": 1
     },
     "damage_roll": {
