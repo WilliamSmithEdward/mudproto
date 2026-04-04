@@ -281,21 +281,28 @@ async def _broadcast_non_combat_outbound_to_room(origin_session, outbound: dict 
     await _send_room_broadcast(origin_session, broadcast_messages, prompt_observers=True)
 
 
-async def send_json(websocket: ServerConnection, message: dict) -> None:
+async def send_json(websocket: ServerConnection, message: dict) -> bool:
     message_text = json.dumps(message)
-    await websocket.send(message_text)
+    try:
+        await websocket.send(message_text)
+    except websockets.ConnectionClosed:
+        return False
+
     print(f"Sent response: {message}")
+    return True
 
 
 async def send_outbound(
     websocket: ServerConnection,
     outbound: dict | list[dict],
-) -> None:
+) -> bool:
+    delivered = True
     if isinstance(outbound, list):
         for message in outbound:
-            await send_json(websocket, message)
+            delivered = await send_json(websocket, message) and delivered
     else:
-        await send_json(websocket, outbound)
+        delivered = await send_json(websocket, outbound)
+    return delivered
 
 
 async def command_scheduler_loop(session) -> None:
@@ -538,7 +545,8 @@ async def handle_connection(websocket: ServerConnection) -> None:
                 input_text = payload.get("text") if isinstance(payload, dict) else None
                 if isinstance(input_text, str) and session.is_authenticated and _looks_like_skill_spell_or_item_action(input_text, response):
                     await _broadcast_non_combat_outbound_to_room(session, response)
-
+    except websockets.ConnectionClosed:
+        pass
     finally:
         if session.scheduler_task is not None:
             session.scheduler_task.cancel()
