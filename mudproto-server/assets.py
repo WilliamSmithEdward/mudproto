@@ -14,11 +14,57 @@ ZONES_FILE = CONFIGURABLE_ASSET_ROOT / "zones.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
+LLM_PAYLOADS_DIR = CONFIGURABLE_ASSET_ROOT / "llm-payloads"
+SUPPORTED_LLM_PAYLOAD_SECTIONS = ("gear", "items", "zones", "rooms", "spells", "skills", "npcs")
 
 
 def _read_json_asset(path: Path) -> object:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+@lru_cache(maxsize=1)
+def _load_llm_payload_documents() -> tuple[tuple[Path, dict], ...]:
+    if not LLM_PAYLOADS_DIR.exists():
+        return tuple()
+
+    payload_documents: list[tuple[Path, dict]] = []
+    for path in sorted(LLM_PAYLOADS_DIR.glob("*.json")):
+        if not path.is_file():
+            continue
+
+        raw_payload = _read_json_asset(path)
+        if not isinstance(raw_payload, dict):
+            raise ValueError(f"LLM payload file must contain an object: {path}")
+
+        for section_name in SUPPORTED_LLM_PAYLOAD_SECTIONS:
+            raw_section = raw_payload.get(section_name, [])
+            if raw_section is None:
+                raw_section = []
+            if not isinstance(raw_section, list):
+                raise ValueError(f"LLM payload '{path.name}' field '{section_name}' must be a list.")
+
+        payload_documents.append((path, raw_payload))
+
+    return tuple(payload_documents)
+
+
+def _load_llm_payload_section(section_name: str) -> list[dict]:
+    if section_name not in SUPPORTED_LLM_PAYLOAD_SECTIONS:
+        raise ValueError(f"Unsupported LLM payload section '{section_name}'.")
+
+    merged_entries: list[dict] = []
+    for path, raw_payload in _load_llm_payload_documents():
+        raw_entries = raw_payload.get(section_name, [])
+        if raw_entries is None:
+            continue
+
+        for raw_entry in raw_entries:
+            if not isinstance(raw_entry, dict):
+                raise ValueError(f"LLM payload '{path.name}' section '{section_name}' entries must be objects.")
+            merged_entries.append(raw_entry)
+
+    return merged_entries
 
 
 def _normalize_keywords(raw_keywords: object, *, context: str) -> list[str]:
@@ -45,6 +91,7 @@ def load_gear_templates() -> list[dict]:
     raw_templates = _read_json_asset(GEAR_FILE)
     if not isinstance(raw_templates, list):
         raise ValueError(f"Gear asset file must contain a list: {GEAR_FILE}")
+    raw_templates = list(raw_templates) + _load_llm_payload_section("gear")
 
     template_ids: set[str] = set()
     normalized_templates: list[dict] = []
@@ -119,6 +166,7 @@ def load_item_templates() -> list[dict]:
     raw_templates = _read_json_asset(ITEMS_FILE)
     if not isinstance(raw_templates, list):
         raise ValueError(f"Item asset file must contain a list: {ITEMS_FILE}")
+    raw_templates = list(raw_templates) + _load_llm_payload_section("items")
 
     template_ids: set[str] = set()
     normalized_templates: list[dict] = []
@@ -176,6 +224,7 @@ def load_zones() -> list[dict]:
     raw_zones = _read_json_asset(ZONES_FILE)
     if not isinstance(raw_zones, list):
         raise ValueError(f"Zone asset file must contain a list: {ZONES_FILE}")
+    raw_zones = list(raw_zones) + _load_llm_payload_section("zones")
 
     normalized_zones: list[dict] = []
     zone_ids: set[str] = set()
@@ -224,6 +273,7 @@ def load_rooms() -> list[dict]:
     raw_rooms = _read_json_asset(ROOMS_FILE)
     if not isinstance(raw_rooms, list):
         raise ValueError(f"Room asset file must contain a list: {ROOMS_FILE}")
+    raw_rooms = list(raw_rooms) + _load_llm_payload_section("rooms")
 
     room_ids: set[str] = set()
     normalized_rooms: list[dict] = []
@@ -301,7 +351,7 @@ def load_npc_templates() -> list[dict]:
     if not isinstance(raw_config, dict):
         raise ValueError(f"NPC asset file must contain an object: {NPCS_FILE}")
 
-    raw_npcs = raw_config.get("npcs", [])
+    raw_npcs = list(raw_config.get("npcs", [])) + _load_llm_payload_section("npcs")
     if raw_npcs is None:
         raw_npcs = []
     if not isinstance(raw_npcs, list):
@@ -541,6 +591,7 @@ def load_spells() -> list[dict]:
     raw_spells = _read_json_asset(SPELLS_FILE)
     if not isinstance(raw_spells, list):
         raise ValueError(f"Spell asset file must contain a list: {SPELLS_FILE}")
+    raw_spells = list(raw_spells) + _load_llm_payload_section("spells")
 
     spell_ids: set[str] = set()
     spell_names: set[str] = set()
@@ -727,6 +778,7 @@ def load_skills() -> list[dict]:
     raw_skills = _read_json_asset(SKILLS_FILE)
     if not isinstance(raw_skills, list):
         raise ValueError(f"Skill asset file must contain a list: {SKILLS_FILE}")
+    raw_skills = list(raw_skills) + _load_llm_payload_section("skills")
 
     skill_ids: set[str] = set()
     skill_names: set[str] = set()
