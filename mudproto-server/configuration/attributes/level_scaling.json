@@ -1,0 +1,12 @@
+{
+  "melee": {
+    "hit_roll": {
+      "levels_per_bonus": 5,
+      "bonus_per_step": 1
+    },
+    "damage_roll": {
+      "levels_per_bonus": 4,
+      "bonus_per_step": 1
+    }
+  }
+}

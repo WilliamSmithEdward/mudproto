@@ -2122,7 +2122,7 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
 
         append_newline_if_needed(parts)
 
-        hit_modifier = get_player_hit_modifier(weapon)
+        hit_modifier = get_player_hit_modifier(weapon, player_level=session.player.level)
         if not roll_hit(hit_modifier, entity.armor_class):
             miss_verb = resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
             parts.extend(build_player_attack_parts(
@@ -2133,7 +2133,11 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
             ))
             continue
 
-        rolled_damage, weapon_name, attack_verb = roll_player_damage(session.player_combat, weapon)
+        rolled_damage, weapon_name, attack_verb = roll_player_damage(
+            session.player_combat,
+            weapon,
+            player_level=session.player.level,
+        )
         entity.hit_points = max(0, entity.hit_points - rolled_damage)
         parts.extend(build_player_attack_parts(
             entity_name=entity.name,

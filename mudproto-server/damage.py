@@ -1,5 +1,6 @@
 import random
 
+from attribute_config import load_level_scaling_config
 from models import EntityState, ItemState, PlayerCombatState
 from settings import HIT_ROLL_DICE_SIDES, UNARMED_DAMAGE_VARIANCE
 
@@ -48,10 +49,36 @@ def _roll_damage_dice(dice_count: int, dice_sides: int) -> int:
     return total
 
 
-def roll_player_damage(player_combat: PlayerCombatState, weapon: ItemState | None) -> tuple[int, str | None, str]:
+def _resolve_player_melee_level_bonuses(player_level: int) -> tuple[int, int]:
+    normalized_level = max(1, int(player_level))
+    level_scaling = load_level_scaling_config()
+    melee_scaling = level_scaling.get("melee", {}) if isinstance(level_scaling, dict) else {}
+
+    def _resolve_bonus(rule_name: str) -> int:
+        rule = melee_scaling.get(rule_name, {}) if isinstance(melee_scaling, dict) else {}
+        if not isinstance(rule, dict):
+            return 0
+
+        levels_per_bonus = max(0, int(rule.get("levels_per_bonus", 0)))
+        bonus_per_step = max(0, int(rule.get("bonus_per_step", 0)))
+        if levels_per_bonus <= 0 or bonus_per_step <= 0:
+            return 0
+        return max(0, ((normalized_level - 1) // levels_per_bonus) * bonus_per_step)
+
+    return _resolve_bonus("hit_roll"), _resolve_bonus("damage_roll")
+
+
+def roll_player_damage(
+    player_combat: PlayerCombatState,
+    weapon: ItemState | None,
+    *,
+    player_level: int = 1,
+) -> tuple[int, str | None, str]:
+    _, level_damage_bonus = _resolve_player_melee_level_bonuses(player_level)
+
     if weapon is None:
-        base_damage = roll_unarmed_damage(player_combat.attack_damage)
-        return base_damage, None, "hit"
+        base_damage = roll_unarmed_damage(player_combat.attack_damage) + level_damage_bonus
+        return max(0, base_damage), None, "hit"
 
     rolled_damage = _roll_damage_dice(weapon.damage_dice_count, weapon.damage_dice_sides)
     total_damage = (
@@ -59,14 +86,16 @@ def roll_player_damage(player_combat: PlayerCombatState, weapon: ItemState | Non
         + player_combat.attack_damage
         + weapon.damage_roll_modifier
         + weapon.attack_damage_bonus
+        + level_damage_bonus
     )
     return max(0, total_damage), weapon.name, resolve_weapon_verb(weapon.weapon_type)
 
 
-def get_player_hit_modifier(weapon: ItemState | None) -> int:
+def get_player_hit_modifier(weapon: ItemState | None, *, player_level: int = 1) -> int:
+    level_hit_bonus, _ = _resolve_player_melee_level_bonuses(player_level)
     if weapon is None:
-        return 0
-    return weapon.hit_roll_modifier
+        return level_hit_bonus
+    return weapon.hit_roll_modifier + level_hit_bonus
 
 
 def roll_skill_damage(skill: dict) -> int:

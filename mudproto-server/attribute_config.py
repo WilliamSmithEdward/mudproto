@@ -11,6 +11,7 @@ PLAYER_CLASSES_FILE = ATTRIBUTE_CONFIG_ROOT / "classes.json"
 REGENERATION_FILE = ATTRIBUTE_CONFIG_ROOT / "regeneration.json"
 HAND_WEIGHT_FILE = ATTRIBUTE_CONFIG_ROOT / "hand_weight.json"
 COMBAT_SEVERITY_FILE = ATTRIBUTE_CONFIG_ROOT / "combat_severity.json"
+LEVEL_SCALING_FILE = ATTRIBUTE_CONFIG_ROOT / "level_scaling.json"
 EXPERIENCE_TABLE_FILE = ATTRIBUTE_CONFIG_ROOT / "experience.json"
 
 
@@ -272,6 +273,41 @@ def load_combat_severity_config() -> dict:
 
     return {
         "tiers": normalized_tiers,
+    }
+
+
+@lru_cache(maxsize=1)
+def load_level_scaling_config() -> dict:
+    raw_config = _read_json_attribute_config(LEVEL_SCALING_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Level scaling config file must contain an object: {LEVEL_SCALING_FILE}")
+
+    raw_melee = raw_config.get("melee", {})
+    if not isinstance(raw_melee, dict):
+        raise ValueError("Level scaling config field 'melee' must be an object.")
+
+    def _normalize_rule(rule_name: str) -> dict[str, int]:
+        raw_rule = raw_melee.get(rule_name, {})
+        if not isinstance(raw_rule, dict):
+            raise ValueError(f"Level scaling config melee rule '{rule_name}' must be an object.")
+
+        levels_per_bonus = int(raw_rule.get("levels_per_bonus", 0))
+        bonus_per_step = int(raw_rule.get("bonus_per_step", 0))
+        if levels_per_bonus < 0:
+            raise ValueError(f"Level scaling config '{rule_name}.levels_per_bonus' must be >= 0.")
+        if bonus_per_step < 0:
+            raise ValueError(f"Level scaling config '{rule_name}.bonus_per_step' must be >= 0.")
+
+        return {
+            "levels_per_bonus": levels_per_bonus,
+            "bonus_per_step": bonus_per_step,
+        }
+
+    return {
+        "melee": {
+            "hit_roll": _normalize_rule("hit_roll"),
+            "damage_roll": _normalize_rule("damage_roll"),
+        }
     }
 
 
