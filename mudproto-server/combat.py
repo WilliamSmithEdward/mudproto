@@ -91,6 +91,9 @@ def _append_experience_gain_notification(
             build_part_fn(" ", "bright_white"),
             build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
         ])
+        parts.append(build_part_fn("\n"))
+    else:
+        parts.append(build_part_fn("\n"))
 
 
 def _iter_experience_contributor_sessions(contributor_keys: set[str], *, room_id: str) -> list[ClientSession]:

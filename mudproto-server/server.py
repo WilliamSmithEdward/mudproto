@@ -288,7 +288,32 @@ def _append_private_lines_to_payload(payload: dict, session: ClientSession) -> N
     normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
     if normalized_existing and normalized_existing[-1]:
         normalized_existing.append([])
-    payload["lines"] = normalized_existing + pending_lines
+
+    merged_lines = normalized_existing + pending_lines
+    if merged_lines and merged_lines[-1]:
+        merged_lines.append([])
+    payload["lines"] = merged_lines
+
+
+def _normalize_prompt_spacing(payload: dict) -> None:
+    prompt_lines = payload.get("prompt_lines")
+    if not isinstance(prompt_lines, list) or not prompt_lines:
+        return
+
+    normalized_prompt = [line for line in prompt_lines if isinstance(line, list)]
+    while normalized_prompt and not normalized_prompt[0]:
+        normalized_prompt.pop(0)
+
+    existing_lines = payload.get("lines")
+    normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
+    if normalized_existing and not normalized_existing[-1]:
+        prompt_blank_count = 1
+    elif normalized_existing:
+        prompt_blank_count = 2
+    else:
+        prompt_blank_count = 1
+
+    payload["prompt_lines"] = ([[]] * prompt_blank_count) + normalized_prompt
 
 
 def _inject_private_lines_into_outbound(session: ClientSession, outbound: dict | list[dict]) -> dict | list[dict]:
@@ -308,7 +333,12 @@ def _inject_private_lines_into_outbound(session: ClientSession, outbound: dict |
         normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
         if normalized_existing and normalized_existing[-1]:
             normalized_existing.append([])
-        payload["lines"] = normalized_existing + pending_lines
+
+        merged_lines = normalized_existing + pending_lines
+        if merged_lines and merged_lines[-1]:
+            merged_lines.append([])
+        payload["lines"] = merged_lines
+        _normalize_prompt_spacing(payload)
         return outbound
 
     notification_message = build_display_lines(
