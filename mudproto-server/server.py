@@ -141,6 +141,22 @@ def _fix_observer_line_grammar(line: list[dict], actor_name: str) -> None:
         running_text += part_text
 
 
+def _strip_observer_actor_line_style(line: list[dict], actor_name: str) -> None:
+    if not isinstance(line, list) or not actor_name.strip():
+        return
+
+    normalized_text = _line_text(line).strip().lower()
+    normalized_actor = actor_name.strip().lower()
+    if not normalized_text.startswith(f"{normalized_actor} "):
+        return
+
+    for part in line:
+        if not isinstance(part, dict):
+            continue
+        part["fg"] = "bright_white"
+        part["bold"] = False
+
+
 def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) -> list[dict]:
     messages = outbound if isinstance(outbound, list) else [outbound]
     broadcast_messages: list[dict] = []
@@ -188,6 +204,7 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
                                 origin_session.player.gender,
                             )
                         _fix_observer_line_grammar(line, actor_name)
+                        _strip_observer_actor_line_style(line, actor_name)
                         filtered_lines.append(line)
                     copied_payload["lines"] = filtered_lines
             copied_lines = copied_payload.get("lines")
