@@ -8,6 +8,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 ASSET_ROOT = REPO_ROOT / "mudproto-server" / "configuration" / "assets"
+TEMPLATE_ROOT = ASSET_ROOT / "templates"
 LLM_PAYLOAD_ROOT = ASSET_ROOT / "llm-payloads"
 OUTPUT_FILE = SCRIPT_DIR / "asset_payload_generation_instructions.json"
 
@@ -21,239 +22,15 @@ BASE_ASSET_FILES = {
     "zones": "zones.json",
 }
 
-FULL_ASSET_SCHEMAS = {
-    "payload_bundle": {
-        "top_level_type": "object",
-        "required_fields": {
-            "payload_id": {
-                "type": "string",
-                "notes": "Unique bundle identifier. Append a GUID suffix.",
-            },
-            "description": {
-                "type": "string",
-                "notes": "Short human-readable summary of what the payload adds.",
-            },
-            "gear": {"type": "array[gear]"},
-            "items": {"type": "array[item]"},
-            "spells": {"type": "array[spell]"},
-            "skills": {"type": "array[skill]"},
-            "npcs": {"type": "array[npc]"},
-            "rooms": {"type": "array[room]"},
-            "zones": {"type": "array[zone]"},
-        },
-    },
-    "gear": {
-        "file": "gear.json",
-        "top_level_type": "array",
-        "id_field": "template_id",
-        "id_prefixes": ["weapon.", "armor."],
-        "fields": {
-            "template_id": {"type": "string", "required": True},
-            "name": {"type": "string", "required": True},
-            "slot": {"type": "string", "required": True, "allowed_values": ["weapon", "armor"]},
-            "description": {"type": "string", "required": False, "default": ""},
-            "keywords": {"type": "array[string]", "required": False, "default": []},
-            "weapon_type": {"type": "string", "required": False, "default": "unarmed"},
-            "can_hold": {"type": "boolean", "required": False, "default": False, "notes": "Weapon-only field."},
-            "weight": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "coin_value": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "damage_dice_count": {"type": "integer", "required": False, "default": 0},
-            "damage_dice_sides": {"type": "integer", "required": False, "default": 0},
-            "damage_roll_modifier": {"type": "integer", "required": False, "default": 0},
-            "hit_roll_modifier": {"type": "integer", "required": False, "default": 0},
-            "attack_damage_bonus": {"type": "integer", "required": False, "default": 0},
-            "attacks_per_round_bonus": {"type": "integer", "required": False, "default": 0},
-            "armor_class_bonus": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "wear_slots": {"type": "array[string]", "required": False, "default": [], "notes": "Required for armor, must be empty for weapons."},
-        },
-    },
-    "items": {
-        "file": "items.json",
-        "top_level_type": "array",
-        "id_field": "template_id",
-        "id_prefixes": ["item."],
-        "fields": {
-            "template_id": {"type": "string", "required": True},
-            "name": {"type": "string", "required": True},
-            "description": {"type": "string", "required": False, "default": ""},
-            "keywords": {"type": "array[string]", "required": False, "default": []},
-            "effect_type": {"type": "string", "required": True, "allowed_values": ["restore"]},
-            "effect_target": {"type": "string", "required": True, "allowed_values": ["hit_points", "mana", "vigor"]},
-            "effect_amount": {"type": "integer", "required": True, "minimum": 1},
-            "coin_value": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "use_lag_seconds": {"type": "number", "required": False, "default": 0.0, "minimum": 0.0},
-            "observer_action": {"type": "string", "required": False, "default": ""},
-            "observer_context": {"type": "string", "required": False, "default": ""},
-        },
-    },
-    "zones": {
-        "file": "zones.json",
-        "top_level_type": "array",
-        "id_field": "zone_id",
-        "id_prefixes": ["zone."],
-        "fields": {
-            "zone_id": {"type": "string", "required": True},
-            "name": {"type": "string", "required": True},
-            "repopulate_game_hours": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "repopulate_each_game_hour": {"type": "boolean", "required": False, "legacy_alias": True, "notes": "Legacy compatibility flag; prefer repopulate_game_hours."},
-        },
-    },
-    "rooms": {
-        "file": "rooms.json",
-        "top_level_type": "array",
-        "id_field": "room_id",
-        "fields": {
-            "room_id": {"type": "string", "required": True},
-            "title": {"type": "string", "required": True},
-            "description": {"type": "string", "required": True},
-            "zone_id": {"type": "string", "required": True},
-            "exits": {"type": "object<string, room_id>", "required": True},
-            "npcs": {
-                "type": "array[object]",
-                "required": False,
-                "default": [],
-                "entry_schema": {
-                    "npc_id": {"type": "string", "required": True},
-                    "count": {"type": "integer", "required": False, "default": 1, "minimum": 1},
-                },
-            },
-        },
-    },
-    "npcs": {
-        "file": "npcs.json",
-        "top_level_type": "object",
-        "top_level_key": "npcs",
-        "id_field": "npc_id",
-        "id_prefixes": ["npc."],
-        "fields": {
-            "npc_id": {"type": "string", "required": True},
-            "name": {"type": "string", "required": True},
-            "hit_points": {"type": "integer", "required": False, "default": "max_hit_points"},
-            "max_hit_points": {"type": "integer", "required": True, "minimum": 1},
-            "power_level": {"type": "integer", "required": False, "default": 1, "minimum": 0},
-            "attacks_per_round": {"type": "integer", "required": False, "default": 1},
-            "hit_roll_modifier": {"type": "integer", "required": False, "default": 0},
-            "armor_class": {"type": "integer", "required": False, "default": 10},
-            "off_hand_attacks_per_round": {"type": "integer", "required": False, "default": 0},
-            "off_hand_hit_roll_modifier": {"type": "integer", "required": False, "default": 0},
-            "coin_reward": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "experience_reward": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "is_aggro": {"type": "boolean", "required": False, "default": False},
-            "is_ally": {"type": "boolean", "required": False, "default": False},
-            "is_peaceful": {"type": "boolean", "required": False, "default": False},
-            "respawn": {"type": "boolean", "required": False, "default": True},
-            "is_merchant": {"type": "boolean", "required": False, "default": False},
-            "merchant_inventory": {
-                "type": "array[object]",
-                "required": False,
-                "default": [],
-                "entry_schema": {
-                    "template_id": {"type": "string", "required": True},
-                    "infinite": {"type": "boolean", "required": False, "default": False},
-                    "quantity": {"type": "integer", "required": False, "default": 1, "minimum": 0},
-                },
-            },
-            "merchant_inventory_template_ids": {"type": "array[string]", "required": False, "default": [], "legacy_alias": True},
-            "merchant_buy_markup": {"type": "number", "required": False, "default": 1.0, "exclusive_minimum": 0.0},
-            "merchant_sell_ratio": {"type": "number", "required": False, "default": 0.5, "minimum": 0.0, "maximum": 1.0},
-            "pronoun_possessive": {"type": "string", "required": False, "default": "its"},
-            "main_hand_weapon_template_id": {"type": "string", "required": False, "default": ""},
-            "off_hand_weapon_template_id": {"type": "string", "required": False, "default": ""},
-            "vigor": {"type": "integer", "required": False, "default": "max_vigor", "minimum": 0},
-            "max_vigor": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "mana": {"type": "integer", "required": False, "default": "max_mana", "minimum": 0},
-            "max_mana": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "skill_use_chance": {"type": "number", "required": False, "default": 0.35, "minimum": 0.0, "maximum": 1.0},
-            "skill_ids": {"type": "array[string]", "required": False, "default": []},
-            "spell_use_chance": {"type": "number", "required": False, "default": 0.25, "minimum": 0.0, "maximum": 1.0},
-            "spell_ids": {"type": "array[string]", "required": False, "default": []},
-            "loot_items": {
-                "type": "array[object]",
-                "required": False,
-                "default": [],
-                "entry_schema": {
-                    "name": {"type": "string", "required": True},
-                    "description": {"type": "string", "required": False, "default": ""},
-                    "keywords": {"type": "array[string]", "required": False, "default": []},
-                },
-            },
-        },
-    },
-    "spells": {
-        "file": "spells.json",
-        "top_level_type": "array",
-        "id_field": "spell_id",
-        "id_prefixes": ["spell."],
-        "fields": {
-            "spell_id": {"type": "string", "required": True},
-            "name": {"type": "string", "required": True},
-            "school": {"type": "string", "required": True},
-            "description": {"type": "string", "required": False, "default": ""},
-            "mana_cost": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "spell_type": {"type": "string", "required": False, "default": "damage", "allowed_values": ["damage", "support"]},
-            "cast_type": {"type": "string", "required": False, "default": "target for damage, self for support", "allowed_values": ["self", "target", "aoe"]},
-            "damage_dice_count": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "damage_dice_sides": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "damage_modifier": {"type": "integer", "required": False, "default": 0},
-            "damage_scaling_attribute_id": {"type": "string", "required": False, "default": "int", "allowed_values": ["str", "dex", "con", "int", "wis"]},
-            "damage_scaling_multiplier": {"type": "number", "required": False, "default": 1.0, "minimum": 0.0},
-            "level_scaling_multiplier": {"type": "number", "required": False, "default": 1.0, "minimum": 0.0},
-            "damage_context": {"type": "string", "required": "for damage spells"},
-            "restore_effect": {"type": "string", "required": False, "allowed_values": ["heal", "vigor", "mana", ""]},
-            "restore_ratio": {"type": "number", "required": False, "default": 0.0, "minimum": 0.0, "maximum": 1.0},
-            "restore_context": {"type": "string", "required": False, "default": ""},
-            "observer_restore_context": {"type": "string", "required": False, "default": ""},
-            "life_steal_ratio": {"type": "number", "required": False, "legacy_alias": True},
-            "life_steal_context": {"type": "string", "required": False, "legacy_alias": True},
-            "observer_life_steal_context": {"type": "string", "required": False, "legacy_alias": True},
-            "support_effect": {"type": "string", "required": "for support spells", "allowed_values": ["heal", "vigor", "mana"]},
-            "support_amount": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "support_dice_count": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "support_dice_sides": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "support_roll_modifier": {"type": "integer", "required": False, "default": 0},
-            "support_scaling_attribute_id": {"type": "string", "required": False, "default": ""},
-            "support_scaling_multiplier": {"type": "number", "required": False, "default": 1.0, "minimum": 0.0},
-            "duration_hours": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "duration_rounds": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "support_mode": {"type": "string", "required": False, "default": "timed", "allowed_values": ["timed", "instant", "battle_rounds"]},
-            "support_context": {"type": "string", "required": "for support spells"},
-            "observer_action": {"type": "string", "required": False, "default": ""},
-            "observer_context": {"type": "string", "required": False, "default": ""},
-        },
-    },
-    "skills": {
-        "file": "skills.json",
-        "top_level_type": "array",
-        "id_field": "skill_id",
-        "id_prefixes": ["skill."],
-        "fields": {
-            "skill_id": {"type": "string", "required": True},
-            "name": {"type": "string", "required": True},
-            "description": {"type": "string", "required": False, "default": ""},
-            "skill_type": {"type": "string", "required": False, "default": "damage", "allowed_values": ["damage", "support"]},
-            "cast_type": {"type": "string", "required": False, "default": "target for damage, self for support", "allowed_values": ["self", "target", "aoe"]},
-            "damage_dice_count": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "damage_dice_sides": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "damage_modifier": {"type": "integer", "required": False, "default": 0},
-            "vigor_cost": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "usable_out_of_combat": {"type": "boolean", "required": False, "default": False},
-            "scaling_attribute_id": {"type": "string", "required": False, "default": "", "allowed_values": ["", "str", "dex", "con", "int", "wis"]},
-            "scaling_multiplier": {"type": "number", "required": False, "default": 0.0, "minimum": 0.0},
-            "level_scaling_multiplier": {"type": "number", "required": False, "default": 1.0, "minimum": 0.0},
-            "damage_context": {"type": "string", "required": "for damage skills"},
-            "restore_effect": {"type": "string", "required": False, "allowed_values": ["heal", "vigor", "mana", ""]},
-            "restore_ratio": {"type": "number", "required": False, "default": 0.0, "minimum": 0.0, "maximum": 1.0},
-            "restore_context": {"type": "string", "required": False, "default": ""},
-            "observer_restore_context": {"type": "string", "required": False, "default": ""},
-            "support_effect": {"type": "string", "required": "for support skills", "allowed_values": ["heal", "vigor", "mana"]},
-            "support_amount": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "support_context": {"type": "string", "required": "for support skills"},
-            "observer_action": {"type": "string", "required": False, "default": ""},
-            "observer_context": {"type": "string", "required": False, "default": ""},
-            "lag_rounds": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-            "cooldown_rounds": {"type": "integer", "required": False, "default": 0, "minimum": 0},
-        },
-    },
+SCHEMA_TEMPLATE_FILES = {
+    "payload_bundle": "llm-payload.template.json",
+    "gear": "gear.template.json",
+    "items": "items.template.json",
+    "npcs": "npcs.template.json",
+    "rooms": "rooms.template.json",
+    "skills": "skills.template.json",
+    "spells": "spells.template.json",
+    "zones": "zones.template.json",
 }
 
 
@@ -284,6 +61,24 @@ def load_llm_payloads() -> list[dict[str, object]]:
     return payloads
 
 
+def load_asset_schemas() -> dict[str, dict[str, object]]:
+    schemas: dict[str, dict[str, object]] = {}
+
+    for schema_name, file_name in SCHEMA_TEMPLATE_FILES.items():
+        template_path = TEMPLATE_ROOT / file_name
+        raw_template = read_json(template_path)
+        if not isinstance(raw_template, dict):
+            raise ValueError(f"Schema template file must contain an object: {template_path}")
+
+        raw_schema = raw_template.get("schema")
+        if not isinstance(raw_schema, dict):
+            raise ValueError(f"Schema template '{template_path.name}' must contain an object field named 'schema'.")
+
+        schemas[schema_name] = raw_schema
+
+    return schemas
+
+
 def _count_list_entries(value: object) -> int:
     return len(value) if isinstance(value, list) else 0
 
@@ -307,10 +102,11 @@ def build_asset_counts(base_assets: dict[str, object], llm_payloads: list[dict[s
 def build_instruction_payload() -> dict[str, object]:
     base_assets = load_base_assets()
     llm_payloads = load_llm_payloads()
+    asset_schemas = load_asset_schemas()
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.2",
+        "version": "2.3",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
@@ -360,7 +156,7 @@ def build_instruction_payload() -> dict[str, object]:
                 "generated_id": "npc.sanctum-archivist-550e8400-e29b-41d4-a716-446655440000"
             }
         },
-        "top_level_schema": FULL_ASSET_SCHEMAS["payload_bundle"],
+        "top_level_schema": asset_schemas["payload_bundle"],
         "generation_rules": [
             "Keep all IDs unique within their asset type.",
             "Append a GUID suffix to every new asset ID and payload_id.",
@@ -399,7 +195,7 @@ def build_instruction_payload() -> dict[str, object]:
         ],
         "asset_schemas": {
             key: value
-            for key, value in FULL_ASSET_SCHEMAS.items()
+            for key, value in asset_schemas.items()
             if key != "payload_bundle"
         },
         "reference_docs": [

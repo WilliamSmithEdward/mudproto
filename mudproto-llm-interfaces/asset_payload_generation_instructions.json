@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.2",
-  "generated_at_utc": "2026-04-04T17:13:57.218633+00:00",
+  "version": "2.3",
+  "generated_at_utc": "2026-04-04T17:20:44.748257+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
   "response_contract": {
@@ -294,80 +294,6 @@
         }
       }
     },
-    "zones": {
-      "file": "zones.json",
-      "top_level_type": "array",
-      "id_field": "zone_id",
-      "id_prefixes": [
-        "zone."
-      ],
-      "fields": {
-        "zone_id": {
-          "type": "string",
-          "required": true
-        },
-        "name": {
-          "type": "string",
-          "required": true
-        },
-        "repopulate_game_hours": {
-          "type": "integer",
-          "required": false,
-          "default": 0,
-          "minimum": 0
-        },
-        "repopulate_each_game_hour": {
-          "type": "boolean",
-          "required": false,
-          "legacy_alias": true,
-          "notes": "Legacy compatibility flag; prefer repopulate_game_hours."
-        }
-      }
-    },
-    "rooms": {
-      "file": "rooms.json",
-      "top_level_type": "array",
-      "id_field": "room_id",
-      "fields": {
-        "room_id": {
-          "type": "string",
-          "required": true
-        },
-        "title": {
-          "type": "string",
-          "required": true
-        },
-        "description": {
-          "type": "string",
-          "required": true
-        },
-        "zone_id": {
-          "type": "string",
-          "required": true
-        },
-        "exits": {
-          "type": "object<string, room_id>",
-          "required": true
-        },
-        "npcs": {
-          "type": "array[object]",
-          "required": false,
-          "default": [],
-          "entry_schema": {
-            "npc_id": {
-              "type": "string",
-              "required": true
-            },
-            "count": {
-              "type": "integer",
-              "required": false,
-              "default": 1,
-              "minimum": 1
-            }
-          }
-        }
-      }
-    },
     "npcs": {
       "file": "npcs.json",
       "top_level_type": "object",
@@ -590,6 +516,217 @@
         }
       }
     },
+    "rooms": {
+      "file": "rooms.json",
+      "top_level_type": "array",
+      "id_field": "room_id",
+      "fields": {
+        "room_id": {
+          "type": "string",
+          "required": true
+        },
+        "title": {
+          "type": "string",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "required": true
+        },
+        "zone_id": {
+          "type": "string",
+          "required": true
+        },
+        "exits": {
+          "type": "object<string, room_id>",
+          "required": true
+        },
+        "npcs": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "entry_schema": {
+            "npc_id": {
+              "type": "string",
+              "required": true
+            },
+            "count": {
+              "type": "integer",
+              "required": false,
+              "default": 1,
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "skills": {
+      "file": "skills.json",
+      "top_level_type": "array",
+      "id_field": "skill_id",
+      "id_prefixes": [
+        "skill."
+      ],
+      "fields": {
+        "skill_id": {
+          "type": "string",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "skill_type": {
+          "type": "string",
+          "required": false,
+          "default": "damage",
+          "allowed_values": [
+            "damage",
+            "support"
+          ]
+        },
+        "cast_type": {
+          "type": "string",
+          "required": false,
+          "default": "target for damage, self for support",
+          "allowed_values": [
+            "self",
+            "target",
+            "aoe"
+          ]
+        },
+        "damage_dice_count": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0
+        },
+        "damage_dice_sides": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0
+        },
+        "damage_modifier": {
+          "type": "integer",
+          "required": false,
+          "default": 0
+        },
+        "vigor_cost": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0
+        },
+        "usable_out_of_combat": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "scaling_attribute_id": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "allowed_values": [
+            "",
+            "str",
+            "dex",
+            "con",
+            "int",
+            "wis"
+          ]
+        },
+        "scaling_multiplier": {
+          "type": "number",
+          "required": false,
+          "default": 0.0,
+          "minimum": 0.0
+        },
+        "level_scaling_multiplier": {
+          "type": "number",
+          "required": false,
+          "default": 1.0,
+          "minimum": 0.0
+        },
+        "damage_context": {
+          "type": "string",
+          "required": "for damage skills"
+        },
+        "restore_effect": {
+          "type": "string",
+          "required": false,
+          "allowed_values": [
+            "heal",
+            "vigor",
+            "mana",
+            ""
+          ]
+        },
+        "restore_ratio": {
+          "type": "number",
+          "required": false,
+          "default": 0.0,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "restore_context": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "observer_restore_context": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "support_effect": {
+          "type": "string",
+          "required": "for support skills",
+          "allowed_values": [
+            "heal",
+            "vigor",
+            "mana"
+          ]
+        },
+        "support_amount": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0
+        },
+        "support_context": {
+          "type": "string",
+          "required": "for support skills"
+        },
+        "observer_action": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "observer_context": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "lag_rounds": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0
+        },
+        "cooldown_rounds": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0
+        }
+      }
+    },
     "spells": {
       "file": "spells.json",
       "top_level_type": "array",
@@ -808,15 +945,15 @@
         }
       }
     },
-    "skills": {
-      "file": "skills.json",
+    "zones": {
+      "file": "zones.json",
       "top_level_type": "array",
-      "id_field": "skill_id",
+      "id_field": "zone_id",
       "id_prefixes": [
-        "skill."
+        "zone."
       ],
       "fields": {
-        "skill_id": {
+        "zone_id": {
           "type": "string",
           "required": true
         },
@@ -824,154 +961,17 @@
           "type": "string",
           "required": true
         },
-        "description": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "skill_type": {
-          "type": "string",
-          "required": false,
-          "default": "damage",
-          "allowed_values": [
-            "damage",
-            "support"
-          ]
-        },
-        "cast_type": {
-          "type": "string",
-          "required": false,
-          "default": "target for damage, self for support",
-          "allowed_values": [
-            "self",
-            "target",
-            "aoe"
-          ]
-        },
-        "damage_dice_count": {
+        "repopulate_game_hours": {
           "type": "integer",
           "required": false,
           "default": 0,
           "minimum": 0
         },
-        "damage_dice_sides": {
-          "type": "integer",
-          "required": false,
-          "default": 0,
-          "minimum": 0
-        },
-        "damage_modifier": {
-          "type": "integer",
-          "required": false,
-          "default": 0
-        },
-        "vigor_cost": {
-          "type": "integer",
-          "required": false,
-          "default": 0,
-          "minimum": 0
-        },
-        "usable_out_of_combat": {
+        "repopulate_each_game_hour": {
           "type": "boolean",
           "required": false,
-          "default": false
-        },
-        "scaling_attribute_id": {
-          "type": "string",
-          "required": false,
-          "default": "",
-          "allowed_values": [
-            "",
-            "str",
-            "dex",
-            "con",
-            "int",
-            "wis"
-          ]
-        },
-        "scaling_multiplier": {
-          "type": "number",
-          "required": false,
-          "default": 0.0,
-          "minimum": 0.0
-        },
-        "level_scaling_multiplier": {
-          "type": "number",
-          "required": false,
-          "default": 1.0,
-          "minimum": 0.0
-        },
-        "damage_context": {
-          "type": "string",
-          "required": "for damage skills"
-        },
-        "restore_effect": {
-          "type": "string",
-          "required": false,
-          "allowed_values": [
-            "heal",
-            "vigor",
-            "mana",
-            ""
-          ]
-        },
-        "restore_ratio": {
-          "type": "number",
-          "required": false,
-          "default": 0.0,
-          "minimum": 0.0,
-          "maximum": 1.0
-        },
-        "restore_context": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "observer_restore_context": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "support_effect": {
-          "type": "string",
-          "required": "for support skills",
-          "allowed_values": [
-            "heal",
-            "vigor",
-            "mana"
-          ]
-        },
-        "support_amount": {
-          "type": "integer",
-          "required": false,
-          "default": 0,
-          "minimum": 0
-        },
-        "support_context": {
-          "type": "string",
-          "required": "for support skills"
-        },
-        "observer_action": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "observer_context": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "lag_rounds": {
-          "type": "integer",
-          "required": false,
-          "default": 0,
-          "minimum": 0
-        },
-        "cooldown_rounds": {
-          "type": "integer",
-          "required": false,
-          "default": 0,
-          "minimum": 0
+          "legacy_alias": true,
+          "notes": "Legacy compatibility flag; prefer repopulate_game_hours."
         }
       }
     }
