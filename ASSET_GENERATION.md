@@ -1,0 +1,664 @@
+# MudProto Asset Generation Guide
+
+> Scope: this document covers how to add or modify content in `mudproto-server/configuration/assets/`.
+>
+> Note: the real folder name is `assets` — not `asssets`.
+
+---
+
+## 1. What this folder contains
+
+`mudproto-server/configuration/assets/` is the content layer for the game world. These files define **what exists in the world**, while rules like wear slots, regeneration, level scaling, and potion cooldowns live in `mudproto-server/configuration/attributes/`.
+
+### Asset files
+
+| File | Purpose |
+|---|---|
+| `gear.json` | Weapons and armor templates |
+| `items.json` | Consumables and misc usable items |
+| `npcs.json` | NPC definitions, merchants, spell/skill loadouts |
+| `rooms.json` | Rooms, descriptions, exits, and NPC spawn points |
+| `zones.json` | Zone metadata and repop timing |
+| `spells.json` | Spell definitions |
+| `skills.json` | Skill definitions |
+
+The **authoritative schema and validation rules** for all of these files live in `mudproto-server/assets.py`.
+
+---
+
+## 2. Non-negotiable rules
+
+When editing or generating assets, follow these rules exactly:
+
+1. **All files must be valid JSON**
+   - Use double quotes.
+   - No trailing commas.
+   - Top-level structure must match the file’s expected shape.
+
+2. **IDs must be unique within their asset type**
+   - Duplicate IDs will raise a `ValueError` and stop load/startup.
+
+3. **Cross-references must already exist**
+   - If a room references an NPC, that NPC must exist.
+   - If an NPC references a spell, skill, or gear template, those must exist.
+
+4. **Prefer lowercase IDs and lowercase keywords**
+   - This matches current project conventions and selector logic.
+
+5. **Restart the server after edits**
+   - Asset loaders in `assets.py` use `@lru_cache(maxsize=1)`, so JSON changes are not reliably hot-reloaded in a running process.
+
+6. **Follow current naming conventions**
+   - `weapon.*`, `armor.*`, `item.*`, `npc.*`, `spell.*`, `skill.*`, `zone.*`
+   - `room_id` values are usually short slugs like `start`, `hall`, `east-watch`, `south-market`
+
+---
+
+## 3. Recommended authoring workflow
+
+### Safe order of operations
+
+When adding new content, use this order:
+
+1. Add any required **gear**, **items**, **spells**, or **skills** first.
+2. Add or update the **NPC** that references them.
+3. Add or update the **room** that spawns that NPC.
+4. Add or update the **zone** if the room belongs to a new zone.
+5. Restart the server and smoke test in-game.
+
+### Smoke-test checklist
+
+After editing assets:
+
+- restart with:
+  ```powershell
+  python mudproto-server/server.py
+  ```
+- connect a client and test relevant commands:
+  - `look`
+  - `scan`
+  - `look <npc>`
+  - `inventory`, `equipment`
+  - `buy <item>` / `sell <item>` if merchant content changed
+  - `cast <spell>` or use a skill if combat abilities changed
+
+---
+
+## 4. Cross-reference map
+
+These references must stay valid:
+
+| Source field | Must exist in | Notes |
+|---|---|---|
+| `rooms[].zone_id` | `zones.json -> zone_id` | Required for every room |
+| `rooms[].npcs[].npc_id` | `npcs.json -> npc_id` | Spawn entries must reference valid NPCs |
+| `npcs[].main_hand_weapon_template_id` | `gear.json -> template_id` | Usually `weapon.*` |
+| `npcs[].off_hand_weapon_template_id` | `gear.json -> template_id` | Usually `weapon.*` |
+| `npcs[].merchant_inventory[].template_id` | `gear.json` or `items.json` | Merchant stock can sell gear or consumables |
+| `npcs[].skill_ids[]` | `skills.json -> skill_id` | Unknown IDs fail validation |
+| `npcs[].spell_ids[]` | `spells.json -> spell_id` | Unknown IDs fail validation |
+| `spells[].damage_scaling_attribute_id` | `configuration/attributes/character_attributes.json` | Current ids: `str`, `dex`, `con`, `int`, `wis` |
+| `skills[].scaling_attribute_id` | `configuration/attributes/character_attributes.json` | Same attribute set |
+| `rooms[].exits[direction]` | another `room_id` in `rooms.json` | Validated at world build time |
+
+---
+
+## 5. File-by-file reference
+
+## `gear.json`
+
+### Top-level shape
+A **list** of objects.
+
+```json
+[
+  { "template_id": "weapon.training-sword", "name": "Training Sword", "slot": "weapon" }
+]
+```
+
+### Required/common fields
+
+#### Shared
+- `template_id` — required, unique string
+- `name` — required, non-empty string
+- `slot` — required, must be `"weapon"` or `"armor"`
+- `description` — recommended
+- `keywords` — recommended list of lowercase tokens
+- `weight` — non-negative integer
+- `coin_value` — non-negative integer
+
+#### Weapon-only fields
+- `weapon_type` — e.g. `sword`, `dagger`
+- `can_hold` — `true` if the item should be holdable/off-hand usable for players
+- `damage_dice_count`
+- `damage_dice_sides`
+- `damage_roll_modifier`
+- `hit_roll_modifier`
+- `attack_damage_bonus`
+- `attacks_per_round_bonus`
+
+#### Armor-only fields
+- `wear_slots` — **required for armor**, non-empty list
+- `armor_class_bonus` — must be `>= 0`
+
+### Important validation rules
+- Weapons **cannot** define `wear_slots`.
+- Armor **must** define `wear_slots`.
+- `armor_class_bonus` must be zero or greater.
+
+### Example weapon
+```json
+{
+  "template_id": "weapon.reaver-nightblade",
+  "name": "Reaver Nightblade",
+  "slot": "weapon",
+  "description": "A blackened longsword etched with pale runes that drink the brazier light.",
+  "keywords": ["reaver", "nightblade", "sword"],
+  "weapon_type": "sword",
+  "can_hold": false,
+  "weight": 7,
+  "coin_value": 58,
+  "damage_dice_count": 4,
+  "damage_dice_sides": 6,
+  "damage_roll_modifier": 2,
+  "hit_roll_modifier": 2,
+  "attack_damage_bonus": 1,
+  "attacks_per_round_bonus": 0
+}
+```
+
+### Example armor
+```json
+{
+  "template_id": "armor.vanguard-jacket",
+  "name": "Vanguard Jacket",
+  "slot": "armor",
+  "wear_slots": ["chest"],
+  "description": "A reinforced jacket worn by front-line trainees.",
+  "keywords": ["vanguard", "jacket", "chest"],
+  "weight": 10,
+  "coin_value": 30,
+  "armor_class_bonus": 2
+}
+```
+
+---
+
+## `items.json`
+
+### Top-level shape
+A **list** of objects.
+
+### Current engine expectation
+Items in this file are currently **restore consumables**.
+
+### Required/common fields
+- `template_id`
+- `name`
+- `description`
+- `keywords`
+- `effect_type` — currently must be `"restore"`
+- `effect_target` — must be one of:
+  - `hit_points`
+  - `mana`
+  - `vigor`
+- `effect_amount` — integer, must be `> 0`
+- `coin_value` — non-negative integer
+- `use_lag_seconds` — non-negative float
+- `observer_action` — optional but recommended
+- `observer_context` — optional but recommended
+
+### Example
+```json
+{
+  "template_id": "item.potion.vigor",
+  "name": "Potion of Vigor",
+  "description": "A lively golden tonic that steadies the breath and restores battle stamina.",
+  "keywords": ["potion", "vigor", "stamina"],
+  "effect_type": "restore",
+  "effect_target": "vigor",
+  "effect_amount": 40,
+  "coin_value": 15,
+  "use_lag_seconds": 0,
+  "observer_action": "[actor_name] drinks a potion of vigor.",
+  "observer_context": "Renewed energy surges through [actor_object]."
+}
+```
+
+### Important note
+Potion cooldown behavior is **not** configured here. That lives in:
+
+- `mudproto-server/configuration/attributes/item_usage.json`
+
+---
+
+## `npcs.json`
+
+### Top-level shape
+Unlike most asset files, this file is an **object** with an `npcs` array:
+
+```json
+{
+  "npcs": [
+    { "npc_id": "npc.hall-scout", "name": "Hall Scout" }
+  ]
+}
+```
+
+### Common fields
+- `npc_id` — required, unique string
+- `name` — required
+- `hit_points`, `max_hit_points` — must be `> 0`
+- `power_level` — non-negative integer
+- `attacks_per_round`
+- `hit_roll_modifier`
+- `armor_class`
+- `off_hand_attacks_per_round`
+- `off_hand_hit_roll_modifier`
+- `coin_reward`
+- `experience_reward`
+- `is_aggro`
+- `is_ally`
+- `is_peaceful`
+- `respawn`
+- `pronoun_possessive` — e.g. `his`, `her`, `its`
+- `main_hand_weapon_template_id`
+- `off_hand_weapon_template_id`
+- `vigor`, `max_vigor`
+- `mana`, `max_mana`
+- `skill_use_chance` — float from `0.0` to `1.0`
+- `skill_ids` — valid `skill_id`s
+- `spell_use_chance` — float from `0.0` to `1.0`
+- `spell_ids` — valid `spell_id`s
+
+### Merchant-only fields
+- `is_merchant: true`
+- `merchant_inventory` — list of stock objects:
+  - `template_id`
+  - `infinite` — boolean
+  - `quantity` — required for limited stock (`>= 1` when `infinite: false`)
+- `merchant_buy_markup` — must be `> 0`
+- `merchant_sell_ratio` — must be between `0.0` and `1.0`
+
+### Respawn / world behavior notes
+- `respawn: true` means the NPC is eligible for zone-driven repopulation.
+- `is_peaceful: true` means offensive effects should not land on the NPC.
+- `is_aggro: true` means the NPC auto-engages players when appropriate.
+
+### Example hostile NPC
+```json
+{
+  "npc_id": "npc.east-watch-reaver",
+  "name": "East Watch Reaver",
+  "hit_points": 280,
+  "max_hit_points": 280,
+  "power_level": 5,
+  "respawn": true,
+  "attacks_per_round": 1,
+  "hit_roll_modifier": 2,
+  "armor_class": 11,
+  "coin_reward": 42,
+  "experience_reward": 55,
+  "is_aggro": true,
+  "is_ally": false,
+  "pronoun_possessive": "his",
+  "main_hand_weapon_template_id": "weapon.reaver-nightblade",
+  "off_hand_weapon_template_id": "weapon.scout-dagger",
+  "vigor": 72,
+  "max_vigor": 72,
+  "skill_use_chance": 0.45,
+  "skill_ids": ["skill.jab", "skill.overhead-crack", "skill.guard-breath"]
+}
+```
+
+### Example merchant stock entry
+```json
+{
+  "template_id": "item.potion.mana",
+  "quantity": 3,
+  "infinite": false
+}
+```
+
+---
+
+## `rooms.json`
+
+### Top-level shape
+A **list** of rooms.
+
+### Required fields
+- `room_id`
+- `title`
+- `description`
+- `zone_id`
+- `exits` — object mapping direction to destination `room_id`
+
+### Optional field
+- `npcs` — list of spawn objects:
+  - `npc_id`
+  - `count` — integer, must be `>= 1`
+
+### Example
+```json
+{
+  "room_id": "hall",
+  "title": "Northern Hall",
+  "description": "A narrow hall of cold stone extends here, quiet and still.",
+  "zone_id": "zone.northern-wing",
+  "npcs": [
+    { "npc_id": "npc.hall-scout", "count": 2 }
+  ],
+  "exits": {
+    "south": "start",
+    "east": "east-watch"
+  }
+}
+```
+
+### Notes
+- Exit destinations are validated at world build time in `world.py`.
+- Room-to-zone membership comes from each room’s `zone_id`.
+- Do **not** try to assign room membership inside `zones.json`; that is derived at runtime.
+
+---
+
+## `zones.json`
+
+### Top-level shape
+A **list** of zone objects.
+
+### Fields
+- `zone_id` — required, unique
+- `name` — required
+- `repopulate_game_hours` — integer, must be `>= 0`
+
+### Example
+```json
+{
+  "zone_id": "zone.whispering-sanctum",
+  "name": "Whispering Sanctum",
+  "repopulate_game_hours": 1
+}
+```
+
+### Behavior notes
+- `repopulate_game_hours: 0` disables automatic periodic repop.
+- Zones are occupancy-aware: if players are in the zone, repop waits until a valid empty tick.
+- `room_ids` are built at runtime in `world.py`; they are **not authored in this file**.
+
+---
+
+## `spells.json`
+
+### Top-level shape
+A **list** of spells.
+
+### Required common fields
+- `spell_id` — required, unique
+- `name` — required, unique among spell names
+- `school` — required, non-empty
+- `description` — recommended
+- `mana_cost` — integer, `>= 0`
+- `spell_type` — `"damage"` or `"support"`
+- `cast_type` — `"self"`, `"target"`, or `"aoe"`
+
+If `cast_type` is omitted:
+- support spells default to `self`
+- damage spells default to `target`
+
+### Damage spell fields
+- `damage_dice_count`
+- `damage_dice_sides`
+- `damage_modifier`
+- `damage_scaling_attribute_id` — must be a valid attribute id, usually `int`
+- `damage_scaling_multiplier` — `>= 0`
+- `level_scaling_multiplier` — `>= 0`
+- `damage_context` — **required for damage spells**
+
+Optional life-steal style fields on damage spells:
+- `restore_effect` — `heal`, `vigor`, or `mana`
+- `restore_ratio` — `0.0` to `1.0`
+- `restore_context`
+- `observer_restore_context`
+
+### Support spell fields
+- `support_effect` — `heal`, `vigor`, or `mana`
+- `support_amount`
+- `support_dice_count`
+- `support_dice_sides`
+- `support_roll_modifier`
+- `support_scaling_attribute_id`
+- `support_scaling_multiplier`
+- `support_mode` — `instant`, `timed`, or `battle_rounds`
+- `duration_hours` — required when `support_mode` is `timed`
+- `duration_rounds` — required when `support_mode` is `battle_rounds`
+- `support_context` — **required for support spells**
+
+Optional presentation fields:
+- `observer_action`
+- `observer_context`
+
+### Example damage spell
+```json
+{
+  "spell_id": "spell.spark",
+  "name": "Spark",
+  "school": "Storm",
+  "description": "A focused bolt of crackling force.",
+  "spell_type": "damage",
+  "cast_type": "target",
+  "mana_cost": 12,
+  "damage_dice_count": 10,
+  "damage_dice_sides": 40,
+  "damage_modifier": 4,
+  "damage_scaling_attribute_id": "int",
+  "damage_scaling_multiplier": 1.0,
+  "level_scaling_multiplier": 1.0,
+  "damage_context": "[a/an] is jolted by crackling force."
+}
+```
+
+### Example support spell
+```json
+{
+  "spell_id": "spell.regeneration-ward",
+  "name": "Regeneration Ward",
+  "school": "Restoration",
+  "description": "A steady restorative ward that heals you each battle round, even outside combat.",
+  "spell_type": "support",
+  "cast_type": "self",
+  "mana_cost": 18,
+  "support_effect": "heal",
+  "support_amount": 0,
+  "support_dice_count": 1,
+  "support_dice_sides": 21,
+  "support_roll_modifier": 39,
+  "support_scaling_attribute_id": "wis",
+  "support_scaling_multiplier": 1.0,
+  "support_mode": "battle_rounds",
+  "duration_rounds": 3,
+  "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
+  "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
+  "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle."
+}
+```
+
+---
+
+## `skills.json`
+
+### Top-level shape
+A **list** of skills.
+
+### Required/common fields
+- `skill_id` — required, unique
+- `name` — required, unique among skill names
+- `description`
+- `skill_type` — `"damage"` or `"support"`
+- `cast_type` — `"self"`, `"target"`, or `"aoe"`
+- `vigor_cost` — integer, `>= 0`
+- `usable_out_of_combat` — boolean
+- `lag_rounds` — integer, `>= 0`
+- `cooldown_rounds` — integer, `>= 0`
+- `scaling_attribute_id` — if set, must be a valid attribute id
+- `scaling_multiplier` — `>= 0`
+- `level_scaling_multiplier` — `>= 0`
+
+### Damage skill fields
+- `damage_dice_count`
+- `damage_dice_sides`
+- `damage_modifier`
+- `damage_context` — **required for damage skills**
+
+Optional on damage skills:
+- `restore_effect`
+- `restore_ratio`
+- `restore_context`
+- `observer_restore_context`
+
+### Support skill fields
+- `support_effect` — `heal`, `vigor`, or `mana`
+- `support_amount`
+- `support_context` — **required for support skills**
+- `observer_action`
+- `observer_context`
+
+### Example damage skill
+```json
+{
+  "skill_id": "skill.jab",
+  "name": "Jab",
+  "description": "A quick probing strike.",
+  "skill_type": "damage",
+  "cast_type": "target",
+  "vigor_cost": 4,
+  "usable_out_of_combat": false,
+  "scaling_attribute_id": "dex",
+  "scaling_multiplier": 2.5,
+  "level_scaling_multiplier": 1.0,
+  "damage_dice_count": 1,
+  "damage_dice_sides": 8,
+  "damage_modifier": 2,
+  "damage_context": "[a/an] [verb] snapped backward by a sharp jab.",
+  "observer_action": "[actor_name] snaps out a quick jab.",
+  "lag_rounds": 1,
+  "cooldown_rounds": 1
+}
+```
+
+---
+
+## 6. Supported text placeholders
+
+These are useful when writing flavor/context strings.
+
+### Observer templates
+Used in fields like `observer_action` and `observer_context`.
+
+Supported tokens:
+- `[actor_name]`
+- `[actor_subject]`
+- `[actor_object]`
+- `[actor_possessive]`
+
+Example:
+```text
+"[actor_name] slows [actor_possessive] breathing and settles into a guarded stance."
+```
+
+### Damage/support context grammar tokens
+Commonly used in `damage_context`.
+
+Supported tokens:
+- `[a/an]`
+- `[verb]`
+
+Example:
+```text
+"[a/an] [verb] jolted by crackling force."
+```
+
+These are resolved in combat rendering code in `mudproto-server/combat.py`.
+
+---
+
+## 7. Current attribute IDs for scaling
+
+When a spell or skill uses a scaling attribute, it must match one of the configured attributes in `configuration/attributes/character_attributes.json`.
+
+Current valid ids:
+- `str`
+- `dex`
+- `con`
+- `int`
+- `wis`
+
+---
+
+## 8. Common pitfalls to avoid
+
+### Don’t do these
+- Put `wear_slots` on a weapon.
+- Forget `wear_slots` on armor.
+- Add a room exit to a room that does not exist.
+- Reference an NPC, spell, skill, or gear template that has not been defined yet.
+- Use a negative duration, lag, cooldown, or stat value where the loader forbids it.
+- Mark an NPC as a merchant without giving it inventory.
+- Give a limited merchant item `infinite: false` with `quantity: 0`.
+
+### Easy-to-miss details
+- `npcs.json` is wrapped in `{ "npcs": [...] }`; it is **not** a bare list.
+- `zones.json` does **not** define room membership directly.
+- Spell and skill **names** as well as IDs must be unique.
+- If you want a player-usable off-hand weapon, set `can_hold: true` in `gear.json`.
+- If you need a new wear location or slot alias, edit `configuration/attributes/wear_slots.json`, not the assets folder.
+- If you need to change potion cooldown rules, edit `configuration/attributes/item_usage.json`, not `items.json`.
+
+---
+
+## 9. Practical generation checklist for humans and LLMs
+
+Before saving a new asset, verify:
+
+- [ ] JSON syntax is valid
+- [ ] ID is unique and follows project naming conventions
+- [ ] `name` is non-empty and player-facing
+- [ ] `keywords` are lowercase and useful for selectors
+- [ ] All referenced IDs already exist
+- [ ] Required context fields (`damage_context`, `support_context`, etc.) are present
+- [ ] Numeric fields respect the expected range
+- [ ] For rooms, all exits point to real rooms
+- [ ] For merchants, stock items exist and quantities make sense
+- [ ] Server is restarted after the edit
+
+---
+
+## 10. If you are adding a brand-new encounter
+
+A reliable pattern is:
+
+1. Add any new **weapons/armor** to `gear.json`
+2. Add any new **spells/skills** to `spells.json` / `skills.json`
+3. Add the new **NPC** to `npcs.json`
+4. Spawn it from a room in `rooms.json`
+5. Ensure the room belongs to a valid zone in `zones.json`
+6. Restart and test:
+   - `look`
+   - `scan`
+   - `look <npc>`
+   - `attack <npc>`
+   - `cast` / skill usage if relevant
+
+---
+
+## 11. Final guidance
+
+If you are a human author or an AI coding agent, treat `mudproto-server/assets.py` as the source of truth for what is allowed. When in doubt:
+
+- copy the structure of an existing working asset
+- keep IDs stable and references valid
+- restart the server after changes
+- test the new content in the actual room flow
+
+That approach matches the current MudProto codebase and will prevent nearly all asset-loading failures.

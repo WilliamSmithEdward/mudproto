@@ -176,6 +176,21 @@ mudproto/
 
 ---
 
+## Adding or Extending Game Content
+
+Most of MudProto’s playable content is **data-driven**. Rooms, NPCs, gear, consumables, spells, skills, and zones are defined under `mudproto-server/configuration/assets/`, which makes it straightforward to expand the world without reworking the core engine.
+
+A typical content pass looks like this:
+
+1. Add or update templates in `gear.json`, `items.json`, `spells.json`, or `skills.json`.
+2. Reference them from `npcs.json`.
+3. Place those NPCs in `rooms.json` and connect the area through `zones.json`.
+4. Restart the server and smoke-test key commands like `look`, `scan`, `buy`, `cast`, or combat actions.
+
+For the full schema, validation rules, naming conventions, and asset-authoring workflow, see [`ASSET_GENERATION.md`](ASSET_GENERATION.md).
+
+---
+
 ## Why This Project Stands Out
 
 - **Server-authoritative gameplay** — commands, combat resolution, cooldowns, and messaging all live on the server.
