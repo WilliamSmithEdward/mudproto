@@ -105,8 +105,12 @@ class MudProtoGuiClient:
         self.history_stash = ""
         self.output_ends_with_newline = True
         self.wrap_column = OUTPUT_WRAP_COLUMN
+        self._focus_restore_job: str | None = None
+        self._window_is_active = True
 
         self._build_widgets()
+        self.root.bind("<FocusIn>", self._on_window_activated, add="+")
+        self.root.bind("<FocusOut>", self._on_window_deactivated, add="+")
         self.network_thread.start()
         self.append_system_message(f"Connecting to {self.uri}...", fg="bright_cyan")
         self.connect()
@@ -213,6 +217,42 @@ class MudProtoGuiClient:
         self.input_entry.bind("<Up>", self.on_history_up)
         self.input_entry.bind("<Down>", self.on_history_down)
         self.input_entry.focus_set()
+
+    def _restore_input_focus(self) -> None:
+        self._focus_restore_job = None
+        try:
+            if self.root.winfo_exists() and self.input_entry.winfo_exists():
+                self.input_entry.focus_force()
+                self.input_entry.icursor(tk.END)
+        except tk.TclError:
+            pass
+
+    def _mark_window_inactive_if_needed(self) -> None:
+        try:
+            focused_widget = self.root.focus_displayof()
+        except tk.TclError:
+            focused_widget = None
+
+        if focused_widget is None:
+            self._window_is_active = False
+
+    def _on_window_deactivated(self, _event=None) -> None:
+        try:
+            self.root.after(1, self._mark_window_inactive_if_needed)
+        except tk.TclError:
+            self._window_is_active = False
+
+    def _on_window_activated(self, _event=None) -> None:
+        if self._window_is_active:
+            return
+
+        self._window_is_active = True
+        if self._focus_restore_job is not None:
+            try:
+                self.root.after_cancel(self._focus_restore_job)
+            except tk.TclError:
+                pass
+        self._focus_restore_job = self.root.after(10, self._restore_input_focus)
 
     def _run_network_loop(self) -> None:
         asyncio.set_event_loop(self.network_loop)

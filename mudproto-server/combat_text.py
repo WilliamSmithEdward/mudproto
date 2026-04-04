@@ -98,9 +98,7 @@ def build_entity_attack_parts(
     if severity == "miss":
         parts.extend([
             build_part(subject),
-            build_part(" "),
-            build_part("misses", SEVERITY_COLOR_MAP["miss"], True),
-            build_part(" you."),
+            build_part(" misses you."),
         ])
         return parts
 
