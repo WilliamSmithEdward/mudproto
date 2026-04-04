@@ -1,0 +1,49 @@
+{
+  "schema_name": "rooms",
+  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
+  "description": "Generated schema template for rooms.",
+  "schema": {
+    "file": "rooms.json",
+    "top_level_type": "array",
+    "id_field": "room_id",
+    "fields": {
+      "room_id": {
+        "type": "string",
+        "required": true
+      },
+      "title": {
+        "type": "string",
+        "required": true
+      },
+      "description": {
+        "type": "string",
+        "required": true
+      },
+      "zone_id": {
+        "type": "string",
+        "required": true
+      },
+      "exits": {
+        "type": "object<string, room_id>",
+        "required": true
+      },
+      "npcs": {
+        "type": "array[object]",
+        "required": false,
+        "default": [],
+        "entry_schema": {
+          "npc_id": {
+            "type": "string",
+            "required": true
+          },
+          "count": {
+            "type": "integer",
+            "required": false,
+            "default": 1,
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

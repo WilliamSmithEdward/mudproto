@@ -1,0 +1,30 @@
+{
+  "schema_name": "character_attributes",
+  "description": "Template/schema reference for `character_attributes.json`.",
+  "source_file": "character_attributes.json",
+  "top_level_type": "array",
+  "required_entry_fields": {
+    "attribute_id": {
+      "type": "string",
+      "required": true,
+      "rules": [
+        "must be lowercase alphabetic",
+        "must be unique"
+      ],
+      "examples": ["str", "dex", "con", "int", "wis"]
+    },
+    "name": {
+      "type": "string",
+      "required": true,
+      "rules": [
+        "must be non-empty"
+      ]
+    }
+  },
+  "example": [
+    {
+      "attribute_id": "str",
+      "name": "Strength"
+    }
+  ]
+}

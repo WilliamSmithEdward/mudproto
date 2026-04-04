@@ -1,0 +1,39 @@
+{
+  "schema_name": "payload_bundle",
+  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
+  "description": "Generated schema template for payload_bundle.",
+  "schema": {
+    "top_level_type": "object",
+    "required_fields": {
+      "payload_id": {
+        "type": "string",
+        "notes": "Unique bundle identifier. Append a GUID suffix."
+      },
+      "description": {
+        "type": "string",
+        "notes": "Short human-readable summary of what the payload adds."
+      },
+      "gear": {
+        "type": "array[gear]"
+      },
+      "items": {
+        "type": "array[item]"
+      },
+      "spells": {
+        "type": "array[spell]"
+      },
+      "skills": {
+        "type": "array[skill]"
+      },
+      "npcs": {
+        "type": "array[npc]"
+      },
+      "rooms": {
+        "type": "array[room]"
+      },
+      "zones": {
+        "type": "array[zone]"
+      }
+    }
+  }
+}

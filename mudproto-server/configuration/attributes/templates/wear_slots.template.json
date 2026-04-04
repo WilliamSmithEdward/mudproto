@@ -1,0 +1,33 @@
+{
+  "schema_name": "wear_slots",
+  "description": "Template/schema reference for `wear_slots.json`.",
+  "source_file": "wear_slots.json",
+  "top_level_type": "object",
+  "required_fields": {
+    "wear_slots": {
+      "type": "array[string]",
+      "required": true,
+      "rules": ["must contain at least one slot"]
+    },
+    "slot_options": {
+      "type": "object<string, array[string]>",
+      "required": false,
+      "default": {}
+    },
+    "location_aliases": {
+      "type": "object<string, string>",
+      "required": false,
+      "default": {}
+    }
+  },
+  "example": {
+    "wear_slots": ["head", "chest", "ring"],
+    "slot_options": {
+      "ring": ["left_hand", "right_hand"]
+    },
+    "location_aliases": {
+      "left": "left_hand",
+      "right": "right_hand"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "schema_name": "items",
+  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
+  "description": "Generated schema template for items.",
+  "schema": {
+    "file": "items.json",
+    "top_level_type": "array",
+    "id_field": "template_id",
+    "id_prefixes": [
+      "item."
+    ],
+    "fields": {
+      "template_id": {
+        "type": "string",
+        "required": true
+      },
+      "name": {
+        "type": "string",
+        "required": true
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "keywords": {
+        "type": "array[string]",
+        "required": false,
+        "default": []
+      },
+      "effect_type": {
+        "type": "string",
+        "required": true,
+        "allowed_values": [
+          "restore"
+        ]
+      },
+      "effect_target": {
+        "type": "string",
+        "required": true,
+        "allowed_values": [
+          "hit_points",
+          "mana",
+          "vigor"
+        ]
+      },
+      "effect_amount": {
+        "type": "integer",
+        "required": true,
+        "minimum": 1
+      },
+      "coin_value": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "use_lag_seconds": {
+        "type": "number",
+        "required": false,
+        "default": 0.0,
+        "minimum": 0.0
+      },
+      "observer_action": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "observer_context": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      }
+    }
+  }
+}

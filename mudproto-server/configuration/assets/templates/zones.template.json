@@ -1,0 +1,35 @@
+{
+  "schema_name": "zones",
+  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
+  "description": "Generated schema template for zones.",
+  "schema": {
+    "file": "zones.json",
+    "top_level_type": "array",
+    "id_field": "zone_id",
+    "id_prefixes": [
+      "zone."
+    ],
+    "fields": {
+      "zone_id": {
+        "type": "string",
+        "required": true
+      },
+      "name": {
+        "type": "string",
+        "required": true
+      },
+      "repopulate_game_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "repopulate_each_game_hour": {
+        "type": "boolean",
+        "required": false,
+        "legacy_alias": true,
+        "notes": "Legacy compatibility flag; prefer repopulate_game_hours."
+      }
+    }
+  }
+}

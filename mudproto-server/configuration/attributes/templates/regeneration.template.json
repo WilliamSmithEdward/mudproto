@@ -1,0 +1,54 @@
+{
+  "schema_name": "regeneration",
+  "description": "Template/schema reference for `regeneration.json`.",
+  "source_file": "regeneration.json",
+  "top_level_type": "object",
+  "required_fields": {
+    "resources": {
+      "type": "object",
+      "required": true,
+      "rules": ["must include hit_points, vigor, and mana"]
+    }
+  },
+  "resource_schema": {
+    "attribute_id": {"type": "string", "required": true},
+    "min_amount": {"type": "integer", "required": true, "rules": ["must be >= 0"]},
+    "percent_by_attribute": {
+      "type": "array[object]",
+      "required": true,
+      "rules": ["must be non-empty"],
+      "entry_schema": {
+        "min": {"type": "integer", "required": true},
+        "percent": {"type": "number", "required": true, "rules": ["must be >= 0.0"]}
+      }
+    }
+  },
+  "example": {
+    "resources": {
+      "hit_points": {
+        "attribute_id": "con",
+        "min_amount": 1,
+        "percent_by_attribute": [
+          {"min": 0, "percent": 0.05},
+          {"min": 12, "percent": 0.25}
+        ]
+      },
+      "vigor": {
+        "attribute_id": "dex",
+        "min_amount": 1,
+        "percent_by_attribute": [
+          {"min": 0, "percent": 0.05},
+          {"min": 12, "percent": 0.25}
+        ]
+      },
+      "mana": {
+        "attribute_id": "wis",
+        "min_amount": 1,
+        "percent_by_attribute": [
+          {"min": 0, "percent": 0.05},
+          {"min": 12, "percent": 0.25}
+        ]
+      }
+    }
+  }
+}

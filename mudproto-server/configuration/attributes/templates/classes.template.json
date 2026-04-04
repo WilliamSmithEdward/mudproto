@@ -1,0 +1,94 @@
+{
+  "schema_name": "classes",
+  "description": "Template/schema reference for `classes.json`.",
+  "source_file": "classes.json",
+  "top_level_type": "array",
+  "required_entry_fields": {
+    "class_id": {
+      "type": "string",
+      "required": true,
+      "rules": ["must be non-empty", "must be unique"]
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    "attribute_ranges": {
+      "type": "object",
+      "required": true,
+      "rules": ["must define min/max for every configured attribute id"]
+    },
+    "resource_progression": {
+      "type": "object",
+      "required": true,
+      "rules": ["must include hit_points, vigor, and mana entries"]
+    },
+    "starting_gear_template_ids": {
+      "type": "array[string]",
+      "required": false,
+      "default": []
+    },
+    "starting_equipped_gear_template_ids": {
+      "type": "array[string]",
+      "required": false,
+      "default": []
+    },
+    "starting_item_ids": {
+      "type": "array[string]",
+      "required": false,
+      "default": []
+    },
+    "starting_spell_ids": {
+      "type": "array[string]",
+      "required": false,
+      "default": []
+    },
+    "starting_skill_ids": {
+      "type": "array[string]",
+      "required": false,
+      "default": []
+    },
+    "is_default": {
+      "type": "boolean",
+      "required": false,
+      "default": false
+    }
+  },
+  "resource_progression_entry_schema": {
+    "base": {"type": "integer", "required": true, "rules": ["must be > 0"]},
+    "attribute_id": {"type": "string", "required": true},
+    "attribute_multiplier": {"type": "number", "required": false, "default": 1.0, "rules": ["must be >= 0.0"]},
+    "per_level_min": {"type": "integer", "required": true, "rules": ["must be >= 0"]},
+    "per_level_max": {"type": "integer", "required": true, "rules": ["must be >= 0"]}
+  },
+  "example": [
+    {
+      "class_id": "class.example",
+      "name": "Example",
+      "description": "A reference starter class.",
+      "attribute_ranges": {
+        "str": {"min": 8, "max": 14},
+        "dex": {"min": 8, "max": 14},
+        "con": {"min": 8, "max": 14},
+        "int": {"min": 8, "max": 14},
+        "wis": {"min": 8, "max": 14}
+      },
+      "resource_progression": {
+        "hit_points": {"base": 100, "attribute_id": "con", "attribute_multiplier": 5.0, "per_level_min": 5, "per_level_max": 10},
+        "vigor": {"base": 80, "attribute_id": "dex", "attribute_multiplier": 3.0, "per_level_min": 3, "per_level_max": 7},
+        "mana": {"base": 60, "attribute_id": "wis", "attribute_multiplier": 2.0, "per_level_min": 2, "per_level_max": 6}
+      },
+      "starting_gear_template_ids": [],
+      "starting_equipped_gear_template_ids": [],
+      "starting_item_ids": [],
+      "starting_spell_ids": [],
+      "starting_skill_ids": [],
+      "is_default": false
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schema_name": "combat_severity",
+  "description": "Template/schema reference for `combat_severity.json`.",
+  "source_file": "combat_severity.json",
+  "top_level_type": "object",
+  "required_fields": {
+    "tiers": {
+      "type": "array[object]",
+      "required": true,
+      "rules": [
+        "must be non-empty",
+        "max_damage values must be strictly increasing when present",
+        "the final tier must be open-ended with no max_damage"
+      ],
+      "entry_schema": {
+        "label": {"type": "string", "required": true},
+        "max_damage": {"type": "integer|null", "required": false, "rules": ["must be >= 0 when provided"]}
+      }
+    }
+  },
+  "example": {
+    "tiers": [
+      {"label": "miss", "max_damage": 0},
+      {"label": "barely", "max_damage": 5},
+      {"label": "obliterate"}
+    ]
+  }
+}

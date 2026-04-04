@@ -1,0 +1,29 @@
+{
+  "schema_name": "level_scaling",
+  "description": "Template/schema reference for `level_scaling.json`.",
+  "source_file": "level_scaling.json",
+  "top_level_type": "object",
+  "required_fields": {
+    "melee": {
+      "type": "object",
+      "required": true,
+      "rules": ["must include hit_roll and damage_roll"]
+    }
+  },
+  "rule_schema": {
+    "levels_per_bonus": {"type": "integer", "required": true, "rules": ["must be >= 0"]},
+    "bonus_per_step": {"type": "integer", "required": true, "rules": ["must be >= 0"]}
+  },
+  "example": {
+    "melee": {
+      "hit_roll": {
+        "levels_per_bonus": 1,
+        "bonus_per_step": 1
+      },
+      "damage_roll": {
+        "levels_per_bonus": 4,
+        "bonus_per_step": 1
+      }
+    }
+  }
+}

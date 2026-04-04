@@ -1,0 +1,28 @@
+{
+  "schema_name": "experience",
+  "description": "Template/schema reference for `experience.json`.",
+  "source_file": "experience.json",
+  "top_level_type": "object",
+  "required_fields": {
+    "levels": {
+      "type": "array[object]",
+      "required": true,
+      "rules": [
+        "must be non-empty",
+        "must start at level 1 with total_experience 0",
+        "levels must be contiguous",
+        "total_experience must be strictly increasing"
+      ],
+      "entry_schema": {
+        "level": {"type": "integer", "required": true, "rules": ["must be >= 1"]},
+        "total_experience": {"type": "integer", "required": true, "rules": ["must be >= 0"]}
+      }
+    }
+  },
+  "example": {
+    "levels": [
+      {"level": 1, "total_experience": 0},
+      {"level": 2, "total_experience": 100}
+    ]
+  }
+}

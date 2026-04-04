@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.1",
-  "generated_at_utc": "2026-04-04T17:08:02.279009+00:00",
+  "version": "2.2",
+  "generated_at_utc": "2026-04-04T17:13:57.218633+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
   "response_contract": {
@@ -978,7 +978,8 @@
   },
   "reference_docs": [
     "ASSET_GENERATION.md",
-    "mudproto-server/assets.py"
+    "mudproto-server/assets.py",
+    "mudproto-server/configuration/assets/templates/"
   ],
   "current_game_assets": {
     "counts": {
@@ -989,7 +990,7 @@
       "skills": 3,
       "spells": 9,
       "zones": 3,
-      "llm_payload_files": 0
+      "llm_payload_files": 1
     },
     "base_assets": {
       "gear": [
@@ -1824,7 +1825,686 @@
         }
       ]
     },
-    "llm_payloads": []
+    "llm_payloads": [
+      {
+        "file_name": "dark-knight-outpost.json",
+        "content": {
+          "payload_id": "dark-knight-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "description": "Adds a downward-connected dark knight outpost beneath the Prototype Chamber, featuring blackwatch soldiers, grave acolytes, and a final altar encounter with a dark priestess and dread revenant.",
+          "gear": [
+            {
+              "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Dark Iron Greatsword",
+              "slot": "weapon",
+              "description": "A broad darkened blade maintained with severe discipline and funeral oil.",
+              "keywords": [
+                "dark",
+                "iron",
+                "greatsword",
+                "blackwatch",
+                "sword"
+              ],
+              "weapon_type": "sword",
+              "can_hold": false,
+              "weight": 9,
+              "coin_value": 72,
+              "damage_dice_count": 5,
+              "damage_dice_sides": 6,
+              "damage_roll_modifier": 2,
+              "hit_roll_modifier": 2,
+              "attack_damage_bonus": 1,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Grave Mace",
+              "slot": "weapon",
+              "description": "A flanged iron mace engraved with ash-choked prayers.",
+              "keywords": [
+                "grave",
+                "mace",
+                "priest",
+                "iron"
+              ],
+              "weapon_type": "mace",
+              "can_hold": false,
+              "weight": 7,
+              "coin_value": 64,
+              "damage_dice_count": 4,
+              "damage_dice_sides": 6,
+              "damage_roll_modifier": 2,
+              "hit_roll_modifier": 1,
+              "attack_damage_bonus": 1,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Blackwatch Cuirass",
+              "slot": "armor",
+              "description": "A soot-dark breastplate worn by outpost enforcers.",
+              "keywords": [
+                "blackwatch",
+                "cuirass",
+                "armor",
+                "chest"
+              ],
+              "weight": 12,
+              "coin_value": 58,
+              "armor_class_bonus": 2,
+              "wear_slots": [
+                "chest"
+              ]
+            },
+            {
+              "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Ossuary Cloak",
+              "slot": "armor",
+              "description": "A heavy cloak lined with grave-dust thread and stitched bone toggles.",
+              "keywords": [
+                "ossuary",
+                "cloak",
+                "back",
+                "grave"
+              ],
+              "weight": 3,
+              "coin_value": 44,
+              "armor_class_bonus": 1,
+              "wear_slots": [
+                "back"
+              ]
+            }
+          ],
+          "items": [
+            {
+              "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Shadow Balm",
+              "description": "A bitter black salve that steadies the nerves and restores battle focus.",
+              "keywords": [
+                "shadow",
+                "balm",
+                "vigor"
+              ],
+              "effect_type": "restore",
+              "effect_target": "vigor",
+              "effect_amount": 32,
+              "coin_value": 18,
+              "use_lag_seconds": 0.0,
+              "observer_action": "[actor_name] rubs dark balm into [actor_possessive] wrists.",
+              "observer_context": "A sharp medicinal scent rises around [actor_object]."
+            },
+            {
+              "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Grave Salt Draught",
+              "description": "A pale mineral tonic used by the outpost priesthood to stave off collapse.",
+              "keywords": [
+                "grave",
+                "salt",
+                "draught",
+                "healing"
+              ],
+              "effect_type": "restore",
+              "effect_target": "hit_points",
+              "effect_amount": 36,
+              "coin_value": 17,
+              "use_lag_seconds": 0.0,
+              "observer_action": "[actor_name] drinks a grave salt draught.",
+              "observer_context": "Color returns slowly to [actor_object]."
+            }
+          ],
+          "spells": [
+            {
+              "spell_id": "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Grave Bolt",
+              "school": "Grave",
+              "description": "A hard lance of sepulchral force driven through a single target.",
+              "mana_cost": 14,
+              "spell_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 5,
+              "damage_dice_sides": 14,
+              "damage_modifier": 4,
+              "damage_scaling_attribute_id": "int",
+              "damage_scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "[a/an] [verb] struck by a hard lance of grave-force."
+            },
+            {
+              "spell_id": "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Unhallowed Mending",
+              "school": "Grave",
+              "description": "A cold liturgy that seals wounds with borrowed deathly vigor.",
+              "mana_cost": 16,
+              "spell_type": "support",
+              "cast_type": "self",
+              "support_effect": "heal",
+              "support_amount": 0,
+              "support_dice_count": 2,
+              "support_dice_sides": 14,
+              "support_roll_modifier": 16,
+              "support_scaling_attribute_id": "wis",
+              "support_scaling_multiplier": 1.0,
+              "support_mode": "instant",
+              "support_context": "A cold liturgy knits your wounds with unclean strength.",
+              "observer_action": "[actor_name] murmurs a cold and careful grave-litany.",
+              "observer_context": "A pale hush settles around [actor_object] as wounds begin to close."
+            },
+            {
+              "spell_id": "spell.night-veil-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Night Veil",
+              "school": "Shadow",
+              "description": "A dark veil settles over the caster, feeding resolve and battle endurance.",
+              "mana_cost": 12,
+              "spell_type": "support",
+              "cast_type": "self",
+              "support_effect": "vigor",
+              "support_amount": 10,
+              "duration_rounds": 3,
+              "support_mode": "battle_rounds",
+              "support_context": "A dark veil settles over you, feeding your resolve with each breath of battle.",
+              "observer_action": "[actor_name] draws darkness inward and binds it like a mantle.",
+              "observer_context": "A dark veil settles over [actor_object], feeding grim resolve."
+            }
+          ],
+          "skills": [
+            {
+              "skill_id": "skill.sundering-cleave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Sundering Cleave",
+              "description": "A brutal descending cut meant to break stance and bone together.",
+              "skill_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 2,
+              "damage_dice_sides": 8,
+              "damage_modifier": 4,
+              "vigor_cost": 8,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "str",
+              "scaling_multiplier": 2.5,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "[a/an] [verb] split by a brutal sundering cleave.",
+              "observer_action": "[actor_name] steps through with a brutal sundering cleave.",
+              "lag_rounds": 2,
+              "cooldown_rounds": 3
+            },
+            {
+              "skill_id": "skill.grave-guard-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Grave Guard",
+              "description": "A steadying martial prayer that restores a measure of health.",
+              "skill_type": "support",
+              "cast_type": "self",
+              "vigor_cost": 6,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "con",
+              "scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "support_effect": "heal",
+              "support_amount": 12,
+              "support_context": "You settle into a grave guard and force your wounds to close.",
+              "observer_action": "[actor_name] lowers [actor_possessive] stance and gathers grim resolve.",
+              "observer_context": "[actor_name] settles into a grim defensive rhythm.",
+              "lag_rounds": 1,
+              "cooldown_rounds": 4
+            }
+          ],
+          "npcs": [
+            {
+              "npc_id": "npc.blackwatch-sentry-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Blackwatch Sentry",
+              "hit_points": 255,
+              "max_hit_points": 255,
+              "power_level": 4,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 2,
+              "armor_class": 11,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 28,
+              "experience_reward": 38,
+              "is_aggro": true,
+              "is_ally": false,
+              "is_peaceful": false,
+              "respawn": true,
+              "is_merchant": false,
+              "merchant_inventory": [],
+              "merchant_buy_markup": 1.0,
+              "merchant_sell_ratio": 0.5,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 56,
+              "max_vigor": 56,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.35,
+              "skill_ids": [
+                "skill.sundering-cleave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "loot_items": [
+                {
+                  "name": "Blackwatch insignia",
+                  "description": "A soot-dark insignia stamped with a broken chapel seal.",
+                  "keywords": [
+                    "blackwatch",
+                    "insignia",
+                    "seal"
+                  ]
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.grave-acolyte-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Grave Acolyte",
+              "hit_points": 230,
+              "max_hit_points": 230,
+              "power_level": 4,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 1,
+              "armor_class": 10,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 30,
+              "experience_reward": 40,
+              "is_aggro": true,
+              "is_ally": false,
+              "is_peaceful": false,
+              "respawn": true,
+              "is_merchant": false,
+              "merchant_inventory": [],
+              "merchant_buy_markup": 1.0,
+              "merchant_sell_ratio": 0.5,
+              "pronoun_possessive": "her",
+              "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 24,
+              "max_vigor": 24,
+              "mana": 95,
+              "max_mana": 95,
+              "skill_use_chance": 0.15,
+              "skill_ids": [],
+              "spell_use_chance": 0.55,
+              "spell_ids": [
+                "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              ],
+              "loot_items": [
+                {
+                  "name": "Ash prayer strip",
+                  "description": "A strip of dark cloth inked with half-burned burial prayers.",
+                  "keywords": [
+                    "ash",
+                    "prayer",
+                    "strip"
+                  ]
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.crypt-warden-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Crypt Warden",
+              "hit_points": 300,
+              "max_hit_points": 300,
+              "power_level": 5,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 3,
+              "armor_class": 12,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 36,
+              "experience_reward": 50,
+              "is_aggro": true,
+              "is_ally": false,
+              "is_peaceful": false,
+              "respawn": true,
+              "is_merchant": false,
+              "merchant_inventory": [],
+              "merchant_buy_markup": 1.0,
+              "merchant_sell_ratio": 0.5,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 64,
+              "max_vigor": 64,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.4,
+              "skill_ids": [
+                "skill.sundering-cleave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "skill.grave-guard-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "loot_items": [
+                {
+                  "name": "Crypt key",
+                  "description": "A black iron key worked in the shape of a chapel spire.",
+                  "keywords": [
+                    "crypt",
+                    "key",
+                    "iron"
+                  ]
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.dark-priestess-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Dark Priestess Vael",
+              "hit_points": 320,
+              "max_hit_points": 320,
+              "power_level": 6,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 2,
+              "armor_class": 12,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 68,
+              "experience_reward": 82,
+              "is_aggro": true,
+              "is_ally": false,
+              "is_peaceful": false,
+              "respawn": true,
+              "is_merchant": false,
+              "merchant_inventory": [],
+              "merchant_buy_markup": 1.0,
+              "merchant_sell_ratio": 0.5,
+              "pronoun_possessive": "her",
+              "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 30,
+              "max_vigor": 30,
+              "mana": 145,
+              "max_mana": 145,
+              "skill_use_chance": 0.0,
+              "skill_ids": [],
+              "spell_use_chance": 0.7,
+              "spell_ids": [
+                "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spell.night-veil-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              ],
+              "loot_items": [
+                {
+                  "name": "Veiled prayer icon",
+                  "description": "A small icon of blackened silver wrapped in mourning thread.",
+                  "keywords": [
+                    "veiled",
+                    "prayer",
+                    "icon",
+                    "silver"
+                  ]
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.dread-revenant-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Dread Revenant",
+              "hit_points": 345,
+              "max_hit_points": 345,
+              "power_level": 7,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 3,
+              "armor_class": 12,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 72,
+              "experience_reward": 90,
+              "is_aggro": true,
+              "is_ally": false,
+              "is_peaceful": false,
+              "respawn": true,
+              "is_merchant": false,
+              "merchant_inventory": [],
+              "merchant_buy_markup": 1.0,
+              "merchant_sell_ratio": 0.5,
+              "pronoun_possessive": "its",
+              "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 78,
+              "max_vigor": 78,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.45,
+              "skill_ids": [
+                "skill.sundering-cleave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "skill.grave-guard-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "loot_items": [
+                {
+                  "name": "Revenant jaw token",
+                  "description": "A grim charm carved from old bone and sealed in pitch.",
+                  "keywords": [
+                    "revenant",
+                    "jaw",
+                    "token",
+                    "bone"
+                  ]
+                }
+              ]
+            }
+          ],
+          "rooms": [
+            {
+              "room_id": "start",
+              "title": "Prototype Chamber",
+              "description": "A plain stone chamber used for early server testing.",
+              "zone_id": "zone.prototype-core",
+              "exits": {
+                "north": "hall",
+                "east": "sanctum",
+                "south": "south-market",
+                "down": "room.blackwatch-descent-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": []
+            },
+            {
+              "room_id": "room.blackwatch-descent-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Blackwatch Descent",
+              "description": "A steep stair of damp stone falls away beneath the chamber, the air below heavy with oil smoke and chapel ash.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "up": "start",
+                "south": "room.ashen-landing-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": []
+            },
+            {
+              "room_id": "room.ashen-landing-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Ashen Landing",
+              "description": "Boot-scuffed stone opens into a low checkpoint where cressets spit dull orange light across ash-streaked walls.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "north": "room.blackwatch-descent-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "east": "room.watch-barracks-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "south": "room.shroud-corridor-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.blackwatch-sentry-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.watch-barracks-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Watch Barracks",
+              "description": "Narrow bunks and open weapon racks line this severe barracks, all kept with unnerving order.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "west": "room.ashen-landing-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.blackwatch-sentry-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.shroud-corridor-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Shroud Corridor",
+              "description": "Black hanging cloth breaks the corridor into blind pockets of shadow where whispers seem to linger after breath has passed.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "north": "room.ashen-landing-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "west": "room.storage-vault-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "south": "room.crypt-gate-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "east": "room.prayer-cell-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": []
+            },
+            {
+              "room_id": "room.storage-vault-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Storage Vault",
+              "description": "Crates of lamp oil, burial cloth, and dried rations are stacked behind reinforced beams blackened by old smoke.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "east": "room.shroud-corridor-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": []
+            },
+            {
+              "room_id": "room.prayer-cell-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Prayer Cell",
+              "description": "A narrow chamber of kneeling stones and guttered candles, where soot-dark icons stare from the walls.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "west": "room.shroud-corridor-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.grave-acolyte-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.crypt-gate-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Crypt Gate",
+              "description": "A heavy iron gate marks the inner threshold, flanked by cracked grave tablets and braziers burning low blue flame.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "north": "room.shroud-corridor-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "south": "room.ossuary-walk-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.crypt-warden-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.ossuary-walk-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Ossuary Walk",
+              "description": "Wall niches of old bones stretch into the dark, every skull turned outward as if keeping count.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "north": "room.crypt-gate-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "east": "room.acolyte-cloister-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "south": "room.sunken-nave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.blackwatch-sentry-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.acolyte-cloister-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Acolyte Cloister",
+              "description": "A ring of curtained alcoves surrounds a basin of black water disturbed by slow drifting ash.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "west": "room.ossuary-walk-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.grave-acolyte-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "room_id": "room.sunken-nave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Sunken Nave",
+              "description": "The floor drops into a half-flooded chapel nave where shattered pews lean beneath hanging chains and dim censers.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "north": "room.ossuary-walk-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "west": "room.revenant-crypt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "south": "room.black-altar-approach-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.crypt-warden-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.revenant-crypt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Revenant Crypt",
+              "description": "A low tomb chamber choked with pitch smoke and old funerary cloth, the stone lids here all broken from within.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "east": "room.sunken-nave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dread-revenant-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.black-altar-approach-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Black Altar Approach",
+              "description": "Steps of worn basalt descend toward a dark altar hall where thin bells ring without any hand to move them.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "north": "room.sunken-nave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "south": "room.night-altar-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.grave-acolyte-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.night-altar-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "title": "Night Altar",
+              "description": "A black altar stands beneath a vaulted apse of smoke and bone chandeliers, where the outpost's final rite still labors to continue.",
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "exits": {
+                "north": "room.black-altar-approach-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dark-priestess-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                },
+                {
+                  "npc_id": "npc.dread-revenant-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "count": 1
+                }
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+              "name": "Blackwatch Outpost",
+              "repopulate_game_hours": 1
+            }
+          ]
+        }
+      }
+    ]
   },
   "starter_template": {
     "payload_id": "example-bundle-<GUID>",

@@ -1,0 +1,172 @@
+{
+  "schema_name": "skills",
+  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
+  "description": "Generated schema template for skills.",
+  "schema": {
+    "file": "skills.json",
+    "top_level_type": "array",
+    "id_field": "skill_id",
+    "id_prefixes": [
+      "skill."
+    ],
+    "fields": {
+      "skill_id": {
+        "type": "string",
+        "required": true
+      },
+      "name": {
+        "type": "string",
+        "required": true
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "skill_type": {
+        "type": "string",
+        "required": false,
+        "default": "damage",
+        "allowed_values": [
+          "damage",
+          "support"
+        ]
+      },
+      "cast_type": {
+        "type": "string",
+        "required": false,
+        "default": "target for damage, self for support",
+        "allowed_values": [
+          "self",
+          "target",
+          "aoe"
+        ]
+      },
+      "damage_dice_count": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "damage_dice_sides": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "damage_modifier": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "vigor_cost": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "usable_out_of_combat": {
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      "scaling_attribute_id": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "allowed_values": [
+          "",
+          "str",
+          "dex",
+          "con",
+          "int",
+          "wis"
+        ]
+      },
+      "scaling_multiplier": {
+        "type": "number",
+        "required": false,
+        "default": 0.0,
+        "minimum": 0.0
+      },
+      "level_scaling_multiplier": {
+        "type": "number",
+        "required": false,
+        "default": 1.0,
+        "minimum": 0.0
+      },
+      "damage_context": {
+        "type": "string",
+        "required": "for damage skills"
+      },
+      "restore_effect": {
+        "type": "string",
+        "required": false,
+        "allowed_values": [
+          "heal",
+          "vigor",
+          "mana",
+          ""
+        ]
+      },
+      "restore_ratio": {
+        "type": "number",
+        "required": false,
+        "default": 0.0,
+        "minimum": 0.0,
+        "maximum": 1.0
+      },
+      "restore_context": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "observer_restore_context": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "support_effect": {
+        "type": "string",
+        "required": "for support skills",
+        "allowed_values": [
+          "heal",
+          "vigor",
+          "mana"
+        ]
+      },
+      "support_amount": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "support_context": {
+        "type": "string",
+        "required": "for support skills"
+      },
+      "observer_action": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "observer_context": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "lag_rounds": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "cooldown_rounds": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      }
+    }
+  }
+}

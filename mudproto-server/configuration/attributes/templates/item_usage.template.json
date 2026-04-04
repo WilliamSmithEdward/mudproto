@@ -1,0 +1,24 @@
+{
+  "schema_name": "item_usage",
+  "description": "Template/schema reference for `item_usage.json`.",
+  "source_file": "item_usage.json",
+  "top_level_type": "object",
+  "required_fields": {
+    "potion": {
+      "type": "object",
+      "required": true,
+      "entry_schema": {
+        "cooldown_rounds": {
+          "type": "integer",
+          "required": true,
+          "rules": ["must be >= 0"]
+        }
+      }
+    }
+  },
+  "example": {
+    "potion": {
+      "cooldown_rounds": 2
+    }
+  }
+}

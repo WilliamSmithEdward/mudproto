@@ -1,0 +1,28 @@
+{
+  "schema_name": "hand_weight",
+  "description": "Template/schema reference for `hand_weight.json`.",
+  "source_file": "hand_weight.json",
+  "top_level_type": "object",
+  "required_fields": {
+    "strength_attribute_id": {
+      "type": "string",
+      "required": true,
+      "rules": ["must be alphabetic"]
+    },
+    "hand_requirements": {
+      "type": "object",
+      "required": true,
+      "rules": ["must include main_hand and off_hand"]
+    }
+  },
+  "hand_requirement_schema": {
+    "weight_multiplier": {"type": "number", "required": true, "rules": ["must be > 0"]}
+  },
+  "example": {
+    "strength_attribute_id": "str",
+    "hand_requirements": {
+      "main_hand": {"weight_multiplier": 1.0},
+      "off_hand": {"weight_multiplier": 1.5}
+    }
+  }
+}

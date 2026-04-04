@@ -310,7 +310,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.1",
+        "version": "2.2",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
@@ -404,7 +404,8 @@ def build_instruction_payload() -> dict[str, object]:
         },
         "reference_docs": [
             "ASSET_GENERATION.md",
-            "mudproto-server/assets.py"
+            "mudproto-server/assets.py",
+            "mudproto-server/configuration/assets/templates/"
         ],
         "current_game_assets": {
             "counts": build_asset_counts(base_assets, llm_payloads),

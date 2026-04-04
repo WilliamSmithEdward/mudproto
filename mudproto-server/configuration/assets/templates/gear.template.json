@@ -1,0 +1,107 @@
+{
+  "schema_name": "gear",
+  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
+  "description": "Generated schema template for gear.",
+  "schema": {
+    "file": "gear.json",
+    "top_level_type": "array",
+    "id_field": "template_id",
+    "id_prefixes": [
+      "weapon.",
+      "armor."
+    ],
+    "fields": {
+      "template_id": {
+        "type": "string",
+        "required": true
+      },
+      "name": {
+        "type": "string",
+        "required": true
+      },
+      "slot": {
+        "type": "string",
+        "required": true,
+        "allowed_values": [
+          "weapon",
+          "armor"
+        ]
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "keywords": {
+        "type": "array[string]",
+        "required": false,
+        "default": []
+      },
+      "weapon_type": {
+        "type": "string",
+        "required": false,
+        "default": "unarmed"
+      },
+      "can_hold": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "notes": "Weapon-only field."
+      },
+      "weight": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "coin_value": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "damage_dice_count": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "damage_dice_sides": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "damage_roll_modifier": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "hit_roll_modifier": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "attack_damage_bonus": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "attacks_per_round_bonus": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "armor_class_bonus": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "wear_slots": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "Required for armor, must be empty for weapons."
+      }
+    }
+  }
+}
