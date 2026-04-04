@@ -15,6 +15,7 @@ class Ansi:
     RED = "\033[31m"
     GREEN = "\033[32m"
     YELLOW = "\033[33m"
+    ORANGE = "\033[38;5;208m"
     BLUE = "\033[34m"
     MAGENTA = "\033[35m"
     CYAN = "\033[36m"
@@ -35,6 +36,7 @@ COLOR_MAP = {
     "red": Ansi.RED,
     "green": Ansi.GREEN,
     "yellow": Ansi.YELLOW,
+    "orange": Ansi.ORANGE,
     "blue": Ansi.BLUE,
     "magenta": Ansi.MAGENTA,
     "cyan": Ansi.CYAN,

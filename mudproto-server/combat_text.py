@@ -3,6 +3,14 @@ from grammar import indefinite_article, to_third_person, with_article
 from settings import PLAYER_REFERENCE_MAX_HP
 
 
+SEVERITY_COLOR_MAP = {
+    "miss": "bright_red",
+    "massacre": "bright_green",
+    "annihilate": "blue",
+    "obliterate": "orange",
+}
+
+
 def _choose_severity(damage: int, target_max_hp: int) -> str:
     _ = target_max_hp
     severity_config = load_combat_severity_config()
@@ -32,7 +40,8 @@ def build_player_attack_parts(
     parts: list[dict] = []
     if severity == "miss":
         parts.extend([
-            build_part("You miss "),
+            build_part("You "),
+            build_part("miss ", SEVERITY_COLOR_MAP["miss"], True),
             build_part(named),
             build_part(" with your "),
             build_part(attack_verb),
@@ -63,7 +72,8 @@ def build_player_attack_parts(
         "obliterate": "obliterate",
     }[severity]
     parts.extend([
-        build_part(f"You {top_label} "),
+        build_part("You "),
+        build_part(f"{top_label} ", SEVERITY_COLOR_MAP.get(severity, "bright_white"), True),
         build_part(named),
         build_part(" with your "),
         build_part(attack_verb),
@@ -88,7 +98,9 @@ def build_entity_attack_parts(
     if severity == "miss":
         parts.extend([
             build_part(subject),
-            build_part(" misses you."),
+            build_part(" "),
+            build_part("misses", SEVERITY_COLOR_MAP["miss"], True),
+            build_part(" you."),
         ])
         return parts
 
@@ -123,7 +135,9 @@ def build_entity_attack_parts(
     pronoun = entity_pronoun_possessive.strip().lower() or "its"
     parts.extend([
         build_part(subject),
-        build_part(f" {top_verb} you with {pronoun} "),
+        build_part(" "),
+        build_part(top_verb, SEVERITY_COLOR_MAP.get(severity, "bright_white"), True),
+        build_part(f" you with {pronoun} "),
         build_part(attack_verb),
         build_part("."),
     ])
