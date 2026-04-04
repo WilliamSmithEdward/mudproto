@@ -4,7 +4,7 @@ import re
 import uuid
 from typing import TypeAlias
 
-from grammar import third_personize_text
+from grammar import third_personize_text, to_third_person
 from websockets.asyncio.server import ServerConnection
 import websockets
 
@@ -75,6 +75,43 @@ def _iter_room_peers(origin_session):
             continue
         peers.append(session)
     return peers
+
+
+def _is_private_progression_line(text: str) -> bool:
+    normalized = str(text).strip().lower()
+    if not normalized:
+        return False
+
+    return (
+        normalized.startswith("you gain ") and " experience" in normalized
+    ) or normalized.startswith("you advance to level ") or normalized.startswith("level gains:")
+
+
+def _fix_observer_line_grammar(line: list[dict], actor_name: str) -> None:
+    if not isinstance(line, list) or not actor_name.strip():
+        return
+
+    running_text = ""
+    normalized_actor = actor_name.strip().lower()
+    for part in line:
+        if not isinstance(part, dict):
+            continue
+
+        part_text = str(part.get("text", ""))
+        normalized_prefix = running_text.strip().lower()
+        if normalized_prefix in {normalized_actor, f"{normalized_actor} barely"}:
+            match = re.match(r"^(?P<verb>[A-Za-z]+)(?P<suffix>.*)$", part_text)
+            if match is not None:
+                verb = str(match.group("verb"))
+                suffix = str(match.group("suffix"))
+                normalized_verb = verb.strip().lower()
+                if normalized_verb not in {"is", "was", "has", "does"}:
+                    part["text"] = f"{to_third_person(verb)}{suffix}"
+            break
+
+        running_text += part_text
+
+
 def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) -> list[dict]:
     messages = outbound if isinstance(outbound, list) else [outbound]
     broadcast_messages: list[dict] = []
@@ -103,14 +140,20 @@ def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) 
             else:
                 copied_lines = copied_payload.get("lines")
                 if isinstance(copied_lines, list):
+                    filtered_lines: list = []
                     for line in copied_lines:
                         if not isinstance(line, list):
+                            continue
+                        if _is_private_progression_line(_line_text(line)):
                             continue
                         for part in line:
                             if not isinstance(part, dict):
                                 continue
                             original_text = str(part.get("text", ""))
                             part["text"] = third_personize_text(original_text, actor_name)
+                        _fix_observer_line_grammar(line, actor_name)
+                        filtered_lines.append(line)
+                    copied_payload["lines"] = filtered_lines
             copied_lines = copied_payload.get("lines")
             if isinstance(copied_lines, list):
                 copied_payload["lines"] = [[], []] + copied_lines

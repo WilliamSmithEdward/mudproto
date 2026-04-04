@@ -724,7 +724,7 @@ def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: s
     if not entities:
         return False
 
-    summarized: list[dict[str, object]] = []
+    summarized: list[dict[str, str | int]] = []
     for entity in entities:
         normalized_name = entity.name.strip().lower()
         if summarized and str(summarized[-1]["normalized_name"]) == normalized_name:
@@ -883,6 +883,53 @@ def display_player_summary(session: ClientSession, target_session: ClientSession
     )
 
 
+def _display_character_name(target_session: ClientSession) -> str:
+    return str(target_session.authenticated_character_name).strip() or "Unknown"
+
+
+def _resolve_entity_engagement_target_name(current_session: ClientSession, entity) -> str | None:
+    entity_id = str(getattr(entity, "entity_id", "")).strip()
+    if not entity_id:
+        return None
+
+    if entity_id in current_session.combat.engaged_entity_ids:
+        return _display_character_name(current_session)
+
+    room_players = list_authenticated_room_players(
+        str(getattr(entity, "room_id", "")).strip(),
+        exclude_client_id=current_session.client_id,
+    )
+    for player_session in room_players:
+        if entity_id in player_session.combat.engaged_entity_ids:
+            return _display_character_name(player_session)
+    return None
+
+
+def _resolve_player_engagement_target_name(target_session: ClientSession) -> str | None:
+    engaged_entity = get_engaged_entity(target_session)
+    if engaged_entity is None:
+        return None
+    if not getattr(engaged_entity, "is_alive", False):
+        return None
+    if str(getattr(engaged_entity, "room_id", "")).strip() != str(target_session.player.current_room_id).strip():
+        return None
+    return str(getattr(engaged_entity, "name", "")).strip() or "Unknown"
+
+
+def _append_room_engagement_parts(parts: list[dict], target_name: str | None, *, is_you: bool = False) -> None:
+    if not target_name:
+        return
+
+    verb_text = "Fighting " if is_you else "fighting "
+    label_text = "YOU!" if is_you else target_name
+    parts.extend([
+        build_part(" (", "bright_white"),
+        build_part(verb_text, "bright_white"),
+        build_part(label_text, "bright_yellow", True),
+        build_part(")", "bright_white"),
+    ])
+
+
 def display_room(session: ClientSession, room: Room) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
 
@@ -906,6 +953,12 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(" - ", "bright_white"),
                 build_part(entity.name, bold=True),
             ])
+            engagement_target = _resolve_entity_engagement_target_name(session, entity)
+            _append_room_engagement_parts(
+                parts,
+                engagement_target,
+                is_you=bool(engagement_target) and engagement_target == _display_character_name(session),
+            )
 
     other_players = list_authenticated_room_players(room.room_id, exclude_client_id=session.client_id)
     if other_players:
@@ -922,6 +975,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(" - ", "bright_white"),
                 build_part(player_name, "bright_cyan", True),
             ])
+            _append_room_engagement_parts(parts, _resolve_player_engagement_target_name(other_player))
 
     corpses = list_room_corpses(session, room.room_id)
     if corpses:

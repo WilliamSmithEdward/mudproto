@@ -14,6 +14,17 @@ def with_article(name: str, *, capitalize: bool = False) -> str:
 
 def to_third_person(verb: str) -> str:
     normalized = verb.strip().lower() or "hit"
+
+    irregulars = {
+        "am": "is",
+        "are": "is",
+        "have": "has",
+        "do": "does",
+        "go": "goes",
+    }
+    if normalized in irregulars:
+        return irregulars[normalized]
+
     if normalized.endswith("y") and len(normalized) > 1 and normalized[-2] not in "aeiou":
         return f"{normalized[:-1]}ies"
     if normalized.endswith(("s", "x", "z", "ch", "sh")):
@@ -51,7 +62,23 @@ def third_personize_text(text: str, actor_name: str) -> str:
     rewritten = text
     rewritten = re.sub(r"\byou are\b", f"{actor_name} is", rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byou were\b", f"{actor_name} was", rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byou have\b", f"{actor_name} has", rewritten, flags=re.IGNORECASE)
+    rewritten = re.sub(r"\byou do\b", f"{actor_name} does", rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byourself\b", "themselves", rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byour\b", possessive, rewritten, flags=re.IGNORECASE)
     rewritten = re.sub(r"\byou\b", actor_name, rewritten, flags=re.IGNORECASE)
+
+    def _rewrite_subject_verb(match: re.Match[str]) -> str:
+        prefix = str(match.group("prefix"))
+        verb = str(match.group("verb"))
+        normalized_verb = verb.strip().lower()
+        if normalized_verb in {"is", "was", "has", "does"}:
+            return f"{prefix}{verb}"
+        return f"{prefix}{to_third_person(verb)}"
+
+    rewritten = re.sub(
+        rf"(?im)^(?P<prefix>{re.escape(actor_name)}(?:\s+barely)?\s+)(?P<verb>[a-z]+)\b",
+        _rewrite_subject_verb,
+        rewritten,
+    )
     return rewritten
