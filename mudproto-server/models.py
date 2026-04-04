@@ -124,6 +124,7 @@ class EntityState:
     spawn_sequence: int = 0
     is_aggro: bool = False
     is_ally: bool = False
+    is_peaceful: bool = False
     is_merchant: bool = False
     merchant_inventory_template_ids: list[str] = field(default_factory=list)
     merchant_buy_markup: float = 1.0

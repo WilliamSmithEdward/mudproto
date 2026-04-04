@@ -415,6 +415,7 @@ def load_npc_templates() -> list[dict]:
             "experience_reward": max(0, int(raw_npc.get("experience_reward", 0))),
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
             "is_ally": bool(raw_npc.get("is_ally", False)),
+            "is_peaceful": bool(raw_npc.get("is_peaceful", False)),
             "is_merchant": is_merchant,
             "merchant_inventory_template_ids": merchant_inventory_template_ids,
             "merchant_buy_markup": merchant_buy_markup,

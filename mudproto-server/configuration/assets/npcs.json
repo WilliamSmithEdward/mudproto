@@ -94,6 +94,7 @@
       "experience_reward": 0,
       "is_aggro": false,
       "is_ally": true,
+      "is_peaceful": true,
       "is_merchant": true,
       "merchant_inventory_template_ids": [
         "item.potion.mending",

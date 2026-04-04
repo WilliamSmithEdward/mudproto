@@ -730,6 +730,8 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
     entity = session.entities.get(entity_id)
     if entity is None or not entity.is_alive:
         return False
+    if bool(getattr(entity, "is_peaceful", False)):
+        return False
     if entity.room_id != session.player.current_room_id:
         return False
 
@@ -738,6 +740,39 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
     if not session.combat.opening_attacker:
         session.combat.opening_attacker = opening_attacker
     return True
+
+
+def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
+    from display import build_part, display_command_result
+
+    return display_command_result(session, [
+        build_part("Relax. ", "bright_yellow", True),
+        build_part(f"{entity.name} is peaceful.", "bright_white"),
+    ])
+
+
+def _find_peaceful_target(
+    session: ClientSession,
+    *,
+    target_name: str | None = None,
+    include_room_scan: bool = False,
+) -> EntityState | None:
+    if target_name:
+        entity, _ = resolve_room_entity_selector(
+            session,
+            session.player.current_room_id,
+            target_name,
+            living_only=True,
+        )
+        if entity is not None and bool(getattr(entity, "is_peaceful", False)):
+            return entity
+
+    if include_room_scan:
+        for entity in list_room_entities(session, session.player.current_room_id):
+            if entity.is_alive and bool(getattr(entity, "is_peaceful", False)):
+                return entity
+
+    return None
 
 
 def _schedule_next_combat_round(session: ClientSession) -> None:
@@ -909,6 +944,15 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     observer_context = str(skill.get("observer_context", "")).strip()
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
     actor_name = session.authenticated_character_name or "Someone"
+
+    if skill_type == "damage":
+        peaceful_target = _find_peaceful_target(
+            session,
+            target_name=target_name if cast_type == "target" else None,
+            include_room_scan=(cast_type == "aoe"),
+        )
+        if peaceful_target is not None:
+            return _display_peaceful_warning(session, peaceful_target), False
 
     if get_engaged_entity(session) is None and not usable_out_of_combat:
         return display_error(f"{skill_name} can only be used while in combat.", session), False
@@ -1457,6 +1501,15 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     if cast_type not in {"self", "target", "aoe"}:
         return display_error(f"Spell '{spell_name}' has unsupported cast_type '{cast_type}'.", session), False
 
+    if spell_type == "damage":
+        peaceful_target = _find_peaceful_target(
+            session,
+            target_name=target_name if cast_type == "target" else None,
+            include_room_scan=(cast_type == "aoe"),
+        )
+        if peaceful_target is not None:
+            return _display_peaceful_warning(session, peaceful_target), False
+
     if spell_type == "support":
         if cast_type != "self":
             return display_error(f"Support spell '{spell_name}' must be cast_type 'self'.", session), False
@@ -1773,6 +1826,7 @@ def initialize_session_entities(session: ClientSession) -> None:
                 entity.spawn_sequence = session.entity_spawn_counter
                 entity.is_aggro = bool(template.get("is_aggro", False))
                 entity.is_ally = bool(template.get("is_ally", False))
+                entity.is_peaceful = bool(template.get("is_peaceful", False))
                 entity.is_merchant = bool(template.get("is_merchant", False))
                 entity.merchant_inventory_template_ids = [
                     str(template_id).strip()
@@ -1869,6 +1923,8 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
 
     if entity is None:
         return display_error(resolve_error or f"No target named '{target_name}' is here.", session)
+    if bool(getattr(entity, "is_peaceful", False)):
+        return _display_peaceful_warning(session, entity)
 
     started = start_combat(session, entity.entity_id, OPENING_ATTACKER_PLAYER)
     if not started:
