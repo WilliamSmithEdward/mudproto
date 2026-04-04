@@ -48,6 +48,20 @@ Type `start` to create a character and choose a class. Good first commands are `
 
 ---
 
+## 🤖 AI Content Generation
+
+MudProto can also take **LLM-generated content bundles**. The workflow is designed so an AI can produce a **downloadable `.json` file** that you drop into `mudproto-server/configuration/assets/llm-payloads/`.
+
+### Quick workflow
+1. Use the project’s schema and generation guidance in `mudproto-llm-interfaces/asset_payload_generation_instructions.json`.
+2. Make sure the model returns a **downloadable `.json` file** — not Markdown-wrapped output.
+3. Save that file into `mudproto-server/configuration/assets/llm-payloads/`.
+4. Restart the server to load the new payload.
+
+For the full process, merge rules, override behavior, and caveats, see [`LLM_CONTENT_GENERATION.md`](LLM_CONTENT_GENERATION.md).
+
+---
+
 ## Overview
 
 MudProto is a modern take on the classic **Multi-User Dungeon**: a shared fantasy world with real-time combat, spells, skills, merchants, and persistent characters. Content and progression are driven by JSON, while the server remains the source of truth for every rule, roll, and result.
