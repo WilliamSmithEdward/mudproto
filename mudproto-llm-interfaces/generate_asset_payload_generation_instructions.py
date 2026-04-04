@@ -23,7 +23,6 @@ BASE_ASSET_FILES = {
 }
 
 SCHEMA_TEMPLATE_FILES = {
-    "payload_bundle": "llm-payload.template.json",
     "gear": "gear.template.json",
     "items": "items.template.json",
     "npcs": "npcs.template.json",
@@ -31,6 +30,27 @@ SCHEMA_TEMPLATE_FILES = {
     "skills": "skills.template.json",
     "spells": "spells.template.json",
     "zones": "zones.template.json",
+}
+
+PAYLOAD_BUNDLE_SCHEMA = {
+    "top_level_type": "object",
+    "required_fields": {
+        "payload_id": {
+            "type": "string",
+            "notes": "Unique bundle identifier. Append a GUID suffix unless intentionally overriding existing content."
+        },
+        "description": {
+            "type": "string",
+            "notes": "Short human-readable summary of what the payload adds."
+        },
+        "gear": {"type": "array[gear]"},
+        "items": {"type": "array[item]"},
+        "spells": {"type": "array[spell]"},
+        "skills": {"type": "array[skill]"},
+        "npcs": {"type": "array[npc]"},
+        "rooms": {"type": "array[room]"},
+        "zones": {"type": "array[zone]"}
+    }
 }
 
 
@@ -164,7 +184,7 @@ def build_instruction_payload() -> dict[str, object]:
             "other_asset_behavior": "For gear, items, spells, skills, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
             "scope": ["gear", "items", "spells", "skills", "npcs", "rooms", "zones"]
         },
-        "top_level_schema": asset_schemas["payload_bundle"],
+        "top_level_schema": PAYLOAD_BUNDLE_SCHEMA,
         "generation_rules": [
             "Keep all IDs unique within their asset type.",
             "Append a GUID suffix to every new asset ID and payload_id unless you are intentionally overriding an existing base-game asset.",
@@ -204,11 +224,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Merchant inventories should be sensible for the NPC role.",
             "Avoid overpowered numbers unless explicitly requested."
         ],
-        "asset_schemas": {
-            key: value
-            for key, value in asset_schemas.items()
-            if key != "payload_bundle"
-        },
+        "asset_schemas": asset_schemas,
         "reference_docs": [
             "ASSET_GENERATION.md",
             "mudproto-server/assets.py",

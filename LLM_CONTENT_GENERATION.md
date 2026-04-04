@@ -19,12 +19,16 @@ These payloads are loaded alongside the base asset files and can:
 
 ## Required workflow
 
-### 1. Start from the LLM instruction file
+### 1. Start from the generator script
 Use:
+
+- `mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py`
+
+That script regenerates:
 
 - `mudproto-llm-interfaces/asset_payload_generation_instructions.json`
 
-That file contains:
+The generated instruction file is what you hand to the AI model. It contains:
 - the response contract
 - discovery questions the LLM should ask before content creation
 - ID / override rules

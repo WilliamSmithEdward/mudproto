@@ -50,15 +50,24 @@ Type `start` to create a character and choose a class. Good first commands are `
 
 ## 🤖 AI Content Generation
 
-MudProto can also take **LLM-generated content bundles**. The workflow is designed so an AI can produce a **downloadable `.json` file** that you drop into `mudproto-server/configuration/assets/llm-payloads/`.
+MudProto can also take **LLM-generated content bundles** through the `llm-payloads` pipeline. The intended workflow starts from the generator script:
+
+- `mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py`
+
+That script regenerates:
+
+- `mudproto-llm-interfaces/asset_payload_generation_instructions.json`
+
+which is the instruction payload you hand to an AI model when asking it to generate new game content.
 
 ### Quick workflow
-1. Use the project’s schema and generation guidance in `mudproto-llm-interfaces/asset_payload_generation_instructions.json`.
-2. Make sure the model returns a **downloadable `.json` file** — not Markdown-wrapped output.
-3. Save that file into `mudproto-server/configuration/assets/llm-payloads/`.
-4. Restart the server to load the new payload.
+1. Run or reference `mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py` to produce the latest instruction JSON.
+2. Give the resulting `asset_payload_generation_instructions.json` to your AI model along with your content brief.
+3. Make sure the model returns a **downloadable `.json` file** — not Markdown-wrapped output.
+4. Save that file into `mudproto-server/configuration/assets/llm-payloads/`.
+5. Restart the server to load the new payload.
 
-For the full process, merge rules, override behavior, and caveats, see [`LLM_CONTENT_GENERATION.md`](LLM_CONTENT_GENERATION.md).
+For the full process, merge rules, override behavior, caveats, and review checklist, see [`LLM_CONTENT_GENERATION.md`](LLM_CONTENT_GENERATION.md).
 
 ---
 

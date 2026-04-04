@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.5",
-  "generated_at_utc": "2026-04-04T17:30:37.486499+00:00",
+  "generated_at_utc": "2026-04-04T17:39:48.959555+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
   "response_contract": {
@@ -71,7 +71,7 @@
     "required_fields": {
       "payload_id": {
         "type": "string",
-        "notes": "Unique bundle identifier. Append a GUID suffix."
+        "notes": "Unique bundle identifier. Append a GUID suffix unless intentionally overriding existing content."
       },
       "description": {
         "type": "string",
