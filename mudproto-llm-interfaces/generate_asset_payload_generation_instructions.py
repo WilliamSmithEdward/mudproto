@@ -310,19 +310,36 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.0",
+        "version": "2.1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
         "response_contract": {
             "format": "Return one raw JSON object only.",
+            "delivery_requirement": "The final result should be provided as a downloadable `.json` file, not just pasted as prose or wrapped in Markdown.",
             "forbidden": [
                 "markdown code fences",
                 "comments",
                 "explanatory prose before or after the JSON",
                 "trailing commas"
             ],
-            "filename_guidance": "Use a short kebab-case filename such as sanctum-library-expansion.json"
+            "filename_guidance": "Use a short kebab-case filename such as sanctum-library-expansion.json",
+            "interactive_behavior": "If the user has not yet provided enough design direction, ask concise clarifying questions first and do not emit the final JSON payload until those answers are known."
+        },
+        "pre_generation_discovery": {
+            "required_before_content_creation": True,
+            "skip_if_already_specified": True,
+            "rule": "Before generating new content, the LLM should ask a short discovery set to anchor the zone into the existing world and confirm scope, tone, and mechanics.",
+            "required_questions": [
+                "Which existing room or area should the new content attach to?",
+                "What should the new zone be about in terms of theme, story, or fantasy concept?",
+                "What kinds of content should it include, such as combat, merchants, lore, puzzles, boss fights, or support NPCs?",
+                "What difficulty band should the zone target?",
+                "Are there any special mechanics, gimmicks, hazards, or signature encounters to include?",
+                "How large should the zone be, approximately how many rooms?",
+                "Should the zone add new gear, items, spells, skills, or merchants?"
+            ],
+            "output_behavior": "If one or more of these details is missing, ask for them before generating the asset payload."
         },
         "id_collision_prevention": {
             "guid_suffix_required": True,
@@ -348,7 +365,9 @@ def build_instruction_payload() -> dict[str, object]:
             "Keep all IDs unique within their asset type.",
             "Append a GUID suffix to every new asset ID and payload_id.",
             "Use lowercase IDs and keywords to match project conventions.",
+            "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
             "Every asset section must be present and must be a JSON array, even when empty.",
+            "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/llm-payloads/`.",
             "Only use fields supported by the schemas below.",
             "Only reference assets that exist in the base game or in this same payload.",
             "Preserve MudProto's existing fantasy tone and naming style.",
