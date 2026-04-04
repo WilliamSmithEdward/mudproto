@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.6",
-  "generated_at_utc": "2026-04-04T19:32:34.701069+00:00",
+  "generated_at_utc": "2026-04-04T22:30:18.232641+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -110,6 +110,7 @@
     "If multiple asset payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
     "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
     "Use lowercase IDs and keywords to match project conventions.",
+    "Use Title Case for all human-facing asset names, including room titles, NPC names, gear names, item names, spell names, skill names, and zone names unless the user explicitly requests a stylistic exception.",
     "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
     "Every asset section must be present and must be a JSON array, even when empty.",
     "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/asset-payloads/`.",
@@ -142,7 +143,7 @@
   ],
   "minimum_quality_bar": [
     "Descriptions should be concise and usable in-game.",
-    "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
+    "Room titles, spell names, skill names, NPC names, gear names, item names, and zone names should be vivid, flavorful, memorable, and written in Title Case while fitting MudProto's tone.",
     "Combat/support context strings should be ready for player-facing text.",
     "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
     "Merchant inventories should be sensible for the NPC role.",
@@ -194,6 +195,18 @@
           "required": false,
           "default": false,
           "notes": "Weapon-only field."
+        },
+        "can_two_hand": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "notes": "Weapon-only field. Allows a main-hand weapon to be used with both hands when needed."
+        },
+        "requires_two_hands": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "notes": "Weapon-only field. When true, the weapon must occupy both hands."
         },
         "weight": {
           "type": "integer",
@@ -1057,6 +1070,7 @@
           ],
           "weapon_type": "sword",
           "can_hold": false,
+          "can_two_hand": true,
           "weight": 6,
           "coin_value": 24,
           "damage_dice_count": 3,
@@ -1118,6 +1132,7 @@
           ],
           "weapon_type": "sword",
           "can_hold": false,
+          "can_two_hand": true,
           "weight": 7,
           "coin_value": 58,
           "damage_dice_count": 4,
@@ -1139,6 +1154,7 @@
           ],
           "weapon_type": "sword",
           "can_hold": false,
+          "requires_two_hands": true,
           "weight": 10,
           "coin_value": 128,
           "damage_dice_count": 6,
@@ -2136,17 +2152,6 @@
                   "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                   "quantity": 1
                 }
-              ],
-              "loot_items": [
-                {
-                  "name": "Blackwatch insignia",
-                  "description": "A soot-dark insignia stamped with a broken chapel seal.",
-                  "keywords": [
-                    "blackwatch",
-                    "insignia",
-                    "seal"
-                  ]
-                }
               ]
             },
             {
@@ -2188,17 +2193,6 @@
                   "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                   "quantity": 1
                 }
-              ],
-              "loot_items": [
-                {
-                  "name": "Ash prayer strip",
-                  "description": "A strip of dark cloth inked with half-burned burial prayers.",
-                  "keywords": [
-                    "ash",
-                    "prayer",
-                    "strip"
-                  ]
-                }
               ]
             },
             {
@@ -2239,17 +2233,6 @@
                 {
                   "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                   "quantity": 1
-                }
-              ],
-              "loot_items": [
-                {
-                  "name": "Crypt key",
-                  "description": "A black iron key worked in the shape of a chapel spire.",
-                  "keywords": [
-                    "crypt",
-                    "key",
-                    "iron"
-                  ]
                 }
               ]
             },
@@ -2297,18 +2280,6 @@
                   "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                   "quantity": 1
                 }
-              ],
-              "loot_items": [
-                {
-                  "name": "Veiled prayer icon",
-                  "description": "A small icon of blackened silver wrapped in mourning thread.",
-                  "keywords": [
-                    "veiled",
-                    "prayer",
-                    "icon",
-                    "silver"
-                  ]
-                }
               ]
             },
             {
@@ -2345,18 +2316,6 @@
                 {
                   "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                   "quantity": 1
-                }
-              ],
-              "loot_items": [
-                {
-                  "name": "Revenant jaw token",
-                  "description": "A grim charm carved from old bone and sealed in pitch.",
-                  "keywords": [
-                    "revenant",
-                    "jaw",
-                    "token",
-                    "bone"
-                  ]
                 }
               ]
             }
