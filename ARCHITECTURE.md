@@ -87,6 +87,41 @@ Responsibilities:
 Every envelope has `type`, `source`, `timestamp`, `payload`. Validation
 lives in `protocol.py`.
 
+### Display Spacing Aesthetics
+
+MudProto intentionally treats blank lines as part of the UI contract, not as
+incidental formatting. Both the terminal and GUI clients should render the
+spacing supplied by the server exactly.
+
+Preferred conventions:
+- **Prompt block first**: the current prompt/status line stands alone.
+- **Combat/action block grouped**: attack lines, death lines, and "turn to"
+  lines stay contiguous with no unnecessary blank lines inserted between them.
+- **Reward block separated**: XP gain and level-up text are shown after a
+  single blank line following the resolved combat/death block.
+- **Level-up sub-block preserved**: if a level is gained, use:
+  - `You gain <n> experience.`
+  - blank line
+  - `You advance to level <n>!`
+  - `Level gains: +HP +V +M`
+- **Next prompt separated**: after the reward block, leave one blank line
+  before the refreshed prompt.
+
+Example preferred layout:
+
+```text
+132H 87V 122M 33C 113X [Tick:39s] [Me:Perfect] [Blackwatch Sentry:Awful] Exits:NES>
+Lucia annihilates a Blackwatch Sentry with her slash.
+A Blackwatch Sentry is dead!
+
+You gain 38 experience.
+
+You advance to level 5!
+Level gains: +10HP +5V +6M
+
+132H 87V 122M 33C 75X [Tick:37s] [Me:Perfect] Exits:NES>
+```
+
 ---
 
 ## 3. Module Map
