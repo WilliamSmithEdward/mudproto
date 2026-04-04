@@ -128,6 +128,7 @@ class EntityState:
     merchant_inventory_template_ids: list[str] = field(default_factory=list)
     merchant_buy_markup: float = 1.0
     merchant_sell_ratio: float = 0.5
+    merchant_resale_items: dict[str, ItemState] = field(default_factory=dict)
     pronoun_possessive: str = "its"
     main_hand_weapon_template_id: str = ""
     off_hand_weapon_template_id: str = ""

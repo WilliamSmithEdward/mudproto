@@ -1118,6 +1118,12 @@ def _get_merchant_sale_offer(merchant, item: ItemState) -> int:
     return max(1, int(math.floor(base_value * sell_ratio)))
 
 
+def _get_merchant_resale_price(merchant, item: ItemState) -> int:
+    base_value = _resolve_item_coin_value(item)
+    markup = max(0.1, float(getattr(merchant, "merchant_buy_markup", 1.0)))
+    return max(1, int(math.ceil(base_value * markup)))
+
+
 def _build_merchant_stock_entries(merchant) -> list[dict[str, object]]:
     entries: list[dict[str, object]] = []
     for template_id in getattr(merchant, "merchant_inventory_template_ids", []):
@@ -1126,12 +1132,28 @@ def _build_merchant_stock_entries(merchant) -> list[dict[str, object]]:
             continue
 
         entries.append({
+            "source": "template",
             "template_id": str(template.get("template_id", template_id)).strip(),
             "template": template,
             "template_kind": template_kind,
             "name": str(template.get("name", "Item")).strip() or "Item",
             "keywords": [str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
             "price": _get_merchant_buy_price(merchant, template, template_kind=template_kind),
+        })
+
+    resale_items = getattr(merchant, "merchant_resale_items", {}) or {}
+    for resale_item in resale_items.values():
+        template_kind = "Gear" if is_item_equippable(resale_item) else "Item"
+        entries.append({
+            "source": "resale",
+            "item_id": resale_item.item_id,
+            "item": resale_item,
+            "template_id": str(getattr(resale_item, "template_id", "")).strip(),
+            "template": None,
+            "template_kind": template_kind,
+            "name": str(resale_item.name).strip() or "Item",
+            "keywords": [str(keyword).strip().lower() for keyword in resale_item.keywords if str(keyword).strip()],
+            "price": _get_merchant_resale_price(merchant, resale_item),
         })
 
     return entries
@@ -1179,11 +1201,7 @@ def _resolve_owned_trade_item(session: ClientSession, selector: str):
     if inventory_item is not None:
         return inventory_item, None
 
-    equipped_item, equipped_error = resolve_equipped_selector(session, selector)
-    if equipped_item is not None:
-        return equipped_item, None
-
-    return None, inventory_error or equipped_error or f"{selector} doesn't exist in your inventory."
+    return None, inventory_error or f"{selector} doesn't exist in your inventory."
 
 
 def _remove_owned_trade_item(session: ClientSession, item: ItemState) -> None:
@@ -1197,13 +1215,22 @@ def _remove_owned_trade_item(session: ClientSession, item: ItemState) -> None:
 
 
 def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage:
+    stock_entries = _build_merchant_stock_entries(merchant)
     rows = [
         [
             str(entry["name"]),
             str(entry["template_kind"]),
             f"{int(entry['price'])} coins",
         ]
-        for entry in _build_merchant_stock_entries(merchant)
+        for entry in stock_entries
+    ]
+    row_cell_colors = [
+        [
+            "bright_magenta" if str(entry.get("template_kind", "")).strip().lower() == "gear" else "bright_yellow",
+            "bright_cyan",
+            "bright_yellow",
+        ]
+        for entry in stock_entries
     ]
     title = f"{merchant.name}'s Wares"
     parts = build_menu_table_parts(
@@ -1211,6 +1238,7 @@ def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage
         ["Item", "Type", "Price"],
         rows,
         column_colors=["bright_magenta", "bright_cyan", "bright_yellow"],
+        row_cell_colors=row_cell_colors,
         column_alignments=["left", "left", "right"],
         empty_message="Nothing is for sale right now.",
     )
@@ -1725,7 +1753,15 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if session.status.coins < price:
             return display_error(f"You need {price} coins to buy {item_name}.", session)
 
-        purchased_item = _build_inventory_item_from_template(stock_entry["template"])
+        if str(stock_entry.get("source", "template")).strip().lower() == "resale":
+            resale_items = getattr(merchant, "merchant_resale_items", {}) or {}
+            resale_item_id = str(stock_entry.get("item_id", "")).strip()
+            purchased_item = resale_items.pop(resale_item_id, None)
+            if purchased_item is None:
+                return display_error(f"{item_name} is no longer available.", session)
+        else:
+            purchased_item = _build_inventory_item_from_template(stock_entry["template"])
+
         session.status.coins -= price
         session.inventory_items[purchased_item.item_id] = purchased_item
 
@@ -1752,6 +1788,11 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         offer = _get_merchant_sale_offer(merchant, owned_item)
         _remove_owned_trade_item(session, owned_item)
+        merchant_resale_items = getattr(merchant, "merchant_resale_items", None)
+        if not isinstance(merchant_resale_items, dict):
+            merchant_resale_items = {}
+            merchant.merchant_resale_items = merchant_resale_items
+        merchant_resale_items[owned_item.item_id] = owned_item
         session.status.coins += offer
 
         return display_command_result(session, [
