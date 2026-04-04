@@ -15,6 +15,8 @@
 
 ![MudProto gameplay screenshot](/images/mudproto_01.png)
 
+> 🤖 **Development note:** MudProto actively uses **agentic AI workflows** for content generation, documentation, schema-guided authoring, and iteration alongside normal hand-written development.
+
 ---
 
 ## Quick Start
