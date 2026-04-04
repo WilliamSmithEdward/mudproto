@@ -24,5 +24,18 @@
     "use_lag_seconds": 0,
     "observer_action": "[actor_name] drinks a potion of mending.",
     "observer_context": "Fresh color returns to [actor_object]."
+  },
+  {
+    "template_id": "item.potion.vigor",
+    "name": "Potion of Vigor",
+    "description": "A lively golden tonic that steadies the breath and restores battle stamina.",
+    "keywords": ["potion", "vigor", "stamina"],
+    "effect_type": "restore",
+    "effect_target": "vigor",
+    "effect_amount": 40,
+    "coin_value": 15,
+    "use_lag_seconds": 0,
+    "observer_action": "[actor_name] drinks a potion of vigor.",
+    "observer_context": "Renewed energy surges through [actor_object]."
   }
 ]

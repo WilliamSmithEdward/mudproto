@@ -148,6 +148,11 @@
           "infinite": false
         },
         {
+          "template_id": "item.potion.vigor",
+          "quantity": 3,
+          "infinite": false
+        },
+        {
           "template_id": "weapon.training-sword",
           "infinite": true
         },
