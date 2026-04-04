@@ -1,6 +1,5 @@
 {
   "schema_name": "skills",
-  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
   "description": "Generated schema template for skills.",
   "schema": {
     "file": "skills.json",

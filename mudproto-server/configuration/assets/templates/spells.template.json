@@ -1,6 +1,5 @@
 {
   "schema_name": "spells",
-  "generated_from": "mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py",
   "description": "Generated schema template for spells.",
   "schema": {
     "file": "spells.json",
