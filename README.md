@@ -21,7 +21,7 @@
 
 MudProto is a modern take on the classic **Multi-User Dungeon**: a shared fantasy world with real-time combat, spells, skills, merchants, and persistent characters. Content and progression are driven by JSON, while the server remains the source of truth for every rule, roll, and result.
 
-Designed as both a playable game and a clean systems project, MudProto emphasizes readable architecture, server-authoritative gameplay, and an extensible content pipeline suited to ongoing iteration.
+Built as both a playable game and a systems-focused codebase, MudProto emphasizes readable architecture, server-authoritative gameplay, and an extensible content pipeline that is easy to iterate on.
 
 ---
 
@@ -30,21 +30,21 @@ Designed as both a playable game and a clean systems project, MudProto emphasize
 ### 🗡️ Combat Engine
 - **Multi-NPC engagement** — fight several enemies at once, each retaliating independently.
 - **Room-round consolidation** — all players in a room see a unified, chronological combat log each round.
-- **Opening-round mechanics** — first-strike advantage with half-strength opener and full retaliation.
-- **Damage severity tiers** — *barely grazes* through *obliterates*, scaled to target max HP.
+- **Opening-round initiative** — the opener acts before the first full exchange, with off-hand attacks held back during that opening moment.
+- **Configurable damage severity messaging** — attack text uses threshold-based tiers from `miss` and `barely` up through `massacre`, `annihilate`, and `obliterate`.
 - **Flee with uncertainty** — escaping is possible, but never guaranteed.
 
 ### 🧙 Spells & Skills
 - **Mana-based spells** — targeted damage, AoE, self-heal, vigor restore, mana restore.
 - **Vigor-based skills** — attribute-scaled damage and support, with per-skill cooldowns.
 - **Support effects** — instant, timed (game hours), or combat-round durations.
-- **NPC AI** — enemies use skills probabilistically with independent cooldown tracking.
+- **NPC AI** — enemies can use both skills and spells with independent cooldown tracking.
 
 ### 🎒 Unified Item System
 - **Single `ItemState` model** — no split between "inventory items" and "equipment items." Every item carries an intrinsic `equippable` flag hydrated from gear templates.
 - **Flexible wear slots** — armor can be worn in primary or alternate slots (e.g., rings → left or right hand).
 - **Hand weight limits** — weapon wielding / holding gated by STR via configurable thresholds.
-- **Color-coded display** — equippable items in **magenta**, consumables in **cyan**, consistent everywhere.
+- **Color-coded display** — equippable items appear in **magenta** and consumables in **yellow**, consistently across the UI.
 
 ### 🌍 Persistent World
 - **Data-driven rooms** — exits, NPC spawns, and descriptions all defined in JSON.
@@ -80,7 +80,7 @@ Designed as both a playable game and a clean systems project, MudProto emphasize
                                                     └─────────────────────────┘
 ```
 
-The **client sends raw text**; the **server sends structured display instructions**. All game meaning lives server-side. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full technical deep-dive.
+The **clients send raw text**; the **server sends structured display instructions**. All game meaning lives server-side. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full technical deep-dive.
 
 ---
 
@@ -92,11 +92,11 @@ The **client sends raw text**; the **server sends structured display instruction
 | Networking | `websockets` (async server + client) |
 | Persistence | SQLite 3 via `sqlite3` stdlib |
 | Configuration | JSON asset files with eager validation |
-| Client rendering | ANSI escape codes (no curses dependency) |
+| Client rendering | ANSI terminal output + Tkinter GUI |
 
 **Minimal dependencies** beyond `websockets`. No framework, no ORM — just the standard library and straightforward async Python.
 
-This makes the project easy to inspect, run locally, and adapt for experiments in multiplayer game architecture.
+This keeps the project easy to inspect, run locally, and adapt for experiments in multiplayer game architecture.
 
 ---
 
@@ -113,32 +113,35 @@ mudproto/
 ├── mudproto-server/
 │   ├── server.py                    # Entry point, tick loops, room broadcasts
 │   ├── protocol.py                  # Envelope construction & validation
-│   ├── models.py                    # Core dataclasses (19 models)
+│   ├── models.py                    # Core session, combat, item, and NPC dataclasses
 │   ├── settings.py                  # Typed config from settings.json
 │   ├── sessions.py                  # Session lifecycle & registry
 │   ├── commands.py                  # All player commands & auth flow
-│   ├── combat.py                    # Combat resolution & entity management
-│   ├── combat_text.py               # Damage severity message templates
+│   ├── combat.py                    # Combat resolution, AI, and spawning
+│   ├── combat_text.py               # Damage severity and attack text
 │   ├── damage.py                    # Hit chance & damage math
-│   ├── equipment.py                 # Equip / wear / unequip mechanics
-│   ├── inventory.py                 # Item selectors & template hydration
+│   ├── death.py                     # Death and respawn handling
 │   ├── display.py                   # Display builders (room, prompt, etc.)
+│   ├── equipment.py                 # Equip / wear / unequip mechanics
+│   ├── experience.py                # XP awards and level progression
 │   ├── grammar.py                   # NLP transforms (articles, 3rd person)
+│   ├── inventory.py                 # Item selectors & template hydration
+│   ├── player_resources.py          # HP, mana, vigor, and cap helpers
 │   ├── attribute_config.py          # Attribute & rules config loaders
 │   ├── assets.py                    # Content asset loaders with cross-ref validation
 │   ├── player_state_db.py           # SQLite persistence layer
-│   ├── world.py                     # Room model
+│   ├── world.py                     # Room and zone models
 │   ├── battle_round_ticks.py        # Per-round support effect processing
 │   ├── game_hour_ticks.py           # Regen & timed support processing
 │   └── configuration/
 │       ├── server/settings.json     # Network, timing, combat, gameplay
-│       ├── assets/                  # gear, items, npcs, rooms, spells, skills
-│       └── attributes/              # classes, character attrs, wear slots, regen
+│       ├── assets/                  # gear, items, npcs, rooms, zones, spells, skills
+│       └── attributes/              # classes, attributes, regen, scaling, experience
 │
 └── README.md                        # You are here
 ```
 
-**18 server modules · ~7,600 lines of Python · 12 JSON config files**
+**Modular Python server · terminal + GUI clients · JSON-driven game data**
 
 ---
 
@@ -169,7 +172,7 @@ cd ..\mudproto-client-gui
 python client_gui.py
 ```
 
-Type `start` to create a character and choose a class. From there, try `look`, `north`, `attack scout`, `jab scout`, `inventory`, `buy potion`, and `flee`.
+Type `start` to create a character and choose a class. Good first commands are `look` and `inventory`. In the south market you can `buy potion`; in the northern hall you can `attack scout`, `jab scout`, and `flee`.
 
 ---
 
@@ -183,7 +186,7 @@ Type `start` to create a character and choose a class. From there, try `look`, `
 
 ---
 
-MudProto aims to keep the spirit of classic tabletop-inspired fantasy while staying practical to run, read, and extend.
+MudProto aims to preserve the spirit of classic tabletop-inspired fantasy while remaining practical to run, read, and extend.
 
 <div align="center">
 
