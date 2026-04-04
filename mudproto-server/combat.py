@@ -899,12 +899,18 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
 
 
 def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
-    from display import build_part, display_command_result
+    from display import build_display, build_part, resolve_prompt
 
-    return display_command_result(session, [
-        build_part("Relax. ", "bright_yellow", True),
-        build_part(f"{entity.name} is peaceful.", "bright_white"),
-    ])
+    prompt_after, prompt_parts = resolve_prompt(session, True)
+    return build_display(
+        [
+            build_part("Relax. ", "bright_yellow", True),
+            build_part(f"{entity.name} is peaceful.", "bright_white"),
+        ],
+        prompt_after=prompt_after,
+        prompt_parts=prompt_parts,
+        is_error=True,
+    )
 
 
 def _find_peaceful_target(
