@@ -16,6 +16,7 @@ from combat import (
     resolve_corpse_item_selector,
     resolve_combat_round,
     resolve_room_corpse_selector,
+    resolve_room_entity_selector,
     spawn_dummy,
     use_skill,
 )
@@ -25,11 +26,13 @@ from display import (
     build_part,
     parts_to_lines,
     display_command_result,
+    display_entity_summary,
     display_equipment,
     display_error,
     display_exits,
     display_force_prompt,
     display_inventory,
+    display_player_summary,
     display_prompt,
     display_room,
 )
@@ -52,7 +55,7 @@ from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
     FLEE_SUCCESS_CHANCE,
 )
-from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged
+from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged, list_authenticated_room_players
 from sessions import (
     get_active_character_session,
     hydrate_session_from_active_character,
@@ -716,6 +719,69 @@ def _parse_skill_use(
 
 def _build_corpse_label(source_name: str) -> str:
     return f"{source_name} corpse"
+
+
+def _resolve_room_player_selector(session: ClientSession, selector_text: str) -> tuple[ClientSession | None, str | None]:
+    normalized = selector_text.strip().lower()
+    if not normalized:
+        return None, "Provide a target selector."
+
+    if normalized in {"me", "self", "myself"}:
+        return session, None
+
+    room_players = list_authenticated_room_players(session.player.current_room_id)
+    if not room_players:
+        return None, f"No player named '{selector_text}' is here."
+
+    if "." not in normalized:
+        exact_match: ClientSession | None = None
+        partial_match: ClientSession | None = None
+        for player_session in room_players:
+            player_name = (player_session.authenticated_character_name or "").strip().lower()
+            if not player_name:
+                continue
+            if player_name == normalized:
+                exact_match = player_session
+                break
+            if normalized in player_name and partial_match is None:
+                partial_match = player_session
+
+        if exact_match is not None:
+            return exact_match, None
+        if partial_match is not None:
+            return partial_match, None
+        return None, f"No player named '{selector_text}' is here."
+
+    parts = [part for part in normalized.split(".") if part]
+    if not parts:
+        return None, "Provide a target selector."
+
+    requested_index: int | None = None
+    if parts[0].isdigit():
+        requested_index = int(parts[0])
+        parts = parts[1:]
+        if requested_index <= 0:
+            return None, "Selector index must be 1 or greater."
+
+    if not parts:
+        return None, "Provide at least one selector keyword after the index."
+
+    matches: list[ClientSession] = []
+    for player_session in room_players:
+        player_name = (player_session.authenticated_character_name or "").strip().lower()
+        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", player_name) if token}
+        if all(keyword in keywords for keyword in parts):
+            matches.append(player_session)
+
+    if not matches:
+        return None, f"No player named '{selector_text}' is here."
+
+    if requested_index is not None:
+        if requested_index > len(matches):
+            return None, f"Only {len(matches)} player match(es) found for '{selector_text}'."
+        return matches[requested_index - 1], None
+
+    return matches[0], None
 
 
 def _resolve_inventory_selector(session: ClientSession, selector: str):
@@ -1611,6 +1677,23 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         room = get_room(session.player.current_room_id)
         if room is None:
             return display_error(f"Current room not found: {session.player.current_room_id}", session)
+
+        if args:
+            target_text = " ".join(args).strip()
+            player_target, _ = _resolve_room_player_selector(session, target_text)
+            if player_target is not None:
+                return display_player_summary(session, player_target)
+
+            entity_target, entity_error = resolve_room_entity_selector(
+                session,
+                session.player.current_room_id,
+                target_text,
+                living_only=False,
+            )
+            if entity_target is not None:
+                return display_entity_summary(session, entity_target)
+
+            return display_error(entity_error or f"No target named '{target_text}' is here.", session)
 
         return display_room(session, room)
 

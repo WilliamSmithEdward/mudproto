@@ -1,5 +1,6 @@
 import asyncio
 
+from assets import get_gear_template_by_id
 from equipment import list_worn_items
 from inventory import is_item_equippable
 from grammar import capitalize_after_newlines
@@ -725,23 +726,14 @@ def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: s
 
     summarized: list[dict[str, object]] = []
     for entity in entities:
-        condition_text, condition_color = get_entity_condition(entity)
         normalized_name = entity.name.strip().lower()
-        if summarized:
-            previous = summarized[-1]
-            if (
-                str(previous["normalized_name"]) == normalized_name
-                and str(previous["condition_text"]) == condition_text
-                and str(previous["condition_color"]) == condition_color
-            ):
-                previous["count"] = int(previous["count"]) + 1
-                continue
+        if summarized and str(summarized[-1]["normalized_name"]) == normalized_name:
+            summarized[-1]["count"] = int(summarized[-1]["count"]) + 1
+            continue
 
         summarized.append({
             "normalized_name": normalized_name,
             "name": entity.name,
-            "condition_text": condition_text,
-            "condition_color": condition_color,
             "count": 1,
         })
 
@@ -756,9 +748,6 @@ def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: s
         count = int(entry["count"])
         if count > 1:
             parts.append(build_part(f" x{count}", "bright_cyan", True))
-        parts.append(build_part(" [", "bright_white"))
-        parts.append(build_part(str(entry["condition_text"]).title(), str(entry["condition_color"]), True))
-        parts.append(build_part("]", "bright_white"))
 
     return True
 
@@ -809,6 +798,91 @@ def display_exits(session: ClientSession, room: Room) -> dict:
     return build_display(parts, blank_lines_before=0, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
+def _summarize_entity_gear(entity) -> list[str]:
+    visible_items: list[str] = []
+
+    main_template_id = str(getattr(entity, "main_hand_weapon_template_id", "")).strip()
+    if main_template_id:
+        template = get_gear_template_by_id(main_template_id)
+        item_name = str(template.get("name", "Weapon")).strip() if template else main_template_id
+        visible_items.append(f"Main Hand: {item_name}")
+
+    off_template_id = str(getattr(entity, "off_hand_weapon_template_id", "")).strip()
+    if off_template_id:
+        template = get_gear_template_by_id(off_template_id)
+        item_name = str(template.get("name", "Off-hand")).strip() if template else off_template_id
+        visible_items.append(f"Off Hand: {item_name}")
+
+    return visible_items
+
+
+def _summarize_player_gear(target_session: ClientSession) -> list[str]:
+    return [f"{slot.title()}: {item.name}" for slot, item in list_worn_items(target_session)]
+
+
+def _display_look_summary(
+    session: ClientSession,
+    *,
+    title: str,
+    title_color: str,
+    condition_text: str,
+    condition_color: str,
+    gear_summary: list[str],
+) -> dict:
+    prompt_after, prompt_parts = resolve_prompt(session, True)
+    parts = [
+        build_part(_panel_title_line(title), title_color, True),
+        build_part("\n"),
+        build_part(_panel_divider(), "bright_black"),
+        build_part("\n"),
+        build_part("Condition: ", "bright_white", True),
+        build_part(condition_text.title(), condition_color, True),
+        build_part("\n"),
+        build_part("Gear:", "bright_white", True),
+    ]
+
+    if gear_summary:
+        for gear_line in gear_summary:
+            parts.extend([
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(gear_line, "bright_magenta", True),
+            ])
+    else:
+        parts.extend([
+            build_part("\n"),
+            build_part("No obvious gear.", "bright_white"),
+        ])
+
+    return build_display(parts, blank_lines_before=1, prompt_after=prompt_after, prompt_parts=prompt_parts)
+
+
+def display_entity_summary(session: ClientSession, entity) -> dict:
+    condition_text, condition_color = get_entity_condition(entity)
+    return _display_look_summary(
+        session,
+        title=entity.name,
+        title_color="bright_green",
+        condition_text=condition_text,
+        condition_color=condition_color,
+        gear_summary=_summarize_entity_gear(entity),
+    )
+
+
+def display_player_summary(session: ClientSession, target_session: ClientSession) -> dict:
+    caps = get_player_resource_caps(target_session)
+    condition_text, condition_color = get_health_condition(target_session.status.hit_points, caps["hit_points"])
+    target_name = target_session.authenticated_character_name.strip() or "Player"
+    return _display_look_summary(
+        session,
+        title=target_name,
+        title_color="bright_cyan",
+        condition_text=condition_text,
+        condition_color=condition_color,
+        gear_summary=_summarize_player_gear(target_session),
+    )
+
+
 def display_room(session: ClientSession, room: Room) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
 
@@ -827,14 +901,10 @@ def display_room(session: ClientSession, room: Room) -> dict:
         ])
 
         for entity in entities:
-            condition_text, condition_color = get_entity_condition(entity)
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
                 build_part(entity.name, bold=True),
-                build_part(" (", "bright_white"),
-                build_part(condition_text, condition_color, True),
-                build_part(" condition)", "bright_white"),
             ])
 
     other_players = list_authenticated_room_players(room.room_id, exclude_client_id=session.client_id)
