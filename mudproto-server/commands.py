@@ -1573,7 +1573,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
     if verb == "flee":
         return flee(session)
 
-    if verb == "look":
+    if verb in {"look", "lo", "loo"}:
         room = get_room(session.player.current_room_id)
         if room is None:
             return display_error(f"Current room not found: {session.player.current_room_id}", session)
@@ -2117,7 +2117,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             build_part(" in your off hand.", "bright_white"),
         ])
 
-    if verb in {"wear", "wea", "we", "puton"}:
+    if verb in {"wear", "wea", "puton"}:
         if not args:
             return display_error("Usage: wear <selector> [location]", session)
 
