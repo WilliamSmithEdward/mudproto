@@ -233,13 +233,8 @@
       "is_ally": false,
       "is_peaceful": false,
       "respawn": true,
-      "is_merchant": false,
-      "merchant_inventory": [],
-      "merchant_buy_markup": 1.0,
-      "merchant_sell_ratio": 0.5,
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "off_hand_weapon_template_id": "",
       "vigor": 56,
       "max_vigor": 56,
       "mana": 0,
@@ -250,6 +245,16 @@
       ],
       "spell_use_chance": 0.0,
       "spell_ids": [],
+      "inventory_items": [
+        {
+          "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        },
+        {
+          "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        }
+      ],
       "loot_items": [
         {
           "name": "Blackwatch insignia",
@@ -279,13 +284,8 @@
       "is_ally": false,
       "is_peaceful": false,
       "respawn": true,
-      "is_merchant": false,
-      "merchant_inventory": [],
-      "merchant_buy_markup": 1.0,
-      "merchant_sell_ratio": 0.5,
       "pronoun_possessive": "her",
       "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "off_hand_weapon_template_id": "",
       "vigor": 24,
       "max_vigor": 24,
       "mana": 95,
@@ -296,6 +296,16 @@
       "spell_ids": [
         "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
         "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        },
+        {
+          "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        }
       ],
       "loot_items": [
         {
@@ -326,13 +336,8 @@
       "is_ally": false,
       "is_peaceful": false,
       "respawn": true,
-      "is_merchant": false,
-      "merchant_inventory": [],
-      "merchant_buy_markup": 1.0,
-      "merchant_sell_ratio": 0.5,
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "off_hand_weapon_template_id": "",
       "vigor": 64,
       "max_vigor": 64,
       "mana": 0,
@@ -344,6 +349,16 @@
       ],
       "spell_use_chance": 0.0,
       "spell_ids": [],
+      "inventory_items": [
+        {
+          "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        },
+        {
+          "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        }
+      ],
       "loot_items": [
         {
           "name": "Crypt key",
@@ -373,13 +388,8 @@
       "is_ally": false,
       "is_peaceful": false,
       "respawn": true,
-      "is_merchant": false,
-      "merchant_inventory": [],
-      "merchant_buy_markup": 1.0,
-      "merchant_sell_ratio": 0.5,
       "pronoun_possessive": "her",
       "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "off_hand_weapon_template_id": "",
       "vigor": 30,
       "max_vigor": 30,
       "mana": 145,
@@ -391,6 +401,20 @@
         "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
         "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
         "spell.night-veil-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        },
+        {
+          "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        },
+        {
+          "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        }
       ],
       "loot_items": [
         {
@@ -422,13 +446,8 @@
       "is_ally": false,
       "is_peaceful": false,
       "respawn": true,
-      "is_merchant": false,
-      "merchant_inventory": [],
-      "merchant_buy_markup": 1.0,
-      "merchant_sell_ratio": 0.5,
       "pronoun_possessive": "its",
       "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "off_hand_weapon_template_id": "",
       "vigor": 78,
       "max_vigor": 78,
       "mana": 0,
@@ -440,6 +459,12 @@
       ],
       "spell_use_chance": 0.0,
       "spell_ids": [],
+      "inventory_items": [
+        {
+          "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1
+        }
+      ],
       "loot_items": [
         {
           "name": "Revenant jaw token",

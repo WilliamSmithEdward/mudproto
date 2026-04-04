@@ -201,7 +201,9 @@ def build_instruction_payload() -> dict[str, object]:
             "Conform every asset and the top-level payload exactly to the provided schemas with no deviation.",
             "Only use fields supported by the schemas below.",
             "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
+            "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
             "Only reference assets that exist in the base game or in this same payload.",
+            "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
             "Preserve MudProto's existing fantasy tone and naming style.",
             "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
             "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition."
@@ -211,7 +213,7 @@ def build_instruction_payload() -> dict[str, object]:
             "rooms[].npcs[].npc_id must match an NPC in the base assets or this payload.",
             "rooms[].exits[direction] must point to a valid room_id.",
             "npcs[].main_hand_weapon_template_id and off_hand_weapon_template_id must match gear template_id values.",
-            "npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
+            "npcs[].inventory_items[].template_id and npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
             "npcs[].spell_ids[] must match spell_id values.",
             "npcs[].skill_ids[] must match skill_id values.",
             "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis."

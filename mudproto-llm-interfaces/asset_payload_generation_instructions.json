@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.6",
-  "generated_at_utc": "2026-04-04T19:26:01.487206+00:00",
+  "generated_at_utc": "2026-04-04T19:32:34.701069+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -116,7 +116,9 @@
     "Conform every asset and the top-level payload exactly to the provided schemas with no deviation.",
     "Only use fields supported by the schemas below.",
     "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
+    "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
     "Only reference assets that exist in the base game or in this same payload.",
+    "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
     "Preserve MudProto's existing fantasy tone and naming style.",
     "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
     "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition."
@@ -126,7 +128,7 @@
     "rooms[].npcs[].npc_id must match an NPC in the base assets or this payload.",
     "rooms[].exits[direction] must point to a valid room_id.",
     "npcs[].main_hand_weapon_template_id and off_hand_weapon_template_id must match gear template_id values.",
-    "npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
+    "npcs[].inventory_items[].template_id and npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
     "npcs[].spell_ids[] must match spell_id values.",
     "npcs[].skill_ids[] must match skill_id values.",
     "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis."
@@ -2113,13 +2115,8 @@
               "is_ally": false,
               "is_peaceful": false,
               "respawn": true,
-              "is_merchant": false,
-              "merchant_inventory": [],
-              "merchant_buy_markup": 1.0,
-              "merchant_sell_ratio": 0.5,
               "pronoun_possessive": "his",
               "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "off_hand_weapon_template_id": "",
               "vigor": 56,
               "max_vigor": 56,
               "mana": 0,
@@ -2130,6 +2127,16 @@
               ],
               "spell_use_chance": 0.0,
               "spell_ids": [],
+              "inventory_items": [
+                {
+                  "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                },
+                {
+                  "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                }
+              ],
               "loot_items": [
                 {
                   "name": "Blackwatch insignia",
@@ -2159,13 +2166,8 @@
               "is_ally": false,
               "is_peaceful": false,
               "respawn": true,
-              "is_merchant": false,
-              "merchant_inventory": [],
-              "merchant_buy_markup": 1.0,
-              "merchant_sell_ratio": 0.5,
               "pronoun_possessive": "her",
               "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "off_hand_weapon_template_id": "",
               "vigor": 24,
               "max_vigor": 24,
               "mana": 95,
@@ -2176,6 +2178,16 @@
               "spell_ids": [
                 "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                 "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                },
+                {
+                  "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                }
               ],
               "loot_items": [
                 {
@@ -2206,13 +2218,8 @@
               "is_ally": false,
               "is_peaceful": false,
               "respawn": true,
-              "is_merchant": false,
-              "merchant_inventory": [],
-              "merchant_buy_markup": 1.0,
-              "merchant_sell_ratio": 0.5,
               "pronoun_possessive": "his",
               "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "off_hand_weapon_template_id": "",
               "vigor": 64,
               "max_vigor": 64,
               "mana": 0,
@@ -2224,6 +2231,16 @@
               ],
               "spell_use_chance": 0.0,
               "spell_ids": [],
+              "inventory_items": [
+                {
+                  "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                },
+                {
+                  "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                }
+              ],
               "loot_items": [
                 {
                   "name": "Crypt key",
@@ -2253,13 +2270,8 @@
               "is_ally": false,
               "is_peaceful": false,
               "respawn": true,
-              "is_merchant": false,
-              "merchant_inventory": [],
-              "merchant_buy_markup": 1.0,
-              "merchant_sell_ratio": 0.5,
               "pronoun_possessive": "her",
               "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "off_hand_weapon_template_id": "",
               "vigor": 30,
               "max_vigor": 30,
               "mana": 145,
@@ -2271,6 +2283,20 @@
                 "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                 "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
                 "spell.night-veil-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                },
+                {
+                  "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                },
+                {
+                  "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                }
               ],
               "loot_items": [
                 {
@@ -2302,13 +2328,8 @@
               "is_ally": false,
               "is_peaceful": false,
               "respawn": true,
-              "is_merchant": false,
-              "merchant_inventory": [],
-              "merchant_buy_markup": 1.0,
-              "merchant_sell_ratio": 0.5,
               "pronoun_possessive": "its",
               "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "off_hand_weapon_template_id": "",
               "vigor": 78,
               "max_vigor": 78,
               "mana": 0,
@@ -2320,6 +2341,12 @@
               ],
               "spell_use_chance": 0.0,
               "spell_ids": [],
+              "inventory_items": [
+                {
+                  "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                  "quantity": 1
+                }
+              ],
               "loot_items": [
                 {
                   "name": "Revenant jaw token",
