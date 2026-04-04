@@ -304,25 +304,61 @@ def load_npc_templates() -> list[dict]:
             })
 
         is_merchant = bool(raw_npc.get("is_merchant", False))
-        raw_merchant_inventory_template_ids = raw_npc.get("merchant_inventory_template_ids", [])
-        if raw_merchant_inventory_template_ids is None:
-            raw_merchant_inventory_template_ids = []
-        if not isinstance(raw_merchant_inventory_template_ids, list):
-            raise ValueError(f"NPC '{npc_id}' merchant_inventory_template_ids must be a list.")
+        raw_merchant_inventory = raw_npc.get("merchant_inventory")
+        if raw_merchant_inventory is None:
+            raw_merchant_inventory_template_ids = raw_npc.get("merchant_inventory_template_ids", [])
+            if raw_merchant_inventory_template_ids is None:
+                raw_merchant_inventory_template_ids = []
+            if not isinstance(raw_merchant_inventory_template_ids, list):
+                raise ValueError(f"NPC '{npc_id}' merchant_inventory_template_ids must be a list.")
+            raw_merchant_inventory = [
+                {
+                    "template_id": str(raw_template_id).strip(),
+                    "infinite": True,
+                    "quantity": 1,
+                }
+                for raw_template_id in raw_merchant_inventory_template_ids
+                if str(raw_template_id).strip()
+            ]
 
+        if not isinstance(raw_merchant_inventory, list):
+            raise ValueError(f"NPC '{npc_id}' merchant_inventory must be a list.")
+
+        merchant_inventory: list[dict] = []
         merchant_inventory_template_ids: list[str] = []
         seen_merchant_template_ids: set[str] = set()
-        for raw_template_id in raw_merchant_inventory_template_ids:
-            template_id = str(raw_template_id).strip()
+        for raw_stock_entry in raw_merchant_inventory:
+            if isinstance(raw_stock_entry, str):
+                raw_stock_entry = {
+                    "template_id": str(raw_stock_entry).strip(),
+                    "infinite": True,
+                    "quantity": 1,
+                }
+            if not isinstance(raw_stock_entry, dict):
+                raise ValueError(f"NPC '{npc_id}' merchant inventory entries must be objects.")
+
+            template_id = str(raw_stock_entry.get("template_id", "")).strip()
             if not template_id:
-                continue
+                raise ValueError(f"NPC '{npc_id}' merchant inventory entries must include template_id.")
+
             normalized_template_id = template_id.lower()
             if normalized_template_id in seen_merchant_template_ids:
-                continue
+                raise ValueError(f"NPC '{npc_id}' has duplicate merchant stock entry: {template_id}")
             if get_gear_template_by_id(template_id) is None and get_item_template_by_id(template_id) is None:
                 raise ValueError(f"NPC '{npc_id}' references unknown merchant stock item: {template_id}")
+
+            infinite = bool(raw_stock_entry.get("infinite", False))
+            quantity = max(0, int(raw_stock_entry.get("quantity", 1)))
+            if not infinite and quantity <= 0:
+                raise ValueError(f"NPC '{npc_id}' limited merchant stock '{template_id}' must have quantity >= 1.")
+
             seen_merchant_template_ids.add(normalized_template_id)
             merchant_inventory_template_ids.append(template_id)
+            merchant_inventory.append({
+                "template_id": template_id,
+                "infinite": infinite,
+                "quantity": quantity,
+            })
 
         merchant_buy_markup = float(raw_npc.get("merchant_buy_markup", 1.0))
         if merchant_buy_markup <= 0.0:
@@ -332,8 +368,8 @@ def load_npc_templates() -> list[dict]:
         if merchant_sell_ratio < 0.0 or merchant_sell_ratio > 1.0:
             raise ValueError(f"NPC '{npc_id}' merchant_sell_ratio must be between 0.0 and 1.0.")
 
-        if is_merchant and not merchant_inventory_template_ids:
-            raise ValueError(f"Merchant NPC '{npc_id}' must define merchant_inventory_template_ids.")
+        if is_merchant and not merchant_inventory:
+            raise ValueError(f"Merchant NPC '{npc_id}' must define merchant_inventory or merchant_inventory_template_ids.")
 
         raw_skill_ids = raw_npc.get("skill_ids", [])
         if raw_skill_ids is None:
@@ -418,6 +454,7 @@ def load_npc_templates() -> list[dict]:
             "is_peaceful": bool(raw_npc.get("is_peaceful", False)),
             "is_merchant": is_merchant,
             "merchant_inventory_template_ids": merchant_inventory_template_ids,
+            "merchant_inventory": merchant_inventory,
             "merchant_buy_markup": merchant_buy_markup,
             "merchant_sell_ratio": merchant_sell_ratio,
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",

@@ -1124,36 +1124,140 @@ def _get_merchant_resale_price(merchant, item: ItemState) -> int:
     return max(1, int(math.ceil(base_value * markup)))
 
 
+def _build_resale_stack_key(item: ItemState) -> str:
+    template_id = str(getattr(item, "template_id", "")).strip().lower()
+    if template_id:
+        return f"template:{template_id}"
+
+    normalized_name = str(getattr(item, "name", "")).strip().lower()
+    if normalized_name:
+        return f"name:{normalized_name}"
+
+    return f"item:{item.item_id}"
+
+
+def _get_merchant_base_stock_entries(merchant) -> list[dict[str, object]]:
+    stock_entries = getattr(merchant, "merchant_inventory", None)
+    if isinstance(stock_entries, list):
+        return stock_entries
+
+    normalized_entries = [
+        {
+            "template_id": str(template_id).strip(),
+            "infinite": True,
+            "quantity": 1,
+        }
+        for template_id in getattr(merchant, "merchant_inventory_template_ids", [])
+        if str(template_id).strip()
+    ]
+    merchant.merchant_inventory = normalized_entries
+    return normalized_entries
+
+
+def _find_merchant_base_stock_entry(merchant, template_id: str) -> dict[str, object] | None:
+    normalized_template_id = template_id.strip().lower()
+    if not normalized_template_id:
+        return None
+
+    for stock_entry in _get_merchant_base_stock_entries(merchant):
+        candidate_template_id = str(stock_entry.get("template_id", "")).strip().lower()
+        if candidate_template_id == normalized_template_id:
+            return stock_entry
+
+    return None
+
+
+def _append_item_to_merchant_stock(merchant, item: ItemState) -> None:
+    template_id = str(getattr(item, "template_id", "")).strip()
+    if template_id:
+        stock_entry = _find_merchant_base_stock_entry(merchant, template_id)
+        if stock_entry is not None:
+            if bool(stock_entry.get("infinite", False)):
+                return
+            stock_entry["quantity"] = max(0, int(stock_entry.get("quantity", 0))) + 1
+            return
+
+    merchant_resale_items = getattr(merchant, "merchant_resale_items", None)
+    if not isinstance(merchant_resale_items, dict):
+        merchant_resale_items = {}
+        merchant.merchant_resale_items = merchant_resale_items
+
+    stack_key = _build_resale_stack_key(item)
+    resale_stack = merchant_resale_items.get(stack_key)
+    if not isinstance(resale_stack, dict):
+        resale_stack = {
+            "template_id": template_id,
+            "name": str(item.name).strip() or "Item",
+            "keywords": [str(keyword).strip().lower() for keyword in item.keywords if str(keyword).strip()],
+            "items": [],
+        }
+        merchant_resale_items[stack_key] = resale_stack
+
+    stack_items = resale_stack.get("items")
+    if not isinstance(stack_items, list):
+        stack_items = []
+        resale_stack["items"] = stack_items
+    stack_items.append(item)
+
+
 def _build_merchant_stock_entries(merchant) -> list[dict[str, object]]:
     entries: list[dict[str, object]] = []
-    for template_id in getattr(merchant, "merchant_inventory_template_ids", []):
-        template, template_kind = _get_trade_template_by_id(str(template_id))
+    for stock_entry in _get_merchant_base_stock_entries(merchant):
+        template_id = str(stock_entry.get("template_id", "")).strip()
+        if not template_id:
+            continue
+
+        template, template_kind = _get_trade_template_by_id(template_id)
         if template is None or template_kind is None:
             continue
 
+        infinite = bool(stock_entry.get("infinite", False))
+        quantity = max(0, int(stock_entry.get("quantity", 1)))
+        if not infinite and quantity <= 0:
+            continue
+
+        base_name = str(template.get("name", "Item")).strip() or "Item"
+        display_name = base_name if infinite else f"{base_name} [{quantity}]"
         entries.append({
             "source": "template",
+            "stock_entry": stock_entry,
             "template_id": str(template.get("template_id", template_id)).strip(),
             "template": template,
             "template_kind": template_kind,
-            "name": str(template.get("name", "Item")).strip() or "Item",
+            "name": display_name,
+            "base_name": base_name,
             "keywords": [str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
             "price": _get_merchant_buy_price(merchant, template, template_kind=template_kind),
+            "quantity": quantity,
+            "infinite": infinite,
         })
 
     resale_items = getattr(merchant, "merchant_resale_items", {}) or {}
-    for resale_item in resale_items.values():
+    for stack_key, resale_stack in resale_items.items():
+        if not isinstance(resale_stack, dict):
+            continue
+
+        stack_items = resale_stack.get("items", [])
+        if not isinstance(stack_items, list) or not stack_items:
+            continue
+
+        resale_item = stack_items[0]
+        quantity = len(stack_items)
         template_kind = "Gear" if is_item_equippable(resale_item) else "Item"
+        base_name = str(getattr(resale_item, "name", "Item")).strip() or "Item"
         entries.append({
             "source": "resale",
-            "item_id": resale_item.item_id,
+            "stack_key": stack_key,
             "item": resale_item,
             "template_id": str(getattr(resale_item, "template_id", "")).strip(),
             "template": None,
             "template_kind": template_kind,
-            "name": str(resale_item.name).strip() or "Item",
+            "name": f"{base_name} [{quantity}]",
+            "base_name": base_name,
             "keywords": [str(keyword).strip().lower() for keyword in resale_item.keywords if str(keyword).strip()],
             "price": _get_merchant_resale_price(merchant, resale_item),
+            "quantity": quantity,
+            "infinite": False,
         })
 
     return entries
@@ -1166,7 +1270,7 @@ def _resolve_merchant_stock_selector(merchant, selector: str):
 
     matches = []
     for entry in _build_merchant_stock_entries(merchant):
-        keywords = _tokenize_selector_value(str(entry["name"]))
+        keywords = _tokenize_selector_value(str(entry.get("base_name", entry["name"])))
         keywords.update(_tokenize_selector_value(str(entry["template_id"])))
         keywords.update(_tokenize_selector_value(" ".join(entry.get("keywords", []))))
         if all(keyword in keywords for keyword in selector_parts):
@@ -1755,11 +1859,30 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         if str(stock_entry.get("source", "template")).strip().lower() == "resale":
             resale_items = getattr(merchant, "merchant_resale_items", {}) or {}
-            resale_item_id = str(stock_entry.get("item_id", "")).strip()
-            purchased_item = resale_items.pop(resale_item_id, None)
-            if purchased_item is None:
+            stack_key = str(stock_entry.get("stack_key", "")).strip()
+            resale_stack = resale_items.get(stack_key)
+            if not isinstance(resale_stack, dict):
                 return display_error(f"{item_name} is no longer available.", session)
+
+            stack_items = resale_stack.get("items", [])
+            if not isinstance(stack_items, list) or not stack_items:
+                resale_items.pop(stack_key, None)
+                return display_error(f"{item_name} is no longer available.", session)
+
+            purchased_item = stack_items.pop(0)
+            if not stack_items:
+                resale_items.pop(stack_key, None)
         else:
+            stock_entry_ref = stock_entry.get("stock_entry")
+            if not isinstance(stock_entry_ref, dict):
+                return display_error(f"{item_name} is no longer available.", session)
+
+            if not bool(stock_entry_ref.get("infinite", False)):
+                available_quantity = max(0, int(stock_entry_ref.get("quantity", 0)))
+                if available_quantity <= 0:
+                    return display_error(f"{item_name} is out of stock.", session)
+                stock_entry_ref["quantity"] = available_quantity - 1
+
             purchased_item = _build_inventory_item_from_template(stock_entry["template"])
 
         session.status.coins -= price
@@ -1788,11 +1911,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         offer = _get_merchant_sale_offer(merchant, owned_item)
         _remove_owned_trade_item(session, owned_item)
-        merchant_resale_items = getattr(merchant, "merchant_resale_items", None)
-        if not isinstance(merchant_resale_items, dict):
-            merchant_resale_items = {}
-            merchant.merchant_resale_items = merchant_resale_items
-        merchant_resale_items[owned_item.item_id] = owned_item
+        _append_item_to_merchant_stock(merchant, owned_item)
         session.status.coins += offer
 
         return display_command_result(session, [

@@ -96,15 +96,41 @@
       "is_ally": true,
       "is_peaceful": true,
       "is_merchant": true,
-      "merchant_inventory_template_ids": [
-        "item.potion.mending",
-        "item.potion.mana",
-        "weapon.training-sword",
-        "weapon.training-dagger",
-        "armor.vanguard-jacket",
-        "armor.vanguard-boots",
-        "armor.arcanist-robe",
-        "armor.arcanist-wraps"
+      "merchant_inventory": [
+        {
+          "template_id": "item.potion.mending",
+          "quantity": 3,
+          "infinite": false
+        },
+        {
+          "template_id": "item.potion.mana",
+          "quantity": 3,
+          "infinite": false
+        },
+        {
+          "template_id": "weapon.training-sword",
+          "infinite": true
+        },
+        {
+          "template_id": "weapon.training-dagger",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.vanguard-jacket",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.vanguard-boots",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.arcanist-robe",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.arcanist-wraps",
+          "infinite": true
+        }
       ],
       "merchant_buy_markup": 1.0,
       "merchant_sell_ratio": 0.55,

@@ -1833,6 +1833,15 @@ def initialize_session_entities(session: ClientSession) -> None:
                     for template_id in template.get("merchant_inventory_template_ids", [])
                     if str(template_id).strip()
                 ]
+                entity.merchant_inventory = [
+                    {
+                        "template_id": str(stock_entry.get("template_id", "")).strip(),
+                        "infinite": bool(stock_entry.get("infinite", False)),
+                        "quantity": max(0, int(stock_entry.get("quantity", 1))),
+                    }
+                    for stock_entry in template.get("merchant_inventory", [])
+                    if isinstance(stock_entry, dict) and str(stock_entry.get("template_id", "")).strip()
+                ]
                 entity.merchant_buy_markup = max(0.1, float(template.get("merchant_buy_markup", 1.0)))
                 entity.merchant_sell_ratio = max(0.0, min(1.0, float(template.get("merchant_sell_ratio", 0.5))))
                 entity.pronoun_possessive = str(template.get("pronoun_possessive", "its")).strip().lower() or "its"
