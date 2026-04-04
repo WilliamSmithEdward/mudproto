@@ -27,6 +27,7 @@ from display import (
     display_command_result,
     display_equipment,
     display_error,
+    display_exits,
     display_force_prompt,
     display_inventory,
     display_prompt,
@@ -1612,6 +1613,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error(f"Current room not found: {session.player.current_room_id}", session)
 
         return display_room(session, room)
+
+    if verb in {"sc", "sca", "scan"}:
+        room = get_room(session.player.current_room_id)
+        if room is None:
+            return display_error(f"Current room not found: {session.player.current_room_id}", session)
+
+        return display_exits(session, room)
 
     if verb in {"ex", "exa", "exam", "exami", "examin", "examine"}:
         selector_text = " ".join(args).strip()

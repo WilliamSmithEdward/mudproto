@@ -235,6 +235,32 @@ def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
     return max(0, int(session.next_game_tick_monotonic - now))
 
 
+def _direction_short_label(direction: str) -> str:
+    direction_letters = {
+        "north": "N",
+        "south": "S",
+        "east": "E",
+        "west": "W",
+        "up": "U",
+        "down": "D",
+    }
+    normalized = str(direction).strip().lower()
+    return direction_letters.get(normalized, normalized[:1].upper() or "?")
+
+
+def _direction_sort_key(direction: str) -> tuple[int, str]:
+    order = {
+        "north": 0,
+        "east": 1,
+        "south": 2,
+        "west": 3,
+        "up": 4,
+        "down": 5,
+    }
+    normalized = str(direction).strip().lower()
+    return order.get(normalized, 99), normalized
+
+
 def build_prompt_parts(session: ClientSession) -> list[dict]:
     if not session.is_authenticated:
         return [build_part("> ", "bright_white")]
@@ -243,18 +269,10 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
     exit_letters = ""
 
     if room is not None and room.exits:
-        direction_letters = {
-            "north": "N",
-            "south": "S",
-            "east": "E",
-            "west": "W",
-            "up": "U",
-            "down": "D",
-        }
         exit_letters = "".join(
-            direction_letters[direction]
+            _direction_short_label(direction)
             for direction in room.exits.keys()
-            if direction in direction_letters
+            if str(direction).strip()
         )
 
     if not exit_letters:
@@ -689,6 +707,106 @@ def display_combat_round_result(session: ClientSession, parts: list[dict]) -> di
         prompt_after=False,
         starts_on_new_line=True
     )
+
+
+def _scan_visible_hostiles(session: ClientSession, room_id: str) -> list:
+    visible = [
+        entity
+        for entity in list_room_entities(session, room_id)
+        if entity.is_alive and not bool(getattr(entity, "is_ally", False)) and not bool(getattr(entity, "is_peaceful", False))
+    ]
+    visible.sort(key=lambda entity: (entity.name.lower(), entity.spawn_sequence))
+    return visible
+
+
+def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: str = "Enemies: ") -> bool:
+    if not entities:
+        return False
+
+    summarized: list[dict[str, object]] = []
+    for entity in entities:
+        condition_text, condition_color = get_entity_condition(entity)
+        normalized_name = entity.name.strip().lower()
+        if summarized:
+            previous = summarized[-1]
+            if (
+                str(previous["normalized_name"]) == normalized_name
+                and str(previous["condition_text"]) == condition_text
+                and str(previous["condition_color"]) == condition_color
+            ):
+                previous["count"] = int(previous["count"]) + 1
+                continue
+
+        summarized.append({
+            "normalized_name": normalized_name,
+            "name": entity.name,
+            "condition_text": condition_text,
+            "condition_color": condition_color,
+            "count": 1,
+        })
+
+    if prefix:
+        parts.append(build_part(prefix, "bright_white", True))
+
+    for index, entry in enumerate(summarized):
+        if index > 0:
+            parts.append(build_part(", ", "bright_white"))
+
+        parts.append(build_part(str(entry["name"]), "bright_red", True))
+        count = int(entry["count"])
+        if count > 1:
+            parts.append(build_part(f" x{count}", "bright_cyan", True))
+        parts.append(build_part(" [", "bright_white"))
+        parts.append(build_part(str(entry["condition_text"]).title(), str(entry["condition_color"]), True))
+        parts.append(build_part("]", "bright_white"))
+
+    return True
+
+
+def display_exits(session: ClientSession, room: Room) -> dict:
+    prompt_after, prompt_parts = resolve_prompt(session, True)
+    exit_items = sorted(room.exits.items(), key=lambda item: _direction_sort_key(item[0]))
+
+    parts: list[dict] = [
+        build_part(_panel_title_line("Exits"), "bright_cyan", True),
+        build_part("\n"),
+        build_part(_panel_divider(), "bright_black"),
+    ]
+
+    if not exit_items:
+        parts.extend([
+            build_part("\n"),
+            build_part("No visible exits.", "bright_white"),
+        ])
+    else:
+        direction_width = max(len(str(direction).strip().title()) for direction, _ in exit_items)
+        for direction, destination_room_id in exit_items:
+            destination_room = get_room(destination_room_id)
+            destination_label = destination_room.title if destination_room is not None else str(destination_room_id)
+            parts.extend([
+                build_part("\n"),
+                build_part(f"[{_direction_short_label(direction)}]", "bright_yellow", True),
+                build_part(" ", "bright_white"),
+                build_part(str(direction).strip().title().ljust(direction_width), "bright_cyan", True),
+                build_part(" -> ", "bright_black"),
+                build_part(destination_label, "bright_green", True),
+            ])
+
+            nearby_hostiles = _scan_visible_hostiles(session, destination_room_id)
+            if nearby_hostiles:
+                parts.append(build_part("  -  ", "bright_black"))
+                _append_scan_hostile_summary(parts, nearby_hostiles, prefix="")
+
+    visible_enemies = _scan_visible_hostiles(session, room.room_id)
+    if visible_enemies:
+        parts.extend([
+            build_part("\n"),
+            build_part(_panel_divider(), "bright_black"),
+            build_part("\n"),
+        ])
+        _append_scan_hostile_summary(parts, visible_enemies, prefix="Here: ")
+
+    return build_display(parts, blank_lines_before=0, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_room(session: ClientSession, room: Room) -> dict:
