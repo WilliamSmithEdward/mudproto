@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.4",
-  "generated_at_utc": "2026-04-04T17:25:52.626077+00:00",
+  "version": "2.5",
+  "generated_at_utc": "2026-04-04T17:30:37.486499+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/llm-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/llm-payloads/",
   "response_contract": {
@@ -54,6 +54,8 @@
   "conflict_resolution": {
     "policy": "On asset ID conflict, the LLM payload should override the base-game definition.",
     "rule": "If the user wants to replace or modify an existing asset, reuse that asset's ID in the payload and provide the full replacement definition.",
+    "room_merge_behavior": "If multiple LLM payloads target the same room ID, merge the room exits across those payloads while keeping all other room fields from the last loaded room definition.",
+    "other_asset_behavior": "For gear, items, spells, skills, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
     "scope": [
       "gear",
       "items",
@@ -102,6 +104,8 @@
     "Keep all IDs unique within their asset type.",
     "Append a GUID suffix to every new asset ID and payload_id unless you are intentionally overriding an existing base-game asset.",
     "If an asset is meant to override base-game content, reuse the base asset ID exactly and treat the payload definition as the replacement.",
+    "If multiple payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
+    "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
     "Use lowercase IDs and keywords to match project conventions.",
     "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
     "Every asset section must be present and must be a JSON array, even when empty.",

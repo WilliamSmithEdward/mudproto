@@ -349,6 +349,14 @@ def load_rooms() -> list[dict]:
                 "count": spawn_count,
             })
 
+        merged_exits = dict(normalized_exits)
+        if normalized_room_id in normalized_rooms_by_id and is_payload_override:
+            existing_room = normalized_rooms_by_id[normalized_room_id]
+            existing_exits = existing_room.get("exits", {})
+            if isinstance(existing_exits, dict):
+                merged_exits = dict(existing_exits)
+                merged_exits.update(normalized_exits)
+
         if normalized_room_id not in normalized_rooms_by_id:
             ordered_room_ids.append(normalized_room_id)
         normalized_rooms_by_id[normalized_room_id] = {
@@ -356,7 +364,7 @@ def load_rooms() -> list[dict]:
             "title": title,
             "description": description,
             "zone_id": zone_id,
-            "exits": normalized_exits,
+            "exits": merged_exits,
             "npcs": normalized_npcs,
         }
 
