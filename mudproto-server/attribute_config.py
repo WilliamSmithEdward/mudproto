@@ -207,12 +207,19 @@ def load_hand_weight_config() -> dict:
         raise ValueError("Hand weight config field 'hand_requirements' must be an object.")
 
     normalized_requirements: dict[str, dict[str, float]] = {}
-    for hand in ("main_hand", "off_hand"):
+    default_multipliers = {
+        "main_hand": 1.0,
+        "off_hand": 1.5,
+        "both_hands": 0.75,
+    }
+    for hand in ("main_hand", "off_hand", "both_hands"):
         raw_hand = raw_requirements.get(hand)
+        if raw_hand is None:
+            raw_hand = {"weight_multiplier": default_multipliers[hand]}
         if not isinstance(raw_hand, dict):
             raise ValueError(f"Hand weight config must include object for '{hand}'.")
 
-        weight_multiplier = float(raw_hand.get("weight_multiplier", 1.0))
+        weight_multiplier = float(raw_hand.get("weight_multiplier", default_multipliers[hand]))
         if weight_multiplier <= 0:
             raise ValueError(f"Hand weight config '{hand}.weight_multiplier' must be > 0.")
 

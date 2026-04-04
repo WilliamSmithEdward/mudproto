@@ -47,6 +47,18 @@
         "default": false,
         "notes": "Weapon-only field."
       },
+      "can_two_hand": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "notes": "Weapon-only field. Allows a main-hand weapon to be used with both hands when needed."
+      },
+      "requires_two_hands": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "notes": "Weapon-only field. When true, the weapon must occupy both hands."
+      },
       "weight": {
         "type": "integer",
         "required": false,

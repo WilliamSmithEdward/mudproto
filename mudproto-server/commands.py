@@ -36,7 +36,7 @@ from display import (
     display_prompt,
     display_room,
 )
-from equipment import HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
+from equipment import HAND_BOTH, HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
 from grammar import indefinite_article, with_article
 from inventory import (
     build_equippable_item_from_template,
@@ -624,7 +624,7 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
 
 def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, str | None]:
     if not args:
-        return None, None, "Usage: equip <selector> [main|off]"
+        return None, None, "Usage: equip <selector> [main|off|both]"
 
     normalized = [arg.strip().lower() for arg in args if arg.strip()]
     hand_aliases = {
@@ -634,6 +634,12 @@ def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, s
         "off": HAND_OFF,
         "offhand": HAND_OFF,
         "off_hand": HAND_OFF,
+        "both": HAND_BOTH,
+        "2h": HAND_BOTH,
+        "twohand": HAND_BOTH,
+        "twohands": HAND_BOTH,
+        "two_hand": HAND_BOTH,
+        "two_hands": HAND_BOTH,
     }
 
     hand: str | None = None
@@ -645,9 +651,9 @@ def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, s
             continue
         selector_parts.append(token)
 
-    selector = "".join(selector_parts).strip()
+    selector = ".".join(selector_parts).strip(".")
     if not selector:
-        return None, None, "Usage: equip <selector> [main|off]"
+        return None, None, "Usage: equip <selector> [main|off|both]"
 
     return hand, selector, None
 
@@ -799,6 +805,11 @@ def _normalize_item_look_selector(selector_text: str) -> tuple[str, bool]:
 
 
 def _resolve_item_location_label(session: ClientSession, item: ItemState, *, default_label: str = "Inventory") -> str:
+    if (
+        session.equipment.equipped_main_hand_id == item.item_id
+        and session.equipment.equipped_off_hand_id == item.item_id
+    ):
+        return "Both hands"
     if session.equipment.equipped_main_hand_id == item.item_id:
         return "Main hand"
     if session.equipment.equipped_off_hand_id == item.item_id:
@@ -2363,7 +2374,7 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
         hand, selector, parse_error = _parse_hand_and_selector(args)
         if parse_error is not None or selector is None:
-            return display_error(parse_error or "Usage: equip <selector> [main|off]", session)
+            return display_error(parse_error or "Usage: equip <selector> [main|off|both]", session)
 
         item, resolve_error = resolve_equipment_selector(session, selector)
         if item is None:
@@ -2376,6 +2387,13 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
         if not equipped:
             return display_error(equip_result, session)
 
+        if equip_result == HAND_BOTH:
+            return display_command_result(session, [
+                build_part("You equip ", "bright_white"),
+                *_build_item_reference_parts(item),
+                build_part(" with both hands.", "bright_white"),
+            ])
+
         hand_label = "main hand" if equip_result == HAND_MAIN else "off hand"
         return display_command_result(session, [
             build_part("You equip ", "bright_white"),
@@ -2387,9 +2405,14 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
 
     if verb in {"wield", "wiel", "wie", "wi"}:
         if not args:
-            return display_error("Usage: wield <selector>", session)
+            return display_error("Usage: wield <selector> [main|both]", session)
 
-        selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
+        hand, selector, parse_error = _parse_hand_and_selector(args)
+        if parse_error is not None or selector is None:
+            return display_error("Usage: wield <selector> [main|both]", session)
+        if hand == HAND_OFF:
+            return display_error("Use hold <selector> for your off hand.", session)
+
         item, resolve_error = resolve_equipment_selector(session, selector)
         if item is None:
             inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
@@ -2398,15 +2421,35 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             return display_error(f"{inventory_item.name} cannot be wielded.", session)
 
         current_main = get_equipped_main_hand(session)
-        if current_main is not None:
+        current_off = get_equipped_off_hand(session)
+        requested_hand = hand or HAND_MAIN
+        if requested_hand == HAND_BOTH or bool(getattr(item, "requires_two_hands", False)):
+            if current_main is not None and current_main.item_id != item.item_id:
+                return display_error(
+                    f"Your main hand is already occupied by {current_main.name}. Remove it first.",
+                    session,
+                )
+            if current_off is not None and current_off.item_id != item.item_id:
+                return display_error(
+                    f"Your off hand is already occupied by {current_off.name}. Remove it first.",
+                    session,
+                )
+        elif current_main is not None and current_main.item_id != item.item_id:
             return display_error(
                 f"Your main hand is already occupied by {current_main.name}. Remove it first.",
                 session,
             )
 
-        equipped, equip_result = equip_item(session, item, HAND_MAIN)
+        equipped, equip_result = equip_item(session, item, hand or HAND_MAIN)
         if not equipped:
             return display_error(equip_result, session)
+
+        if equip_result == HAND_BOTH:
+            return display_command_result(session, [
+                build_part("You wield ", "bright_white"),
+                *_build_item_reference_parts(item),
+                build_part(" with both hands.", "bright_white"),
+            ])
 
         return display_command_result(session, [
             build_part("You wield ", "bright_white"),

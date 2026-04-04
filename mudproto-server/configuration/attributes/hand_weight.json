@@ -6,6 +6,9 @@
     },
     "off_hand": {
       "weight_multiplier": 1.5
+    },
+    "both_hands": {
+      "weight_multiplier": 0.75
     }
   }
 }

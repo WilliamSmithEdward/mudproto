@@ -19,6 +19,8 @@ def build_equippable_item_from_template(template: dict, *, item_id: str | None =
         slot=str(template.get("slot", "")).strip().lower(),
         weapon_type=str(template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
         can_hold=bool(template.get("can_hold", False)),
+        can_two_hand=bool(template.get("can_two_hand", False)),
+        requires_two_hands=bool(template.get("requires_two_hands", False)),
         weight=max(0, int(template.get("weight", 0))),
         damage_dice_count=int(template.get("damage_dice_count", 0)),
         damage_dice_sides=int(template.get("damage_dice_sides", 0)),
@@ -71,6 +73,8 @@ def is_item_equippable(item: ItemState) -> bool:
     item.slot = str(template.get("slot", item.slot)).strip().lower()
     item.weapon_type = str(template.get("weapon_type", item.weapon_type)).strip().lower() or "unarmed"
     item.can_hold = bool(template.get("can_hold", item.can_hold))
+    item.can_two_hand = bool(template.get("can_two_hand", item.can_two_hand))
+    item.requires_two_hands = bool(template.get("requires_two_hands", item.requires_two_hands))
     item.weight = max(0, int(template.get("weight", item.weight)))
     item.damage_dice_count = int(template.get("damage_dice_count", item.damage_dice_count))
     item.damage_dice_sides = int(template.get("damage_dice_sides", item.damage_dice_sides))

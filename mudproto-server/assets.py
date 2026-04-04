@@ -147,6 +147,8 @@ def load_gear_templates() -> list[dict]:
             "keywords": normalized_keywords,
             "weapon_type": str(raw_template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
             "can_hold": bool(raw_template.get("can_hold", False)) if normalized_slot == "weapon" else False,
+            "can_two_hand": bool(raw_template.get("can_two_hand", False)) if normalized_slot == "weapon" else False,
+            "requires_two_hands": bool(raw_template.get("requires_two_hands", False)) if normalized_slot == "weapon" else False,
             "weight": max(0, int(raw_template.get("weight", 0))),
             "coin_value": max(0, int(raw_template.get("coin_value", 0))),
             "damage_dice_count": int(raw_template.get("damage_dice_count", 0)),

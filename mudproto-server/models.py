@@ -73,6 +73,8 @@ class ItemState:
     slot: str = ""
     weapon_type: str = "unarmed"
     can_hold: bool = False
+    can_two_hand: bool = False
+    requires_two_hands: bool = False
     weight: int = 0
     damage_dice_count: int = 0
     damage_dice_sides: int = 0

@@ -10,6 +10,7 @@ from settings import BASE_PLAYER_ARMOR_CLASS
 
 HAND_MAIN = "main_hand"
 HAND_OFF = "off_hand"
+HAND_BOTH = "both_hands"
 
 _WEAR_SLOT_CONFIG = load_wear_slot_config()
 _HAND_WEIGHT_CONFIG = load_hand_weight_config()
@@ -132,12 +133,14 @@ def list_worn_items(session: ClientSession) -> list[tuple[str, ItemState]]:
     worn: list[tuple[str, ItemState]] = []
 
     main_hand = get_equipped_main_hand(session)
-    if main_hand is not None:
-        worn.append(("main hand", main_hand))
-
     off_hand = get_equipped_off_hand(session)
-    if off_hand is not None:
-        worn.append(("off hand", off_hand))
+    if main_hand is not None and off_hand is not None and main_hand.item_id == off_hand.item_id:
+        worn.append(("both hands", main_hand))
+    else:
+        if main_hand is not None:
+            worn.append(("main hand", main_hand))
+        if off_hand is not None:
+            worn.append(("off hand", off_hand))
 
     for wear_slot in sorted(session.equipment.worn_item_ids.keys()):
         item_id = session.equipment.worn_item_ids[wear_slot]
@@ -218,9 +221,18 @@ def _required_strength_for_hand(weight: int, hand: str) -> int:
 
 
 def can_player_equip_hand(session: ClientSession, item: ItemState, hand: str) -> tuple[bool, str]:
-    """Check whether a weapon can be equipped in the requested hand."""
+    """Check whether a weapon can be equipped in the requested hand or in both hands."""
+    if hand not in {HAND_MAIN, HAND_OFF, HAND_BOTH}:
+        return False, "Hand must be main, off, or both."
+
+    if hand in {HAND_MAIN, HAND_OFF} and bool(getattr(item, "requires_two_hands", False)):
+        return False, f"{with_article(item.name, capitalize=True)} must be wielded with both hands."
+
     if hand == HAND_OFF and not item.can_hold:
         return False, f"{with_article(item.name, capitalize=True)} cannot be held in your off hand."
+
+    if hand == HAND_BOTH and not (bool(getattr(item, "requires_two_hands", False)) or bool(getattr(item, "can_two_hand", False))):
+        return False, f"{with_article(item.name, capitalize=True)} cannot be wielded with both hands."
 
     weight = max(0, item.weight)
     player_strength = int(session.player.attributes.get(_STRENGTH_ATTRIBUTE_ID, 0))
@@ -228,7 +240,12 @@ def can_player_equip_hand(session: ClientSession, item: ItemState, hand: str) ->
     if player_strength >= required_strength:
         return True, ""
 
-    action = "hold" if hand == HAND_OFF else "wield"
+    if hand == HAND_OFF:
+        action = "hold"
+    elif hand == HAND_BOTH:
+        action = "wield with both hands"
+    else:
+        action = "wield"
     return False, f"{with_article(item.name, capitalize=True)} is too heavy to {action}."
 
 
@@ -237,10 +254,19 @@ def equip_item(session: ClientSession, item: ItemState, hand: str | None = None)
         return False, f"{item.name} cannot be equipped as a weapon."
 
     target_hand = (hand or HAND_MAIN).strip().lower()
-    if target_hand not in {HAND_MAIN, HAND_OFF}:
-        return False, "Hand must be main or off."
+    if target_hand not in {HAND_MAIN, HAND_OFF, HAND_BOTH}:
+        return False, "Hand must be main, off, or both."
 
     can_equip, equip_error = can_player_equip_hand(session, item, target_hand)
+    if not can_equip and target_hand == HAND_MAIN and (bool(item.requires_two_hands) or bool(item.can_two_hand)):
+        fallback_ok, fallback_error = can_player_equip_hand(session, item, HAND_BOTH)
+        if fallback_ok:
+            target_hand = HAND_BOTH
+            can_equip = True
+            equip_error = ""
+        elif bool(item.requires_two_hands):
+            equip_error = fallback_error or equip_error
+
     if not can_equip:
         return False, equip_error
 
@@ -259,13 +285,21 @@ def equip_item(session: ClientSession, item: ItemState, hand: str | None = None)
         if previous_main_id is not None and previous_main_id != item.item_id:
             _clear_item_slot_references(session, previous_main_id)
             _move_equipped_item_to_inventory(session, previous_main_id)
-    else:
+    elif target_hand == HAND_OFF:
         session.equipment.equipped_off_hand_id = item.item_id
         if session.equipment.equipped_main_hand_id == item.item_id:
             session.equipment.equipped_main_hand_id = None
         if previous_off_id is not None and previous_off_id != item.item_id:
             _clear_item_slot_references(session, previous_off_id)
             _move_equipped_item_to_inventory(session, previous_off_id)
+    else:
+        session.equipment.equipped_main_hand_id = item.item_id
+        session.equipment.equipped_off_hand_id = item.item_id
+        for previous_item_id in {previous_main_id, previous_off_id}:
+            if previous_item_id is None or previous_item_id == item.item_id:
+                continue
+            _clear_item_slot_references(session, previous_item_id)
+            _move_equipped_item_to_inventory(session, previous_item_id)
 
     session.equipment.equipped_items[item.item_id] = item
     session.inventory_items.pop(item.item_id, None)
