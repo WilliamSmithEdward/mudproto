@@ -254,17 +254,6 @@
           "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
           "quantity": 1
         }
-      ],
-      "loot_items": [
-        {
-          "name": "Blackwatch insignia",
-          "description": "A soot-dark insignia stamped with a broken chapel seal.",
-          "keywords": [
-            "blackwatch",
-            "insignia",
-            "seal"
-          ]
-        }
       ]
     },
     {
@@ -306,17 +295,6 @@
           "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
           "quantity": 1
         }
-      ],
-      "loot_items": [
-        {
-          "name": "Ash prayer strip",
-          "description": "A strip of dark cloth inked with half-burned burial prayers.",
-          "keywords": [
-            "ash",
-            "prayer",
-            "strip"
-          ]
-        }
       ]
     },
     {
@@ -357,17 +335,6 @@
         {
           "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
           "quantity": 1
-        }
-      ],
-      "loot_items": [
-        {
-          "name": "Crypt key",
-          "description": "A black iron key worked in the shape of a chapel spire.",
-          "keywords": [
-            "crypt",
-            "key",
-            "iron"
-          ]
         }
       ]
     },
@@ -415,18 +382,6 @@
           "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
           "quantity": 1
         }
-      ],
-      "loot_items": [
-        {
-          "name": "Veiled prayer icon",
-          "description": "A small icon of blackened silver wrapped in mourning thread.",
-          "keywords": [
-            "veiled",
-            "prayer",
-            "icon",
-            "silver"
-          ]
-        }
       ]
     },
     {
@@ -463,18 +418,6 @@
         {
           "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
           "quantity": 1
-        }
-      ],
-      "loot_items": [
-        {
-          "name": "Revenant jaw token",
-          "description": "A grim charm carved from old bone and sealed in pitch.",
-          "keywords": [
-            "revenant",
-            "jaw",
-            "token",
-            "bone"
-          ]
         }
       ]
     }
