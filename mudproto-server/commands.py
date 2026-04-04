@@ -63,6 +63,7 @@ from settings import (
 )
 from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged, list_authenticated_room_players
 from sessions import (
+    connected_clients,
     get_active_character_session,
     hydrate_session_from_active_character,
     register_authenticated_character_session,
@@ -579,6 +580,27 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
     return room_display
 
 
+def _attach_movement_metadata(
+    outbound: OutboundMessage,
+    *,
+    from_room_id: str,
+    to_room_id: str,
+    direction: str,
+    action: str,
+    allow_followers: bool,
+) -> OutboundMessage:
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    if isinstance(payload, dict):
+        payload["movement"] = {
+            "from_room_id": str(from_room_id).strip(),
+            "to_room_id": str(to_room_id).strip(),
+            "direction": str(direction).strip().lower(),
+            "action": str(action).strip().lower() or "leaves",
+            "allow_followers": bool(allow_followers),
+        }
+    return outbound
+
+
 def flee(session: ClientSession) -> OutboundResult:
     entity = get_engaged_entity(session)
     if entity is None:
@@ -620,7 +642,14 @@ def flee(session: ClientSession) -> OutboundResult:
                 ),
             ] + lines
 
-    return build_auto_aggro_outbound(session, room_display)
+    return _attach_movement_metadata(
+        build_auto_aggro_outbound(session, room_display),
+        from_room_id=current_room.room_id,
+        to_room_id=next_room.room_id,
+        direction=normalize_direction(flee_direction),
+        action="flees",
+        allow_followers=False,
+    )
 
 
 def try_move(session: ClientSession, direction: str) -> OutboundResult:
@@ -645,7 +674,14 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
     end_combat(session)
 
     room_display = display_room(session, next_room)
-    return build_auto_aggro_outbound(session, room_display)
+    return _attach_movement_metadata(
+        build_auto_aggro_outbound(session, room_display),
+        from_room_id=current_room.room_id,
+        to_room_id=next_room.room_id,
+        direction=normalized_direction,
+        action="leaves",
+        allow_followers=True,
+    )
 
 
 def _parse_hand_and_selector(args: list[str]) -> tuple[str | None, str | None, str | None]:
@@ -1050,6 +1086,56 @@ def _resolve_room_player_selector(session: ClientSession, selector_text: str) ->
         return matches[requested_index - 1], None
 
     return matches[0], None
+
+
+def _clear_follow_state(session: ClientSession) -> None:
+    session.following_player_key = ""
+    session.following_player_name = ""
+
+
+def _find_followed_player_session(session: ClientSession) -> ClientSession | None:
+    normalized_key = (session.following_player_key or "").strip().lower()
+    if not normalized_key:
+        return None
+
+    for candidate in connected_clients.values():
+        if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
+            continue
+        candidate_key = (candidate.player_state_key or candidate.client_id).strip().lower()
+        if candidate_key == normalized_key:
+            return candidate
+    return None
+
+
+def _would_create_follow_loop(session: ClientSession, target_session: ClientSession) -> bool:
+    follower_key = (session.player_state_key or session.client_id).strip().lower()
+    if not follower_key:
+        return False
+
+    seen_keys: set[str] = {follower_key}
+    current: ClientSession | None = target_session
+    while current is not None:
+        current_key = (current.player_state_key or current.client_id).strip().lower()
+        if not current_key:
+            return False
+        if current_key in seen_keys:
+            return True
+
+        seen_keys.add(current_key)
+        next_key = (current.following_player_key or "").strip().lower()
+        if not next_key:
+            return False
+
+        current = None
+        for candidate in connected_clients.values():
+            if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
+                continue
+            candidate_key = (candidate.player_state_key or candidate.client_id).strip().lower()
+            if candidate_key == next_key:
+                current = candidate
+                break
+
+    return False
 
 
 def _resolve_inventory_selector(session: ClientSession, selector: str):
@@ -2802,6 +2888,63 @@ def execute_command(session: ClientSession, command_text: str) -> OutboundResult
             build_part("You remove ", "bright_white"),
             build_part(item.name, _item_highlight_color(item), True),
             build_part(" and place it in your inventory.", "bright_white"),
+        ])
+
+    if verb in {"follow", "fol", "foll", "follo", "unfollow"}:
+        selector_text = " ".join(args).strip()
+        if verb == "unfollow":
+            selector_text = "off"
+
+        if not selector_text:
+            followed_session = _find_followed_player_session(session)
+            if followed_session is None and not session.following_player_key.strip():
+                return display_error("Usage: follow <player> or follow off.", session)
+
+            followed_name = (
+                (followed_session.authenticated_character_name or "").strip()
+                or session.following_player_name.strip()
+                or "someone"
+            )
+            return display_command_result(session, [
+                build_part("You are following ", "bright_white"),
+                build_part(followed_name, "bright_cyan", True),
+                build_part(".", "bright_white"),
+            ])
+
+        if selector_text.lower() in {"off", "stop", "none", "cancel", "clear"}:
+            if not session.following_player_key.strip():
+                return display_error("You are not following anyone.", session)
+
+            followed_name = session.following_player_name.strip() or "them"
+            _clear_follow_state(session)
+            return display_command_result(session, [
+                build_part("You stop following ", "bright_white"),
+                build_part(followed_name, "bright_cyan", True),
+                build_part(".", "bright_white"),
+            ])
+
+        if session.combat.engaged_entity_ids:
+            return display_error("You cannot start following while engaged in combat.", session)
+
+        target_session, target_error = _resolve_room_player_selector(session, selector_text)
+        if target_session is None:
+            return display_error(target_error or f"No player named '{selector_text}' is here.", session)
+        if target_session.client_id == session.client_id:
+            return display_error("You cannot follow yourself.", session)
+        if _would_create_follow_loop(session, target_session):
+            return display_error("You cannot create a follow loop.", session)
+
+        target_key = (target_session.player_state_key or target_session.client_id).strip()
+        target_name = (target_session.authenticated_character_name or "").strip() or "Unknown"
+        if session.following_player_key.strip().lower() == target_key.lower():
+            return display_error(f"You are already following {target_name}.", session)
+
+        session.following_player_key = target_key
+        session.following_player_name = target_name
+        return display_command_result(session, [
+            build_part("You start following ", "bright_white"),
+            build_part(target_name, "bright_cyan", True),
+            build_part(".", "bright_white"),
         ])
 
     if normalize_direction(verb) in {"north", "south", "east", "west", "up", "down"}:

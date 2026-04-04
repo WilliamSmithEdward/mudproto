@@ -428,6 +428,8 @@ def reset_session_to_login(session: ClientSession) -> None:
     session.pending_character_name = ""
     session.pending_password = ""
     session.pending_gender = ""
+    session.following_player_key = ""
+    session.following_player_name = ""
     session.lag_until_monotonic = None
     session.pending_death_logout = False
 

@@ -194,6 +194,8 @@ class ClientSession:
     pending_character_name: str = ""
     pending_password: str = ""
     pending_gender: str = ""
+    following_player_key: str = ""
+    following_player_name: str = ""
     login_room_id: str = "start"
     is_connected: bool = True
     disconnected_by_server: bool = False

@@ -2158,7 +2158,7 @@ def spawn_dummy(session: ClientSession) -> dict:
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
-    from display import build_part, display_command_result, display_error
+    from display import display_error
 
     clear_combat_if_invalid(session)
     entity, resolve_error = resolve_room_entity_selector(
@@ -2177,11 +2177,11 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     if not started:
         return display_error(f"{entity.name} is already engaged with another target.", session)
 
-    return display_command_result(session, [
-        build_part("You engage ", "bright_white"),
-        build_part(with_article(entity.name), "bright_yellow", True),
-        build_part(".", "bright_white"),
-    ])
+    immediate_round = resolve_combat_round(session)
+    if immediate_round is not None:
+        return immediate_round
+
+    return display_error(f"You fail to engage {entity.name}.", session)
 
 
 def disengage(session: ClientSession) -> dict | list[dict]:

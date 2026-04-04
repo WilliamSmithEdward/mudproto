@@ -329,7 +329,8 @@ def build_display(
     blank_lines_after: int = 0,
     prompt_after: bool = False,
     prompt_parts: list[dict] | None = None,
-    starts_on_new_line: bool = False
+    starts_on_new_line: bool = False,
+    is_error: bool = False,
 ) -> dict:
     content_lines = parts_to_lines(_capitalize_parts(parts))
     extra_blank_lines_before, content_lines, extra_blank_lines_after = _trim_empty_edge_lines(content_lines)
@@ -358,6 +359,7 @@ def build_display(
     return build_response("display", {
         "lines": display_lines,
         "prompt_lines": prompt_lines,
+        "is_error": bool(is_error),
     })
 
 
@@ -669,6 +671,7 @@ def display_error(message: str, session: ClientSession | None = None) -> dict:
         _build_lore_error_parts(message, session),
         prompt_after=prompt_after,
         prompt_parts=prompt_parts,
+        is_error=True,
     )
 
 
