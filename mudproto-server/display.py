@@ -747,7 +747,7 @@ def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: s
         parts.append(build_part(str(entry["name"]), "bright_red", True))
         count = int(entry["count"])
         if count > 1:
-            parts.append(build_part(f" x{count}", "bright_cyan", True))
+            parts.append(build_part(f" [{count}]", "bright_cyan", True))
 
     return True
 
