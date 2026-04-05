@@ -37,7 +37,11 @@ from models import ClientSession, ItemState
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from sessions import apply_lag
 
-from .commerce_helpers import (
+from commands import (
+    HAND_BOTH,
+    HAND_MAIN,
+    HAND_OFF,
+    OutboundResult,
     _append_item_to_merchant_stock,
     _build_inventory_item_from_template,
     _display_merchant_stock,
@@ -46,12 +50,6 @@ from .commerce_helpers import (
     _resolve_merchant_stock_selector,
     _resolve_owned_trade_item,
     _resolve_room_merchant,
-)
-from commands import (
-    HAND_BOTH,
-    HAND_MAIN,
-    HAND_OFF,
-    OutboundResult,
     _add_item_to_room_ground,
     _build_corpse_label,
     _build_cost_menu_parts,

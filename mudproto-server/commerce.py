@@ -1,9 +1,12 @@
+"""Shared commerce helpers for merchant inventory, pricing, and trade resolution."""
+
 import math
 import re
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id
 from display import build_menu_table_parts, build_part, display_command_result
+from equipment import unequip_item
 from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 
@@ -353,8 +356,6 @@ def _resolve_owned_trade_item(session: ClientSession, selector: str):
 
 
 def _remove_owned_trade_item(session: ClientSession, item: ItemState) -> None:
-    from commands import unequip_item
-
     if item.item_id in session.inventory_items:
         session.inventory_items.pop(item.item_id, None)
         return

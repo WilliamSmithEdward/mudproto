@@ -8,6 +8,16 @@ from combat import (
     get_engaged_entity,
     maybe_auto_engage_current_room,
 )
+from commerce import (
+    _append_item_to_merchant_stock,
+    _build_inventory_item_from_template,
+    _display_merchant_stock,
+    _get_merchant_sale_offer,
+    _remove_owned_trade_item,
+    _resolve_merchant_stock_selector,
+    _resolve_owned_trade_item,
+    _resolve_room_merchant,
+)
 from display import (
     build_menu_table_parts,
     build_line,
