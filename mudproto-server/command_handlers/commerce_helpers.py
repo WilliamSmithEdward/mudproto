@@ -8,7 +8,6 @@ from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 
 OutboundMessage = dict[str, object]
-OutboundResult = OutboundMessage | list[OutboundMessage]
 
 
 def _tokenize_selector_value(value: str) -> set[str]:

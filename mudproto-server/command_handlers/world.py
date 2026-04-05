@@ -8,7 +8,7 @@ def handle_world_command(
     session: s.ClientSession,
     verb: str,
     args: list[str],
-    command_text: str,
+    _command_text: str,
 ) -> HandledResult:
     if verb == "spawn":
         target_name = " ".join(args).strip().lower()

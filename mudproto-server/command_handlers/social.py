@@ -8,7 +8,7 @@ def handle_social_command(
     session: s.ClientSession,
     verb: str,
     args: list[str],
-    command_text: str,
+    _command_text: str,
 ) -> HandledResult:
     if verb in {"follow", "fol", "foll", "follo", "unfollow"}:
         selector_text = " ".join(args).strip()

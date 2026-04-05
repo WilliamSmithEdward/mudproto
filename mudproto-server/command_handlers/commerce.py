@@ -8,7 +8,7 @@ def handle_commerce_command(
     session: s.ClientSession,
     verb: str,
     args: list[str],
-    command_text: str,
+    _command_text: str,
 ) -> HandledResult:
     if verb in {"list", "li", "lis"}:
         merchant, resolve_error = s._resolve_room_merchant(session)

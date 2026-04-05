@@ -7,8 +7,8 @@ HandledResult = s.OutboundResult | None
 def handle_character_command(
     session: s.ClientSession,
     verb: str,
-    args: list[str],
-    command_text: str,
+    _args: list[str],
+    _command_text: str,
 ) -> HandledResult:
     if verb in {"equipment", "eq", "equi", "eqp"}:
         return s.display_equipment(session)

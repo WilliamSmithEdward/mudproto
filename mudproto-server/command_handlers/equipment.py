@@ -8,7 +8,7 @@ def handle_equipment_command(
     session: s.ClientSession,
     verb: str,
     args: list[str],
-    command_text: str,
+    _command_text: str,
 ) -> HandledResult:
     if verb == "equip":
         if not args:
@@ -422,7 +422,7 @@ def handle_item_use_command(
     session: s.ClientSession,
     verb: str,
     args: list[str],
-    command_text: str,
+    _command_text: str,
 ) -> HandledResult:
     if verb != "use":
         return None

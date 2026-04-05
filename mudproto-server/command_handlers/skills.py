@@ -11,7 +11,7 @@ def handle_skill_command(
     session: s.ClientSession,
     verb: str,
     args: list[str],
-    command_text: str,
+    _command_text: str,
 ) -> HandledResult:
     if verb in {"skills", "sk", "ski", "skil", "skill"} and not args:
         skills = s._list_known_skills(session)
@@ -70,7 +70,7 @@ def handle_skill_fallback_command(
     session: s.ClientSession,
     verb: str,
     args: list[str],
-    command_text: str,
+    _command_text: str,
 ) -> HandledResult:
     known_skills = s._list_known_skills(session)
     if verb in _SKILL_VERBS | {"skills", "use"} or not known_skills:

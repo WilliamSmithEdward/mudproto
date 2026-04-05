@@ -681,28 +681,6 @@ def _format_item_wear_slots(item: ItemState) -> str:
     return ", ".join(slot.replace("_", " ").title() for slot in wear_slots)
 
 
-def _format_item_hand_usage(item: ItemState) -> str:
-    if not is_item_equippable(item) or item.slot != "weapon":
-        return ""
-    return "Main hand or off hand" if bool(item.can_hold) else "Main hand"
-
-
-def _format_item_damage_profile(item: ItemState) -> str:
-    dice_count = max(0, int(getattr(item, "damage_dice_count", 0)))
-    dice_sides = max(0, int(getattr(item, "damage_dice_sides", 0)))
-    modifier = int(getattr(item, "damage_roll_modifier", 0))
-
-    if dice_count <= 0 or dice_sides <= 0:
-        return str(max(0, modifier)) if modifier else "—"
-
-    profile = f"{dice_count}d{dice_sides}"
-    if modifier > 0:
-        return f"{profile}+{modifier}"
-    if modifier < 0:
-        return f"{profile}{modifier}"
-    return profile
-
-
 def _display_item_examination(session: ClientSession, item: ItemState, *, default_location: str = "Inventory") -> OutboundResult:
     kind_label = _resolve_item_kind_label(item)
     location_label = _resolve_item_location_label(session, item, default_label=default_location)
@@ -1186,55 +1164,6 @@ def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
         build_part(f"{article} ", "bright_white"),
         build_part(item_name or item.name, item_color, True),
     ]
-
-
-def _find_spell_by_name(spell_name: str) -> dict | None:
-    normalized = spell_name.strip().lower()
-    if not normalized:
-        return None
-
-    def _tokenize(value: str) -> list[str]:
-        return [token for token in value.strip().lower().split() if token]
-
-    query_tokens = _tokenize(normalized)
-    query_joined = "".join(query_tokens)
-
-    exact_matches: list[dict] = []
-    partial_matches: list[dict] = []
-
-    for spell in load_spells():
-        name = str(spell.get("name", "")).strip()
-        spell_normalized = name.lower()
-        if not spell_normalized:
-            continue
-
-        if spell_normalized == normalized:
-            exact_matches.append(spell)
-            continue
-
-        name_tokens = _tokenize(spell_normalized)
-        initials = "".join(token[0] for token in name_tokens if token)
-
-        token_prefix_match = False
-        if query_tokens and len(query_tokens) <= len(name_tokens):
-            token_prefix_match = all(
-                name_tokens[index].startswith(query_tokens[index])
-                for index in range(len(query_tokens))
-            )
-
-        joined_prefix_match = bool(query_joined) and initials.startswith(query_joined)
-        substring_match = normalized in spell_normalized
-
-        if token_prefix_match or joined_prefix_match or substring_match:
-            partial_matches.append(spell)
-
-    if len(exact_matches) == 1:
-        return exact_matches[0]
-    if len(exact_matches) > 1:
-        return None
-    if len(partial_matches) == 1:
-        return partial_matches[0]
-    return None
 
 
 def _list_known_spells(session: ClientSession) -> list[dict]:
