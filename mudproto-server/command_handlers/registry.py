@@ -1,0 +1,40 @@
+from . import shared as s
+from .character import handle_character_command
+from .commerce import handle_commerce_command
+from .equipment import handle_equipment_command, handle_item_use_command
+from .magic import handle_magic_command, handle_skill_fallback_command
+from .movement import handle_movement_command
+from .social import handle_social_command
+from .world import handle_world_command
+
+
+CommandResult = s.OutboundResult | None
+
+
+def dispatch_command(session: s.ClientSession, command_text: str) -> s.OutboundResult:
+    verb, args = s.parse_command(command_text)
+
+    if not verb:
+        return s.display_prompt(session)
+
+    handlers = (
+        handle_world_command,
+        handle_character_command,
+        handle_commerce_command,
+        handle_magic_command,
+        handle_equipment_command,
+        handle_social_command,
+        handle_movement_command,
+        handle_item_use_command,
+    )
+
+    for handler in handlers:
+        result: CommandResult = handler(session, verb, args, command_text)
+        if result is not None:
+            return result
+
+    fallback_result = handle_skill_fallback_command(session, verb, args, command_text)
+    if fallback_result is not None:
+        return fallback_result
+
+    return s.display_error(f"Unknown command: {verb}", session)

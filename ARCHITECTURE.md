@@ -133,7 +133,8 @@ Level gains: +10HP +5V +6M
 | `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
 | `settings.py` | Loads `configuration/server/settings.json` and exposes typed constants (timing, combat, gameplay, session, offline, database, assets). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
 | `sessions.py` | Session registry (`connected_clients`, `active_character_sessions`), login/disconnect lifecycle, shared world attachment, offline character loop, session hydration on reconnect. |
-| `commands.py` | Command parsing, dispatch, authentication state machine, all player-facing commands (movement, combat, inventory, equipment, spells, skills, look, say, etc.). |
+| `commands.py` | Public command entrypoints and authentication message flow; delegates player-facing command dispatch into `command_handlers/`. |
+| `command_handlers/` | Grouped command modules for world, equipment, commerce, magic, movement, and social interactions, coordinated by a central registry. |
 | `combat.py` | Combat round resolution, NPC AI (skill usage), entity spawning, corpse/loot creation, spell/skill execution, flee logic. |
 | `combat_text.py` | Damage-severity classification and attack-verb templates for player and NPC combat messages. |
 | `damage.py` | Damage rolling (`roll_player_damage`, `roll_npc_weapon_damage`), hit-chance calculation, weapon verb resolution. |
