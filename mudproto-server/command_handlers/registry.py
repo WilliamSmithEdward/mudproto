@@ -2,9 +2,10 @@ from . import shared as s
 from .character import handle_character_command
 from .commerce import handle_commerce_command
 from .equipment import handle_equipment_command, handle_item_use_command
-from .magic import handle_magic_command, handle_skill_fallback_command
 from .movement import handle_movement_command
+from .skills import handle_skill_command, handle_skill_fallback_command
 from .social import handle_social_command
+from .spells import handle_spell_command
 from .world import handle_world_command
 
 
@@ -21,7 +22,8 @@ def dispatch_command(session: s.ClientSession, command_text: str) -> s.OutboundR
         handle_world_command,
         handle_character_command,
         handle_commerce_command,
-        handle_magic_command,
+        handle_spell_command,
+        handle_skill_command,
         handle_equipment_command,
         handle_social_command,
         handle_movement_command,

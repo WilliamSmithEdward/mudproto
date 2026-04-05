@@ -1,24 +1,12 @@
-import math
 import random
 import re
-import uuid
 
-from attribute_config import get_player_class_by_id, load_attributes, load_item_usage_config, load_player_classes
-from assets import get_gear_template_by_id, get_item_template_by_id, load_item_templates, load_skills, load_spells
+from attribute_config import get_player_class_by_id, load_attributes, load_item_usage_config
+from assets import get_item_template_by_id, load_item_templates, load_skills, load_spells
 from combat import (
-    begin_attack,
-    cast_spell,
-    disengage,
     end_combat,
     get_engaged_entity,
-    list_room_corpses,
     maybe_auto_engage_current_room,
-    resolve_corpse_item_selector,
-    resolve_combat_round,
-    resolve_room_corpse_selector,
-    resolve_room_entity_selector,
-    spawn_dummy,
-    use_skill,
 )
 from display import (
     build_menu_table_parts,
@@ -26,47 +14,38 @@ from display import (
     build_part,
     parts_to_lines,
     display_command_result,
-    display_entity_summary,
-    display_equipment,
     display_error,
-    display_exits,
-    display_force_prompt,
-    display_inventory,
-    display_player_summary,
     display_prompt,
     display_room,
 )
-from equipment import HAND_BOTH, HAND_MAIN, HAND_OFF, equip_item, get_equipped_main_hand, get_equipped_off_hand, list_worn_items, resolve_equipped_selector, resolve_wear_slot_alias, unequip_item, wear_item
-from grammar import indefinite_article, normalize_player_gender, resolve_player_pronouns, with_article
+from equipment import (
+    HAND_BOTH,
+    HAND_MAIN,
+    HAND_OFF,
+    equip_item,
+    get_equipped_main_hand,
+    get_equipped_off_hand,
+    list_worn_items,
+    resolve_equipped_selector,
+    resolve_wear_slot_alias,
+    unequip_item,
+    wear_item,
+)
+from grammar import indefinite_article, resolve_player_pronouns, with_article
 from inventory import (
-    build_equippable_item_from_template,
     get_item_keywords,
     is_item_equippable,
     parse_item_selector,
-    resolve_equipment_selector,
 )
 from models import ClientSession, ItemState
 from experience import get_xp_to_next_level
-from player_resources import clamp_player_resources_to_caps, get_player_resource_caps
-from player_state_db import (
-    character_exists,
-    create_character,
-    get_character_by_name,
-    load_player_state,
-    normalize_character_name,
-    save_player_state,
-    verify_character_credentials,
-)
+from player_resources import get_player_resource_caps
 from settings import (
-    COMBAT_ROUND_INTERVAL_SECONDS,
     FLEE_SUCCESS_CHANCE,
 )
-from sessions import apply_lag, apply_player_class, ensure_player_attributes, enqueue_command, is_session_lagged, list_authenticated_room_players
+from sessions import apply_lag, enqueue_command, is_session_lagged, list_authenticated_room_players
 from sessions import (
     connected_clients,
-    get_active_character_session,
-    hydrate_session_from_active_character,
-    register_authenticated_character_session,
 )
 from world import get_room
 
@@ -109,59 +88,15 @@ def parse_command(command_text: str) -> tuple[str, list[str]]:
 
 
 def initial_auth_prompt(session: ClientSession) -> OutboundMessage:
-    return display_command_result(session, [
-        build_part("Enter an existing character name (letters only) or type ", "bright_white"),
-        build_part("start", "bright_yellow", True),
-        build_part(" to create a new character.", "bright_white"),
-    ])
+    from command_handlers.auth import initial_auth_prompt as _initial_auth_prompt
+
+    return _initial_auth_prompt(session)
 
 
 def login_prompt(session: ClientSession) -> OutboundMessage:
-    """Minimal login prompt (bare "> ") for re-entry after death or other events."""
-    return display_prompt(session)
+    from command_handlers.auth import login_prompt as _login_prompt
 
-
-def _build_gender_prompt(session: ClientSession) -> OutboundMessage:
-    return display_command_result(session, [
-        build_part("Choose a gender: ", "bright_white"),
-        build_part("male", "bright_cyan", True),
-        build_part(" or ", "bright_white"),
-        build_part("female", "bright_magenta", True),
-        build_part(".", "bright_white"),
-    ])
-
-
-def _build_class_prompt(session: ClientSession) -> OutboundMessage:
-    classes = load_player_classes()
-    parts: list[dict] = [
-        build_part("Choose a class by id or name:", "bright_white"),
-    ]
-    for player_class in classes:
-        parts.extend([
-            build_part("\n"),
-            build_part(" - ", "bright_white"),
-            build_part(str(player_class.get("class_id", "")), "bright_cyan", True),
-            build_part(" (", "bright_white"),
-            build_part(str(player_class.get("name", "")), "bright_yellow", True),
-            build_part(")", "bright_white"),
-        ])
-    return display_command_result(session, parts)
-
-
-def _resolve_class_selection(selection: str) -> dict | None:
-    normalized = selection.strip().lower()
-    if not normalized:
-        return None
-
-    by_id = get_player_class_by_id(normalized)
-    if by_id is not None:
-        return by_id
-
-    for player_class in load_player_classes():
-        if str(player_class.get("name", "")).strip().lower() == normalized:
-            return player_class
-
-    return None
+    return _login_prompt(session)
 
 
 def _resolve_player_class_name(class_id: str) -> str:
@@ -416,160 +351,6 @@ def display_score(session: ClientSession) -> OutboundMessage:
     return display_command_result(session, parts)
 
 
-def _complete_login(session: ClientSession, character_record: dict, *, is_new_character: bool) -> OutboundResult:
-    character_key = str(character_record.get("character_key", "")).strip()
-    character_name = str(character_record.get("character_name", "")).strip()
-    class_id = str(character_record.get("class_id", "")).strip()
-    login_room_id = str(character_record.get("login_room_id", "")).strip() or "start"
-    session.player.gender = normalize_player_gender(
-        character_record.get("gender", session.player.gender),
-        allow_unspecified=True,
-    ) or "unspecified"
-
-    session.player_state_key = character_key
-    session.authenticated_character_name = character_name
-    session.login_room_id = login_room_id
-    session.pending_character_name = ""
-    session.pending_password = ""
-    session.pending_gender = ""
-
-    resumed_from_active = hydrate_session_from_active_character(session, character_key)
-
-    loaded_state = False
-    if not resumed_from_active:
-        loaded_state = load_player_state(session, player_key=character_key)
-        if not loaded_state:
-            apply_player_class(session, class_id, initialize_progression=True)
-        elif class_id:
-            session.player.class_id = class_id
-
-        ensure_player_attributes(session)
-
-        # On fresh login (not session resume), always spawn at configured login room.
-        session.player.current_room_id = login_room_id
-    else:
-        ensure_player_attributes(session)
-
-    clamp_player_resources_to_caps(session)
-
-    session.is_authenticated = True
-    session.is_connected = True
-    session.disconnected_by_server = False
-    session.auth_stage = "authenticated"
-    register_authenticated_character_session(session)
-
-    if (not resumed_from_active and not loaded_state) or is_new_character:
-        save_player_state(session, player_key=character_key)
-
-    login_room = get_room(session.player.current_room_id)
-    if login_room is None:
-        session.player.current_room_id = "start"
-        login_room = get_room("start")
-
-    if login_room is None:
-        return display_error("Login room is not configured.", session)
-
-    room_display = display_room(session, login_room)
-    payload = room_display.get("payload") if isinstance(room_display, dict) else None
-    if isinstance(payload, dict):
-        lines = payload.get("lines")
-        if isinstance(lines, list):
-            greeting = "Character created" if is_new_character else "Welcome back"
-            payload["lines"] = [
-                build_line(
-                    build_part(f"{greeting}, ", "bright_white"),
-                    build_part(character_name, "bright_green", True),
-                    build_part(".", "bright_white"),
-                ),
-                [],
-            ] + lines
-
-    return build_auto_aggro_outbound(session, room_display)
-
-
-def _process_auth_input(session: ClientSession, input_text: str) -> OutboundResult:
-    lowered = input_text.strip().lower()
-
-    if session.auth_stage == "awaiting_character_or_start":
-        if lowered == "start":
-            session.auth_stage = "awaiting_new_character_name"
-            return display_command_result(session, [
-                build_part("Enter a new character name (letters only).", "bright_white"),
-            ])
-
-        normalized_name = normalize_character_name(input_text)
-        if normalized_name is None:
-            return display_error("Character names must contain letters only.", session)
-
-        character_record = get_character_by_name(normalized_name)
-        if character_record is None:
-            return display_error(f"Character '{normalized_name}' does not exist.", session)
-
-        session.pending_character_name = str(character_record.get("character_name", normalized_name))
-        session.auth_stage = "awaiting_existing_password"
-        return display_command_result(session, [
-            build_part("Character found. Enter your password.", "bright_white"),
-        ])
-
-    if session.auth_stage == "awaiting_existing_password":
-        if not input_text.strip():
-            return display_error("Password cannot be empty.", session)
-
-        character_record = verify_character_credentials(session.pending_character_name, input_text)
-        if character_record is None:
-            return display_error("Invalid password.", session)
-
-        return _complete_login(session, character_record, is_new_character=False)
-
-    if session.auth_stage == "awaiting_new_character_name":
-        normalized_name = normalize_character_name(input_text)
-        if normalized_name is None:
-            return display_error("Character names must contain letters only.", session)
-        if character_exists(normalized_name):
-            return display_error(f"Character '{normalized_name}' already exists.", session)
-
-        session.pending_character_name = normalized_name
-        session.pending_gender = ""
-        session.auth_stage = "awaiting_new_character_password"
-        return display_command_result(session, [
-            build_part("Enter a password for your character.", "bright_white"),
-        ])
-
-    if session.auth_stage == "awaiting_new_character_password":
-        if not input_text.strip():
-            return display_error("Password cannot be empty.", session)
-
-        session.pending_password = input_text
-        session.auth_stage = "awaiting_new_character_gender"
-        return _build_gender_prompt(session)
-
-    if session.auth_stage == "awaiting_new_character_gender":
-        selected_gender = normalize_player_gender(input_text, allow_unspecified=False)
-        if selected_gender is None:
-            return display_error("Choose male or female.", session)
-
-        session.pending_gender = selected_gender
-        session.auth_stage = "awaiting_new_character_class"
-        return _build_class_prompt(session)
-
-    if session.auth_stage == "awaiting_new_character_class":
-        selected_class = _resolve_class_selection(input_text)
-        if selected_class is None:
-            return display_error("Unknown class selection.", session)
-
-        created = create_character(
-            character_name=session.pending_character_name,
-            password=session.pending_password,
-            class_id=str(selected_class.get("class_id", "")).strip(),
-            gender=session.pending_gender,
-            login_room_id="start",
-        )
-        return _complete_login(session, created, is_new_character=True)
-
-    session.auth_stage = "awaiting_character_or_start"
-    return initial_auth_prompt(session)
-
-
 def normalize_direction(direction: str) -> str:
     direction = direction.lower().strip()
     return DIRECTION_ALIASES.get(direction, direction)
@@ -581,14 +362,14 @@ def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMess
 
 
 def _attach_movement_metadata(
-    outbound: OutboundMessage,
+    outbound: OutboundResult,
     *,
     from_room_id: str,
     to_room_id: str,
     direction: str,
     action: str,
     allow_followers: bool,
-) -> OutboundMessage:
+) -> OutboundResult:
     payload = outbound.get("payload") if isinstance(outbound, dict) else None
     if isinstance(payload, dict):
         payload["movement"] = {
@@ -1407,374 +1188,6 @@ def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
     ]
 
 
-def _tokenize_selector_value(value: str) -> set[str]:
-    return {token for token in re.findall(r"[a-zA-Z0-9]+", value.strip().lower()) if token}
-
-
-def _parse_trade_selector(selector: str) -> tuple[int | None, list[str], str | None]:
-    normalized = selector.strip().lower()
-    if not normalized:
-        return None, [], "Provide an item selector."
-
-    parts = [part for part in normalized.split(".") if part]
-    if not parts:
-        return None, [], "Provide an item selector."
-
-    requested_index: int | None = None
-    if parts[0].isdigit():
-        requested_index = int(parts[0])
-        parts = parts[1:]
-        if requested_index <= 0:
-            return None, [], "Selector index must be 1 or greater."
-
-    if not parts:
-        return None, [], "Provide at least one selector keyword after the index."
-
-    return requested_index, parts, None
-
-
-def _get_trade_template_by_id(template_id: str) -> tuple[dict | None, str | None]:
-    gear_template = get_gear_template_by_id(template_id)
-    if gear_template is not None:
-        return gear_template, "Gear"
-
-    item_template = get_item_template_by_id(template_id)
-    if item_template is not None:
-        return item_template, "Item"
-
-    return None, None
-
-
-def _resolve_template_coin_value(template: dict, *, template_kind: str) -> int:
-    explicit_value = max(0, int(template.get("coin_value", 0)))
-    if explicit_value > 0:
-        return explicit_value
-
-    if template_kind == "Gear":
-        slot = str(template.get("slot", "")).strip().lower()
-        if slot == "weapon":
-            return max(
-                5,
-                12
-                + max(0, int(template.get("damage_dice_count", 0))) * max(0, int(template.get("damage_dice_sides", 0)))
-                + max(0, int(template.get("damage_roll_modifier", 0))) * 3
-                + max(0, int(template.get("hit_roll_modifier", 0))) * 3
-                + max(0, int(template.get("attack_damage_bonus", 0))) * 5
-                + max(0, int(template.get("attacks_per_round_bonus", 0))) * 8
-                + max(0, int(template.get("weight", 0))),
-            )
-
-        return max(
-            4,
-            10
-            + max(0, int(template.get("armor_class_bonus", 0))) * 12
-            + len(template.get("wear_slots", [])) * 2
-            + max(0, int(template.get("weight", 0))),
-        )
-
-    return max(
-        3,
-        8
-        + max(0, int(template.get("effect_amount", 0))) // 2
-        + int(max(0.0, float(template.get("use_lag_seconds", 0.0))) * 5),
-    )
-
-
-def _resolve_item_coin_value(item: ItemState) -> int:
-    template_id = str(getattr(item, "template_id", "")).strip()
-    if template_id:
-        template, template_kind = _get_trade_template_by_id(template_id)
-        if template is not None and template_kind is not None:
-            return _resolve_template_coin_value(template, template_kind=template_kind)
-
-    if is_item_equippable(item):
-        return _resolve_template_coin_value({
-            "slot": item.slot,
-            "damage_dice_count": item.damage_dice_count,
-            "damage_dice_sides": item.damage_dice_sides,
-            "damage_roll_modifier": item.damage_roll_modifier,
-            "hit_roll_modifier": item.hit_roll_modifier,
-            "attack_damage_bonus": item.attack_damage_bonus,
-            "attacks_per_round_bonus": item.attacks_per_round_bonus,
-            "armor_class_bonus": item.armor_class_bonus,
-            "wear_slots": list(item.wear_slots),
-            "weight": item.weight,
-        }, template_kind="Gear")
-
-    return max(1, 2 + len(_tokenize_selector_value(item.name)) + max(0, int(getattr(item, "weight", 0))))
-
-
-def _list_room_merchants(session: ClientSession):
-    merchants = [
-        entity
-        for entity in session.entities.values()
-        if entity.room_id == session.player.current_room_id
-        and entity.is_alive
-        and bool(getattr(entity, "is_merchant", False))
-    ]
-    merchants.sort(key=lambda entity: (entity.name.lower(), entity.spawn_sequence, entity.entity_id))
-    return merchants
-
-
-def _resolve_room_merchant(session: ClientSession):
-    merchants = _list_room_merchants(session)
-    if not merchants:
-        return None, "There is no merchant here."
-    return merchants[0], None
-
-
-def _get_merchant_buy_price(merchant, template: dict, *, template_kind: str) -> int:
-    base_value = _resolve_template_coin_value(template, template_kind=template_kind)
-    markup = max(0.1, float(getattr(merchant, "merchant_buy_markup", 1.0)))
-    return max(1, int(math.ceil(base_value * markup)))
-
-
-def _get_merchant_sale_offer(merchant, item: ItemState) -> int:
-    base_value = _resolve_item_coin_value(item)
-    sell_ratio = max(0.0, min(1.0, float(getattr(merchant, "merchant_sell_ratio", 0.5))))
-    return max(1, int(math.floor(base_value * sell_ratio)))
-
-
-def _get_merchant_resale_price(merchant, item: ItemState) -> int:
-    base_value = _resolve_item_coin_value(item)
-    markup = max(0.1, float(getattr(merchant, "merchant_buy_markup", 1.0)))
-    return max(1, int(math.ceil(base_value * markup)))
-
-
-def _build_resale_stack_key(item: ItemState) -> str:
-    template_id = str(getattr(item, "template_id", "")).strip().lower()
-    if template_id:
-        return f"template:{template_id}"
-
-    normalized_name = str(getattr(item, "name", "")).strip().lower()
-    if normalized_name:
-        return f"name:{normalized_name}"
-
-    return f"item:{item.item_id}"
-
-
-def _get_merchant_base_stock_entries(merchant) -> list[dict[str, object]]:
-    stock_entries = getattr(merchant, "merchant_inventory", None)
-    if isinstance(stock_entries, list):
-        return stock_entries
-
-    normalized_entries = [
-        {
-            "template_id": str(template_id).strip(),
-            "infinite": True,
-            "quantity": 1,
-        }
-        for template_id in getattr(merchant, "merchant_inventory_template_ids", [])
-        if str(template_id).strip()
-    ]
-    merchant.merchant_inventory = normalized_entries
-    return normalized_entries
-
-
-def _find_merchant_base_stock_entry(merchant, template_id: str) -> dict[str, object] | None:
-    normalized_template_id = template_id.strip().lower()
-    if not normalized_template_id:
-        return None
-
-    for stock_entry in _get_merchant_base_stock_entries(merchant):
-        candidate_template_id = str(stock_entry.get("template_id", "")).strip().lower()
-        if candidate_template_id == normalized_template_id:
-            return stock_entry
-
-    return None
-
-
-def _append_item_to_merchant_stock(merchant, item: ItemState) -> None:
-    template_id = str(getattr(item, "template_id", "")).strip()
-    if template_id:
-        stock_entry = _find_merchant_base_stock_entry(merchant, template_id)
-        if stock_entry is not None:
-            if bool(stock_entry.get("infinite", False)):
-                return
-            stock_entry["quantity"] = max(0, int(stock_entry.get("quantity", 0))) + 1
-            return
-
-    merchant_resale_items = getattr(merchant, "merchant_resale_items", None)
-    if not isinstance(merchant_resale_items, dict):
-        merchant_resale_items = {}
-        merchant.merchant_resale_items = merchant_resale_items
-
-    stack_key = _build_resale_stack_key(item)
-    resale_stack = merchant_resale_items.get(stack_key)
-    if not isinstance(resale_stack, dict):
-        resale_stack = {
-            "template_id": template_id,
-            "name": str(item.name).strip() or "Item",
-            "keywords": [str(keyword).strip().lower() for keyword in item.keywords if str(keyword).strip()],
-            "items": [],
-        }
-        merchant_resale_items[stack_key] = resale_stack
-
-    stack_items = resale_stack.get("items")
-    if not isinstance(stack_items, list):
-        stack_items = []
-        resale_stack["items"] = stack_items
-    stack_items.append(item)
-
-
-def _build_merchant_stock_entries(merchant) -> list[dict[str, object]]:
-    entries: list[dict[str, object]] = []
-    for stock_entry in _get_merchant_base_stock_entries(merchant):
-        template_id = str(stock_entry.get("template_id", "")).strip()
-        if not template_id:
-            continue
-
-        template, template_kind = _get_trade_template_by_id(template_id)
-        if template is None or template_kind is None:
-            continue
-
-        infinite = bool(stock_entry.get("infinite", False))
-        quantity = max(0, int(stock_entry.get("quantity", 1)))
-        if not infinite and quantity <= 0:
-            continue
-
-        base_name = str(template.get("name", "Item")).strip() or "Item"
-        display_name = base_name if infinite else f"{base_name} [{quantity}]"
-        entries.append({
-            "source": "template",
-            "stock_entry": stock_entry,
-            "template_id": str(template.get("template_id", template_id)).strip(),
-            "template": template,
-            "template_kind": template_kind,
-            "name": display_name,
-            "base_name": base_name,
-            "keywords": [str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
-            "price": _get_merchant_buy_price(merchant, template, template_kind=template_kind),
-            "quantity": quantity,
-            "infinite": infinite,
-        })
-
-    resale_items = getattr(merchant, "merchant_resale_items", {}) or {}
-    for stack_key, resale_stack in resale_items.items():
-        if not isinstance(resale_stack, dict):
-            continue
-
-        stack_items = resale_stack.get("items", [])
-        if not isinstance(stack_items, list) or not stack_items:
-            continue
-
-        resale_item = stack_items[0]
-        quantity = len(stack_items)
-        template_kind = "Gear" if is_item_equippable(resale_item) else "Item"
-        base_name = str(getattr(resale_item, "name", "Item")).strip() or "Item"
-        entries.append({
-            "source": "resale",
-            "stack_key": stack_key,
-            "item": resale_item,
-            "template_id": str(getattr(resale_item, "template_id", "")).strip(),
-            "template": None,
-            "template_kind": template_kind,
-            "name": f"{base_name} [{quantity}]",
-            "base_name": base_name,
-            "keywords": [str(keyword).strip().lower() for keyword in resale_item.keywords if str(keyword).strip()],
-            "price": _get_merchant_resale_price(merchant, resale_item),
-            "quantity": quantity,
-            "infinite": False,
-        })
-
-    return entries
-
-
-def _resolve_merchant_stock_selector(merchant, selector: str):
-    requested_index, selector_parts, parse_error = _parse_trade_selector(selector)
-    if parse_error is not None:
-        return None, parse_error
-
-    matches = []
-    for entry in _build_merchant_stock_entries(merchant):
-        keywords = _tokenize_selector_value(str(entry.get("base_name", entry["name"])))
-        keywords.update(_tokenize_selector_value(str(entry["template_id"])))
-        keywords.update(_tokenize_selector_value(" ".join(entry.get("keywords", []))))
-        if all(keyword in keywords for keyword in selector_parts):
-            matches.append(entry)
-
-    if not matches:
-        return None, f"{selector} is not sold here."
-
-    if requested_index is not None:
-        if requested_index > len(matches):
-            return None, f"Only {len(matches)} matching stock item(s) found for '{selector}'."
-        return matches[requested_index - 1], None
-
-    return matches[0], None
-
-
-def _build_inventory_item_from_template(template: dict) -> ItemState:
-    if str(template.get("slot", "")).strip().lower() in {"weapon", "armor"}:
-        return build_equippable_item_from_template(template)
-
-    return ItemState(
-        item_id=f"item-{uuid.uuid4().hex[:8]}",
-        template_id=str(template.get("template_id", "")).strip(),
-        name=str(template.get("name", "Item")).strip() or "Item",
-        description=str(template.get("description", "")),
-        keywords=[str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
-    )
-
-
-def _resolve_owned_trade_item(session: ClientSession, selector: str):
-    inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
-    if inventory_item is not None:
-        return inventory_item, None
-
-    return None, inventory_error or f"{selector} doesn't exist in your inventory."
-
-
-def _remove_owned_trade_item(session: ClientSession, item: ItemState) -> None:
-    if item.item_id in session.inventory_items:
-        session.inventory_items.pop(item.item_id, None)
-        return
-
-    if item.item_id in session.equipment.equipped_items:
-        unequip_item(session, item)
-        session.inventory_items.pop(item.item_id, None)
-
-
-def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage:
-    stock_entries = _build_merchant_stock_entries(merchant)
-    rows = [
-        [
-            str(entry["name"]),
-            str(entry["template_kind"]),
-            f"{int(entry['price'])} coins",
-        ]
-        for entry in stock_entries
-    ]
-    row_cell_colors = [
-        [
-            "bright_magenta" if str(entry.get("template_kind", "")).strip().lower() == "gear" else "bright_yellow",
-            "bright_cyan",
-            "bright_yellow",
-        ]
-        for entry in stock_entries
-    ]
-    title = f"{merchant.name}'s Wares"
-    parts = build_menu_table_parts(
-        title,
-        ["Item", "Type", "Price"],
-        rows,
-        column_colors=["bright_magenta", "bright_cyan", "bright_yellow"],
-        row_cell_colors=row_cell_colors,
-        column_alignments=["left", "left", "right"],
-        empty_message="Nothing is for sale right now.",
-    )
-    parts.extend([
-        build_part("\n"),
-        build_part("Commands: ", "bright_white"),
-        build_part("buy <item>", "bright_yellow", True),
-        build_part(", ", "bright_white"),
-        build_part("sell <item>", "bright_yellow", True),
-        build_part(", ", "bright_white"),
-        build_part("val <item>", "bright_yellow", True),
-    ])
-    return display_command_result(session, parts)
-
-
 def _find_spell_by_name(spell_name: str) -> dict | None:
     normalized = spell_name.strip().lower()
     if not normalized:
@@ -1982,7 +1395,9 @@ async def process_input_message(message: dict, session: ClientSession) -> Outbou
         return display_prompt(session)
 
     if not session.is_authenticated:
-        return _process_auth_input(session, input_text)
+        from command_handlers.auth import process_auth_input
+
+        return process_auth_input(session, input_text)
 
     if is_session_lagged(session):
         was_queued, queue_message = enqueue_command(session, input_text)
