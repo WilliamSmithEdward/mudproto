@@ -240,7 +240,7 @@ def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | l
 
     verb, _ = parse_command(command_text)
     if verb in {
-        "attack", "ki", "kil", "kill", "disengage", "flee",
+        "attack", "ki", "kil", "kill", "flee",
         "cast", "c", "ca", "cas", "use", "skill", "sk", "ski", "skil", "skl",
     }:
         return True

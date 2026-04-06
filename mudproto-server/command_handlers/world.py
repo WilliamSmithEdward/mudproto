@@ -27,9 +27,6 @@ def handle_world_command(
 
         return s.begin_attack(session, target_name)
 
-    if verb == "disengage":
-        return s.disengage(session)
-
     if verb == "flee":
         return s.flee(session)
 

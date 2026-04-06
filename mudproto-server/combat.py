@@ -2295,25 +2295,6 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     return display_error(f"You fail to engage {entity.name}.", session)
 
 
-def disengage(session: ClientSession) -> dict | list[dict]:
-    from display import build_part, display_command_result, display_error
-
-    clear_combat_if_invalid(session)
-
-    entity = get_engaged_entity(session)
-    if entity is None:
-        return display_error("You are not engaged with anything.", session)
-
-    end_combat(session)
-
-    target_name = entity.name if entity is not None else "your target"
-    return display_command_result(session, [
-        build_part("You disengage from ", "bright_white"),
-        build_part(target_name, bold=True),
-        build_part(".", "bright_white"),
-    ])
-
-
 def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
     attack_sequence = _build_player_attack_sequence(session, allow_off_hand)
 

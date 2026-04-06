@@ -11,7 +11,6 @@ from attribute_config import load_attributes
 from combat import (
     begin_attack,
     cast_spell,
-    disengage,
     list_room_corpses,
     resolve_corpse_item_selector,
     resolve_room_corpse_selector,
