@@ -20,7 +20,7 @@ def handle_player_death(session: ClientSession) -> None:
 
 def build_player_death_parts() -> list[dict]:
     """Return the display parts shown to the player who just died."""
-    from display import build_part
+    from display_core import build_part
 
     return [
         build_part("\n"),
@@ -30,7 +30,7 @@ def build_player_death_parts() -> list[dict]:
 
 def build_player_death_mourn_parts() -> list[dict]:
     """Return the mourn message display parts after player death."""
-    from display import build_part
+    from display_core import build_part
 
     return [
         build_part("Your comrades mourn your death.", "bright_white"),
@@ -39,7 +39,7 @@ def build_player_death_mourn_parts() -> list[dict]:
 
 def build_player_death_broadcast_parts(actor_name: str) -> list[dict]:
     """Return the room-broadcast parts shown to observers when a player dies."""
-    from display import build_part
+    from display_core import build_part
 
     return [
         build_part(f"{actor_name} is dead!", "bright_red", True),

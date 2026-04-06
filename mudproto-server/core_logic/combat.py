@@ -36,7 +36,7 @@ from death import build_player_death_broadcast_parts, build_player_death_mourn_p
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
 )
-from targeting import list_room_entities, resolve_room_entity_selector
+from targeting_entities import list_room_entities, resolve_room_entity_selector
 
 
 OPENING_ATTACKER_PLAYER = "player"
@@ -123,7 +123,7 @@ def _queue_experience_gain_notification(session: ClientSession, gained: int, old
     if gained <= 0:
         return
 
-    from display import build_part, parts_to_lines
+    from display_core import build_part, parts_to_lines
 
     notification_parts: list[dict] = []
     _append_experience_gain_notification(
@@ -438,7 +438,8 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
 
 
 def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
-    from display import build_display, build_part, resolve_prompt
+    from display_core import build_display, build_part
+    from display_feedback import resolve_prompt
 
     prompt_after, prompt_parts = resolve_prompt(session, True)
     return build_display(
@@ -596,7 +597,7 @@ def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
-    from display import display_error, display_force_prompt
+    from display_feedback import display_error, display_force_prompt
 
     clear_combat_if_invalid(session)
     entity, resolve_error = resolve_room_entity_selector(
@@ -761,7 +762,8 @@ def resolve_combat_round(
     *,
     allowed_entity_retaliation_ids: set[str] | None = None,
 ) -> dict | None:
-    from display import build_part, display_combat_round_result
+    from display_core import build_part
+    from display_feedback import display_combat_round_result
 
     clear_combat_if_invalid(session)
 

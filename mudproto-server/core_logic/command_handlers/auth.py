@@ -4,14 +4,9 @@ from .character_creation import (
     process_character_creation_input,
     start_character_creation,
 )
-from display import (
-    build_line,
-    build_part,
-    display_command_result,
-    display_error,
-    display_prompt,
-    display_room,
-)
+from display_core import build_line, build_part
+from display_feedback import display_command_result, display_error, display_prompt
+from display_views import display_room
 from grammar import normalize_player_gender
 from models import ClientSession
 from player_resources import clamp_player_resources_to_caps

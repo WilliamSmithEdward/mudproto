@@ -1,7 +1,8 @@
 from collections.abc import Callable
 
 from attribute_config import get_player_class_by_id, load_player_classes
-from display import build_part, display_command_result, display_error
+from display_core import build_part
+from display_feedback import display_command_result, display_error
 from grammar import normalize_player_gender
 from models import ClientSession
 from player_state_db import character_exists, create_character, normalize_character_name

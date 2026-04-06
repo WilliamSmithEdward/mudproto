@@ -5,13 +5,14 @@ import re
 from attribute_config import load_item_usage_config
 from assets import get_item_template_by_id, load_item_templates
 from commands import OutboundResult
-from display import build_menu_table_parts, build_part, display_command_result, display_error, parts_to_lines
+from display_core import build_menu_table_parts, build_part, parts_to_lines
+from display_feedback import display_command_result, display_error
 from grammar import indefinite_article, resolve_player_pronouns, with_article
 from inventory import is_item_equippable
 from models import ClientSession, ItemState
 from player_resources import get_player_resource_caps
 from session_timing import apply_lag
-from targeting import _resolve_misc_inventory_selector
+from targeting_items import _resolve_misc_inventory_selector
 
 
 def _build_corpse_label(source_name: str) -> str:

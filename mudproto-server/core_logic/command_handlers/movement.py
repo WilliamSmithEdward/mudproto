@@ -1,16 +1,19 @@
-from . import shared as s
+from commands import OutboundResult
+from models import ClientSession
+
+from .runtime import normalize_direction, try_move
 
 
-HandledResult = s.OutboundResult | None
+HandledResult = OutboundResult | None
 
 
 def handle_movement_command(
-    session: s.ClientSession,
+    session: ClientSession,
     verb: str,
     _args: list[str],
     _command_text: str,
 ) -> HandledResult:
-    if s.normalize_direction(verb) in {"north", "south", "east", "west", "up", "down"}:
-        return s.try_move(session, verb)
+    if normalize_direction(verb) in {"north", "south", "east", "west", "up", "down"}:
+        return try_move(session, verb)
 
     return None

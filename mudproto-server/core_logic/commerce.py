@@ -5,7 +5,8 @@ import re
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id
-from display import build_menu_table_parts, build_part, display_command_result
+from display_core import build_menu_table_parts, build_part
+from display_feedback import display_command_result
 from equipment import unequip_item
 from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
@@ -346,7 +347,7 @@ def _build_inventory_item_from_template(template: dict) -> ItemState:
 
 
 def _resolve_owned_trade_item(session: ClientSession, selector: str):
-    from targeting import _resolve_inventory_selector
+    from targeting_items import _resolve_inventory_selector
 
     inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
     if inventory_item is not None:

@@ -4,14 +4,9 @@ import random
 
 from attribute_config import get_player_class_by_id, load_attributes
 from combat import end_combat, get_engaged_entity, maybe_auto_engage_current_room
-from display import (
-    build_line,
-    build_menu_table_parts,
-    build_part,
-    display_command_result,
-    display_error,
-    display_room,
-)
+from display_core import build_line, build_menu_table_parts, build_part
+from display_feedback import display_command_result, display_error
+from display_views import display_room
 from experience import get_xp_to_next_level
 from models import ClientSession
 from player_resources import get_player_resource_caps

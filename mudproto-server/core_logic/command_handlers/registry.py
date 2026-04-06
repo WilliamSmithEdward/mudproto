@@ -1,24 +1,28 @@
-from . import shared as s
+from commands import OutboundResult
+from display_feedback import display_error, display_prompt
+from models import ClientSession
+
 from .character import handle_character_command
 from .commerce import handle_commerce_command
 from .equipment import handle_equipment_command, handle_item_use_command
 from .loot import handle_loot_command
 from .movement import handle_movement_command
 from .observation import handle_observation_command
+from .runtime import parse_command
 from .skills import handle_skill_command, handle_skill_fallback_command
 from .social import handle_social_command
 from .spells import handle_spell_command
 from .world import handle_world_command
 
 
-CommandResult = s.OutboundResult | None
+CommandResult = OutboundResult | None
 
 
-def dispatch_command(session: s.ClientSession, command_text: str) -> s.OutboundResult:
-    verb, args = s.parse_command(command_text)
+def dispatch_command(session: ClientSession, command_text: str) -> OutboundResult:
+    verb, args = parse_command(command_text)
 
     if not verb:
-        return s.display_prompt(session)
+        return display_prompt(session)
 
     handlers = (
         handle_world_command,
@@ -43,4 +47,4 @@ def dispatch_command(session: s.ClientSession, command_text: str) -> s.OutboundR
     if fallback_result is not None:
         return fallback_result
 
-    return s.display_error(f"Unknown command: {verb}", session)
+    return display_error(f"Unknown command: {verb}", session)

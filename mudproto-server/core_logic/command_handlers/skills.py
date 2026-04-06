@@ -1,23 +1,33 @@
-from . import shared as s
+from abilities import _list_known_skills, _resolve_skill_by_name
+from combat import use_skill
+from commands import OutboundResult
+from display_core import build_part
+from display_feedback import display_command_result, display_error
+from models import ClientSession
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
+from session_timing import apply_lag
+from targeting_parsing import _parse_skill_use
+
+from .runtime import _build_cost_menu_parts
 
 
-HandledResult = s.OutboundResult | None
+HandledResult = OutboundResult | None
 
 
 _SKILL_VERBS = {"skill", "sk", "ski", "skil", "skl"}
 
 
 def handle_skill_command(
-    session: s.ClientSession,
+    session: ClientSession,
     verb: str,
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
     if verb in {"skills", "sk", "ski", "skil", "skill"} and not args:
-        skills = s._list_known_skills(session)
+        skills = _list_known_skills(session)
         if not skills:
-            return s.display_command_result(session, [
-                s.build_part("You do not know any skills.", "bright_white"),
+            return display_command_result(session, [
+                build_part("You do not know any skills.", "bright_white"),
             ])
 
         menu_rows = [
@@ -28,37 +38,37 @@ def handle_skill_command(
             )
             for skill in skills
         ]
-        return s.display_command_result(session, s._build_cost_menu_parts("Skills", menu_rows, "Vigor"))
+        return display_command_result(session, _build_cost_menu_parts("Skills", menu_rows, "Vigor"))
 
     if verb in _SKILL_VERBS:
-        known_skills = s._list_known_skills(session)
+        known_skills = _list_known_skills(session)
         if not known_skills:
-            return s.display_error("You do not know any skills.", session)
+            return display_error("You do not know any skills.", session)
 
-        skill_name, target_name, parse_error = s._parse_skill_use(args)
+        skill_name, target_name, parse_error = _parse_skill_use(args)
         if parse_error is not None or skill_name is None:
-            return s.display_error(parse_error or "Usage: <skill> [target]", session)
+            return display_error(parse_error or "Usage: <skill> [target]", session)
 
         if target_name is None and len(args) > 1:
             for cut in range(len(args), 0, -1):
                 candidate_skill_name = " ".join(args[:cut]).strip()
                 candidate_target_name = " ".join(args[cut:]).strip() or None
-                candidate_skill, _ = s._resolve_skill_by_name(candidate_skill_name, known_skills)
+                candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
                 if candidate_skill is not None:
                     skill_name = candidate_skill_name
                     target_name = candidate_target_name
                     break
 
-        skill, resolve_error = s._resolve_skill_by_name(skill_name, known_skills)
+        skill, resolve_error = _resolve_skill_by_name(skill_name, known_skills)
         if skill is None:
-            return s.display_error(resolve_error or f"Unknown skill: {skill_name}", session)
+            return display_error(resolve_error or f"Unknown skill: {skill_name}", session)
 
-        response, skill_applied = s.use_skill(session, skill, target_name)
+        response, skill_applied = use_skill(session, skill, target_name)
         if skill_applied and session.combat.engaged_entity_ids:
             lag_rounds = max(0, int(skill.get("lag_rounds", 0)))
             if lag_rounds > 0:
                 try:
-                    s.apply_lag(session, lag_rounds * s.COMBAT_ROUND_INTERVAL_SECONDS)
+                    apply_lag(session, lag_rounds * COMBAT_ROUND_INTERVAL_SECONDS)
                 except RuntimeError:
                     pass
         return response
@@ -67,12 +77,12 @@ def handle_skill_command(
 
 
 def handle_skill_fallback_command(
-    session: s.ClientSession,
+    session: ClientSession,
     verb: str,
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
-    known_skills = s._list_known_skills(session)
+    known_skills = _list_known_skills(session)
     if verb in _SKILL_VERBS | {"skills", "use"} or not known_skills:
         return None
 
@@ -80,16 +90,16 @@ def handle_skill_fallback_command(
         candidate_verb_args = [verb] + args[:cut - 1]
         candidate_skill_name = " ".join(candidate_verb_args).strip()
         candidate_target_name = " ".join(args[cut - 1:]).strip() or None
-        candidate_skill, _ = s._resolve_skill_by_name(candidate_skill_name, known_skills)
+        candidate_skill, _ = _resolve_skill_by_name(candidate_skill_name, known_skills)
         if candidate_skill is None:
             continue
 
-        response, skill_applied = s.use_skill(session, candidate_skill, candidate_target_name)
+        response, skill_applied = use_skill(session, candidate_skill, candidate_target_name)
         if skill_applied and session.combat.engaged_entity_ids:
             lag_rounds = max(0, int(candidate_skill.get("lag_rounds", 0)))
             if lag_rounds > 0:
                 try:
-                    s.apply_lag(session, lag_rounds * s.COMBAT_ROUND_INTERVAL_SECONDS)
+                    apply_lag(session, lag_rounds * COMBAT_ROUND_INTERVAL_SECONDS)
                 except RuntimeError:
                     pass
         return response

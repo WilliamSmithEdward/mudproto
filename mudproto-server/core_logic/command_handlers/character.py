@@ -1,25 +1,32 @@
-from . import shared as s
+from attribute_config import load_attributes
+from commands import OutboundResult
+from display_core import build_part
+from display_feedback import display_command_result
+from display_views import display_equipment, display_inventory
+from models import ClientSession
+
+from .runtime import display_score
 
 
-HandledResult = s.OutboundResult | None
+HandledResult = OutboundResult | None
 
 
 def handle_character_command(
-    session: s.ClientSession,
+    session: ClientSession,
     verb: str,
     _args: list[str],
     _command_text: str,
 ) -> HandledResult:
     if verb in {"equipment", "eq", "equi", "eqp"}:
-        return s.display_equipment(session)
+        return display_equipment(session)
 
     if verb in {"inventory", "inv", "i"}:
-        return s.display_inventory(session)
+        return display_inventory(session)
 
     if verb in {"attributes", "attribute", "attr", "attrs", "stats", "stat"}:
-        configured_attributes = s.load_attributes()
+        configured_attributes = load_attributes()
         parts = [
-            s.build_part("Attributes", "bright_white", True),
+            build_part("Attributes", "bright_white", True),
         ]
 
         for attribute in configured_attributes:
@@ -27,18 +34,18 @@ def handle_character_command(
             name = str(attribute.get("name", attribute_id)).strip() or attribute_id
             value = int(session.player.attributes.get(attribute_id, 0))
             parts.extend([
-                s.build_part("\n"),
-                s.build_part(" - ", "bright_white"),
-                s.build_part(name, "bright_cyan", True),
-                s.build_part(" (", "bright_white"),
-                s.build_part(attribute_id, "bright_yellow", True),
-                s.build_part("): ", "bright_white"),
-                s.build_part(str(value), "bright_green", True),
+                build_part("\n"),
+                build_part(" - ", "bright_white"),
+                build_part(name, "bright_cyan", True),
+                build_part(" (", "bright_white"),
+                build_part(attribute_id, "bright_yellow", True),
+                build_part("): ", "bright_white"),
+                build_part(str(value), "bright_green", True),
             ])
 
-        return s.display_command_result(session, parts)
+        return display_command_result(session, parts)
 
     if verb in {"score", "scor", "sco", "sc"}:
-        return s.display_score(session)
+        return display_score(session)
 
     return None

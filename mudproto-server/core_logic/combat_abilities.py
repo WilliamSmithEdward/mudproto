@@ -6,7 +6,7 @@ from damage import roll_skill_damage, roll_spell_damage
 from grammar import with_article
 from models import ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
-from targeting import list_room_entities, resolve_room_entity_selector
+from targeting_entities import list_room_entities, resolve_room_entity_selector
 
 
 def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, str]:
@@ -290,7 +290,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         get_engaged_entity,
         spawn_corpse_for_entity,
     )
-    from display import build_part, display_command_result, display_error
+    from display_core import build_part
+    from display_feedback import display_command_result, display_error
 
     skill_id = str(skill.get("skill_id", "")).strip()
     skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
@@ -546,7 +547,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
     from combat import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
-    from display import build_part
+    from display_core import build_part
 
     if not entity.skill_ids:
         return False
@@ -674,7 +675,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
 def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
     from combat import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
-    from display import build_part
+    from display_core import build_part
 
     if not entity.spell_ids:
         return False
@@ -854,7 +855,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         get_engaged_entity,
         spawn_corpse_for_entity,
     )
-    from display import build_part, display_command_result, display_error
+    from display_core import build_part
+    from display_feedback import display_command_result, display_error
 
     spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
     mana_cost = max(0, int(spell.get("mana_cost", 0)))

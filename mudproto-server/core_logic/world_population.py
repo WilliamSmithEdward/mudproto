@@ -11,7 +11,7 @@ from session_registry import (
     shared_world_room_coin_piles,
     shared_world_room_ground_items,
 )
-from targeting import list_room_entities
+from targeting_entities import list_room_entities
 from world import WORLD
 
 
@@ -271,7 +271,8 @@ def initialize_session_entities(session: ClientSession) -> None:
 
 
 def spawn_dummy(session: ClientSession) -> dict:
-    from display import build_part, display_command_result
+    from display_core import build_part
+    from display_feedback import display_command_result
 
     room_id = session.player.current_room_id
     existing_names = {entity.name for entity in list_room_entities(session, room_id)}

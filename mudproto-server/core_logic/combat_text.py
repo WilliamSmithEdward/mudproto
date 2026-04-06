@@ -31,7 +31,7 @@ def build_player_attack_parts(
     damage: int,
     target_max_hp: int,
 ) -> list[dict]:
-    from display import build_part
+    from display_core import build_part
 
     severity = _choose_severity(damage, target_max_hp)
     article = indefinite_article(entity_name)
@@ -89,7 +89,7 @@ def build_entity_attack_parts(
     attack_verb: str,
     damage: int,
 ) -> list[dict]:
-    from display import build_part
+    from display_core import build_part
 
     severity = _choose_severity(damage, PLAYER_REFERENCE_MAX_HP)
     subject = with_article(entity_name, capitalize=True)

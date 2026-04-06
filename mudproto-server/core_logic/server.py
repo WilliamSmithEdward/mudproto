@@ -18,18 +18,9 @@ from combat import (
 )
 from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt, parse_command
 from world_population import initialize_session_entities, repopulate_game_hour_zones
-from display import (
-    build_display,
-    build_display_lines,
-    build_line,
-    build_part,
-    build_prompt_parts,
-    display_connected,
-    display_error,
-    display_force_prompt,
-    display_prompt,
-    display_room,
-)
+from display_core import build_display, build_display_lines, build_line, build_part
+from display_feedback import build_prompt_parts, display_connected, display_error, display_force_prompt, display_prompt
+from display_views import display_room
 from models import ClientSession
 from player_state_db import save_player_state
 from protocol import validate_message

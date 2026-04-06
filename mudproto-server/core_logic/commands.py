@@ -1,4 +1,4 @@
-from display import display_error, display_prompt
+from display_feedback import display_error, display_prompt
 from models import ClientSession
 from session_timing import enqueue_command, is_session_lagged
 
