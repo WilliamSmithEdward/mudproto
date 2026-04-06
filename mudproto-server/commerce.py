@@ -346,7 +346,7 @@ def _build_inventory_item_from_template(template: dict) -> ItemState:
 
 
 def _resolve_owned_trade_item(session: ClientSession, selector: str):
-    from commands import _resolve_inventory_selector
+    from targeting import _resolve_inventory_selector
 
     inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
     if inventory_item is not None:

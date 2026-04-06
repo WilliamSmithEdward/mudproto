@@ -28,7 +28,7 @@ from sessions import (
     hydrate_session_from_active_character,
     register_authenticated_character_session,
 )
-from commands import get_room
+from world import get_room
 
 OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]
