@@ -10,7 +10,7 @@ def handle_player_death(session: ClientSession) -> None:
     Any future logic (death penalties, respawn mechanics, cause tracking, etc.)
     should be added here.
     """
-    from combat import end_combat
+    from combat_state import end_combat
 
     end_combat(session)
     session.status.hit_points = 1

@@ -1,4 +1,3 @@
-from commands import OutboundResult
 from display_feedback import display_error
 from display_views import display_entity_summary, display_exits, display_player_summary, display_room
 from item_logic import _display_corpse_examination, _display_item_examination
@@ -8,6 +7,8 @@ from targeting_follow import _resolve_room_player_selector
 from targeting_items import _resolve_owned_item_selector, _resolve_room_ground_item_selector
 from targeting_parsing import _normalize_item_look_selector
 import world as _world
+
+from .runtime import OutboundResult
 
 get_room = getattr(_world, "get_room")
 

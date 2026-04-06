@@ -1,3 +1,1 @@
-from .registry import dispatch_command
-
-__all__ = ["dispatch_command"]
+"""Command handler package."""

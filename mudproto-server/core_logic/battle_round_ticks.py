@@ -41,7 +41,7 @@ def process_battle_round_support_effects(session: ClientSession) -> None:
 
 
 def process_non_combat_support_round(session: ClientSession) -> bool:
-    from combat import get_engaged_entity
+    from combat_state import get_engaged_entity
 
     has_battle_round_effect = any(effect.support_mode == "battle_rounds" for effect in session.active_support_effects)
     if not has_battle_round_effect:

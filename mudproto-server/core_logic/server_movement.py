@@ -2,7 +2,7 @@
 
 import json
 
-from combat import maybe_auto_engage_current_room
+from combat_state import maybe_auto_engage_current_room
 from display_core import build_display, build_line, build_part
 from display_feedback import build_prompt_parts, display_error
 from display_views import display_room

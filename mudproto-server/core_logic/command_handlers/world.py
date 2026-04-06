@@ -1,10 +1,9 @@
 from combat import begin_attack
-from commands import OutboundResult
 from display_feedback import display_error
 from models import ClientSession
 from world_population import spawn_dummy
 
-from .runtime import flee
+from .runtime import OutboundResult, flee
 
 
 HandledResult = OutboundResult | None

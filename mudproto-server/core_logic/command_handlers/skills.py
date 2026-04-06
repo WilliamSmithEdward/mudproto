@@ -1,6 +1,5 @@
 from abilities import _list_known_skills, _resolve_skill_by_name
 from combat import use_skill
-from commands import OutboundResult
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession
@@ -8,7 +7,7 @@ from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from session_timing import apply_lag
 from targeting_parsing import _parse_skill_use
 
-from .runtime import _build_cost_menu_parts
+from .runtime import OutboundResult, _build_cost_menu_parts
 
 
 HandledResult = OutboundResult | None

@@ -1,4 +1,3 @@
-from commands import OutboundResult
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession
@@ -8,6 +7,8 @@ from targeting_follow import (
     _resolve_room_player_selector,
     _would_create_follow_loop,
 )
+
+from .runtime import OutboundResult
 
 
 HandledResult = OutboundResult | None

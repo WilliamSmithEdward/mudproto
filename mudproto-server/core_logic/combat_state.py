@@ -4,7 +4,7 @@ import asyncio
 import uuid
 
 from assets import get_gear_template_by_id
-from combat_abilities import _process_entity_battle_round_support_effects
+from combat_ability_effects import _process_entity_battle_round_support_effects
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
 from session_registry import active_character_sessions, connected_clients

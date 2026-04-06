@@ -1,11 +1,10 @@
 from attribute_config import load_attributes
-from commands import OutboundResult
 from display_core import build_part
 from display_feedback import display_command_result
 from display_views import display_equipment, display_inventory
 from models import ClientSession
 
-from .runtime import display_score
+from .runtime import OutboundResult, display_score
 
 
 HandledResult = OutboundResult | None

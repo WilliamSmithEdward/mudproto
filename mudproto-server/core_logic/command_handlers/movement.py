@@ -1,7 +1,6 @@
-from commands import OutboundResult
 from models import ClientSession
 
-from .runtime import normalize_direction, try_move
+from .runtime import OutboundResult, normalize_direction, try_move
 
 
 HandledResult = OutboundResult | None

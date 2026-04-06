@@ -1,4 +1,4 @@
-from combat import maybe_auto_engage_current_room
+from combat_state import maybe_auto_engage_current_room
 from .character_creation import (
     is_character_creation_stage,
     process_character_creation_input,

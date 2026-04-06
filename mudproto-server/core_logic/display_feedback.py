@@ -1,6 +1,6 @@
 import asyncio
 
-from combat import get_engaged_entity, get_entity_condition, get_health_condition
+from combat_state import get_engaged_entity, get_entity_condition, get_health_condition
 from experience import get_xp_to_next_level
 from models import ClientSession
 from player_resources import get_player_resource_caps

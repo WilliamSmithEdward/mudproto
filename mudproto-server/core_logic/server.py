@@ -14,7 +14,9 @@ from combat import (
     resolve_combat_round,
     tick_out_of_combat_cooldowns,
 )
-from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt
+from command_handlers.auth import initial_auth_prompt, login_prompt
+from command_handlers.registry import dispatch_command
+from commands import dispatch_message
 from display_feedback import display_connected, display_error, display_force_prompt, display_prompt
 from game_hour_ticks import process_game_hour_tick
 from models import ClientSession
@@ -106,7 +108,7 @@ async def command_scheduler_loop(session) -> None:
             if session.command_queue:
                 queued_command = session.command_queue.pop(0)
 
-                result = execute_command(session, queued_command.command_text)
+                result = dispatch_command(session, queued_command.command_text)
                 await _handle_movement_side_effects(session, result, send_outbound)
                 result = _inject_private_lines_into_outbound(session, result)
                 await send_outbound(session.websocket, result)

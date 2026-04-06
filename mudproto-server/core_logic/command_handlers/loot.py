@@ -1,10 +1,11 @@
-from commands import OutboundResult
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from item_logic import _build_corpse_label, _build_item_reference_parts
 from models import ClientSession
 from targeting_entities import list_room_corpses, resolve_corpse_item_selector, resolve_room_corpse_selector
 from targeting_items import _list_room_ground_items, _pickup_ground_item, _resolve_room_ground_matches
+
+from .runtime import OutboundResult
 
 
 HandledResult = OutboundResult | None

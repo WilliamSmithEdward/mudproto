@@ -1,19 +1,6 @@
 from assets import get_gear_template_by_id
 from battle_round_ticks import process_battle_round_support_effects
-from combat_abilities import (
-    _entity_try_cast_spell,
-    _entity_try_use_skill,
-    cast_spell,
-    process_entity_game_hour_tick,
-    use_skill,
-)
-from combat_observer import (
-    _attach_room_broadcast_lines,
-    _observer_context_from_player_context,
-    _render_observer_template,
-    _resolve_combat_context,
-    _resolve_observer_action_line,
-)
+from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
 from combat_rewards import (
     _award_shared_entity_experience,
     _mark_entity_contributor,
@@ -22,19 +9,12 @@ from combat_state import (
     _consume_entity_action_lag,
     _display_peaceful_warning,
     _engage_next_targeting_entity,
-    _find_peaceful_target,
     _process_combat_round_timers,
     _schedule_next_combat_round,
     clear_combat_if_invalid,
-    end_combat,
     get_engaged_entities,
-    get_engaged_entity,
-    get_entity_condition,
-    get_health_condition,
-    maybe_auto_engage_current_room,
     spawn_corpse_for_entity,
     start_combat,
-    tick_out_of_combat_cooldowns,
 )
 from combat_text import (
     append_newline_if_needed,

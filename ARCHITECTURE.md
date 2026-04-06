@@ -140,7 +140,7 @@ Level gains: +10HP +5V +6M
 | `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
 | `session_bootstrap.py` | Player class application, attribute initialization, starting gear/items, and early progression bootstrap. |
 | `session_lifecycle.py` | Disconnect/login reset flow, offline character processing, and session hydration/re-attachment on reconnect. |
-| `commands.py` | Thin public shell for parsing/auth/message dispatch and compatibility exports; delegates gameplay behavior into `command_handlers/`. |
+| `commands.py` | Inbound protocol-message dispatch, auth/input handling, and lag-aware routing into `command_handlers/`. |
 | `commerce.py` | Merchant/trade pricing, stock resolution, resale handling, and shared buy/sell helper logic used by command handlers. |
 | `targeting_parsing.py` | Shared selector parsing and normalization helpers for commands and resolvers. |
 | `targeting_entities.py` | Entity/player/corpse lookup plus room target resolution helpers. |
@@ -152,7 +152,6 @@ Level gains: +10HP +5V +6M
 | `combat_ability_effects.py` | Shared support-effect scaling, restore logic, cooldown bookkeeping, and timed/battle-round effect processing. |
 | `combat_player_abilities.py` | Player skill and spell execution, targeting, resource spend, reward hooks, and observer text setup. |
 | `combat_entity_abilities.py` | NPC/entity skill and spell usage against players, including self-buffs and restore effects. |
-| `combat_abilities.py` | Thin compatibility facade re-exporting the split combat ability helpers. |
 | `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers. |
 | `combat_rewards.py` | Shared contributor tracking and XP/reward distribution helpers. |
 | `combat_observer.py` | Combat observer-line templating, room-broadcast line shaping, and third-person text helpers. |
@@ -186,8 +185,8 @@ MudProto should stay organized around **layered ownership** rather than around a
    - No gameplay rules or combat/business logic should exist in client code.
 
 2. **Public shell layer**
-   - `commands.py` remains a thin compatibility/public facade.
-   - It should own message entrypoints and stable exports, not gameplay implementation.
+   - `commands.py` owns inbound message handling, auth/input dispatch, and lag-aware routing.
+   - Gameplay implementation should stay in `command_handlers/` and focused domain modules rather than accumulating here.
 
 3. **Command orchestration layer**
    - `command_handlers/` owns verb routing and player-facing command flow.
@@ -236,7 +235,7 @@ When separating concerns further:
 The current refactor now centers around thin orchestration shells with focused helpers behind them:
 
 - **`combat.py`** now delegates encounter state, rewards, and observer text to `combat_state.py`, `combat_rewards.py`, and `combat_observer.py`.
-- **`combat_abilities.py`** is now a compatibility facade over `combat_ability_effects.py`, `combat_player_abilities.py`, and `combat_entity_abilities.py`.
+- **Combat ability logic** now lives directly in `combat_ability_effects.py`, `combat_player_abilities.py`, and `combat_entity_abilities.py`.
 - **`server.py`** now delegates room-broadcast shaping and follow/movement side effects to `server_broadcasts.py` and `server_movement.py`.
 
 The best next cleanup from here is continuing to remove any remaining compatibility-only wrappers once all call sites are migrated directly.
@@ -690,7 +689,6 @@ mudproto/
       combat_state.py            # encounter state, corpses, and cooldown helpers
       combat_rewards.py          # XP contribution and reward helpers
       combat_observer.py         # observer/broadcast text shaping helpers
-      combat_abilities.py        # thin compatibility facade for split ability logic
       combat_ability_effects.py  # support-effect scaling and cooldown bookkeeping
       combat_player_abilities.py # player spell/skill execution
       combat_entity_abilities.py # NPC spell/skill execution

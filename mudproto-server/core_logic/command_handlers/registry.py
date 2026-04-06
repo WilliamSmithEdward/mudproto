@@ -1,4 +1,3 @@
-from commands import OutboundResult
 from display_feedback import display_error, display_prompt
 from models import ClientSession
 
@@ -8,7 +7,7 @@ from .equipment import handle_equipment_command, handle_item_use_command
 from .loot import handle_loot_command
 from .movement import handle_movement_command
 from .observation import handle_observation_command
-from .runtime import parse_command
+from .runtime import OutboundResult, parse_command
 from .skills import handle_skill_command, handle_skill_fallback_command
 from .social import handle_social_command
 from .spells import handle_spell_command

@@ -1,9 +1,10 @@
-from commands import OutboundResult
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from item_logic import _build_item_reference_parts
 from models import ClientSession
 import commerce as _commerce
+
+from .runtime import OutboundResult
 
 _build_inventory_item_from_template = getattr(_commerce, "_build_inventory_item_from_template")
 _display_merchant_stock = getattr(_commerce, "_display_merchant_stock")

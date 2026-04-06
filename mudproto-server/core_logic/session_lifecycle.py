@@ -81,7 +81,7 @@ def register_authenticated_character_session(session: ClientSession) -> None:
 
 async def _offline_character_loop(character_key: str, session: ClientSession) -> None:
     from battle_round_ticks import process_non_combat_support_round
-    from combat import end_combat, get_engaged_entity
+    from combat_state import end_combat, get_engaged_entity
     from game_hour_ticks import process_game_hour_tick
 
     safe_hours = 0
@@ -108,7 +108,7 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
 
             engaged = get_engaged_entity(session) is not None
             if engaged and now >= next_flee_attempt_monotonic:
-                from commands import flee
+                from command_handlers.runtime import flee
 
                 flee(session)
                 next_flee_attempt_monotonic = now + OFFLINE_FLEE_INTERVAL_SECONDS
