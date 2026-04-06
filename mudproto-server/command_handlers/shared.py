@@ -19,16 +19,7 @@ from combat import (
     spawn_dummy,
     use_skill,
 )
-from commerce import (
-    _append_item_to_merchant_stock,
-    _build_inventory_item_from_template,
-    _display_merchant_stock,
-    _get_merchant_sale_offer,
-    _remove_owned_trade_item,
-    _resolve_merchant_stock_selector,
-    _resolve_owned_trade_item,
-    _resolve_room_merchant,
-)
+import commerce as _commerce
 from display import (
     build_part,
     display_command_result,
@@ -41,23 +32,34 @@ from display import (
     display_prompt,
     display_room,
 )
-from equipment import (
-    HAND_BOTH,
-    HAND_MAIN,
-    HAND_OFF,
-    equip_item,
-    get_equipped_main_hand,
-    get_equipped_off_hand,
-    list_worn_items,
-    resolve_equipped_selector,
-    unequip_item,
-    wear_item,
-)
+import equipment as _equipment
 from inventory import is_item_equippable, resolve_equipment_selector
 from models import ClientSession, ItemState
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from sessions import apply_lag
-from world import get_room
+import world as _world
+
+_append_item_to_merchant_stock = getattr(_commerce, "_append_item_to_merchant_stock")
+_build_inventory_item_from_template = getattr(_commerce, "_build_inventory_item_from_template")
+_display_merchant_stock = getattr(_commerce, "_display_merchant_stock")
+_get_merchant_sale_offer = getattr(_commerce, "_get_merchant_sale_offer")
+_remove_owned_trade_item = getattr(_commerce, "_remove_owned_trade_item")
+_resolve_merchant_stock_selector = getattr(_commerce, "_resolve_merchant_stock_selector")
+_resolve_owned_trade_item = getattr(_commerce, "_resolve_owned_trade_item")
+_resolve_room_merchant = getattr(_commerce, "_resolve_room_merchant")
+
+HAND_BOTH = getattr(_equipment, "HAND_BOTH")
+HAND_MAIN = getattr(_equipment, "HAND_MAIN")
+HAND_OFF = getattr(_equipment, "HAND_OFF")
+equip_item = getattr(_equipment, "equip_item")
+get_equipped_main_hand = getattr(_equipment, "get_equipped_main_hand")
+get_equipped_off_hand = getattr(_equipment, "get_equipped_off_hand")
+list_worn_items = getattr(_equipment, "list_worn_items")
+resolve_equipped_selector = getattr(_equipment, "resolve_equipped_selector")
+unequip_item = getattr(_equipment, "unequip_item")
+wear_item = getattr(_equipment, "wear_item")
+
+get_room = getattr(_world, "get_room")
 
 from abilities import (
     _list_known_skills,
@@ -65,8 +67,8 @@ from abilities import (
     _resolve_skill_by_name,
     _resolve_spell_by_name,
 )
-from commands import (
-    OutboundResult,
+from commands import OutboundResult
+from .runtime import (
     _build_cost_menu_parts,
     display_score,
     flee,
