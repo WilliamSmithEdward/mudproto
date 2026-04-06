@@ -1,19 +1,40 @@
-import asyncio
-import re
-import uuid
-
-from grammar import resolve_player_pronouns, with_article
-from experience import award_experience
-from player_resources import roll_level_resource_gains
 from assets import get_gear_template_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_abilities import (
     _entity_try_cast_spell,
     _entity_try_use_skill,
-    _process_entity_battle_round_support_effects,
     cast_spell,
     process_entity_game_hour_tick,
     use_skill,
+)
+from combat_observer import (
+    _attach_room_broadcast_lines,
+    _observer_context_from_player_context,
+    _render_observer_template,
+    _resolve_combat_context,
+    _resolve_observer_action_line,
+)
+from combat_rewards import (
+    _award_shared_entity_experience,
+    _mark_entity_contributor,
+)
+from combat_state import (
+    _consume_entity_action_lag,
+    _display_peaceful_warning,
+    _engage_next_targeting_entity,
+    _find_peaceful_target,
+    _process_combat_round_timers,
+    _schedule_next_combat_round,
+    clear_combat_if_invalid,
+    end_combat,
+    get_engaged_entities,
+    get_engaged_entity,
+    get_entity_condition,
+    get_health_condition,
+    maybe_auto_engage_current_room,
+    spawn_corpse_for_entity,
+    start_combat,
+    tick_out_of_combat_cooldowns,
 )
 from combat_text import (
     append_newline_if_needed,
@@ -28,313 +49,15 @@ from damage import (
     roll_npc_weapon_damage,
     roll_player_damage,
 )
-from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
-from inventory import build_equippable_item_from_template
-from models import ClientSession, CorpseState, EntityState, ItemState
-from session_registry import active_character_sessions, connected_clients
 from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
-from settings import (
-    COMBAT_ROUND_INTERVAL_SECONDS,
-)
-from targeting_entities import list_room_entities, resolve_room_entity_selector
+from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
+from grammar import with_article
+from models import ClientSession, EntityState, ItemState
+from targeting_entities import resolve_room_entity_selector
 
 
 OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
-
-
-def _session_contributor_key(session: ClientSession) -> str:
-    return (session.player_state_key or session.client_id).strip().lower()
-
-
-def _mark_entity_contributor(session: ClientSession, entity: EntityState) -> None:
-    contributor_key = _session_contributor_key(session)
-    if contributor_key:
-        entity.experience_contributor_keys.add(contributor_key)
-
-
-def _append_experience_gain_notification(
-    session: ClientSession,
-    gained: int,
-    old_level: int,
-    new_level: int,
-    parts: list[dict],
-    build_part_fn,
-) -> None:
-    if gained <= 0:
-        return
-
-    append_newline_if_needed(parts)
-    parts.extend([
-        build_part_fn("You gain ", "bright_white"),
-        build_part_fn(str(gained), "bright_cyan", True),
-        build_part_fn(" experience.", "bright_white"),
-    ])
-
-    if new_level > old_level:
-        resource_gains = roll_level_resource_gains(session, old_level, new_level)
-        append_newline_if_needed(parts)
-        parts.append(build_part_fn("\n"))
-        parts.extend([
-            build_part_fn("You advance to level ", "bright_green", True),
-            build_part_fn(str(new_level), "bright_green", True),
-            build_part_fn("!", "bright_green", True),
-        ])
-        append_newline_if_needed(parts)
-        parts.extend([
-            build_part_fn("Level gains: ", "bright_white"),
-            build_part_fn(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
-            build_part_fn(" ", "bright_white"),
-            build_part_fn(f"+{int(resource_gains.get('vigor', 0))}V", "bright_yellow", True),
-            build_part_fn(" ", "bright_white"),
-            build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
-        ])
-        parts.append(build_part_fn("\n"))
-    else:
-        parts.append(build_part_fn("\n"))
-
-
-def _iter_experience_contributor_sessions(contributor_keys: set[str], *, room_id: str) -> list[ClientSession]:
-    if not contributor_keys:
-        return []
-
-    normalized_keys = {str(key).strip().lower() for key in contributor_keys if str(key).strip()}
-    normalized_room_id = str(room_id).strip()
-    if not normalized_keys or not normalized_room_id:
-        return []
-
-    matched_sessions: list[ClientSession] = []
-    seen_keys: set[str] = set()
-    for session in list(active_character_sessions.values()) + list(connected_clients.values()):
-        if not session.is_authenticated:
-            continue
-        if str(session.player.current_room_id).strip() != normalized_room_id:
-            continue
-        session_key = _session_contributor_key(session)
-        if not session_key or session_key not in normalized_keys or session_key in seen_keys:
-            continue
-        matched_sessions.append(session)
-        seen_keys.add(session_key)
-
-    return matched_sessions
-
-
-def _queue_experience_gain_notification(session: ClientSession, gained: int, old_level: int, new_level: int) -> None:
-    if gained <= 0:
-        return
-
-    from display_core import build_part, parts_to_lines
-
-    notification_parts: list[dict] = []
-    _append_experience_gain_notification(
-        session,
-        gained,
-        old_level,
-        new_level,
-        notification_parts,
-        build_part,
-    )
-    notification_lines = parts_to_lines(notification_parts)
-    if not notification_lines:
-        return
-
-    if session.pending_private_lines and session.pending_private_lines[-1]:
-        session.pending_private_lines.append([])
-    session.pending_private_lines.extend(notification_lines)
-
-
-def _award_shared_entity_experience(session: ClientSession, entity: EntityState, parts: list[dict], build_part_fn) -> None:
-    if bool(getattr(entity, "experience_reward_claimed", False)):
-        return
-
-    experience_reward = max(0, int(getattr(entity, "experience_reward", 0)))
-    if experience_reward <= 0:
-        entity.experience_reward_claimed = True
-        entity.experience_contributor_keys.clear()
-        return
-
-    contributor_keys = set(getattr(entity, "experience_contributor_keys", set()))
-    current_key = _session_contributor_key(session)
-    if current_key:
-        contributor_keys.add(current_key)
-
-    rewarded_keys: set[str] = set()
-    for contributor_session in _iter_experience_contributor_sessions(contributor_keys, room_id=entity.room_id):
-        contributor_key = _session_contributor_key(contributor_session)
-        if not contributor_key or contributor_key in rewarded_keys:
-            continue
-
-        gained, old_level, new_level, _ = award_experience(contributor_session, experience_reward)
-        rewarded_keys.add(contributor_key)
-        _queue_experience_gain_notification(contributor_session, gained, old_level, new_level)
-
-    if current_key and current_key not in rewarded_keys:
-        gained, old_level, new_level, _ = award_experience(session, experience_reward)
-        _queue_experience_gain_notification(session, gained, old_level, new_level)
-
-    entity.experience_reward_claimed = True
-    entity.experience_contributor_keys.clear()
-
-
-def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
-    payload = outbound.get("payload")
-    if not isinstance(payload, dict):
-        return outbound
-
-    broadcast_lines: list[list[dict]] = []
-    for line in lines:
-        cleaned = str(line).strip()
-        if not cleaned:
-            continue
-
-        is_death_line = cleaned.lower().endswith(" is dead!")
-        fg = "bright_red" if is_death_line else "bright_white"
-        bold = is_death_line
-        broadcast_lines.append([
-            {"text": cleaned, "fg": fg, "bold": bold}
-        ])
-
-    if broadcast_lines:
-        payload["room_broadcast_lines"] = broadcast_lines
-    return outbound
-
-
-def _render_observer_template(template_text: str, actor_name: str, actor_gender: str | None = None) -> str:
-    resolved_gender = actor_gender
-    if not resolved_gender:
-        normalized_actor_name = actor_name.strip().lower()
-        for active_session in active_character_sessions.values():
-            if active_session.authenticated_character_name.strip().lower() == normalized_actor_name:
-                resolved_gender = active_session.player.gender
-                break
-
-    actor_subject, actor_object, actor_possessive, _ = resolve_player_pronouns(
-        actor_name=actor_name,
-        actor_gender=resolved_gender,
-    )
-    return (
-        template_text
-        .replace("[actor_name]", actor_name)
-        .replace("[actor_subject]", actor_subject)
-        .replace("[actor_object]", actor_object)
-        .replace("[actor_possessive]", actor_possessive)
-    )
-
-
-def _observer_context_from_player_context(context: str, target_text: str | None = None) -> str:
-    if not context:
-        return ""
-
-    resolved = context
-    resolved = resolved.replace("[a/an]", target_text or "the target")
-    resolved = resolved.replace("[verb]", "is")
-    resolved = resolved.replace(" your ", " their ")
-    resolved = resolved.replace(" you ", " them ")
-    resolved = resolved.replace(" yourself", " themselves")
-    if resolved.startswith("Your "):
-        resolved = f"Their {resolved[5:]}"
-    if resolved.startswith("You "):
-        resolved = f"{resolved[4:]}"
-    return resolved
-
-
-def _resolve_combat_context(context: str, *, target_text: str, verb: str) -> str:
-    resolved = str(context).strip()
-    if not resolved:
-        return ""
-
-    resolved = resolved.replace("[a/an]", target_text)
-    resolved = resolved.replace("[verb]", verb)
-
-    if target_text.strip().lower() == "you":
-        resolved = re.sub(r"\byou is\b", "you are", resolved, flags=re.IGNORECASE)
-        resolved = re.sub(r"\byou has\b", "you have", resolved, flags=re.IGNORECASE)
-        if resolved.startswith("you "):
-            resolved = f"You{resolved[3:]}"
-
-    if resolved and not resolved.endswith("."):
-        resolved += "."
-    return resolved
-
-
-def _default_observer_action_line(
-    actor_name: str,
-    action_verb: str,
-    ability_name: str,
-    cast_type: str,
-    target_label: str | None = None,
-) -> str:
-    if cast_type == "self":
-        return f"{actor_name} {action_verb} {ability_name} on themselves."
-    if cast_type == "target" and target_label:
-        return f"{actor_name} {action_verb} {ability_name} on {target_label}."
-    if cast_type == "aoe":
-        return f"{actor_name} {action_verb} {ability_name} across the room."
-    return f"{actor_name} {action_verb} {ability_name}."
-
-
-def _normalize_observer_sentence(text: str) -> str:
-    normalized = text.strip()
-    if not normalized:
-        return ""
-    if normalized[-1] not in ".!?":
-        normalized += "."
-    return normalized
-
-
-def _resolve_observer_action_line(
-    actor_name: str,
-    action_verb: str,
-    ability_name: str,
-    cast_type: str,
-    target_label: str | None = None,
-    observer_action: str = "",
-) -> str:
-    canonical_line = _default_observer_action_line(actor_name, action_verb, ability_name, cast_type, target_label)
-    rendered_custom = _normalize_observer_sentence(_render_observer_template(observer_action, actor_name))
-    if not rendered_custom:
-        return canonical_line
-
-    lowered = rendered_custom.lower()
-
-    if cast_type == "self" and "on themselves" not in lowered:
-        return f"{rendered_custom.rstrip('.!?')} on themselves."
-
-    if cast_type == "aoe" and "across the room" not in lowered:
-        return f"{rendered_custom.rstrip('.!?')} across the room."
-
-    if cast_type == "target" and target_label:
-        lowered_target = target_label.lower()
-        if f" on {lowered_target}" not in lowered and f" at {lowered_target}" not in lowered:
-            return f"{rendered_custom.rstrip('.!?')} on {target_label}."
-
-    return rendered_custom
-
-
-def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str]:
-    if max_hit_points <= 0:
-        return "awful", "bright_red"
-
-    ratio = max(0.0, min(1.0, hit_points / max_hit_points))
-    if ratio <= 0.15:
-        return "awful", "bright_red"
-    if ratio <= 0.30:
-        return "very poor", "bright_red"
-    if ratio <= 0.45:
-        return "poor", "bright_red"
-    if ratio <= 0.60:
-        return "average", "bright_yellow"
-    if ratio <= 0.75:
-        return "fair", "bright_yellow"
-    if ratio <= 0.90:
-        return "good", "bright_green"
-    if ratio < 1.0:
-        return "very good", "bright_green"
-    return "perfect", "bright_green"
-
-
-def get_entity_condition(entity: EntityState) -> tuple[str, str]:
-    return get_health_condition(entity.hit_points, entity.max_hit_points)
 
 
 def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[ItemState | None]:
@@ -355,245 +78,6 @@ def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) 
 
     return attack_sequence
 
-
-def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> CorpseState:
-    next_spawn_sequence = max((corpse.spawn_sequence for corpse in session.corpses.values()), default=0) + 1
-    session.corpse_spawn_counter = max(session.corpse_spawn_counter, next_spawn_sequence)
-    corpse_id = f"corpse-{uuid.uuid4().hex[:8]}"
-    loot_items: dict[str, ItemState] = {}
-
-    equipped_template_ids: list[str] = []
-    if entity.main_hand_weapon_template_id.strip():
-        equipped_template_ids.append(entity.main_hand_weapon_template_id.strip())
-    if entity.off_hand_weapon_template_id.strip():
-        equipped_template_ids.append(entity.off_hand_weapon_template_id.strip())
-
-    for template_id in equipped_template_ids:
-        template = get_gear_template_by_id(template_id)
-        if template is None:
-            continue
-
-        loot_item = build_equippable_item_from_template(template, item_id=f"loot-{uuid.uuid4().hex[:8]}")
-        loot_items[loot_item.item_id] = loot_item
-
-    for carried_item in list(getattr(entity, "inventory_items", [])) + list(getattr(entity, "loot_items", [])):
-        if not isinstance(carried_item, ItemState):
-            continue
-        loot_items[carried_item.item_id] = carried_item
-
-    entity.inventory_items = []
-    entity.loot_items = []
-
-    corpse = CorpseState(
-        corpse_id=corpse_id,
-        source_entity_id=entity.entity_id,
-        source_name=entity.name,
-        room_id=entity.room_id,
-        coins=max(0, entity.coin_reward),
-        loot_items=loot_items,
-        spawn_sequence=next_spawn_sequence,
-    )
-    session.corpses[corpse_id] = corpse
-    return corpse
-
-
-def clear_combat_if_invalid(session: ClientSession) -> None:
-    current_room_id = session.player.current_room_id
-    invalid_entities = set()
-    
-    for entity_id in session.combat.engaged_entity_ids:
-        entity = session.entities.get(entity_id)
-        if entity is None or not entity.is_alive or entity.room_id != current_room_id:
-            invalid_entities.add(entity_id)
-    
-    session.combat.engaged_entity_ids -= invalid_entities
-    
-    if not session.combat.engaged_entity_ids:
-        end_combat(session)
-
-
-def end_combat(session: ClientSession) -> None:
-    session.combat.engaged_entity_ids.clear()
-    session.combat.next_round_monotonic = None
-    session.combat.opening_attacker = None
-
-
-def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
-    if entity_id in session.combat.engaged_entity_ids:
-        return False
-
-    entity = session.entities.get(entity_id)
-    if entity is None or not entity.is_alive:
-        return False
-    if bool(getattr(entity, "is_peaceful", False)):
-        return False
-    if entity.room_id != session.player.current_room_id:
-        return False
-
-    session.combat.engaged_entity_ids.add(entity_id)
-    session.combat.next_round_monotonic = None
-    if not session.combat.opening_attacker:
-        session.combat.opening_attacker = opening_attacker
-    return True
-
-
-def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
-    from display_core import build_display, build_part
-    from display_feedback import resolve_prompt
-
-    prompt_after, prompt_parts = resolve_prompt(session, True)
-    return build_display(
-        [
-            build_part("Relax. ", "bright_yellow", True),
-            build_part(f"{entity.name} is peaceful.", "bright_white"),
-        ],
-        prompt_after=prompt_after,
-        prompt_parts=prompt_parts,
-        is_error=True,
-    )
-
-
-def _find_peaceful_target(
-    session: ClientSession,
-    *,
-    target_name: str | None = None,
-    include_room_scan: bool = False,
-) -> EntityState | None:
-    if target_name:
-        entity, _ = resolve_room_entity_selector(
-            session,
-            session.player.current_room_id,
-            target_name,
-            living_only=True,
-        )
-        if entity is not None and bool(getattr(entity, "is_peaceful", False)):
-            return entity
-
-    if include_room_scan:
-        for entity in list_room_entities(session, session.player.current_room_id):
-            if entity.is_alive and bool(getattr(entity, "is_peaceful", False)):
-                return entity
-
-    return None
-
-
-def _schedule_next_combat_round(session: ClientSession) -> None:
-    try:
-        now = asyncio.get_running_loop().time()
-    except RuntimeError:
-        session.combat.next_round_monotonic = None
-        return
-
-    session.combat.next_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
-
-
-def get_engaged_entities(session: ClientSession) -> list[EntityState]:
-    clear_combat_if_invalid(session)
-
-    entities = []
-    for entity_id in session.combat.engaged_entity_ids:
-        entity = session.entities.get(entity_id)
-        if entity is not None:
-            entities.append(entity)
-    entities.sort(key=lambda item: item.spawn_sequence)
-    return entities
-
-
-def get_engaged_entity(session: ClientSession) -> EntityState | None:
-    """Get primary engaged entity (first in set for player attacks)."""
-    entities = get_engaged_entities(session)
-    return entities[0] if entities else None
-
-
-def _engage_next_targeting_entity(
-    session: ClientSession,
-    defeated_entity_id: str,
-    active_target_entity_ids: set[str] | None = None,
-) -> EntityState | None:
-    """Select next target only from entities currently engaging this player."""
-    candidates: list[EntityState] = []
-    for candidate in get_engaged_entities(session):
-        if candidate.entity_id == defeated_entity_id:
-            continue
-        if not candidate.is_alive:
-            continue
-        if active_target_entity_ids is not None and candidate.entity_id not in active_target_entity_ids:
-            continue
-        candidates.append(candidate)
-
-    if candidates:
-        next_target = candidates[0]
-        session.combat.opening_attacker = None
-        _schedule_next_combat_round(session)
-        return next_target
-
-    end_combat(session)
-    return None
-
-
-def _decrement_cooldowns(cooldowns: dict[str, int]) -> None:
-    for key in list(cooldowns.keys()):
-        remaining = int(cooldowns.get(key, 0))
-        if remaining <= 1:
-            cooldowns.pop(key, None)
-        else:
-            cooldowns[key] = remaining - 1
-
-
-def _process_combat_round_timers(session: ClientSession, entities: list[EntityState]) -> None:
-    _decrement_cooldowns(session.combat.skill_cooldowns)
-    _decrement_cooldowns(session.combat.item_cooldowns)
-
-    for entity in entities:
-        _process_entity_battle_round_support_effects(entity)
-        _decrement_cooldowns(entity.skill_cooldowns)
-        _decrement_cooldowns(entity.spell_cooldowns)
-
-
-def _consume_entity_action_lag(entity: EntityState) -> bool:
-    if entity.skill_lag_rounds_remaining > 0:
-        entity.skill_lag_rounds_remaining -= 1
-    if entity.spell_lag_rounds_remaining <= 0:
-        return False
-    entity.spell_lag_rounds_remaining -= 1
-    return True
-
-
-def tick_out_of_combat_cooldowns(session: ClientSession) -> None:
-    """Decrement player combat-tracked cooldowns for sessions not currently in combat."""
-    _decrement_cooldowns(session.combat.skill_cooldowns)
-    _decrement_cooldowns(session.combat.item_cooldowns)
-
-
-def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSession) -> bool:
-    """Check if an entity is already engaged by any other player."""
-    # Check connected clients
-    for sess in connected_clients.values():
-        if sess != current_session and entity_id in sess.combat.engaged_entity_ids:
-            return True
-    
-    # Check active character sessions (including offline characters)
-    for sess in active_character_sessions.values():
-        if sess != current_session and entity_id in sess.combat.engaged_entity_ids:
-            return True
-    
-    return False
-
-
-def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:
-    clear_combat_if_invalid(session)
-    if session.combat.engaged_entity_ids:
-        return []
-
-    engaged_entities = []
-    room_entities = list_room_entities(session, session.player.current_room_id)
-    for entity in room_entities:
-        if entity.is_aggro and not _is_entity_engaged_by_other_player(entity.entity_id, session):
-            started = start_combat(session, entity.entity_id, OPENING_ATTACKER_ENTITY)
-            if started:
-                engaged_entities.append(entity)
-
-    return engaged_entities
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:

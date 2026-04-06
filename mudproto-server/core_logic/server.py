@@ -1,10 +1,8 @@
 import asyncio
 import json
-import re
 import uuid
 from typing import TypeAlias
 
-from grammar import third_personize_text, to_third_person
 from websockets.asyncio.server import ServerConnection
 import websockets
 
@@ -16,14 +14,19 @@ from combat import (
     resolve_combat_round,
     tick_out_of_combat_cooldowns,
 )
-from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt, parse_command
-from world_population import initialize_session_entities, repopulate_game_hour_zones
-from display_core import build_display, build_display_lines, build_line, build_part
-from display_feedback import build_prompt_parts, display_connected, display_error, display_force_prompt, display_prompt
-from display_views import display_room
+from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt
+from display_feedback import display_connected, display_error, display_force_prompt, display_prompt
+from game_hour_ticks import process_game_hour_tick
 from models import ClientSession
 from player_state_db import save_player_state
 from protocol import validate_message
+from server_broadcasts import (
+    _build_unified_room_round_display,
+    _broadcast_non_combat_outbound_to_room,
+    _inject_private_lines_into_outbound,
+    _looks_like_skill_spell_or_item_action,
+)
+from server_movement import _handle_movement_side_effects
 from settings import (
     COMBAT_ROUND_INTERVAL_SECONDS,
     COMMAND_SCHEDULER_INTERVAL_SECONDS,
@@ -31,7 +34,10 @@ from settings import (
     SERVER_HOST,
     SERVER_PORT,
 )
-from session_timing import is_session_lagged, touch_session
+from session_lifecycle import (
+    handle_client_disconnect,
+    reset_session_to_login,
+)
 from session_registry import (
     active_character_sessions,
     connected_clients,
@@ -39,675 +45,13 @@ from session_registry import (
     register_client,
     shared_world_entities,
 )
-from session_lifecycle import (
-    handle_client_disconnect,
-    reset_session_to_login,
-)
-from game_hour_ticks import process_game_hour_tick
-from world import get_room
+from session_timing import is_session_lagged, touch_session
+from world_population import initialize_session_entities, repopulate_game_hour_zones
 
 RoomRoundResult: TypeAlias = tuple[ClientSession, dict]
 
-DIRECTION_OPPOSITES = {
-    "north": "south",
-    "south": "north",
-    "east": "west",
-    "west": "east",
-    "up": "down",
-    "down": "up",
-}
-
-
-def _format_arrival_origin(direction: str) -> str:
-    normalized = str(direction).strip().lower()
-    if normalized == "up":
-        return "above"
-    if normalized == "down":
-        return "below"
-    if normalized in {"north", "south", "east", "west"}:
-        return f"the {normalized}"
-    return normalized or "somewhere"
-
-
 next_game_tick_monotonic: float | None = None
 next_combat_round_monotonic: float | None = None
-
-
-def _iter_room_sessions(room_id: str, *, exclude_client_ids: set[str] | None = None) -> list[ClientSession]:
-    normalized_room_id = str(room_id).strip()
-    if not normalized_room_id:
-        return []
-
-    excluded = {str(client_id).strip() for client_id in (exclude_client_ids or set()) if str(client_id).strip()}
-    peers: list[ClientSession] = []
-    for session in connected_clients.values():
-        if session.client_id in excluded:
-            continue
-        if not session.is_connected or session.disconnected_by_server or not session.is_authenticated:
-            continue
-        if session.player.current_room_id != normalized_room_id:
-            continue
-        peers.append(session)
-    return peers
-
-
-def _iter_room_peers(origin_session):
-    if not origin_session.is_authenticated:
-        return []
-    return _iter_room_sessions(origin_session.player.current_room_id, exclude_client_ids={origin_session.client_id})
-
-
-def _is_private_progression_line(text: str) -> bool:
-    normalized = str(text).strip().lower()
-    if not normalized:
-        return False
-
-    return (
-        normalized.startswith("you gain ") and " experience" in normalized
-    ) or normalized.startswith("you advance to level ") or normalized.startswith("level gains:")
-
-
-def _fix_observer_line_grammar(line: list[dict], actor_name: str) -> None:
-    if not isinstance(line, list) or not actor_name.strip():
-        return
-
-    running_text = ""
-    normalized_actor = actor_name.strip().lower()
-    for part in line:
-        if not isinstance(part, dict):
-            continue
-
-        part_text = str(part.get("text", ""))
-        normalized_prefix = running_text.strip().lower()
-        if normalized_prefix in {normalized_actor, f"{normalized_actor} barely"}:
-            match = re.match(r"^(?P<verb>[A-Za-z]+)(?P<suffix>.*)$", part_text)
-            if match is not None:
-                verb = str(match.group("verb"))
-                suffix = str(match.group("suffix"))
-                normalized_verb = verb.strip().lower()
-                if normalized_verb not in {"is", "was", "has", "does"}:
-                    part["text"] = f"{to_third_person(verb)}{suffix}"
-            break
-
-        running_text += part_text
-
-
-def _strip_observer_actor_line_style(line: list[dict], actor_name: str) -> None:
-    if not isinstance(line, list) or not actor_name.strip():
-        return
-
-    normalized_text = _line_text(line).strip().lower()
-    normalized_actor = actor_name.strip().lower()
-    if not normalized_text.startswith(f"{normalized_actor} "):
-        return
-
-    for part in line:
-        if not isinstance(part, dict):
-            continue
-        part["fg"] = "bright_white"
-        part["bold"] = False
-
-
-def _build_room_broadcast_messages(origin_session, outbound: dict | list[dict]) -> list[dict]:
-    messages = outbound if isinstance(outbound, list) else [outbound]
-    broadcast_messages: list[dict] = []
-    actor_name = origin_session.authenticated_character_name or "Someone"
-
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        if message.get("type") != "display":
-            continue
-
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-
-        lines = payload.get("lines")
-        if not isinstance(lines, list) or not lines:
-            continue
-
-        copied_message = json.loads(json.dumps(message))
-        copied_payload = copied_message.get("payload")
-        if isinstance(copied_payload, dict):
-            if bool(copied_payload.get("is_error", False)):
-                continue
-
-            observer_lines = copied_payload.get("room_broadcast_lines")
-            if isinstance(observer_lines, list) and observer_lines:
-                copied_payload["lines"] = observer_lines
-            else:
-                copied_lines = copied_payload.get("lines")
-                if isinstance(copied_lines, list):
-                    filtered_lines: list = []
-                    for line in copied_lines:
-                        if not isinstance(line, list):
-                            continue
-                        if _is_private_progression_line(_line_text(line)):
-                            continue
-                        for part in line:
-                            if not isinstance(part, dict):
-                                continue
-                            original_text = str(part.get("text", ""))
-                            part["text"] = third_personize_text(
-                                original_text,
-                                actor_name,
-                                origin_session.player.gender,
-                            )
-                        _fix_observer_line_grammar(line, actor_name)
-                        _strip_observer_actor_line_style(line, actor_name)
-                        filtered_lines.append(line)
-                    copied_payload["lines"] = filtered_lines
-            copied_lines = copied_payload.get("lines")
-            if isinstance(copied_lines, list):
-                normalized_lines = [line for line in copied_lines if isinstance(line, list)]
-                leading_blank_count = 0
-                while leading_blank_count < len(normalized_lines) and not normalized_lines[leading_blank_count]:
-                    leading_blank_count += 1
-                if normalized_lines:
-                    desired_leading_blank_count = 2
-                    copied_payload["lines"] = ([[]] * max(0, desired_leading_blank_count - leading_blank_count)) + normalized_lines
-                else:
-                    copied_payload["lines"] = normalized_lines
-        broadcast_messages.append(copied_message)
-
-    return broadcast_messages
-
-
-def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | list[dict]) -> bool:
-    messages = outbound if isinstance(outbound, list) else [outbound]
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-        lines = payload.get("lines")
-        if not isinstance(lines, list):
-            continue
-        text = "\n".join(_line_text(line) for line in lines if isinstance(line, list)).strip()
-        if text.startswith("Error:"):
-            return False
-
-    verb, _ = parse_command(command_text)
-    if verb in {
-        "attack", "ki", "kil", "kill", "flee",
-        "cast", "c", "ca", "cas", "use", "skill", "sk", "ski", "skil", "skl",
-    }:
-        return True
-
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-        lines = payload.get("lines")
-        if not isinstance(lines, list):
-            continue
-        text = "\n".join(_line_text(line) for line in lines if isinstance(line, list)).strip().lower()
-        if text.startswith("you cast ") or text.startswith("you use "):
-            return True
-
-    return False
-
-
-def _line_text(line: list[dict]) -> str:
-    return "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
-
-
-def _extract_display_lines(message: dict | None) -> list[list[dict]]:
-    if not isinstance(message, dict):
-        return []
-    if message.get("type") != "display":
-        return []
-
-    payload = message.get("payload")
-    if not isinstance(payload, dict):
-        return []
-
-    raw_lines = payload.get("lines")
-    if not isinstance(raw_lines, list):
-        return []
-
-    extracted_lines = [line for line in raw_lines if isinstance(line, list)]
-
-    while extracted_lines and not _line_text(extracted_lines[0]).strip():
-        extracted_lines.pop(0)
-
-    while extracted_lines and not _line_text(extracted_lines[-1]).strip():
-        extracted_lines.pop()
-
-    return extracted_lines
-
-
-def _consume_pending_private_lines(session: ClientSession) -> list[list[dict]]:
-    pending_lines = [line for line in session.pending_private_lines if isinstance(line, list)]
-    session.pending_private_lines = []
-    return pending_lines
-
-
-def _append_private_lines_to_payload(payload: dict, session: ClientSession) -> None:
-    pending_lines = _consume_pending_private_lines(session)
-    if not pending_lines:
-        return
-
-    existing_lines = payload.get("lines")
-    normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
-    if normalized_existing and normalized_existing[-1]:
-        normalized_existing.append([])
-
-    merged_lines = normalized_existing + pending_lines
-    if merged_lines and merged_lines[-1]:
-        merged_lines.append([])
-    payload["lines"] = merged_lines
-
-
-def _normalize_prompt_spacing(payload: dict) -> None:
-    prompt_lines = payload.get("prompt_lines")
-    if not isinstance(prompt_lines, list) or not prompt_lines:
-        return
-
-    normalized_prompt = [line for line in prompt_lines if isinstance(line, list)]
-    while normalized_prompt and not normalized_prompt[0]:
-        normalized_prompt.pop(0)
-
-    existing_lines = payload.get("lines")
-    normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
-    if normalized_existing and not normalized_existing[-1]:
-        prompt_blank_count = 1
-    elif normalized_existing:
-        prompt_blank_count = 2
-    else:
-        prompt_blank_count = 1
-
-    payload["prompt_lines"] = ([[]] * prompt_blank_count) + normalized_prompt
-
-
-def _inject_private_lines_into_outbound(session: ClientSession, outbound: dict | list[dict]) -> dict | list[dict]:
-    pending_lines = _consume_pending_private_lines(session)
-    if not pending_lines:
-        return outbound
-
-    messages = outbound if isinstance(outbound, list) else [outbound]
-    for message in messages:
-        if not isinstance(message, dict) or message.get("type") != "display":
-            continue
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-
-        existing_lines = payload.get("lines")
-        normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
-        if normalized_existing and normalized_existing[-1]:
-            normalized_existing.append([])
-
-        merged_lines = normalized_existing + pending_lines
-        if merged_lines and merged_lines[-1]:
-            merged_lines.append([])
-        payload["lines"] = merged_lines
-        _normalize_prompt_spacing(payload)
-        return outbound
-
-    notification_message = build_display_lines(
-        pending_lines,
-        blank_lines_before=0,
-        prompt_after=True,
-        prompt_parts=build_prompt_parts(session),
-    )
-    if isinstance(outbound, list):
-        return [notification_message, *outbound]
-    return [notification_message, outbound]
-
-
-def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tuple[list[list[dict]], list[list[dict]]]:
-    player_lines: list[list[dict]] = []
-    retaliation_lines: list[list[dict]] = []
-    in_retaliation = False
-    normalized_prefix = actor_prefix.strip().lower()
-
-    for line in lines:
-        line_text = _line_text(line)
-        if not line_text.strip():
-            if in_retaliation:
-                retaliation_lines.append([])
-            else:
-                player_lines.append([])
-            continue
-
-        normalized_line = line_text.strip().lower()
-        is_actor_line = normalized_line.startswith(normalized_prefix)
-        if not in_retaliation and is_actor_line:
-            player_lines.append(line)
-            continue
-
-        in_retaliation = True
-        retaliation_lines.append(line)
-
-    return player_lines, retaliation_lines
-
-
-def _build_unified_room_round_display(
-    recipient_session: ClientSession,
-    room_round_results: list[RoomRoundResult],
-) -> dict | None:
-    player_phase_lines: list[list[dict]] = []
-    retaliation_phase_lines: list[list[dict]] = []
-
-    for actor_session, actor_result in room_round_results:
-        actor_name = actor_session.authenticated_character_name or "Someone"
-        if recipient_session.client_id == actor_session.client_id:
-            recipient_message = actor_result
-            actor_prefix = "you "
-        else:
-            observer_messages = _build_room_broadcast_messages(actor_session, actor_result)
-            if not observer_messages:
-                continue
-            recipient_message = observer_messages[0]
-            actor_prefix = f"{actor_name.lower()} "
-
-        lines = _extract_display_lines(recipient_message)
-        if not lines:
-            continue
-
-        actor_lines, retaliation_lines = _split_actor_round_lines(lines, actor_prefix)
-        player_phase_lines.extend(actor_lines)
-        retaliation_phase_lines.extend(retaliation_lines)
-
-    merged_lines = player_phase_lines + retaliation_phase_lines
-    if not merged_lines:
-        return None
-
-    return build_display_lines(
-        merged_lines,
-        blank_lines_before=0,
-        blank_lines_after=1,
-        starts_on_new_line=True,
-    )
-
-
-async def _send_room_broadcast(origin_session, broadcast_messages: list[dict], *, prompt_observers: bool = True) -> None:
-    if not broadcast_messages:
-        return
-
-    peers = _iter_room_peers(origin_session)
-    for peer in peers:
-        peer_messages = json.loads(json.dumps(broadcast_messages))
-        if prompt_observers:
-            for message in peer_messages:
-                if isinstance(message, dict) and message.get("type") == "display":
-                    payload = message.get("payload")
-                    if isinstance(payload, dict):
-                        _append_private_lines_to_payload(payload, peer)
-                        prompt_lines = [build_prompt_parts(peer)]
-                        existing_lines = payload.get("lines")
-                        if isinstance(existing_lines, list) and existing_lines:
-                            trailing_blank_line = False
-                            for existing_line in reversed(existing_lines):
-                                if not isinstance(existing_line, list):
-                                    continue
-                                trailing_blank_line = not existing_line
-                                break
-                            prompt_blank_count = 1 if trailing_blank_line else 2
-                            prompt_lines = ([[]] * prompt_blank_count) + prompt_lines
-                        payload["prompt_lines"] = prompt_lines
-        await send_outbound(peer.websocket, peer_messages)
-
-
-async def _broadcast_battle_outbound_to_room(origin_session, outbound: dict | list[dict]) -> None:
-    broadcast_messages = _build_room_broadcast_messages(origin_session, outbound)
-    await _send_room_broadcast(origin_session, broadcast_messages, prompt_observers=True)
-
-
-async def _broadcast_non_combat_outbound_to_room(origin_session, outbound: dict | list[dict]) -> None:
-    broadcast_messages = _build_room_broadcast_messages(origin_session, outbound)
-    await _send_room_broadcast(origin_session, broadcast_messages, prompt_observers=True)
-
-
-def _extract_movement_events(outbound: dict | list[dict]) -> list[dict[str, object]]:
-    messages = outbound if isinstance(outbound, list) else [outbound]
-    movement_events: list[dict[str, object]] = []
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-        movement = payload.get("movement")
-        if isinstance(movement, dict):
-            movement_events.append(movement)
-    return movement_events
-
-
-def _prepend_display_lines(message: dict | None, lines: list[list[dict]]) -> dict | None:
-    if not isinstance(message, dict):
-        return message
-
-    payload = message.get("payload")
-    if not isinstance(payload, dict):
-        return message
-
-    normalized_prefix = [line for line in lines if isinstance(line, list)]
-    existing_lines = payload.get("lines")
-    if isinstance(existing_lines, list):
-        normalized_existing = [line for line in existing_lines if isinstance(line, list)]
-        while normalized_prefix and normalized_existing and not normalized_prefix[-1] and not normalized_existing[0]:
-            normalized_existing.pop(0)
-        payload["lines"] = normalized_prefix + normalized_existing
-    else:
-        payload["lines"] = normalized_prefix
-    return message
-
-
-def _refresh_origin_room_display(origin_session: ClientSession, outbound: dict | list[dict], to_room_id: str) -> None:
-    destination_room = get_room(to_room_id)
-    if destination_room is None:
-        return
-
-    refreshed_display = display_room(origin_session, destination_room)
-    refreshed_payload = refreshed_display.get("payload") if isinstance(refreshed_display, dict) else None
-    if not isinstance(refreshed_payload, dict):
-        return
-
-    refreshed_lines = refreshed_payload.get("lines")
-    refreshed_prompt_lines = refreshed_payload.get("prompt_lines")
-    messages = outbound if isinstance(outbound, list) else [outbound]
-    for message in messages:
-        if not isinstance(message, dict) or message.get("type") != "display":
-            continue
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-        movement = payload.get("movement")
-        if not isinstance(movement, dict):
-            continue
-        if str(movement.get("to_room_id", "")).strip() != str(to_room_id).strip():
-            continue
-
-        if isinstance(refreshed_lines, list):
-            payload["lines"] = json.loads(json.dumps(refreshed_lines))
-        if isinstance(refreshed_prompt_lines, list):
-            payload["prompt_lines"] = json.loads(json.dumps(refreshed_prompt_lines))
-        break
-
-
-def _resolve_follow_leader_name(follower_session: ClientSession) -> str:
-    normalized_key = (follower_session.following_player_key or "").strip().lower()
-    if normalized_key:
-        for candidate in connected_clients.values():
-            if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
-                continue
-            candidate_key = (candidate.player_state_key or candidate.client_id).strip().lower()
-            if candidate_key == normalized_key:
-                return candidate.authenticated_character_name.strip() or "someone"
-    return follower_session.following_player_name.strip() or "someone"
-
-
-def _collect_followers_for_leader(leader_session: ClientSession, room_id: str) -> list[ClientSession]:
-    origin_room_id = str(room_id).strip()
-    if not origin_room_id:
-        return []
-
-    leader_key = (leader_session.player_state_key or leader_session.client_id).strip().lower()
-    if not leader_key:
-        return []
-
-    followers: list[ClientSession] = []
-    pending_keys = [leader_key]
-    seen_keys = {leader_key}
-    seen_clients = {leader_session.client_id}
-
-    while pending_keys:
-        current_leader_key = pending_keys.pop(0)
-        for candidate in connected_clients.values():
-            if candidate.client_id in seen_clients:
-                continue
-            if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
-                continue
-            if candidate.player.current_room_id != origin_room_id:
-                continue
-            if (candidate.following_player_key or "").strip().lower() != current_leader_key:
-                continue
-
-            followers.append(candidate)
-            seen_clients.add(candidate.client_id)
-
-            candidate_key = (candidate.player_state_key or candidate.client_id).strip().lower()
-            if candidate_key and candidate_key not in seen_keys:
-                pending_keys.append(candidate_key)
-                seen_keys.add(candidate_key)
-
-    return followers
-
-
-async def _send_room_notice(
-    room_id: str,
-    parts: list[dict],
-    *,
-    exclude_client_ids: set[str] | None = None,
-) -> None:
-    for peer in _iter_room_sessions(room_id, exclude_client_ids=exclude_client_ids):
-        message = build_display(
-            parts,
-            blank_lines_before=0,
-            prompt_after=True,
-            prompt_parts=build_prompt_parts(peer),
-        )
-        await send_outbound(peer.websocket, message)
-
-
-async def _handle_movement_side_effects(origin_session: ClientSession, outbound: dict | list[dict]) -> None:
-    actor_name = origin_session.authenticated_character_name.strip() or "Someone"
-
-    for movement in _extract_movement_events(outbound):
-        from_room_id = str(movement.get("from_room_id", "")).strip()
-        to_room_id = str(movement.get("to_room_id", "")).strip()
-        direction = str(movement.get("direction", "")).strip().lower()
-        action = str(movement.get("action", "leaves")).strip().lower() or "leaves"
-        allow_followers = bool(movement.get("allow_followers", False))
-        if not from_room_id or not to_room_id or not direction:
-            continue
-
-        grouped_followers = _collect_followers_for_leader(origin_session, from_room_id) if allow_followers else []
-        moving_followers = [follower for follower in grouped_followers if not follower.combat.engaged_entity_ids]
-        moving_group_ids = {origin_session.client_id, *(follower.client_id for follower in moving_followers)}
-
-        await _send_room_notice(
-            from_room_id,
-            [
-                build_part(actor_name, "bright_cyan", True),
-                build_part(f" {action} ", "bright_white"),
-                build_part(direction, "bright_yellow", True),
-                build_part(".", "bright_white"),
-            ],
-            exclude_client_ids=moving_group_ids,
-        )
-
-        for follower in grouped_followers:
-            if follower in moving_followers:
-                continue
-
-            leader_name = _resolve_follow_leader_name(follower)
-            follower.following_player_key = ""
-            follower.following_player_name = ""
-            await send_outbound(
-                follower.websocket,
-                build_display(
-                    [
-                        build_part("Combat keeps you from following ", "bright_white"),
-                        build_part(leader_name, "bright_cyan", True),
-                        build_part(".", "bright_white"),
-                    ],
-                    blank_lines_before=0,
-                    prompt_after=True,
-                    prompt_parts=build_prompt_parts(follower),
-                ),
-            )
-
-        arrival_direction = DIRECTION_OPPOSITES.get(direction, direction)
-        arrival_origin = _format_arrival_origin(arrival_direction)
-        await _send_room_notice(
-            to_room_id,
-            [
-                build_part(actor_name, "bright_cyan", True),
-                build_part(" arrives from ", "bright_white"),
-                build_part(arrival_origin, "bright_yellow", True),
-                build_part(".", "bright_white"),
-            ],
-            exclude_client_ids=moving_group_ids,
-        )
-
-        destination_room = get_room(to_room_id)
-        for follower in moving_followers:
-            leader_name = _resolve_follow_leader_name(follower)
-            follower.following_player_name = leader_name
-            follower.player.current_room_id = to_room_id
-
-            await _send_room_notice(
-                from_room_id,
-                [
-                    build_part(follower.authenticated_character_name.strip() or "Someone", "bright_cyan", True),
-                    build_part(" leaves ", "bright_white"),
-                    build_part(direction, "bright_yellow", True),
-                    build_part(", following ", "bright_white"),
-                    build_part(leader_name, "bright_cyan", True),
-                    build_part(".", "bright_white"),
-                ],
-                exclude_client_ids=moving_group_ids,
-            )
-
-            await _send_room_notice(
-                to_room_id,
-                [
-                    build_part(follower.authenticated_character_name.strip() or "Someone", "bright_cyan", True),
-                    build_part(" arrives from ", "bright_white"),
-                    build_part(arrival_origin, "bright_yellow", True),
-                    build_part(", following ", "bright_white"),
-                    build_part(leader_name, "bright_cyan", True),
-                    build_part(".", "bright_white"),
-                ],
-                exclude_client_ids=moving_group_ids,
-            )
-
-            if destination_room is None:
-                follow_display = display_error(f"Destination room not found: {to_room_id}", follower)
-            else:
-                maybe_auto_engage_current_room(follower)
-                follow_display = display_room(follower, destination_room)
-
-            _prepend_display_lines(follow_display, [
-                build_line(
-                    build_part("You follow ", "bright_white"),
-                    build_part(leader_name, "bright_cyan", True),
-                    build_part(" ", "bright_white"),
-                    build_part(direction, "bright_yellow", True),
-                    build_part(".", "bright_white"),
-                ),
-                [],
-            ])
-            await send_outbound(follower.websocket, follow_display)
-
-        _refresh_origin_room_display(origin_session, outbound, to_room_id)
 
 
 async def send_json(websocket: ServerConnection, message: dict) -> bool:
@@ -763,11 +107,11 @@ async def command_scheduler_loop(session) -> None:
                 queued_command = session.command_queue.pop(0)
 
                 result = execute_command(session, queued_command.command_text)
-                await _handle_movement_side_effects(session, result)
+                await _handle_movement_side_effects(session, result, send_outbound)
                 result = _inject_private_lines_into_outbound(session, result)
                 await send_outbound(session.websocket, result)
                 if _looks_like_skill_spell_or_item_action(queued_command.command_text, result):
-                    await _broadcast_non_combat_outbound_to_room(session, result)
+                    await _broadcast_non_combat_outbound_to_room(session, result, send_outbound)
                 continue
 
             if session.prompt_pending_after_lag:
@@ -965,7 +309,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
                 continue
 
             response = await dispatch_message(message, session)
-            await _handle_movement_side_effects(session, response)
+            await _handle_movement_side_effects(session, response, send_outbound)
             response = _inject_private_lines_into_outbound(session, response)
             await send_outbound(session.websocket, response)
 
@@ -978,7 +322,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
                 payload = message.get("payload", {})
                 input_text = payload.get("text") if isinstance(payload, dict) else None
                 if isinstance(input_text, str) and session.is_authenticated and _looks_like_skill_spell_or_item_action(input_text, response):
-                    await _broadcast_non_combat_outbound_to_room(session, response)
+                    await _broadcast_non_combat_outbound_to_room(session, response, send_outbound)
     except websockets.ConnectionClosed:
         pass
     finally:

@@ -130,7 +130,9 @@ Level gains: +10HP +5V +6M
 
 | Module | Responsibility |
 |--------|----------------|
-| `server.py` | WebSocket listener, global tick loops (combat rounds and game hours), and room-round broadcast orchestration. |
+| `server.py` | Thin WebSocket entrypoint plus global tick loops; delegates room broadcast shaping to `server_broadcasts.py` and movement/follow side effects to `server_movement.py`. |
+| `server_broadcasts.py` | Observer-facing room broadcast generation, private-line injection, prompt spacing, and unified room-round display helpers. |
+| `server_movement.py` | Movement notices, follower propagation, arrival/departure messaging, and post-move room refresh handling. |
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
 | `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
 | `settings.py` | Loads `configuration/server/settings.json` and exposes typed constants (timing, combat, gameplay, session, offline, database, assets). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
@@ -140,18 +142,29 @@ Level gains: +10HP +5V +6M
 | `session_lifecycle.py` | Disconnect/login reset flow, offline character processing, and session hydration/re-attachment on reconnect. |
 | `commands.py` | Thin public shell for parsing/auth/message dispatch and compatibility exports; delegates gameplay behavior into `command_handlers/`. |
 | `commerce.py` | Merchant/trade pricing, stock resolution, resale handling, and shared buy/sell helper logic used by command handlers. |
-| `targeting.py` | Shared selector parsing plus item, player, entity, corpse, and room target resolution helpers used by command handlers and utilities. |
+| `targeting_parsing.py` | Shared selector parsing and normalization helpers for commands and resolvers. |
+| `targeting_entities.py` | Entity/player/corpse lookup plus room target resolution helpers. |
+| `targeting_items.py` | Item and equipment selector resolution across inventory, corpses, and room ground items. |
+| `targeting_follow.py` | Follow/unfollow targeting helpers and social-follow resolution. |
 | `item_logic.py` | Shared corpse/item display logic and misc item-use handling. |
 | `abilities.py` | Shared known spell/skill lookup and name-resolution helpers. |
 | `world_population.py` | NPC/entity template hydration, training dummy spawning, shared-world initialization, and zone repopulation/reinitialization. |
-| `combat_abilities.py` | Spell/skill execution, support-effect application, combat scaling, and NPC combat ability usage. |
-| `command_handlers/` | Grouped player-facing command handlers (`shared.py` facade plus `runtime.py`, auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions) coordinated by a central registry. |
-| `combat.py` | Combat round resolution, corpse creation, flee logic, melee attack flow, and encounter state transitions. |
+| `combat_ability_effects.py` | Shared support-effect scaling, restore logic, cooldown bookkeeping, and timed/battle-round effect processing. |
+| `combat_player_abilities.py` | Player skill and spell execution, targeting, resource spend, reward hooks, and observer text setup. |
+| `combat_entity_abilities.py` | NPC/entity skill and spell usage against players, including self-buffs and restore effects. |
+| `combat_abilities.py` | Thin compatibility facade re-exporting the split combat ability helpers. |
+| `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers. |
+| `combat_rewards.py` | Shared contributor tracking and XP/reward distribution helpers. |
+| `combat_observer.py` | Combat observer-line templating, room-broadcast line shaping, and third-person text helpers. |
+| `command_handlers/` | Grouped player-facing handlers plus `runtime.py` registry/orchestration for auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions. |
+| `combat.py` | Combat round orchestration, melee/flee flow, and encounter-resolution glue over the extracted combat helper modules. |
 | `combat_text.py` | Damage-severity classification and attack-verb templates for player and NPC combat messages. |
 | `damage.py` | Damage rolling (`roll_player_damage`, `roll_npc_weapon_damage`), hit-chance calculation, weapon verb resolution. |
 | `equipment.py` | Equip/wear/unequip mechanics, hand weight validation, armor class calculation, equipped-item selector resolution. |
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
-| `display.py` | Display message building (room, inventory, equipment, attributes, spells, skills, prompt), color/item-highlight logic. |
+| `display_core.py` | Core display builders, line/part composition, and item-highlight coloring helpers. |
+| `display_feedback.py` | Prompt/status displays, command results, and error/connection feedback builders. |
+| `display_views.py` | Room, inventory, equipment, spell, skill, and other structured gameplay views. |
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
 | `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
 | `assets.py` | Content asset loaders for gear, items, rooms, zones, NPCs, spells, and skills with structural and cross-reference validation. |
@@ -181,11 +194,11 @@ MudProto should stay organized around **layered ownership** rather than around a
    - If code branches on `verb`, parses command-specific arguments, or decides which domain operation to invoke, it belongs here.
 
 4. **Domain logic layer**
-   - Reusable game rules belong in focused core modules such as `combat.py`, `commerce.py`, `inventory.py`, `equipment.py`, `targeting.py`, `item_logic.py`, and `abilities.py`.
+   - Reusable game rules belong in focused core modules such as `combat.py`, `combat_state.py`, `combat_player_abilities.py`, `commerce.py`, `inventory.py`, `equipment.py`, `targeting_entities.py`, `targeting_items.py`, `item_logic.py`, and `abilities.py`.
    - If logic is shared by multiple commands, it should live here rather than in a handler file.
 
 5. **Presentation layer**
-   - Output formatting belongs in `display.py` and `grammar.py`.
+   - Output formatting belongs in `display_core.py`, `display_feedback.py`, `display_views.py`, and `grammar.py`.
    - Game rules should not be mixed with text styling or sentence transformation helpers.
 
 6. **Configuration and persistence layer**
@@ -206,7 +219,7 @@ server.py / session_* modules
 
 Rules:
 - Domain modules should **not** import command handler modules.
-- `command_handlers/shared.py` should stay a **thin facade**, not a place where new business logic accumulates.
+- Command-handler facades and registries should stay **thin**, not become new sinks for shared business logic.
 - Lazy imports are acceptable only to preserve public compatibility boundaries or to avoid unavoidable cycles during refactors.
 
 ### Refactor Methodology
@@ -220,15 +233,13 @@ When separating concerns further:
 
 ### Current Best Next Opportunities
 
-The cleanest remaining separations after the current refactor are:
+The current refactor now centers around thin orchestration shells with focused helpers behind them:
 
-- **`combat.py`**
-  - Still mixes combat resolution, NPC ability use, corpse/loot handling, target resolution, entity spawning, and zone repopulation.
-  - Best next split: `combat_targeting.py`, `combat_effects.py`, `combat_rewards.py`, and `world_population.py`/`npc_spawning.py`.
+- **`combat.py`** now delegates encounter state, rewards, and observer text to `combat_state.py`, `combat_rewards.py`, and `combat_observer.py`.
+- **`combat_abilities.py`** is now a compatibility facade over `combat_ability_effects.py`, `combat_player_abilities.py`, and `combat_entity_abilities.py`.
+- **`server.py`** now delegates room-broadcast shaping and follow/movement side effects to `server_broadcasts.py` and `server_movement.py`.
 
-- **`commands.py`**
-  - Should continue shrinking toward message/auth compatibility only.
-  - Any wrapper still not needed for compatibility should eventually be removed once call sites are migrated.
+The best next cleanup from here is continuing to remove any remaining compatibility-only wrappers once all call sites are migrated directly.
 
 ---
 
@@ -311,7 +322,7 @@ Invariant: every item in `equipped_items` is referenced by exactly one of
 ### Entity State
 
 NPCs are represented by `EntityState` — each instance is spawned per-player
-via `combat.py::initialize_session_entities()`. Entities carry their own HP,
+via `world_population.py::initialize_session_entities()`. Entities carry their own HP,
 power level, weapon template IDs, skill list, and cooldown tracking.
 
 ### Session Model
@@ -523,7 +534,7 @@ When an entity dies:
 
 ### Item Highlighting
 
-`display.py::_item_highlight_color()` — equippable items render in
+`display_core.py::_item_highlight_color()` — equippable items render in
 **bright magenta**; non-equippable items in **bright cyan**. This is used
 consistently across inventory, room, loot, and action-message contexts.
 
@@ -531,13 +542,10 @@ consistently across inventory, room, loot, and action-message contexts.
 
 ## 11. Display & Rendering
 
-Display messages are built in `display.py` and sent as structured JSON `lines`.
-Each line is an array of styled text parts, where each part carries `text`,
-optional `fg` color, and optional `bold` flag. Both the terminal client and the
-GUI client render these line arrays from the same server payload.
+Display messages are built across `display_core.py`, `display_feedback.py`, and `display_views.py` and sent as structured JSON `lines`. Each line is an array of styled text parts, where each part carries `text`, optional `fg` color, and optional `bold` flag. Both the terminal client and the GUI client render these line arrays from the same server payload.
 
 Key builders:
-- `build_display()` — assembles final protocol payload with structural `lines`.
+- `build_display()` / `build_display_lines()` — assemble final protocol payloads with structural `lines`.
 - `display_room()` — room title, description, exits, NPCs, corpses, items,
   coins, other players.
 - `display_inventory()`, `display_equipment()`, `display_attributes()`.
@@ -629,7 +637,7 @@ Rooms are defined in `rooms.json` with exits (direction → room ID), `zone_id`,
 and NPC spawn configs (template ID + count). Zones are defined in `zones.json`
 with `room_ids` and `repopulate_game_hours`.
 
-`combat.py::initialize_session_entities()` and the zone repopulation helpers
+`world_population.py::initialize_session_entities()` and the zone repopulation helpers
 instantiate `EntityState` copies from NPC templates. Shared entities live in the
 world dict so all players interact with the same NPC instances.
 
@@ -668,25 +676,42 @@ mudproto/
   mudproto-client-gui/
     client_gui.py                # generic Tk GUI client
   mudproto-server/
-    server.py                    # async server entry point and tick loops
-    protocol.py                  # envelope helpers and validation
-    models.py                    # all core dataclasses
-    settings.py                  # typed constants from settings.json + DB bootstrap
-    session_*.py                 # session lifecycle, registry, timing, and bootstrap helpers
-    commands.py                  # command parsing and all player commands
-    combat.py                    # combat resolution and encounter-flow helpers
-    combat_text.py               # damage-severity message templates
-    damage.py                    # damage and hit-chance math
-    equipment.py                 # equip, wear, and unequip mechanics
-    inventory.py                 # item selectors and template hydration
-    display.py                   # display builders (room, inventory, prompt, etc.)
-    grammar.py                   # shared text and grammar transforms
-    attribute_config.py          # attribute and rules config loaders
-    assets.py                    # content asset loaders with validation
-    player_state_db.py           # SQLite persistence
-    world.py                     # Room and Zone dataclasses
-    battle_round_ticks.py        # per-round support effect processing
-    game_hour_ticks.py           # per-hour regen and timed support processing
+    core_logic/
+      server.py                  # thin async server entry point and tick loops
+      server_broadcasts.py       # room broadcast and outbound shaping helpers
+      server_movement.py         # movement/follow side effects and room notices
+      protocol.py                # envelope helpers and validation
+      models.py                  # all core dataclasses
+      settings.py                # typed constants from settings.json + DB bootstrap
+      session_*.py               # session lifecycle, registry, timing, and bootstrap helpers
+      commands.py                # command parsing compatibility shell
+      command_handlers/          # grouped command handlers plus runtime registry
+      combat.py                  # combat round orchestration and melee flow
+      combat_state.py            # encounter state, corpses, and cooldown helpers
+      combat_rewards.py          # XP contribution and reward helpers
+      combat_observer.py         # observer/broadcast text shaping helpers
+      combat_abilities.py        # thin compatibility facade for split ability logic
+      combat_ability_effects.py  # support-effect scaling and cooldown bookkeeping
+      combat_player_abilities.py # player spell/skill execution
+      combat_entity_abilities.py # NPC spell/skill execution
+      combat_text.py             # damage-severity message templates
+      damage.py                  # damage and hit-chance math
+      equipment.py               # equip, wear, and unequip mechanics
+      inventory.py               # item selectors and template hydration
+      display_core.py            # low-level display builders and color helpers
+      display_feedback.py        # prompts, errors, and command feedback builders
+      display_views.py           # room/inventory/equipment/etc. views
+      targeting_parsing.py       # selector parsing helpers
+      targeting_entities.py      # entity/player/corpse resolvers
+      targeting_items.py         # item selector resolvers
+      targeting_follow.py        # follow/unfollow targeting helpers
+      grammar.py                 # shared text and grammar transforms
+      attribute_config.py        # attribute and rules config loaders
+      assets.py                  # content asset loaders with validation
+      player_state_db.py         # SQLite persistence
+      world.py                   # Room and Zone dataclasses
+      battle_round_ticks.py      # per-round support effect processing
+      game_hour_ticks.py         # per-hour regen and timed support processing
     configuration/
       server/settings.json
       assets/gear.json

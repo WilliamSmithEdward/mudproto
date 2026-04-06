@@ -1,0 +1,276 @@
+"""Combat state, engagement, timer, and corpse lifecycle helpers."""
+
+import asyncio
+import uuid
+
+from assets import get_gear_template_by_id
+from combat_abilities import _process_entity_battle_round_support_effects
+from inventory import build_equippable_item_from_template
+from models import ClientSession, CorpseState, EntityState, ItemState
+from session_registry import active_character_sessions, connected_clients
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
+from targeting_entities import list_room_entities, resolve_room_entity_selector
+
+
+def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str]:
+    if max_hit_points <= 0:
+        return "awful", "bright_red"
+
+    ratio = max(0.0, min(1.0, hit_points / max_hit_points))
+    if ratio <= 0.15:
+        return "awful", "bright_red"
+    if ratio <= 0.30:
+        return "very poor", "bright_red"
+    if ratio <= 0.45:
+        return "poor", "bright_red"
+    if ratio <= 0.60:
+        return "average", "bright_yellow"
+    if ratio <= 0.75:
+        return "fair", "bright_yellow"
+    if ratio <= 0.90:
+        return "good", "bright_green"
+    if ratio < 1.0:
+        return "very good", "bright_green"
+    return "perfect", "bright_green"
+
+
+def get_entity_condition(entity: EntityState) -> tuple[str, str]:
+    return get_health_condition(entity.hit_points, entity.max_hit_points)
+
+
+def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> CorpseState:
+    next_spawn_sequence = max((corpse.spawn_sequence for corpse in session.corpses.values()), default=0) + 1
+    session.corpse_spawn_counter = max(session.corpse_spawn_counter, next_spawn_sequence)
+    corpse_id = f"corpse-{uuid.uuid4().hex[:8]}"
+    loot_items: dict[str, ItemState] = {}
+
+    equipped_template_ids: list[str] = []
+    if entity.main_hand_weapon_template_id.strip():
+        equipped_template_ids.append(entity.main_hand_weapon_template_id.strip())
+    if entity.off_hand_weapon_template_id.strip():
+        equipped_template_ids.append(entity.off_hand_weapon_template_id.strip())
+
+    for template_id in equipped_template_ids:
+        template = get_gear_template_by_id(template_id)
+        if template is None:
+            continue
+
+        loot_item = build_equippable_item_from_template(template, item_id=f"loot-{uuid.uuid4().hex[:8]}")
+        loot_items[loot_item.item_id] = loot_item
+
+    for carried_item in list(getattr(entity, "inventory_items", [])) + list(getattr(entity, "loot_items", [])):
+        if not isinstance(carried_item, ItemState):
+            continue
+        loot_items[carried_item.item_id] = carried_item
+
+    entity.inventory_items = []
+    entity.loot_items = []
+
+    corpse = CorpseState(
+        corpse_id=corpse_id,
+        source_entity_id=entity.entity_id,
+        source_name=entity.name,
+        room_id=entity.room_id,
+        coins=max(0, entity.coin_reward),
+        loot_items=loot_items,
+        spawn_sequence=next_spawn_sequence,
+    )
+    session.corpses[corpse_id] = corpse
+    return corpse
+
+
+def clear_combat_if_invalid(session: ClientSession) -> None:
+    current_room_id = session.player.current_room_id
+    invalid_entities = set()
+
+    for entity_id in session.combat.engaged_entity_ids:
+        entity = session.entities.get(entity_id)
+        if entity is None or not entity.is_alive or entity.room_id != current_room_id:
+            invalid_entities.add(entity_id)
+
+    session.combat.engaged_entity_ids -= invalid_entities
+
+    if not session.combat.engaged_entity_ids:
+        end_combat(session)
+
+
+def end_combat(session: ClientSession) -> None:
+    session.combat.engaged_entity_ids.clear()
+    session.combat.next_round_monotonic = None
+    session.combat.opening_attacker = None
+
+
+def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
+    if entity_id in session.combat.engaged_entity_ids:
+        return False
+
+    entity = session.entities.get(entity_id)
+    if entity is None or not entity.is_alive:
+        return False
+    if bool(getattr(entity, "is_peaceful", False)):
+        return False
+    if entity.room_id != session.player.current_room_id:
+        return False
+
+    session.combat.engaged_entity_ids.add(entity_id)
+    session.combat.next_round_monotonic = None
+    if not session.combat.opening_attacker:
+        session.combat.opening_attacker = opening_attacker
+    return True
+
+
+def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
+    from display_core import build_display, build_part
+    from display_feedback import resolve_prompt
+
+    prompt_after, prompt_parts = resolve_prompt(session, True)
+    return build_display(
+        [
+            build_part("Relax. ", "bright_yellow", True),
+            build_part(f"{entity.name} is peaceful.", "bright_white"),
+        ],
+        prompt_after=prompt_after,
+        prompt_parts=prompt_parts,
+        is_error=True,
+    )
+
+
+def _find_peaceful_target(
+    session: ClientSession,
+    *,
+    target_name: str | None = None,
+    include_room_scan: bool = False,
+) -> EntityState | None:
+    if target_name:
+        entity, _ = resolve_room_entity_selector(
+            session,
+            session.player.current_room_id,
+            target_name,
+            living_only=True,
+        )
+        if entity is not None and bool(getattr(entity, "is_peaceful", False)):
+            return entity
+
+    if include_room_scan:
+        for entity in list_room_entities(session, session.player.current_room_id):
+            if entity.is_alive and bool(getattr(entity, "is_peaceful", False)):
+                return entity
+
+    return None
+
+
+def _schedule_next_combat_round(session: ClientSession) -> None:
+    try:
+        now = asyncio.get_running_loop().time()
+    except RuntimeError:
+        session.combat.next_round_monotonic = None
+        return
+
+    session.combat.next_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+
+
+def get_engaged_entities(session: ClientSession) -> list[EntityState]:
+    clear_combat_if_invalid(session)
+
+    entities = []
+    for entity_id in session.combat.engaged_entity_ids:
+        entity = session.entities.get(entity_id)
+        if entity is not None:
+            entities.append(entity)
+    entities.sort(key=lambda item: item.spawn_sequence)
+    return entities
+
+
+def get_engaged_entity(session: ClientSession) -> EntityState | None:
+    """Get primary engaged entity (first in set for player attacks)."""
+    entities = get_engaged_entities(session)
+    return entities[0] if entities else None
+
+
+def _engage_next_targeting_entity(
+    session: ClientSession,
+    defeated_entity_id: str,
+    active_target_entity_ids: set[str] | None = None,
+) -> EntityState | None:
+    """Select next target only from entities currently engaging this player."""
+    candidates: list[EntityState] = []
+    for candidate in get_engaged_entities(session):
+        if candidate.entity_id == defeated_entity_id:
+            continue
+        if not candidate.is_alive:
+            continue
+        if active_target_entity_ids is not None and candidate.entity_id not in active_target_entity_ids:
+            continue
+        candidates.append(candidate)
+
+    if candidates:
+        next_target = candidates[0]
+        session.combat.opening_attacker = None
+        _schedule_next_combat_round(session)
+        return next_target
+
+    end_combat(session)
+    return None
+
+
+def _decrement_cooldowns(cooldowns: dict[str, int]) -> None:
+    for key in list(cooldowns.keys()):
+        remaining = int(cooldowns.get(key, 0))
+        if remaining <= 1:
+            cooldowns.pop(key, None)
+        else:
+            cooldowns[key] = remaining - 1
+
+
+def _process_combat_round_timers(session: ClientSession, entities: list[EntityState]) -> None:
+    _decrement_cooldowns(session.combat.skill_cooldowns)
+    _decrement_cooldowns(session.combat.item_cooldowns)
+
+    for entity in entities:
+        _process_entity_battle_round_support_effects(entity)
+        _decrement_cooldowns(entity.skill_cooldowns)
+        _decrement_cooldowns(entity.spell_cooldowns)
+
+
+def _consume_entity_action_lag(entity: EntityState) -> bool:
+    if entity.skill_lag_rounds_remaining > 0:
+        entity.skill_lag_rounds_remaining -= 1
+    if entity.spell_lag_rounds_remaining <= 0:
+        return False
+    entity.spell_lag_rounds_remaining -= 1
+    return True
+
+
+def tick_out_of_combat_cooldowns(session: ClientSession) -> None:
+    """Decrement player combat-tracked cooldowns for sessions not currently in combat."""
+    _decrement_cooldowns(session.combat.skill_cooldowns)
+    _decrement_cooldowns(session.combat.item_cooldowns)
+
+
+def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSession) -> bool:
+    """Check if an entity is already engaged by any other player."""
+    for sess in connected_clients.values():
+        if sess != current_session and entity_id in sess.combat.engaged_entity_ids:
+            return True
+
+    for sess in active_character_sessions.values():
+        if sess != current_session and entity_id in sess.combat.engaged_entity_ids:
+            return True
+
+    return False
+
+
+def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:
+    clear_combat_if_invalid(session)
+    if session.combat.engaged_entity_ids:
+        return []
+
+    engaged_entities = []
+    room_entities = list_room_entities(session, session.player.current_room_id)
+    for entity in room_entities:
+        if entity.is_aggro and not _is_entity_engaged_by_other_player(entity.entity_id, session):
+            started = start_combat(session, entity.entity_id, "entity")
+            if started:
+                engaged_entities.append(entity)
+
+    return engaged_entities
