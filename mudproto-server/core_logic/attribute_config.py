@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 
 
-SERVER_ROOT = Path(__file__).resolve().parent
+SERVER_ROOT = Path(__file__).resolve().parent.parent
 ATTRIBUTE_CONFIG_ROOT = SERVER_ROOT / "configuration" / "attributes"
 WEAR_SLOTS_FILE = ATTRIBUTE_CONFIG_ROOT / "wear_slots.json"
 ATTRIBUTES_FILE = ATTRIBUTE_CONFIG_ROOT / "character_attributes.json"

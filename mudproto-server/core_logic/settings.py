@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 
-SERVER_ROOT = Path(__file__).resolve().parent
+SERVER_ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_FILE = SERVER_ROOT / "configuration" / "server" / "settings.json"
 
 
