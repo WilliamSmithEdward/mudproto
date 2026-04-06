@@ -24,7 +24,7 @@ The terminal client renders ANSI output; the GUI client renders the same
 structured payload in a Tk-based interface. Neither client should know
 command semantics or gameplay rules.
 
-### Server (`mudproto-server/`)
+### Server (`mudproto-server/core_logic/`)
 
 The server is the sole owner of game meaning.
 
@@ -126,20 +126,27 @@ Level gains: +10HP +5V +6M
 
 ## 3. Module Map
 
+> Unless otherwise noted, the server Python modules below now live under `mudproto-server/core_logic/`.
+
 | Module | Responsibility |
 |--------|----------------|
-| `server.py` | WebSocket listener, global tick loops (combat rounds, game hours), room-round broadcast orchestration, offline character processing. |
+| `server.py` | WebSocket listener, global tick loops (combat rounds and game hours), and room-round broadcast orchestration. |
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
 | `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
 | `settings.py` | Loads `configuration/server/settings.json` and exposes typed constants (timing, combat, gameplay, session, offline, database, assets). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
-| `sessions.py` | Session registry (`connected_clients`, `active_character_sessions`), login/disconnect lifecycle, shared world attachment, offline character loop, session hydration on reconnect. |
+| `sessions.py` | Thin compatibility shell that re-exports session helpers while implementation stays split across focused session modules. |
+| `session_registry.py` | Shared connected/authenticated session maps, shared world state attachment, and session/world lookup helpers. |
+| `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
+| `session_bootstrap.py` | Player class application, attribute initialization, starting gear/items, and early progression bootstrap. |
+| `session_lifecycle.py` | Disconnect/login reset flow, offline character processing, and session hydration/re-attachment on reconnect. |
 | `commands.py` | Thin public shell for parsing/auth/message dispatch and compatibility exports; delegates gameplay behavior into `command_handlers/`. |
 | `commerce.py` | Merchant/trade pricing, stock resolution, resale handling, and shared buy/sell helper logic used by command handlers. |
-| `targeting.py` | Shared selector parsing and item/player/room target resolution helpers used by command handlers and utilities. |
+| `targeting.py` | Shared selector parsing plus item, player, entity, corpse, and room target resolution helpers used by command handlers and utilities. |
 | `item_logic.py` | Shared corpse/item display logic and misc item-use handling. |
 | `abilities.py` | Shared known spell/skill lookup and name-resolution helpers. |
-| `command_handlers/` | Grouped player-facing command handlers (`shared.py` facade plus `runtime.py`, auth, character creation, world, equipment, commerce, spells, skills, movement, and social interactions) coordinated by a central registry. |
-| `combat.py` | Combat round resolution, NPC AI (skill usage), entity spawning, corpse/loot creation, spell/skill execution, flee logic. |
+| `world_population.py` | NPC/entity template hydration, training dummy spawning, shared-world initialization, and zone repopulation/reinitialization. |
+| `command_handlers/` | Grouped player-facing command handlers (`shared.py` facade plus `runtime.py`, auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions) coordinated by a central registry. |
+| `combat.py` | Combat round resolution, NPC AI (skill usage), corpse creation, spell/skill execution, flee logic, and encounter state flow. |
 | `combat_text.py` | Damage-severity classification and attack-verb templates for player and NPC combat messages. |
 | `damage.py` | Damage rolling (`roll_player_damage`, `roll_npc_weapon_damage`), hit-chance calculation, weapon verb resolution. |
 | `equipment.py` | Equip/wear/unequip mechanics, hand weight validation, armor class calculation, equipped-item selector resolution. |
@@ -152,6 +159,80 @@ Level gains: +10HP +5V +6M
 | `world.py` | `Room` and `Zone` dataclasses, including room zone membership and repopulation metadata. |
 | `battle_round_ticks.py` | Per-round support effect processing during combat. |
 | `game_hour_ticks.py` | Per-hour regeneration (HP/vigor/mana) and timed support effect processing. |
+
+---
+
+## 3A. Separation of Concern Methodology
+
+MudProto should stay organized around **layered ownership** rather than around arbitrary file size.
+
+### Placement Rules
+
+1. **Client layer**
+   - Clients render server output and collect input only.
+   - No gameplay rules or combat/business logic should exist in client code.
+
+2. **Public shell layer**
+   - `commands.py` remains a thin compatibility/public facade.
+   - It should own message entrypoints and stable exports, not gameplay implementation.
+
+3. **Command orchestration layer**
+   - `command_handlers/` owns verb routing and player-facing command flow.
+   - If code branches on `verb`, parses command-specific arguments, or decides which domain operation to invoke, it belongs here.
+
+4. **Domain logic layer**
+   - Reusable game rules belong in focused core modules such as `combat.py`, `commerce.py`, `inventory.py`, `equipment.py`, `targeting.py`, `item_logic.py`, and `abilities.py`.
+   - If logic is shared by multiple commands, it should live here rather than in a handler file.
+
+5. **Presentation layer**
+   - Output formatting belongs in `display.py` and `grammar.py`.
+   - Game rules should not be mixed with text styling or sentence transformation helpers.
+
+6. **Configuration and persistence layer**
+   - `settings.py`, `assets.py`, `attribute_config.py`, and `player_state_db.py` own data loading, configuration validation, and persistence concerns.
+   - These modules should not become command-routing or gameplay orchestration sinks.
+
+### Dependency Direction
+
+Preferred dependency flow:
+
+```text
+server.py / sessions.py
+  -> commands.py
+    -> command_handlers/*
+      -> domain/core modules
+        -> display/config/persistence helpers
+```
+
+Rules:
+- Domain modules should **not** import command handler modules.
+- `command_handlers/shared.py` should stay a **thin facade**, not a place where new business logic accumulates.
+- Lazy imports are acceptable only to preserve public compatibility boundaries or to avoid unavoidable cycles during refactors.
+
+### Refactor Methodology
+
+When separating concerns further:
+1. Split by **domain responsibility**, not one file per verb.
+2. Preserve stable public entrypoints while moving internals behind them.
+3. Extract one concern at a time and verify imports/diagnostics after each move.
+4. Prefer small, composable helpers over one large "shared" sink.
+5. If a file owns both routing and reusable rules, move the reusable rules first.
+
+### Current Best Next Opportunities
+
+The cleanest remaining separations after the current refactor are:
+
+- **`combat.py`**
+  - Still mixes combat resolution, NPC ability use, corpse/loot handling, target resolution, entity spawning, and zone repopulation.
+  - Best next split: `combat_targeting.py`, `combat_effects.py`, `combat_rewards.py`, and `world_population.py`/`npc_spawning.py`.
+
+- **`sessions.py`**
+  - Lag/queue timing, registry ownership, and bootstrap/class setup have now been split into `session_timing.py`, `session_registry.py`, and `session_bootstrap.py`, but disconnect lifecycle and offline processing are still combined.
+  - Best next split: `session_lifecycle.py` (disconnect/reset/offline loop concerns).
+
+- **`commands.py`**
+  - Should continue shrinking toward message/auth compatibility only.
+  - Any wrapper still not needed for compatibility should eventually be removed once call sites are migrated.
 
 ---
 

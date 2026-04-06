@@ -11,14 +11,13 @@ import websockets
 from battle_round_ticks import process_non_combat_support_round
 from combat import (
     get_engaged_entities,
-    initialize_session_entities,
     maybe_auto_engage_current_room,
     process_entity_game_hour_tick,
-    repopulate_game_hour_zones,
     resolve_combat_round,
     tick_out_of_combat_cooldowns,
 )
 from commands import dispatch_message, execute_command, initial_auth_prompt, login_prompt, parse_command
+from world_population import initialize_session_entities, repopulate_game_hour_zones
 from display import (
     build_display,
     build_display_lines,
@@ -41,16 +40,17 @@ from settings import (
     SERVER_HOST,
     SERVER_PORT,
 )
-from sessions import (
+from session_timing import is_session_lagged, touch_session
+from session_registry import (
     active_character_sessions,
     connected_clients,
     get_connection_count,
-    handle_client_disconnect,
-    is_session_lagged,
     register_client,
-    reset_session_to_login,
     shared_world_entities,
-    touch_session,
+)
+from session_lifecycle import (
+    handle_client_disconnect,
+    reset_session_to_login,
 )
 from game_hour_ticks import process_game_hour_tick
 from world import get_room

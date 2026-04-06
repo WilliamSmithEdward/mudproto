@@ -10,7 +10,7 @@ from grammar import indefinite_article, resolve_player_pronouns, with_article
 from inventory import is_item_equippable
 from models import ClientSession, ItemState
 from player_resources import get_player_resource_caps
-from sessions import apply_lag
+from session_timing import apply_lag
 from targeting import _resolve_misc_inventory_selector
 
 

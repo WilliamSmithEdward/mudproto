@@ -8,8 +8,10 @@ from experience import get_xp_to_next_level
 from player_resources import get_player_resource_caps
 from models import ClientSession
 from protocol import build_response
-from sessions import is_session_lagged, list_authenticated_room_players
-from combat import get_engaged_entity, get_entity_condition, get_health_condition, list_room_corpses, list_room_entities
+from session_timing import is_session_lagged
+from session_registry import list_authenticated_room_players
+from combat import get_engaged_entity, get_entity_condition, get_health_condition
+from targeting import list_room_corpses, list_room_entities
 from world import Room, get_room
 
 

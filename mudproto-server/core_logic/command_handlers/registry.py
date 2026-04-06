@@ -2,7 +2,9 @@ from . import shared as s
 from .character import handle_character_command
 from .commerce import handle_commerce_command
 from .equipment import handle_equipment_command, handle_item_use_command
+from .loot import handle_loot_command
 from .movement import handle_movement_command
+from .observation import handle_observation_command
 from .skills import handle_skill_command, handle_skill_fallback_command
 from .social import handle_social_command
 from .spells import handle_spell_command
@@ -20,6 +22,8 @@ def dispatch_command(session: s.ClientSession, command_text: str) -> s.OutboundR
 
     handlers = (
         handle_world_command,
+        handle_observation_command,
+        handle_loot_command,
         handle_character_command,
         handle_commerce_command,
         handle_spell_command,

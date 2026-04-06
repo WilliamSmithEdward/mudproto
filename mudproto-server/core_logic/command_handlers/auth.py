@@ -22,13 +22,14 @@ from player_state_db import (
     save_player_state,
     verify_character_credentials,
 )
-from sessions import (
-    apply_player_class,
-    ensure_player_attributes,
+from session_bootstrap import apply_player_class, ensure_player_attributes
+from session_lifecycle import (
     hydrate_session_from_active_character,
     register_authenticated_character_session,
 )
-from world import get_room
+import world as _world
+
+get_room = getattr(_world, "get_room")
 
 OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]

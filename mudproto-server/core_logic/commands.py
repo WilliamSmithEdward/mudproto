@@ -1,6 +1,6 @@
 from display import display_error, display_prompt
 from models import ClientSession
-from sessions import enqueue_command, is_session_lagged
+from session_timing import enqueue_command, is_session_lagged
 
 OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]

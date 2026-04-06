@@ -11,14 +11,10 @@ from attribute_config import load_attributes
 from combat import (
     begin_attack,
     cast_spell,
-    list_room_corpses,
-    resolve_corpse_item_selector,
-    resolve_room_corpse_selector,
-    resolve_room_entity_selector,
-    spawn_dummy,
     use_skill,
 )
 import commerce as _commerce
+from world_population import spawn_dummy
 from display import (
     build_part,
     display_command_result,
@@ -35,7 +31,7 @@ import equipment as _equipment
 from inventory import is_item_equippable, resolve_equipment_selector
 from models import ClientSession, ItemState
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
-from sessions import apply_lag
+from session_timing import apply_lag
 import world as _world
 
 _append_item_to_merchant_stock = getattr(_commerce, "_append_item_to_merchant_stock")
@@ -101,4 +97,8 @@ from targeting import (
     _resolve_room_player_selector,
     _resolve_wear_inventory_selector,
     _would_create_follow_loop,
+    list_room_corpses,
+    resolve_corpse_item_selector,
+    resolve_room_corpse_selector,
+    resolve_room_entity_selector,
 )
