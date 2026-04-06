@@ -171,9 +171,9 @@ mudproto/
 │   ├── protocol.py                  # Envelope construction & validation
 │   ├── models.py                    # Core session, combat, item, and NPC dataclasses
 │   ├── settings.py                  # Typed config from settings.json
-│   ├── sessions.py                  # Session lifecycle & registry
+│   ├── session_*.py                 # Session lifecycle, registry, timing, and bootstrap modules
 │   ├── commands.py                  # All player commands & auth flow
-│   ├── combat.py                    # Combat resolution, AI, and spawning
+│   ├── combat.py                    # Combat resolution and encounter flow
 │   ├── combat_text.py               # Damage severity and attack text
 │   ├── damage.py                    # Hit chance & damage math
 │   ├── death.py                     # Death and respawn handling

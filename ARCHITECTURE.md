@@ -134,7 +134,6 @@ Level gains: +10HP +5V +6M
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
 | `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
 | `settings.py` | Loads `configuration/server/settings.json` and exposes typed constants (timing, combat, gameplay, session, offline, database, assets). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
-| `sessions.py` | Thin compatibility shell that re-exports session helpers while implementation stays split across focused session modules. |
 | `session_registry.py` | Shared connected/authenticated session maps, shared world state attachment, and session/world lookup helpers. |
 | `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
 | `session_bootstrap.py` | Player class application, attribute initialization, starting gear/items, and early progression bootstrap. |
@@ -145,8 +144,9 @@ Level gains: +10HP +5V +6M
 | `item_logic.py` | Shared corpse/item display logic and misc item-use handling. |
 | `abilities.py` | Shared known spell/skill lookup and name-resolution helpers. |
 | `world_population.py` | NPC/entity template hydration, training dummy spawning, shared-world initialization, and zone repopulation/reinitialization. |
+| `combat_abilities.py` | Spell/skill execution, support-effect application, combat scaling, and NPC combat ability usage. |
 | `command_handlers/` | Grouped player-facing command handlers (`shared.py` facade plus `runtime.py`, auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions) coordinated by a central registry. |
-| `combat.py` | Combat round resolution, NPC AI (skill usage), corpse creation, spell/skill execution, flee logic, and encounter state flow. |
+| `combat.py` | Combat round resolution, corpse creation, flee logic, melee attack flow, and encounter state transitions. |
 | `combat_text.py` | Damage-severity classification and attack-verb templates for player and NPC combat messages. |
 | `damage.py` | Damage rolling (`roll_player_damage`, `roll_npc_weapon_damage`), hit-chance calculation, weapon verb resolution. |
 | `equipment.py` | Equip/wear/unequip mechanics, hand weight validation, armor class calculation, equipped-item selector resolution. |
@@ -197,7 +197,7 @@ MudProto should stay organized around **layered ownership** rather than around a
 Preferred dependency flow:
 
 ```text
-server.py / sessions.py
+server.py / session_* modules
   -> commands.py
     -> command_handlers/*
       -> domain/core modules
@@ -225,10 +225,6 @@ The cleanest remaining separations after the current refactor are:
 - **`combat.py`**
   - Still mixes combat resolution, NPC ability use, corpse/loot handling, target resolution, entity spawning, and zone repopulation.
   - Best next split: `combat_targeting.py`, `combat_effects.py`, `combat_rewards.py`, and `world_population.py`/`npc_spawning.py`.
-
-- **`sessions.py`**
-  - Lag/queue timing, registry ownership, and bootstrap/class setup have now been split into `session_timing.py`, `session_registry.py`, and `session_bootstrap.py`, but disconnect lifecycle and offline processing are still combined.
-  - Best next split: `session_lifecycle.py` (disconnect/reset/offline loop concerns).
 
 - **`commands.py`**
   - Should continue shrinking toward message/auth compatibility only.
@@ -676,9 +672,9 @@ mudproto/
     protocol.py                  # envelope helpers and validation
     models.py                    # all core dataclasses
     settings.py                  # typed constants from settings.json + DB bootstrap
-    sessions.py                  # session registry and lifecycle
+    session_*.py                 # session lifecycle, registry, timing, and bootstrap helpers
     commands.py                  # command parsing and all player commands
-    combat.py                    # combat resolution, AI, and repopulation helpers
+    combat.py                    # combat resolution and encounter-flow helpers
     combat_text.py               # damage-severity message templates
     damage.py                    # damage and hit-chance math
     equipment.py                 # equip, wear, and unequip mechanics
