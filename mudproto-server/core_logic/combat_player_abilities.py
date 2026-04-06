@@ -20,15 +20,16 @@ from combat_ability_effects import (
 
 
 def use_skill(session: ClientSession, skill: dict, target_name: str | None = None) -> tuple[dict, bool]:
-    from combat import (
+    from combat_observer import (
         _attach_room_broadcast_lines,
-        _award_shared_entity_experience,
-        _engage_next_targeting_entity,
-        _mark_entity_contributor,
         _observer_context_from_player_context,
         _render_observer_template,
         _resolve_combat_context,
         _resolve_observer_action_line,
+    )
+    from combat_rewards import _award_shared_entity_experience, _mark_entity_contributor
+    from combat_state import (
+        _engage_next_targeting_entity,
         clear_combat_if_invalid,
         get_engaged_entity,
         spawn_corpse_for_entity,
@@ -289,15 +290,16 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
 
 def cast_spell(session: ClientSession, spell: dict, target_name: str | None = None) -> tuple[dict, bool]:
-    from combat import (
+    from combat_observer import (
         _attach_room_broadcast_lines,
-        _award_shared_entity_experience,
-        _engage_next_targeting_entity,
-        _mark_entity_contributor,
         _observer_context_from_player_context,
         _render_observer_template,
         _resolve_combat_context,
         _resolve_observer_action_line,
+    )
+    from combat_rewards import _award_shared_entity_experience, _mark_entity_contributor
+    from combat_state import (
+        _engage_next_targeting_entity,
         clear_combat_if_invalid,
         get_engaged_entity,
         spawn_corpse_for_entity,

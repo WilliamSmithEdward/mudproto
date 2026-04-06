@@ -23,7 +23,7 @@ from combat_ability_effects import (
 
 
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
-    from combat import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
+    from combat_observer import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
     from display_core import build_part
 
     if not entity.skill_ids:
@@ -151,7 +151,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
 
 def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
-    from combat import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
+    from combat_observer import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
     from display_core import build_part
 
     if not entity.spell_ids:

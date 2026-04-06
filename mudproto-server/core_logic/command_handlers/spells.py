@@ -1,5 +1,5 @@
 from abilities import _list_known_spells, _resolve_spell_by_name
-from combat import cast_spell
+from combat_player_abilities import cast_spell
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession

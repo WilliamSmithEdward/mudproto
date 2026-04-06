@@ -7,11 +7,11 @@ from websockets.asyncio.server import ServerConnection
 import websockets
 
 from battle_round_ticks import process_non_combat_support_round
-from combat import (
+from combat import resolve_combat_round
+from combat_ability_effects import process_entity_game_hour_tick
+from combat_state import (
     get_engaged_entities,
     maybe_auto_engage_current_room,
-    process_entity_game_hour_tick,
-    resolve_combat_round,
     tick_out_of_combat_cooldowns,
 )
 from command_handlers.auth import initial_auth_prompt, login_prompt

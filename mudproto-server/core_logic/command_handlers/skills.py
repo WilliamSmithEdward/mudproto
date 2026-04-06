@@ -1,5 +1,5 @@
 from abilities import _list_known_skills, _resolve_skill_by_name
-from combat import use_skill
+from combat_player_abilities import use_skill
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession
