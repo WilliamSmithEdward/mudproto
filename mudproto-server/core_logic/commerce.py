@@ -7,7 +7,7 @@ import uuid
 from assets import get_gear_template_by_id, get_item_template_by_id
 from display_core import build_menu_table_parts, build_part
 from display_feedback import display_command_result
-from equipment import unequip_item
+from equipment_logic import unequip_item
 from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 

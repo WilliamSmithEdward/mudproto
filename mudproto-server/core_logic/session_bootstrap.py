@@ -3,7 +3,7 @@ import uuid
 
 from attribute_config import get_default_player_class, get_player_class_by_id, load_attributes
 from assets import get_gear_template_by_id, get_item_template_by_id
-from equipment import HAND_MAIN, HAND_OFF, equip_item, wear_item
+from equipment_logic import HAND_MAIN, HAND_OFF, equip_item, wear_item
 from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 from player_resources import clamp_player_resources_to_caps, initialize_player_progression

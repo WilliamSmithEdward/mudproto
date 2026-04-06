@@ -3,7 +3,7 @@ import re
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from display_views import display_equipment
-from equipment import (
+from equipment_logic import (
     HAND_BOTH,
     HAND_MAIN,
     HAND_OFF,

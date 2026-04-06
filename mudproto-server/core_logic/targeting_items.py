@@ -2,7 +2,7 @@
 
 from inventory import get_item_keywords, is_item_equippable, parse_item_selector
 from models import ClientSession, ItemState
-from equipment import list_worn_items
+from equipment_logic import list_worn_items
 
 
 def _resolve_owned_item_selector(session: ClientSession, selector: str) -> tuple[ItemState | None, str | None, str | None]:

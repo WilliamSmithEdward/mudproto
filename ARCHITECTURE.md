@@ -159,7 +159,7 @@ Level gains: +10HP +5V +6M
 | `combat.py` | Combat round orchestration, melee/flee flow, and encounter-resolution glue over the extracted combat helper modules. |
 | `combat_text.py` | Damage-severity classification and attack-verb templates for player and NPC combat messages. |
 | `damage.py` | Damage rolling (`roll_player_damage`, `roll_npc_weapon_damage`), hit-chance calculation, weapon verb resolution. |
-| `equipment.py` | Equip/wear/unequip mechanics, hand weight validation, armor class calculation, equipped-item selector resolution. |
+| `equipment_logic.py` | Equip/wear/unequip mechanics, hand weight validation, armor class calculation, equipped-item selector resolution. |
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
 | `display_core.py` | Core display builders, line/part composition, and item-highlight coloring helpers. |
 | `display_feedback.py` | Prompt/status displays, command results, and error/connection feedback builders. |
@@ -193,7 +193,7 @@ MudProto should stay organized around **layered ownership** rather than around a
    - If code branches on `verb`, parses command-specific arguments, or decides which domain operation to invoke, it belongs here.
 
 4. **Domain logic layer**
-   - Reusable game rules belong in focused core modules such as `combat.py`, `combat_state.py`, `combat_player_abilities.py`, `commerce.py`, `inventory.py`, `equipment.py`, `targeting_entities.py`, `targeting_items.py`, `item_logic.py`, and `abilities.py`.
+   - Reusable game rules belong in focused core modules such as `combat.py`, `combat_state.py`, `combat_player_abilities.py`, `commerce.py`, `inventory.py`, `equipment_logic.py`, `targeting_entities.py`, `targeting_items.py`, `item_logic.py`, and `abilities.py`.
    - If logic is shared by multiple commands, it should live here rather than in a handler file.
 
 5. **Presentation layer**
@@ -423,7 +423,7 @@ Selectors use `<index>.<keyword>` syntax:
 - `wear vest left.hand` — wear to a specific slot.
 
 Resolution lives in `inventory.py` (inventory/ground selectors) and
-`equipment.py` (equipped-item selectors).
+`equipment_logic.py` (equipped-item selectors).
 
 ---
 
@@ -519,7 +519,7 @@ When an entity dies:
 
 ### Equip / Wear / Hold
 
-`equipment.py` handles state transitions:
+`equipment_logic.py` handles state transitions:
 - **Wield**: main hand (weapon).
 - **Hold**: off hand (weapon with `can_hold`).
 - **Wear**: armor into a wear slot. If the primary slot is taken, tries
@@ -528,7 +528,7 @@ When an entity dies:
 
 ### Armor Class
 
-`equipment.py::compute_player_armor_class()`:
+`equipment_logic.py::compute_player_armor_class()`:
 `BASE_PLAYER_ARMOR_CLASS` + sum of `armor_class_bonus` from all worn items.
 
 ### Item Highlighting
@@ -694,7 +694,7 @@ mudproto/
       combat_entity_abilities.py # NPC spell/skill execution
       combat_text.py             # damage-severity message templates
       damage.py                  # damage and hit-chance math
-      equipment.py               # equip, wear, and unequip mechanics
+      equipment_logic.py         # equip, wear, and unequip mechanics
       inventory.py               # item selectors and template hydration
       display_core.py            # low-level display builders and color helpers
       display_feedback.py        # prompts, errors, and command feedback builders

@@ -30,7 +30,7 @@ from damage import (
     roll_player_damage,
 )
 from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
-from equipment import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
+from equipment_logic import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from grammar import with_article
 from models import ClientSession, EntityState, ItemState
 from targeting_entities import resolve_room_entity_selector

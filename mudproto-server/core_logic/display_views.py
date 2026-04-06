@@ -1,6 +1,6 @@
 from assets import get_gear_template_by_id
 from combat_state import get_engaged_entity, get_entity_condition, get_health_condition
-from equipment import list_worn_items
+from equipment_logic import list_worn_items
 from inventory import is_item_equippable
 from models import ClientSession
 from player_resources import get_player_resource_caps
