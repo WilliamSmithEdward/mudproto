@@ -1,4 +1,5 @@
 import asyncio
+import re
 
 from combat_state import get_engaged_entity, get_entity_condition, get_health_condition
 from experience import get_xp_to_next_level
@@ -275,6 +276,28 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
     if "already fighting" in lowered:
         return [build_part("You are already locked in battle.", "bright_white", False)]
     if "no target named" in lowered:
+        direction_aliases = {
+            "n": "north",
+            "north": "north",
+            "s": "south",
+            "south": "south",
+            "e": "east",
+            "east": "east",
+            "w": "west",
+            "west": "west",
+            "u": "up",
+            "up": "up",
+            "d": "down",
+            "down": "down",
+        }
+        target_match = re.search(r"no target named '([^']+)' is here", lowered)
+        normalized_target = direction_aliases.get(str(target_match.group(1)).strip().lower()) if target_match else None
+        if normalized_target == "up":
+            return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "bright_white", False)]
+        if normalized_target == "down":
+            return [build_part("You glance below, but nothing there reveals itself.", "bright_white", False)]
+        if normalized_target in {"north", "south", "east", "west"}:
+            return [build_part(f"You peer to the {normalized_target}, but nothing there draws your eye.", "bright_white", False)]
         return [build_part("No such figure stands here before you.", "bright_white", False)]
     if "doesn't exist in your inventory" in lowered:
         return [build_part("You search your belongings, but find nothing of the sort.", "bright_white", False)]
