@@ -40,6 +40,19 @@
         "required": false,
         "default": [],
         "notes": "When the zone repopulates, any room containers using these item template ids are reset to their configured default state and contents."
+      },
+      "repopulation_blocking_item_template_ids": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "If any of these item templates exist anywhere in the live world or a connected character inventory, the zone's repopulation remains blocked."
+      },
+      "repopulation_block_cooldown_game_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "After the blocking items disappear, the zone stays blocked for this many additional game hours before repopulation can resume."
       }
     }
   }

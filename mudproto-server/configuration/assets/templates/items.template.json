@@ -92,6 +92,19 @@
         "default": "",
         "notes": "Optional text shown when a consume_on_use item is spent."
       },
+      "decay_game_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "When greater than zero, the item automatically decays after this many game hours whether carried, dropped, or stored in a container."
+      },
+      "decay_message": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "Optional text for decay-driven expiry; currently most useful for carried items."
+      },
       "can_close": {
         "type": "boolean",
         "required": false,

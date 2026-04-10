@@ -34,7 +34,7 @@ from session_registry import (
     shared_world_entities,
 )
 from session_timing import is_session_lagged
-from world_population import repopulate_game_hour_zones
+from world_population import process_world_item_game_hour_tick, repopulate_game_hour_zones
 
 
 RoomRoundResult = tuple[ClientSession, dict]
@@ -113,6 +113,7 @@ async def game_tick_loop() -> None:
                     continue
                 process_entity_game_hour_tick(entity)
 
+            process_world_item_game_hour_tick()
             repopulate_game_hour_zones()
 
     except asyncio.CancelledError:

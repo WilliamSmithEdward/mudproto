@@ -1,7 +1,7 @@
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
-from inventory import build_equippable_item_from_template, build_misc_item_from_template
+from inventory import build_equippable_item_from_template, build_misc_item_from_template, tick_item_decay_list, tick_item_decay_map
 from models import ClientSession, EntityState, ItemState
 from player_state_db import clear_player_interaction_flags, save_player_state
 from session_registry import (
@@ -223,6 +223,92 @@ def _reset_zone_container_templates(zone) -> None:
             room_items[item_id] = build_misc_item_from_template(template, item_id=item_id)
 
 
+def process_world_item_game_hour_tick() -> None:
+    for room_items in shared_world_room_ground_items.values():
+        tick_item_decay_map(room_items)
+
+    for corpse in shared_world_corpses.values():
+        tick_item_decay_map(corpse.loot_items)
+
+    for entity in shared_world_entities.values():
+        tick_item_decay_list(entity.inventory_items)
+        tick_item_decay_list(entity.loot_items)
+
+
+def _item_matches_template_ids(item: ItemState, template_ids: set[str]) -> bool:
+    if str(getattr(item, "template_id", "")).strip().lower() in template_ids:
+        return True
+
+    nested_items = getattr(item, "container_items", {})
+    if not isinstance(nested_items, dict):
+        return False
+
+    return any(_item_matches_template_ids(nested_item, template_ids) for nested_item in nested_items.values())
+
+
+def _item_map_contains_template_ids(item_map: dict[str, ItemState], template_ids: set[str]) -> bool:
+    return any(_item_matches_template_ids(item, template_ids) for item in item_map.values())
+
+
+def _item_list_contains_template_ids(items: list[ItemState], template_ids: set[str]) -> bool:
+    return any(_item_matches_template_ids(item, template_ids) for item in items)
+
+
+def _zone_repopulation_is_blocked(zone) -> bool:
+    template_ids = {
+        str(template_id).strip().lower()
+        for template_id in getattr(zone, "repopulation_blocking_item_template_ids", [])
+        if str(template_id).strip()
+    }
+    if not template_ids:
+        zone.repopulation_block_remaining_hours = 0
+        return False
+
+    cooldown_hours = max(0, int(getattr(zone, "repopulation_block_cooldown_game_hours", 0)))
+
+    blocker_exists = False
+    for session in _iter_unique_sessions():
+        if _item_map_contains_template_ids(getattr(session, "inventory_items", {}), template_ids):
+            blocker_exists = True
+            break
+        equipment = getattr(getattr(session, "equipment", None), "equipped_items", {})
+        if _item_map_contains_template_ids(equipment, template_ids):
+            blocker_exists = True
+            break
+
+    if not blocker_exists:
+        for room_items in shared_world_room_ground_items.values():
+            if _item_map_contains_template_ids(room_items, template_ids):
+                blocker_exists = True
+                break
+
+    if not blocker_exists:
+        for corpse in shared_world_corpses.values():
+            if _item_map_contains_template_ids(corpse.loot_items, template_ids):
+                blocker_exists = True
+                break
+
+    if not blocker_exists:
+        for entity in shared_world_entities.values():
+            if _item_list_contains_template_ids(getattr(entity, "inventory_items", []), template_ids):
+                blocker_exists = True
+                break
+            if _item_list_contains_template_ids(getattr(entity, "loot_items", []), template_ids):
+                blocker_exists = True
+                break
+
+    if blocker_exists:
+        zone.repopulation_block_remaining_hours = cooldown_hours
+        return True
+
+    remaining_hours = max(0, int(getattr(zone, "repopulation_block_remaining_hours", 0)))
+    if remaining_hours <= 0:
+        return False
+
+    zone.repopulation_block_remaining_hours = remaining_hours - 1
+    return True
+
+
 def reinitialize_zone(zone_id: str) -> int:
     zone = WORLD.zones.get(zone_id)
     if zone is None:
@@ -319,6 +405,7 @@ def repopulate_game_hour_zones() -> None:
         if repopulate_game_hours <= 0:
             zone.pending_repopulation = False
             zone.game_hours_since_repopulation = 0
+            zone.repopulation_block_remaining_hours = 0
             continue
 
         if not zone.pending_repopulation:
@@ -326,6 +413,9 @@ def repopulate_game_hour_zones() -> None:
             if zone.game_hours_since_repopulation < repopulate_game_hours:
                 continue
             zone.pending_repopulation = True
+
+        if _zone_repopulation_is_blocked(zone):
+            continue
 
         if _zone_has_active_players(zone.zone_id):
             continue

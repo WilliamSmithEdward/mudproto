@@ -54,6 +54,9 @@ def build_misc_item_from_template(template: dict, *, item_id: str | None = None)
         portable=bool(template.get("portable", template.get("carryable", True))),
         consume_on_use=bool(template.get("consume_on_use", False)),
         consume_message=str(template.get("consume_message", "")).strip(),
+        decay_game_hours=max(0, int(template.get("decay_game_hours", 0))),
+        remaining_game_hours=max(0, int(template.get("decay_game_hours", 0))),
+        decay_message=str(template.get("decay_message", "")).strip(),
         can_close=bool(template.get("can_close", raw_item_type == "container")),
         can_lock=bool(template.get("can_lock", bool(str(template.get("lock_id", "")).strip()))),
         lock_id=str(template.get("lock_id", "")).strip().lower(),
@@ -139,6 +142,16 @@ def hydrate_misc_item_from_template(item: ItemState, template: dict | None = Non
     item.portable = bool(resolved_template.get("portable", resolved_template.get("carryable", getattr(item, "portable", True))))
     item.consume_on_use = bool(resolved_template.get("consume_on_use", getattr(item, "consume_on_use", False)))
     item.consume_message = str(getattr(item, "consume_message", "") or resolved_template.get("consume_message", "")).strip()
+    decay_game_hours = max(0, int(resolved_template.get("decay_game_hours", getattr(item, "decay_game_hours", 0))))
+    item.decay_game_hours = decay_game_hours
+    existing_remaining_hours = int(getattr(item, "remaining_game_hours", 0))
+    if decay_game_hours <= 0:
+        item.remaining_game_hours = 0
+    elif existing_remaining_hours <= 0 or existing_remaining_hours > decay_game_hours:
+        item.remaining_game_hours = decay_game_hours
+    else:
+        item.remaining_game_hours = existing_remaining_hours
+    item.decay_message = str(getattr(item, "decay_message", "") or resolved_template.get("decay_message", "")).strip()
     item.can_close = bool(resolved_template.get("can_close", getattr(item, "can_close", item.item_type == "container")))
     item.can_lock = bool(resolved_template.get("can_lock", getattr(item, "can_lock", bool(str(resolved_template.get("lock_id", getattr(item, "lock_id", ""))).strip()))))
     item.lock_id = str(resolved_template.get("lock_id", getattr(item, "lock_id", ""))).strip().lower()
@@ -191,6 +204,50 @@ def consume_item_on_use(session: ClientSession, item: ItemState) -> str | None:
     if consume_message:
         return consume_message
     return f"{item.name.strip() or 'The key'} crumbles to dust after its magic is spent."
+
+
+def _item_decay_expires(item: ItemState) -> bool:
+    hydrate_misc_item_from_template(item)
+    decay_game_hours = max(0, int(getattr(item, "decay_game_hours", 0)))
+    if decay_game_hours <= 0:
+        return False
+
+    remaining_game_hours = int(getattr(item, "remaining_game_hours", 0))
+    if remaining_game_hours <= 0 or remaining_game_hours > decay_game_hours:
+        remaining_game_hours = decay_game_hours
+
+    remaining_game_hours -= 1
+    item.remaining_game_hours = max(0, remaining_game_hours)
+    return item.remaining_game_hours <= 0
+
+
+def tick_item_decay_map(item_map: dict[str, ItemState]) -> list[ItemState]:
+    expired_items: list[ItemState] = []
+    for item_id, item in list(item_map.items()):
+        nested_items = getattr(item, "container_items", {})
+        if isinstance(nested_items, dict) and nested_items:
+            expired_items.extend(tick_item_decay_map(nested_items))
+        if _item_decay_expires(item):
+            item_map.pop(item_id, None)
+            expired_items.append(item)
+    return expired_items
+
+
+def tick_item_decay_list(items: list[ItemState]) -> list[ItemState]:
+    expired_items: list[ItemState] = []
+    retained_items: list[ItemState] = []
+    for item in list(items):
+        nested_items = getattr(item, "container_items", {})
+        if isinstance(nested_items, dict) and nested_items:
+            expired_items.extend(tick_item_decay_map(nested_items))
+        if _item_decay_expires(item):
+            expired_items.append(item)
+            continue
+        retained_items.append(item)
+
+    if len(retained_items) != len(items):
+        items[:] = retained_items
+    return expired_items
 
 
 def is_item_equippable(item: ItemState) -> bool:

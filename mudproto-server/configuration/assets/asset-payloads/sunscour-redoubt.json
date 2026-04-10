@@ -865,6 +865,27 @@
       "title": "Training Yard",
       "description": "Sand has been swept into neat circles here for drills, and practice scars mark every shield post and standing stone.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "keyword_actions": [
+        {
+          "keywords": ["stand circle", "stand in circle", "step circle", "step into circle"],
+          "message": "The magic circle glimmers underfoot and carries you back to the Prototype Chamber in a wash of pale light.",
+          "refresh_view": "room",
+          "actions": [
+            {
+              "type": "teleport_player",
+              "destination_room_id": "start"
+            }
+          ]
+        }
+      ],
+      "room_objects": [
+        {
+          "object_id": "return-circle",
+          "name": "magic circle",
+          "keywords": ["circle", "magic circle", "return circle", "rune circle"],
+          "description": "A pale chalk circle marked with returning runes has been drawn into the training sand. Its lines shimmer faintly, ready to carry a traveler home."
+        }
+      ],
       "exits": {
         "north": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
         "west": "room.commander-chamber-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
@@ -951,7 +972,11 @@
       ],
       "reset_container_template_ids": [
         "item.container.loft-chest"
-      ]
+      ],
+      "repopulation_blocking_item_template_ids": [
+        "item.key.loft-chest"
+      ],
+      "repopulation_block_cooldown_game_hours": 6
     }
   ]
 }

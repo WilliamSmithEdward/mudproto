@@ -58,6 +58,8 @@
     "lock_ids": ["lock.prototype.loft-chest"],
     "consume_on_use": true,
     "consume_message": "The Loft Chest Key crumbles to dust after turning in the lock.",
+    "decay_game_hours": 6,
+    "decay_message": "The Loft Chest Key crumbles to dust as Aurek's fading blessing leaves it.",
     "coin_value": 0
   },
   {

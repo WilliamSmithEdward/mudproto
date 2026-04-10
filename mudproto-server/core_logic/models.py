@@ -93,6 +93,9 @@ class ItemState:
     portable: bool = True
     consume_on_use: bool = False
     consume_message: str = ""
+    decay_game_hours: int = 0
+    remaining_game_hours: int = 0
+    decay_message: str = ""
     can_close: bool = False
     can_lock: bool = False
     lock_id: str = ""

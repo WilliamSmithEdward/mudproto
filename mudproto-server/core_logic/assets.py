@@ -242,6 +242,10 @@ def load_item_templates() -> list[dict]:
         if raw_item_type == "key" and not lock_ids:
             raise ValueError(f"Item asset '{template_id}' key items must define at least one lock_id.")
 
+        decay_game_hours = int(raw_template.get("decay_game_hours", 0))
+        if decay_game_hours < 0:
+            raise ValueError(f"Item asset '{template_id}' decay_game_hours must be zero or greater.")
+
         if normalized_template_id not in normalized_templates_by_id:
             ordered_template_ids.append(normalized_template_id)
         normalized_templates_by_id[normalized_template_id] = {
@@ -255,6 +259,8 @@ def load_item_templates() -> list[dict]:
             "lock_ids": lock_ids,
             "consume_on_use": bool(raw_template.get("consume_on_use", False)),
             "consume_message": str(raw_template.get("consume_message", "")).strip(),
+            "decay_game_hours": decay_game_hours,
+            "decay_message": str(raw_template.get("decay_message", "")).strip(),
             "can_close": can_close,
             "can_lock": can_lock,
             "lock_id": lock_id,
@@ -334,6 +340,14 @@ def load_zones() -> list[dict]:
             for template_id in raw_zone.get("reset_container_template_ids", [])
             if str(template_id).strip()
         ]
+        repopulation_blocking_item_template_ids = [
+            str(template_id).strip().lower()
+            for template_id in raw_zone.get("repopulation_blocking_item_template_ids", [])
+            if str(template_id).strip()
+        ]
+        repopulation_block_cooldown_game_hours = int(raw_zone.get("repopulation_block_cooldown_game_hours", 0))
+        if repopulation_block_cooldown_game_hours < 0:
+            raise ValueError(f"Zone asset '{zone_id}' repopulation_block_cooldown_game_hours must be zero or greater.")
 
         if normalized_zone_id not in normalized_zones_by_id:
             ordered_zone_ids.append(normalized_zone_id)
@@ -343,6 +357,8 @@ def load_zones() -> list[dict]:
             "repopulate_game_hours": repopulate_game_hours,
             "reset_player_flags": reset_player_flags,
             "reset_container_template_ids": reset_container_template_ids,
+            "repopulation_blocking_item_template_ids": repopulation_blocking_item_template_ids,
+            "repopulation_block_cooldown_game_hours": repopulation_block_cooldown_game_hours,
         }
 
     return [normalized_zones_by_id[zone_id] for zone_id in ordered_zone_ids]

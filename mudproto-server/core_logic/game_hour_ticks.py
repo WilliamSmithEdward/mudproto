@@ -1,6 +1,7 @@
 import random
 
 from attribute_config import load_regeneration_config
+from inventory import tick_item_decay_map
 from models import ClientSession
 from player_resources import get_player_resource_caps
 
@@ -16,6 +17,20 @@ def _roll_support_effect_amount(effect) -> int:
 
 def process_game_hour_tick(session: ClientSession) -> list[str]:
     expired_spell_names: list[str] = []
+    expired_inventory_items = tick_item_decay_map(session.inventory_items)
+    expired_equipped_items = tick_item_decay_map(session.equipment.equipped_items)
+    expired_item_ids = {item.item_id for item in expired_inventory_items + expired_equipped_items}
+    if session.equipment.equipped_main_hand_id in expired_item_ids:
+        session.equipment.equipped_main_hand_id = None
+    if session.equipment.equipped_off_hand_id in expired_item_ids:
+        session.equipment.equipped_off_hand_id = None
+    if expired_item_ids:
+        session.equipment.worn_item_ids = {
+            slot: item_id
+            for slot, item_id in session.equipment.worn_item_ids.items()
+            if item_id not in expired_item_ids
+        }
+
     caps = get_player_resource_caps(session)
 
     regeneration_config = load_regeneration_config()
