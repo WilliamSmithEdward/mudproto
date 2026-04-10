@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.7",
-  "generated_at_utc": "2026-04-10T17:11:54.416556+00:00",
+  "generated_at_utc": "2026-04-10T17:32:02.132296+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -298,7 +298,8 @@
           "allowed_values": [
             "consumable",
             "key",
-            "misc"
+            "misc",
+            "container"
           ]
         },
         "effect_type": {
@@ -336,6 +337,12 @@
           "required": false,
           "default": [],
           "notes": "For keys, list the lock IDs this item can lock or unlock."
+        },
+        "portable": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "notes": "For container items, when false the container can exist in the room but cannot be picked up into inventory. The alias `carryable` is also accepted."
         },
         "coin_value": {
           "type": "integer",
@@ -1097,7 +1104,7 @@
   "current_game_assets": {
     "counts": {
       "gear": 14,
-      "items": 4,
+      "items": 5,
       "npcs": 5,
       "rooms": 8,
       "skills": 3,
@@ -1436,6 +1443,21 @@
             "lock.prototype.start-west-gate"
           ],
           "coin_value": 0
+        },
+        {
+          "template_id": "item.container.loft-chest",
+          "name": "Weathered Chest",
+          "description": "A weathered cedar chest bound in dark iron bands rests beneath the loft rafters, sturdy and too awkward to carry off whole.",
+          "keywords": [
+            "chest",
+            "weathered chest",
+            "cedar chest",
+            "coffer"
+          ],
+          "item_type": "container",
+          "portable": false,
+          "persistent": true,
+          "coin_value": 0
         }
       ],
       "npcs": {
@@ -1769,6 +1791,12 @@
           "title": "Hidden Loft",
           "description": "Dusty rafters and a narrow service ledge overlook the prototype chamber below.",
           "zone_id": "zone.prototype-core",
+          "items": [
+            {
+              "template_id": "item.container.loft-chest",
+              "count": 1
+            }
+          ],
           "exits": {
             "down": "start"
           }

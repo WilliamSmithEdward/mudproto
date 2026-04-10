@@ -110,7 +110,7 @@
     "slot": "armor",
     "wear_slots": ["chest"],
     "description": "A reinforced jacket worn by front-line trainees.",
-    "keywords": ["vanguard", "jacket", "chest"],
+    "keywords": ["vanguard", "jacket"],
     "weight": 10,
     "coin_value": 30,
     "armor_class_bonus": 2
@@ -121,7 +121,7 @@
     "slot": "armor",
     "wear_slots": ["feet"],
     "description": "Heavy boots built for marching and impact.",
-    "keywords": ["vanguard", "boots", "feet"],
+    "keywords": ["vanguard", "boots"],
     "weight": 6,
     "coin_value": 20,
     "armor_class_bonus": 1
@@ -132,7 +132,7 @@
     "slot": "armor",
     "wear_slots": ["chest"],
     "description": "A rune-lined robe favored by novice arcanists.",
-    "keywords": ["arcanist", "robe", "chest"],
+    "keywords": ["arcanist", "robe"],
     "weight": 4,
     "coin_value": 26,
     "armor_class_bonus": 1
@@ -143,7 +143,7 @@
     "slot": "armor",
     "wear_slots": ["hands"],
     "description": "Light hand wraps that steady precise gestures.",
-    "keywords": ["arcanist", "wraps", "hands"],
+    "keywords": ["arcanist", "wraps"],
     "weight": 1,
     "coin_value": 16,
     "armor_class_bonus": 1
@@ -154,7 +154,7 @@
     "slot": "armor",
     "wear_slots": ["ring"],
     "description": "A simple brass ring used for slot testing.",
-    "keywords": ["amber", "ring", "test"],
+    "keywords": ["amber", "ring"],
     "weight": 0,
     "armor_class_bonus": 0
   },
@@ -164,7 +164,7 @@
     "slot": "armor",
     "wear_slots": ["ring"],
     "description": "A polished silver ring used for multi-slot testing.",
-    "keywords": ["azure", "ring", "test"],
+    "keywords": ["azure", "ring"],
     "weight": 0,
     "armor_class_bonus": 0
   },
@@ -174,7 +174,7 @@
     "slot": "armor",
     "wear_slots": ["chest"],
     "description": "A padded vest used to test occupied chest-slot behavior.",
-    "keywords": ["practice", "vest", "chest", "test"],
+    "keywords": ["practice", "vest"],
     "weight": 3,
     "armor_class_bonus": 0
   },
@@ -184,7 +184,7 @@
     "slot": "armor",
     "wear_slots": ["back"],
     "description": "A padded cloak used to test occupied back-slot behavior.",
-    "keywords": ["practice", "cloak", "back", "test"],
+    "keywords": ["practice", "cloak"],
     "weight": 2,
     "armor_class_bonus": 0
   }

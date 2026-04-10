@@ -33,56 +33,9 @@ def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
 
 
 def _display_corpse_examination(session: ClientSession, corpse) -> OutboundResult:
-    rows: list[list[str]] = [["Coins", str(max(0, int(corpse.coins)))]]
-    row_cell_colors: list[list[str]] = [["bright_cyan", "bright_cyan"]]
+    from containers import display_container_examination
 
-    loot_items = list(corpse.loot_items.values())
-    loot_items.sort(key=lambda item: item.name.lower())
-    if loot_items:
-        item_counts: dict[str, int] = {}
-        item_names: dict[str, str] = {}
-        item_colors: dict[str, str] = {}
-        item_order: list[str] = []
-
-        for loot_item in loot_items:
-            normalized_name = loot_item.name.strip().lower()
-            if not normalized_name:
-                continue
-            if normalized_name not in item_counts:
-                item_counts[normalized_name] = 0
-                item_names[normalized_name] = loot_item.name
-                item_colors[normalized_name] = _item_highlight_color(loot_item)
-                item_order.append(normalized_name)
-            item_counts[normalized_name] += 1
-
-        for item_key in item_order:
-            count = item_counts[item_key]
-            item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
-            rows.append(["Item", item_label])
-            row_cell_colors.append(["bright_magenta", item_colors[item_key]])
-    else:
-        rows.append(["Items", "None"])
-        row_cell_colors.append(["bright_magenta", "bright_black"])
-
-    parts = build_menu_table_parts(
-        _build_corpse_label(corpse.source_name),
-        ["Loot", "Contents"],
-        rows,
-        column_colors=["bright_cyan", "bright_white"],
-        row_cell_colors=row_cell_colors,
-        column_alignments=["left", "left"],
-    )
-    parts.extend([
-        build_part("\n"),
-        build_part("Commands: ", "bright_white"),
-        build_part("get <item> <corpse>", "bright_yellow", True),
-        build_part(", ", "bright_white"),
-        build_part("get coins <corpse>", "bright_yellow", True),
-        build_part(", ", "bright_white"),
-        build_part("get all <corpse>", "bright_yellow", True),
-    ])
-
-    return display_command_result(session, parts)
+    return display_container_examination(session, corpse)
 
 
 def _resolve_item_location_label(session: ClientSession, item: ItemState, *, default_label: str = "Inventory") -> str:
@@ -116,6 +69,8 @@ def _resolve_item_kind_label(item: ItemState) -> str:
         return "Key"
     if item_type == "consumable":
         return "Consumable"
+    if item_type == "container":
+        return "Container"
     return "Item"
 
 
@@ -141,6 +96,9 @@ def _display_item_examination(session: ClientSession, item: ItemState, *, defaul
         wear_slot_label = _format_item_wear_slots(item)
         if wear_slot_label:
             rows.append(["Wear Slot", wear_slot_label])
+    elif kind_label == "Container":
+        rows.append(["Carryable", "Yes" if bool(getattr(item, "portable", True)) else "No"])
+        rows.append(["Contents", str(len(getattr(item, "container_items", {})))])
 
     parts = build_menu_table_parts(
         str(getattr(item, "name", "Item")).strip() or "Item",

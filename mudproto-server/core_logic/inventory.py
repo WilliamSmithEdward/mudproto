@@ -51,6 +51,8 @@ def build_misc_item_from_template(template: dict, *, item_id: str | None = None)
         item_type=raw_item_type,
         persistent=bool(template.get("persistent", True)),
         lock_ids=[str(lock_id).strip().lower() for lock_id in template.get("lock_ids", []) if str(lock_id).strip()],
+        portable=bool(template.get("portable", template.get("carryable", True))),
+        container_items={},
     )
 
 
@@ -115,6 +117,7 @@ def hydrate_misc_item_from_template(item: ItemState, template: dict | None = Non
 
     item.item_type = str(resolved_template.get("item_type", getattr(item, "item_type", "misc"))).strip().lower() or "misc"
     item.persistent = bool(resolved_template.get("persistent", getattr(item, "persistent", True)))
+    item.portable = bool(resolved_template.get("portable", resolved_template.get("carryable", getattr(item, "portable", True))))
     if not getattr(item, "lock_ids", None):
         item.lock_ids = [
             str(lock_id).strip().lower()

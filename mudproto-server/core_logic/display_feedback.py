@@ -298,15 +298,15 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
             return [build_part("You glance below, but nothing there reveals itself.", "bright_white", False)]
         if normalized_target in {"north", "south", "east", "west"}:
             return [build_part(f"You peer to the {normalized_target}, but nothing there draws your eye.", "bright_white", False)]
-        return [build_part("No such figure stands here before you.", "bright_white", False)]
+        return [build_part("Nothing of note answers that search here.", "bright_white", False)]
     if "doesn't exist in your inventory" in lowered:
         return [build_part("You search your belongings, but find nothing of the sort.", "bright_white", False)]
     if "cannot be used" in lowered or "cannot be equipped" in lowered or "cannot be worn" in lowered or "cannot be wielded" in lowered or "cannot be held" in lowered:
         return [build_part("That would not serve you in that way.", "bright_white", False)]
     if "there are no coins on the ground" in lowered:
         return [build_part("Not a single coin glints at your feet.", "bright_white", False)]
-    if "no corpse matching" in lowered:
-        return [build_part("No such corpse lies here.", "bright_white", False)]
+    if "no corpse matching" in lowered or "there are no corpses here" in lowered:
+        return [build_part("Nothing of that sort can be found here.", "bright_white", False)]
     if "cannot go" in lowered or "destination room not found" in lowered:
         return [build_part("The way does not open for you there.", "bright_white", False)]
     if "current room not found" in lowered:

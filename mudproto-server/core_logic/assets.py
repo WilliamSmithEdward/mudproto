@@ -182,7 +182,7 @@ def load_item_templates() -> list[dict]:
     normalized_templates_by_id: dict[str, dict] = {}
     ordered_template_ids: list[str] = []
     allowed_effect_targets = {"hit_points", "mana", "vigor"}
-    allowed_item_types = {"consumable", "key", "misc"}
+    allowed_item_types = {"consumable", "key", "misc", "container"}
 
     for raw_template in raw_templates:
         if not isinstance(raw_template, dict):
@@ -208,6 +208,12 @@ def load_item_templates() -> list[dict]:
         if raw_persistent is None and "persistant" in raw_template:
             raw_persistent = raw_template.get("persistant")
         persistent = True if raw_persistent is None else bool(raw_persistent)
+
+        raw_portable = raw_template.get("portable")
+        if raw_portable is None and "carryable" in raw_template:
+            raw_portable = raw_template.get("carryable")
+        portable = True if raw_portable is None else bool(raw_portable)
+
         lock_ids = [
             str(lock_id).strip().lower()
             for lock_id in raw_template.get("lock_ids", [])
@@ -240,6 +246,7 @@ def load_item_templates() -> list[dict]:
             "keywords": normalized_keywords,
             "item_type": raw_item_type,
             "persistent": persistent,
+            "portable": portable,
             "lock_ids": lock_ids,
             "effect_type": effect_type,
             "effect_target": effect_target,

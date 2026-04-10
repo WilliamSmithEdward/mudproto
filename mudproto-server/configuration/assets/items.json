@@ -47,5 +47,15 @@
     "persistent": false,
     "lock_ids": ["lock.prototype.start-west-gate"],
     "coin_value": 0
+  },
+  {
+    "template_id": "item.container.loft-chest",
+    "name": "Weathered Chest",
+    "description": "A weathered cedar chest bound in dark iron bands rests beneath the loft rafters, sturdy and too awkward to carry off whole.",
+    "keywords": ["chest", "weathered chest", "cedar chest", "coffer"],
+    "item_type": "container",
+    "portable": false,
+    "persistent": true,
+    "coin_value": 0
   }
 ]

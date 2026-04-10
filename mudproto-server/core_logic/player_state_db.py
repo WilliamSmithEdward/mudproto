@@ -239,6 +239,11 @@ def _serialize_item(item: ItemState) -> dict:
         "item_type": str(getattr(item, "item_type", "misc") or "misc"),
         "persistent": bool(getattr(item, "persistent", True)),
         "lock_ids": [str(lock_id).strip().lower() for lock_id in getattr(item, "lock_ids", []) if str(lock_id).strip()],
+        "portable": bool(getattr(item, "portable", True)),
+        "container_items": {
+            nested_item_id: _serialize_item(nested_item)
+            for nested_item_id, nested_item in getattr(item, "container_items", {}).items()
+        },
     }
 
 
@@ -246,6 +251,10 @@ def _deserialize_item(raw: dict) -> ItemState:
     equippable = bool(raw.get("equippable", False))
     if not equippable and str(raw.get("slot", "")).strip():
         equippable = True
+
+    raw_container_items = raw.get("container_items", {})
+    if not isinstance(raw_container_items, dict):
+        raw_container_items = {}
 
     return ItemState(
         item_id=str(raw.get("item_id", "")).strip(),
@@ -272,6 +281,12 @@ def _deserialize_item(raw: dict) -> ItemState:
         item_type=str(raw.get("item_type", "misc")).strip().lower() or "misc",
         persistent=bool(raw.get("persistent", True)),
         lock_ids=[str(lock_id).strip().lower() for lock_id in raw.get("lock_ids", []) if str(lock_id).strip()],
+        portable=bool(raw.get("portable", True)),
+        container_items={
+            str(nested_item_id).strip(): _deserialize_item(nested_raw)
+            for nested_item_id, nested_raw in raw_container_items.items()
+            if str(nested_item_id).strip() and isinstance(nested_raw, dict)
+        },
     )
 
 

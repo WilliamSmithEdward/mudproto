@@ -34,7 +34,8 @@
         "allowed_values": [
           "consumable",
           "key",
-          "misc"
+          "misc",
+          "container"
         ]
       },
       "effect_type": {
@@ -72,6 +73,12 @@
         "required": false,
         "default": [],
         "notes": "For keys, list the lock IDs this item can lock or unlock."
+      },
+      "portable": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "notes": "For container items, when false the container can exist in the room but cannot be picked up into inventory. The alias `carryable` is also accepted."
       },
       "coin_value": {
         "type": "integer",

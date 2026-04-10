@@ -89,6 +89,8 @@ class ItemState:
     item_type: str = "misc"
     persistent: bool = True
     lock_ids: list[str] = field(default_factory=list)
+    portable: bool = True
+    container_items: dict[str, "ItemState"] = field(default_factory=dict)
 
 
 @dataclass

@@ -1,5 +1,6 @@
 import re
 
+from containers import put_item_into_container, resolve_accessible_container, split_item_and_container_selectors
 from display_core import build_part
 from display_feedback import display_command_result, display_error
 from item_logic import _build_item_reference_parts, _item_highlight_color, _use_misc_item
@@ -18,6 +19,20 @@ def handle_item_drop_command(
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
+    if verb in {"put", "pu"}:
+        if len(args) < 2:
+            return display_error("Usage: put <item> <container>", session)
+
+        item_selector, container_selector, parse_error = split_item_and_container_selectors(session, args)
+        if parse_error is not None or not item_selector or not container_selector:
+            return display_error("Usage: put <item> <container>", session)
+
+        container, _, container_error = resolve_accessible_container(session, container_selector)
+        if container is None:
+            return display_error(container_error or f"No container matching '{container_selector}' is here.", session)
+
+        return put_item_into_container(session, item_selector, container)
+
     if verb not in {"drop", "dro", "dr"}:
         return None
 

@@ -103,6 +103,12 @@
     "title": "Hidden Loft",
     "description": "Dusty rafters and a narrow service ledge overlook the prototype chamber below.",
     "zone_id": "zone.prototype-core",
+    "items": [
+      {
+        "template_id": "item.container.loft-chest",
+        "count": 1
+      }
+    ],
     "exits": {
       "down": "start"
     }

@@ -1,6 +1,7 @@
+from containers import display_container_examination, is_item_container
 from display_feedback import display_error
 from display_room import display_entity_summary, display_exits, display_player_summary, display_room
-from item_logic import _display_corpse_examination, _display_item_examination
+from item_logic import _display_item_examination
 from models import ClientSession
 from room_exits import normalize_direction_token
 from room_objects import display_room_object_examination, resolve_room_object_selector
@@ -62,6 +63,8 @@ def handle_observation_command(
                     normalized_selector,
                 )
                 if room_item is not None:
+                    if is_item_container(room_item):
+                        return display_container_examination(session, room_item, default_location="Room")
                     return _display_item_examination(session, room_item, default_location="Room")
 
                 room_object, room_object_error = resolve_room_object_selector(room, normalized_selector)
@@ -75,7 +78,19 @@ def handle_observation_command(
 
             owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
             if owned_item is not None:
+                if is_item_container(owned_item):
+                    return display_container_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
                 return _display_item_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
+
+            room_item, _ = _resolve_room_ground_item_selector(
+                session,
+                session.player.current_room_id,
+                normalized_selector,
+            )
+            if room_item is not None:
+                if is_item_container(room_item):
+                    return display_container_examination(session, room_item, default_location="Room")
+                return _display_item_examination(session, room_item, default_location="Room")
 
             room_object, _ = resolve_room_object_selector(room, normalized_selector)
             if room_object is not None:
@@ -100,7 +115,7 @@ def handle_observation_command(
                 normalized_selector,
             )
             if corpse_target is not None:
-                return _display_corpse_examination(session, corpse_target)
+                return display_container_examination(session, corpse_target)
 
             return display_error(entity_error or f"No target named '{normalized_selector}' is here.", session)
 
@@ -131,6 +146,8 @@ def handle_observation_command(
                 normalized_selector,
             )
             if room_item is not None:
+                if is_item_container(room_item):
+                    return display_container_examination(session, room_item, default_location="Room")
                 return _display_item_examination(session, room_item, default_location="Room")
 
             if room is not None:
@@ -144,7 +161,19 @@ def handle_observation_command(
 
         owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
         if owned_item is not None:
+            if is_item_container(owned_item):
+                return display_container_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
             return _display_item_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
+
+        room_item, _ = _resolve_room_ground_item_selector(
+            session,
+            session.player.current_room_id,
+            normalized_selector,
+        )
+        if room_item is not None:
+            if is_item_container(room_item):
+                return display_container_examination(session, room_item, default_location="Room")
+            return _display_item_examination(session, room_item, default_location="Room")
 
         if room is not None:
             room_object, _ = resolve_room_object_selector(room, normalized_selector)
@@ -159,6 +188,6 @@ def handle_observation_command(
         if corpse is None:
             return display_error(resolve_error or f"No corpse matching '{normalized_selector}' is here.", session)
 
-        return _display_corpse_examination(session, corpse)
+        return display_container_examination(session, corpse)
 
     return None
