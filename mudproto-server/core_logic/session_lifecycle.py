@@ -147,6 +147,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     else:
         ensure_player_attributes(session)
 
+    removed_nonpersistent_count = purge_nonpersistent_items(session, reason="login_sanitization")
     clamp_player_resources_to_caps(session)
 
     session.is_authenticated = True
@@ -155,7 +156,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     session.auth_stage = "authenticated"
     register_authenticated_character_session(session)
 
-    if (not resumed_from_active and not loaded_state) or is_new_character:
+    if (not resumed_from_active and not loaded_state) or is_new_character or removed_nonpersistent_count > 0:
         save_player_state(session, player_key=character_key)
 
     login_room = get_room(session.player.current_room_id)
