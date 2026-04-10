@@ -36,6 +36,14 @@ _DIRECTION_LETTERS = {
     "up": "U",
     "down": "D",
 }
+_REVERSE_DIRECTIONS = {
+    "north": "south",
+    "south": "north",
+    "east": "west",
+    "west": "east",
+    "up": "down",
+    "down": "up",
+}
 
 
 def normalize_direction_token(text: str) -> str:
@@ -103,6 +111,27 @@ def _default_exit_message(exit_detail: dict, message_kind: str) -> str:
     if message_kind == "already_closed":
         return f"{exit_label.capitalize()} is already closed."
     return exit_label.capitalize()
+
+
+def _sync_linked_exit_state(room: Room, exit_detail: dict) -> None:
+    direction = normalize_direction_token(exit_detail.get("direction", ""))
+    reverse_direction = _REVERSE_DIRECTIONS.get(direction)
+    destination_room_id = room.exits.get(direction)
+    if not reverse_direction or not destination_room_id:
+        return
+
+    destination_room = get_room(destination_room_id)
+    if destination_room is None:
+        return
+    if destination_room.exits.get(reverse_direction) != room.room_id:
+        return
+
+    reverse_exit_detail = get_exit_detail(destination_room, reverse_direction)
+    if reverse_exit_detail is None:
+        return
+
+    reverse_exit_detail["is_closed"] = bool(exit_detail.get("is_closed", False))
+    reverse_exit_detail["is_locked"] = bool(exit_detail.get("is_locked", False))
 
 
 def is_exit_closed(room: Room, direction: str) -> bool:
@@ -248,6 +277,7 @@ def handle_room_exit_command(
             ])
 
         exit_detail["is_closed"] = False
+        _sync_linked_exit_state(room, exit_detail)
         open_message = str(exit_detail.get("open_message", "")).strip()
         return display_command_result(session, [
             build_part(open_message or _default_exit_message(exit_detail, "open"), "bright_white"),
@@ -260,6 +290,7 @@ def handle_room_exit_command(
         ])
 
     exit_detail["is_closed"] = True
+    _sync_linked_exit_state(room, exit_detail)
     close_message = str(exit_detail.get("close_message", "")).strip()
     return display_command_result(session, [
         build_part(close_message or _default_exit_message(exit_detail, "close"), "bright_white"),

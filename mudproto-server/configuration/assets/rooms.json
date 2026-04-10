@@ -67,6 +67,24 @@
     "title": "West Road",
     "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
     "zone_id": "zone.prototype-core",
+    "room_objects": [
+      {
+        "object_id": "east-gate",
+        "name": "east gate",
+        "keywords": ["gate", "east gate", "iron gate", "west gate"],
+        "description": "A stout iron gate stands in the eastern opening back toward the chamber. Its latch looks simple enough to work by hand if it has not been locked."
+      }
+    ],
+    "exit_details": [
+      {
+        "direction": "east",
+        "exit_type": "gate",
+        "name": "east gate",
+        "keywords": ["gate", "east gate", "iron gate", "west gate"],
+        "is_closed": true,
+        "is_locked": false
+      }
+    ],
     "exits": {
       "east": "start"
     }
