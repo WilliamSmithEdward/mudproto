@@ -8,7 +8,7 @@ from command_handlers.types import OutboundResult
 from display_core import build_menu_table_parts, build_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from grammar import indefinite_article, resolve_player_pronouns, with_article
-from inventory import is_item_equippable
+from inventory import hydrate_misc_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 from player_resources import get_player_resource_caps
 from session_timing import apply_lag
@@ -109,6 +109,13 @@ def _resolve_item_location_label(session: ClientSession, item: ItemState, *, def
 def _resolve_item_kind_label(item: ItemState) -> str:
     if is_item_equippable(item):
         return "Weapon" if item.slot == "weapon" else "Armor"
+
+    hydrate_misc_item_from_template(item)
+    item_type = str(getattr(item, "item_type", "misc")).strip().lower()
+    if item_type == "key":
+        return "Key"
+    if item_type == "consumable":
+        return "Consumable"
     return "Item"
 
 
@@ -208,6 +215,7 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     if template is None:
         return display_error(f"{misc_item.name} cannot be used.", session)
 
+    hydrate_misc_item_from_template(misc_item, template)
     effect_type = str(template.get("effect_type", "restore")).strip().lower() or "restore"
     effect_target = str(template.get("effect_target", "")).strip().lower()
     effect_amount = max(0, int(template.get("effect_amount", 0)))

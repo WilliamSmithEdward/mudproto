@@ -1,7 +1,7 @@
 import re
 import uuid
 
-from assets import get_gear_template_by_id, load_gear_templates
+from assets import get_gear_template_by_id, get_item_template_by_id, load_gear_templates, load_item_templates
 from models import ClientSession, ItemState
 
 
@@ -31,6 +31,26 @@ def build_equippable_item_from_template(template: dict, *, item_id: str | None =
         armor_class_bonus=int(template.get("armor_class_bonus", 0)),
         wear_slot=wear_slot,
         wear_slots=wear_slots,
+        item_type="equipment",
+        persistent=bool(template.get("persistent", True)),
+    )
+
+
+def build_misc_item_from_template(template: dict, *, item_id: str | None = None) -> ItemState:
+    resolved_item_id = (item_id or f"item-{uuid.uuid4().hex[:8]}").strip()
+    raw_item_type = str(template.get("item_type", "")).strip().lower()
+    if not raw_item_type:
+        raw_item_type = "consumable" if str(template.get("effect_type", "")).strip() else "misc"
+
+    return ItemState(
+        item_id=resolved_item_id,
+        template_id=str(template.get("template_id", "")).strip(),
+        name=str(template.get("name", "Item")).strip() or "Item",
+        description=str(template.get("description", "")),
+        keywords=[str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
+        item_type=raw_item_type,
+        persistent=bool(template.get("persistent", True)),
+        lock_ids=[str(lock_id).strip().lower() for lock_id in template.get("lock_ids", []) if str(lock_id).strip()],
     )
 
 
@@ -59,6 +79,65 @@ def get_gear_template_for_item(item: ItemState) -> dict | None:
         if template is not None:
             return template
     return _find_gear_template_for_item_name(str(getattr(item, "name", "")))
+
+
+def _find_item_template_for_item_name(item_name: str) -> dict | None:
+    normalized_item_name = item_name.strip().lower()
+    if not normalized_item_name:
+        return None
+
+    item_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_item_name) if token}
+    for template in load_item_templates():
+        template_name = str(template.get("name", "")).strip().lower()
+        if template_name == normalized_item_name:
+            return template
+
+        keywords = [str(keyword).strip().lower() for keyword in template.get("keywords", [])]
+        if keywords and all(keyword in item_tokens for keyword in keywords):
+            return template
+
+    return None
+
+
+def get_item_template_for_item(item: ItemState) -> dict | None:
+    template_id = str(getattr(item, "template_id", "")).strip()
+    if template_id:
+        template = get_item_template_by_id(template_id)
+        if template is not None:
+            return template
+    return _find_item_template_for_item_name(str(getattr(item, "name", "")))
+
+
+def hydrate_misc_item_from_template(item: ItemState, template: dict | None = None) -> ItemState:
+    resolved_template = template or get_item_template_for_item(item)
+    if resolved_template is None:
+        return item
+
+    item.item_type = str(resolved_template.get("item_type", getattr(item, "item_type", "misc"))).strip().lower() or "misc"
+    item.persistent = bool(resolved_template.get("persistent", getattr(item, "persistent", True)))
+    if not getattr(item, "lock_ids", None):
+        item.lock_ids = [
+            str(lock_id).strip().lower()
+            for lock_id in resolved_template.get("lock_ids", [])
+            if str(lock_id).strip()
+        ]
+    if not item.description:
+        item.description = str(resolved_template.get("description", ""))
+    if not item.keywords:
+        item.keywords = [str(keyword).strip().lower() for keyword in resolved_template.get("keywords", []) if str(keyword).strip()]
+    return item
+
+
+def item_unlocks_lock(item: ItemState, lock_id: str) -> bool:
+    normalized_lock_id = str(lock_id).strip().lower()
+    if not normalized_lock_id:
+        return False
+    hydrate_misc_item_from_template(item)
+    return normalized_lock_id in {
+        str(candidate).strip().lower()
+        for candidate in getattr(item, "lock_ids", [])
+        if str(candidate).strip()
+    }
 
 
 def is_item_equippable(item: ItemState) -> bool:

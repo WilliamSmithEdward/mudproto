@@ -86,6 +86,11 @@ class ItemState:
     armor_class_bonus: int = 0
     wear_slot: str = ""
     wear_slots: list[str] = field(default_factory=list)
+    item_type: str = "misc"
+    persistent: bool = True
+    lock_ids: list[str] = field(default_factory=list)
+
+
 @dataclass
 class EquipmentState:
     equipped_items: dict[str, ItemState] = field(default_factory=dict)

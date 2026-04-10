@@ -182,29 +182,54 @@ def load_item_templates() -> list[dict]:
     normalized_templates_by_id: dict[str, dict] = {}
     ordered_template_ids: list[str] = []
     allowed_effect_targets = {"hit_points", "mana", "vigor"}
+    allowed_item_types = {"consumable", "key", "misc"}
 
     for raw_template in raw_templates:
         if not isinstance(raw_template, dict):
             raise ValueError("Item asset entries must be objects.")
 
         template_id, name, normalized_keywords = _normalize_template_identity(raw_template, context="Item asset")
-        effect_type = str(raw_template.get("effect_type", "restore")).strip().lower() or "restore"
+        raw_item_type = str(raw_template.get("item_type", "")).strip().lower()
+        effect_type = str(raw_template.get("effect_type", "")).strip().lower()
         effect_target = str(raw_template.get("effect_target", "")).strip().lower()
-        effect_amount = int(raw_template.get("effect_amount", 0))
+        effect_amount = int(raw_template.get("effect_amount", 0) or 0)
         use_lag_seconds = max(0.0, float(raw_template.get("use_lag_seconds", 0.0)))
         normalized_template_id = template_id.strip().lower()
         is_payload_override = _is_asset_payload_override(raw_template)
 
+        if not raw_item_type:
+            raw_item_type = "consumable" if effect_type else "misc"
+        if raw_item_type not in allowed_item_types:
+            raise ValueError(
+                f"Item asset '{template_id}' item_type must be one of: consumable, key, misc."
+            )
+
+        raw_persistent = raw_template.get("persistent")
+        if raw_persistent is None and "persistant" in raw_template:
+            raw_persistent = raw_template.get("persistant")
+        persistent = True if raw_persistent is None else bool(raw_persistent)
+        lock_ids = [
+            str(lock_id).strip().lower()
+            for lock_id in raw_template.get("lock_ids", [])
+            if str(lock_id).strip()
+        ]
+
         if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate item template_id: {template_id}")
-        if effect_type != "restore":
-            raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
-        if effect_target not in allowed_effect_targets:
-            raise ValueError(
-                f"Item asset '{template_id}' effect_target must be one of: hit_points, mana, vigor."
-            )
-        if effect_amount <= 0:
-            raise ValueError(f"Item asset '{template_id}' effect_amount must be greater than zero.")
+        if raw_item_type == "consumable":
+            if effect_type != "restore":
+                raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
+            if effect_target not in allowed_effect_targets:
+                raise ValueError(
+                    f"Item asset '{template_id}' effect_target must be one of: hit_points, mana, vigor."
+                )
+            if effect_amount <= 0:
+                raise ValueError(f"Item asset '{template_id}' effect_amount must be greater than zero.")
+        elif effect_type and effect_type != "restore":
+            raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore' when provided.")
+
+        if raw_item_type == "key" and not lock_ids:
+            raise ValueError(f"Item asset '{template_id}' key items must define at least one lock_id.")
 
         if normalized_template_id not in normalized_templates_by_id:
             ordered_template_ids.append(normalized_template_id)
@@ -213,6 +238,9 @@ def load_item_templates() -> list[dict]:
             "name": name,
             "description": str(raw_template.get("description", "")),
             "keywords": normalized_keywords,
+            "item_type": raw_item_type,
+            "persistent": persistent,
+            "lock_ids": lock_ids,
             "effect_type": effect_type,
             "effect_target": effect_target,
             "effect_amount": effect_amount,
@@ -305,6 +333,7 @@ def load_rooms() -> list[dict]:
         zone_id = str(raw_room.get("zone_id", "")).strip()
         exits = raw_room.get("exits", {})
         room_npcs = raw_room.get("npcs", [])
+        room_items = raw_room.get("items", [])
         room_keyword_actions = raw_room.get("keyword_actions", [])
         room_objects = raw_room.get("room_objects", [])
         room_exit_details = raw_room.get("exit_details", [])
@@ -327,6 +356,10 @@ def load_rooms() -> list[dict]:
             room_npcs = []
         if not isinstance(room_npcs, list):
             raise ValueError(f"Room asset '{room_id}' npcs must be a list.")
+        if room_items is None:
+            room_items = []
+        if not isinstance(room_items, list):
+            raise ValueError(f"Room asset '{room_id}' items must be a list.")
         if room_keyword_actions is None:
             room_keyword_actions = []
         if not isinstance(room_keyword_actions, list):
@@ -339,6 +372,21 @@ def load_rooms() -> list[dict]:
             room_exit_details = []
         if not isinstance(room_exit_details, list):
             raise ValueError(f"Room asset '{room_id}' exit_details must be a list.")
+
+        normalized_room_items: list[dict] = []
+        for raw_room_item in room_items:
+            if not isinstance(raw_room_item, dict):
+                raise ValueError(f"Room asset '{room_id}' items entries must be objects.")
+
+            template_id = str(raw_room_item.get("template_id", "")).strip()
+            if not template_id:
+                raise ValueError(f"Room asset '{room_id}' items entries must include template_id.")
+
+            quantity = max(1, int(raw_room_item.get("count", 1)))
+            normalized_room_items.append({
+                "template_id": template_id,
+                "count": quantity,
+            })
 
         normalized_room_objects: list[dict] = []
         for raw_room_object in room_objects:
@@ -391,15 +439,23 @@ def load_rooms() -> list[dict]:
                 "name": name,
                 "description": str(raw_exit_detail.get("description", "")).strip(),
                 "keywords": [str(keyword).strip().lower() for keyword in raw_exit_keywords if str(keyword).strip()],
+                "lock_id": str(raw_exit_detail.get("lock_id", "")).strip().lower(),
                 "can_close": bool(raw_exit_detail.get("can_close", True)),
+                "can_lock": bool(raw_exit_detail.get("can_lock", bool(str(raw_exit_detail.get("lock_id", "")).strip()))),
                 "is_closed": bool(raw_exit_detail.get("is_closed", False)),
                 "is_locked": bool(raw_exit_detail.get("is_locked", False)),
                 "open_message": str(raw_exit_detail.get("open_message", "")).strip(),
                 "close_message": str(raw_exit_detail.get("close_message", "")).strip(),
+                "lock_message": str(raw_exit_detail.get("lock_message", "")).strip(),
+                "unlock_message": str(raw_exit_detail.get("unlock_message", "")).strip(),
                 "closed_message": str(raw_exit_detail.get("closed_message", "")).strip(),
                 "locked_message": str(raw_exit_detail.get("locked_message", "")).strip(),
+                "needs_key_message": str(raw_exit_detail.get("needs_key_message", "")).strip(),
+                "must_close_to_lock_message": str(raw_exit_detail.get("must_close_to_lock_message", "")).strip(),
                 "already_open_message": str(raw_exit_detail.get("already_open_message", "")).strip(),
                 "already_closed_message": str(raw_exit_detail.get("already_closed_message", "")).strip(),
+                "already_locked_message": str(raw_exit_detail.get("already_locked_message", "")).strip(),
+                "already_unlocked_message": str(raw_exit_detail.get("already_unlocked_message", "")).strip(),
             })
 
         normalized_keyword_actions: list[dict] = []
@@ -493,6 +549,7 @@ def load_rooms() -> list[dict]:
             })
 
         merged_exits = dict(normalized_exits)
+        merged_room_items = list(normalized_room_items)
         merged_keyword_actions = list(normalized_keyword_actions)
         merged_room_objects = list(normalized_room_objects)
         merged_exit_details = list(normalized_exit_details)
@@ -502,6 +559,10 @@ def load_rooms() -> list[dict]:
             if isinstance(existing_exits, dict):
                 merged_exits = dict(existing_exits)
                 merged_exits.update(normalized_exits)
+
+            existing_room_items = existing_room.get("items", [])
+            if isinstance(existing_room_items, list):
+                merged_room_items = list(existing_room_items) + normalized_room_items
 
             existing_keyword_actions = existing_room.get("keyword_actions", [])
             if isinstance(existing_keyword_actions, list):
@@ -533,6 +594,7 @@ def load_rooms() -> list[dict]:
             "zone_id": zone_id,
             "exits": merged_exits,
             "npcs": normalized_npcs,
+            "items": merged_room_items,
             "keyword_actions": merged_keyword_actions,
             "room_objects": merged_room_objects,
             "exit_details": merged_exit_details,

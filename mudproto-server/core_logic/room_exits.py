@@ -3,6 +3,7 @@
 import re
 
 from display_core import build_part
+from inventory import get_item_keywords, item_unlocks_lock
 from models import ClientSession
 from world import Room, get_room
 
@@ -102,14 +103,26 @@ def _default_exit_message(exit_detail: dict, message_kind: str) -> str:
             return f"You pull {exit_label} shut."
         return f"You close {exit_label}."
 
+    if message_kind == "lock":
+        return f"You lock {exit_label}."
+    if message_kind == "unlock":
+        return f"You unlock {exit_label}."
     if message_kind == "closed":
         return f"{exit_label.capitalize()} is closed."
     if message_kind == "locked":
         return f"{exit_label.capitalize()} is locked."
+    if message_kind == "needs_key":
+        return f"You do not have the proper key for {exit_label}."
+    if message_kind == "must_close_to_lock":
+        return f"{exit_label.capitalize()} must be closed before it can be locked."
     if message_kind == "already_open":
         return f"{exit_label.capitalize()} is already open."
     if message_kind == "already_closed":
         return f"{exit_label.capitalize()} is already closed."
+    if message_kind == "already_locked":
+        return f"{exit_label.capitalize()} is already locked."
+    if message_kind == "already_unlocked":
+        return f"{exit_label.capitalize()} is already unlocked."
     return exit_label.capitalize()
 
 
@@ -150,8 +163,8 @@ def can_traverse_exit(room: Room, direction: str) -> tuple[bool, str | None]:
         return True, None
 
     if bool(exit_detail.get("is_locked", False)):
-        locked_message = str(exit_detail.get("locked_message", "")).strip()
-        return False, locked_message or _default_exit_message(exit_detail, "locked")
+        closed_message = str(exit_detail.get("closed_message", "")).strip()
+        return False, closed_message or _default_exit_message(exit_detail, "closed")
 
     if bool(exit_detail.get("is_closed", False)):
         closed_message = str(exit_detail.get("closed_message", "")).strip()
@@ -236,6 +249,36 @@ def resolve_room_exit_selector(room: Room, selector_text: str) -> dict | None:
     return candidates[0]
 
 
+def _split_selector_and_key(selector_text: str) -> tuple[str, str | None]:
+    cleaned = " ".join(str(selector_text).strip().split())
+    if not cleaned:
+        return "", None
+
+    parts = re.split(r"\s+with\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)
+    if len(parts) == 2:
+        return parts[0].strip(), parts[1].strip() or None
+    return cleaned, None
+
+
+def _find_matching_key_item(session: ClientSession, lock_id: str, key_selector: str | None = None):
+    normalized_lock_id = str(lock_id).strip().lower()
+    if not normalized_lock_id:
+        return None
+
+    selector_tokens = [token.lower() for token in re.findall(r"[a-zA-Z0-9]+", key_selector or "")]
+    candidate_items = list(session.inventory_items.values())
+    candidate_items.sort(key=lambda item: (item.name.lower(), item.item_id))
+
+    for item in candidate_items:
+        if not item_unlocks_lock(item, normalized_lock_id):
+            continue
+        if selector_tokens and not all(token in get_item_keywords(item) for token in selector_tokens):
+            continue
+        return item
+
+    return None
+
+
 def handle_room_exit_command(
     session: ClientSession,
     verb: str,
@@ -243,7 +286,7 @@ def handle_room_exit_command(
     _command_text: str,
 ) -> dict | None:
     normalized_verb = str(verb).strip().lower()
-    if normalized_verb not in {"open", "ope", "op", "close", "clos", "clo", "cl"}:
+    if normalized_verb not in {"open", "ope", "op", "close", "clos", "clo", "cl", "lock", "unlock", "unl", "unlo", "unloc"}:
         return None
 
     from display_feedback import display_command_result, display_error
@@ -256,20 +299,30 @@ def handle_room_exit_command(
         return display_error(f"Current room not found: {session.player.current_room_id}", session)
 
     selector_text = " ".join(args).strip()
+    key_selector: str | None = None
+    if normalized_verb in {"lock", "unlock", "unl", "unlo", "unloc"}:
+        selector_text, key_selector = _split_selector_and_key(selector_text)
+
     exit_detail = resolve_room_exit_selector(room, selector_text)
     if exit_detail is None:
         return None
 
     can_close = bool(exit_detail.get("can_close", True))
+    can_lock = bool(exit_detail.get("can_lock", bool(str(exit_detail.get("lock_id", "")).strip())))
+    lock_id = str(exit_detail.get("lock_id", "")).strip().lower()
     exit_label = _exit_label(exit_detail)
 
-    if not can_close:
-        return display_error(f"The {exit_label} cannot be opened or closed.", session)
+    if normalized_verb in {"open", "ope", "op", "close", "clos", "clo", "cl"} and not can_close:
+        return display_command_result(session, [
+            build_part(f"The {exit_label} cannot be opened or closed.", "bright_white"),
+        ])
 
     if normalized_verb in {"open", "ope", "op"}:
         if bool(exit_detail.get("is_locked", False)):
             locked_message = str(exit_detail.get("locked_message", "")).strip()
-            return display_error(locked_message or _default_exit_message(exit_detail, "locked"), session)
+            return display_command_result(session, [
+                build_part(locked_message or _default_exit_message(exit_detail, "locked"), "bright_white"),
+            ])
         if not bool(exit_detail.get("is_closed", False)):
             already_open_message = str(exit_detail.get("already_open_message", "")).strip()
             return display_command_result(session, [
@@ -283,15 +336,68 @@ def handle_room_exit_command(
             build_part(open_message or _default_exit_message(exit_detail, "open"), "bright_white"),
         ])
 
-    if bool(exit_detail.get("is_closed", False)):
-        already_closed_message = str(exit_detail.get("already_closed_message", "")).strip()
+    if normalized_verb in {"close", "clos", "clo", "cl"}:
+        if bool(exit_detail.get("is_closed", False)):
+            already_closed_message = str(exit_detail.get("already_closed_message", "")).strip()
+            return display_command_result(session, [
+                build_part(already_closed_message or _default_exit_message(exit_detail, "already_closed"), "bright_white"),
+            ])
+
+        exit_detail["is_closed"] = True
+        _sync_linked_exit_state(room, exit_detail)
+        close_message = str(exit_detail.get("close_message", "")).strip()
         return display_command_result(session, [
-            build_part(already_closed_message or _default_exit_message(exit_detail, "already_closed"), "bright_white"),
+            build_part(close_message or _default_exit_message(exit_detail, "close"), "bright_white"),
         ])
 
-    exit_detail["is_closed"] = True
+    if not can_lock or not lock_id:
+        return display_command_result(session, [
+            build_part(f"The {exit_label} cannot be locked or unlocked.", "bright_white"),
+        ])
+
+    if normalized_verb in {"unlock", "unl", "unlo", "unloc"}:
+        if not bool(exit_detail.get("is_locked", False)):
+            already_unlocked_message = str(exit_detail.get("already_unlocked_message", "")).strip()
+            return display_command_result(session, [
+                build_part(already_unlocked_message or _default_exit_message(exit_detail, "already_unlocked"), "bright_white"),
+            ])
+
+        key_item = _find_matching_key_item(session, lock_id, key_selector)
+        if key_item is None:
+            needs_key_message = str(exit_detail.get("needs_key_message", "")).strip()
+            return display_command_result(session, [
+                build_part(needs_key_message or _default_exit_message(exit_detail, "needs_key"), "bright_white"),
+            ])
+
+        exit_detail["is_locked"] = False
+        _sync_linked_exit_state(room, exit_detail)
+        unlock_message = str(exit_detail.get("unlock_message", "")).strip()
+        return display_command_result(session, [
+            build_part(unlock_message or _default_exit_message(exit_detail, "unlock"), "bright_white"),
+        ])
+
+    if bool(exit_detail.get("is_locked", False)):
+        already_locked_message = str(exit_detail.get("already_locked_message", "")).strip()
+        return display_command_result(session, [
+            build_part(already_locked_message or _default_exit_message(exit_detail, "already_locked"), "bright_white"),
+        ])
+
+    if not bool(exit_detail.get("is_closed", False)):
+        must_close_message = str(exit_detail.get("must_close_to_lock_message", "")).strip()
+        return display_command_result(session, [
+            build_part(must_close_message or _default_exit_message(exit_detail, "must_close_to_lock"), "bright_white"),
+        ])
+
+    key_item = _find_matching_key_item(session, lock_id, key_selector)
+    if key_item is None:
+        needs_key_message = str(exit_detail.get("needs_key_message", "")).strip()
+        return display_command_result(session, [
+            build_part(needs_key_message or _default_exit_message(exit_detail, "needs_key"), "bright_white"),
+        ])
+
+    exit_detail["is_locked"] = True
     _sync_linked_exit_state(room, exit_detail)
-    close_message = str(exit_detail.get("close_message", "")).strip()
+    lock_message = str(exit_detail.get("lock_message", "")).strip()
     return display_command_result(session, [
-        build_part(close_message or _default_exit_message(exit_detail, "close"), "bright_white"),
+        build_part(lock_message or _default_exit_message(exit_detail, "lock"), "bright_white"),
     ])

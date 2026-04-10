@@ -45,14 +45,21 @@
         "description": "A stout iron gate bars the western opening. Its latch looks simple enough to work by hand if it has not been locked."
       }
     ],
+    "items": [
+      {
+        "template_id": "item.key.west-gate",
+        "count": 1
+      }
+    ],
     "exit_details": [
       {
         "direction": "west",
         "exit_type": "gate",
         "name": "west gate",
         "keywords": ["gate", "west gate", "iron gate"],
+        "lock_id": "lock.prototype.start-west-gate",
         "is_closed": true,
-        "is_locked": false
+        "is_locked": true
       }
     ],
     "exits": {
@@ -67,6 +74,7 @@
     "title": "West Road",
     "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
     "zone_id": "zone.prototype-core",
+    "items": [],
     "room_objects": [
       {
         "object_id": "east-gate",
@@ -81,8 +89,9 @@
         "exit_type": "gate",
         "name": "east gate",
         "keywords": ["gate", "east gate", "iron gate", "west gate"],
+        "lock_id": "lock.prototype.start-west-gate",
         "is_closed": true,
-        "is_locked": false
+        "is_locked": true
       }
     ],
     "exits": {

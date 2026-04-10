@@ -1,7 +1,7 @@
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
-from inventory import build_equippable_item_from_template
+from inventory import build_equippable_item_from_template, build_misc_item_from_template
 from models import ClientSession, EntityState, ItemState
 from session_registry import (
     active_character_sessions,
@@ -18,10 +18,21 @@ from world import WORLD
 def _build_loot_items_from_template(template: dict) -> list[ItemState]:
     loot_items: list[ItemState] = []
     for loot_template in template.get("loot_items", []):
+        template_id = str(loot_template.get("template_id", "")).strip()
+        resolved_item_template = get_item_template_by_id(template_id) if template_id else None
+        if resolved_item_template is not None:
+            loot_items.append(
+                build_misc_item_from_template(
+                    resolved_item_template,
+                    item_id=f"loot-{uuid.uuid4().hex[:8]}",
+                )
+            )
+            continue
+
         loot_items.append(ItemState(
             item_id=f"loot-{uuid.uuid4().hex[:8]}",
             name=str(loot_template.get("name", "Loot")).strip() or "Loot",
-            template_id=str(loot_template.get("template_id", "")).strip(),
+            template_id=template_id,
             description=str(loot_template.get("description", "")),
             keywords=list(loot_template.get("keywords", [])),
         ))
@@ -55,19 +66,43 @@ def _build_inventory_items_from_template(template: dict) -> list[ItemState]:
                     item_id=f"npc-item-{uuid.uuid4().hex[:8]}",
                 )
             else:
-                inventory_item = ItemState(
+                inventory_item = build_misc_item_from_template(
+                    resolved_template,
                     item_id=f"npc-item-{uuid.uuid4().hex[:8]}",
-                    template_id=str(resolved_template.get("template_id", template_id)).strip(),
-                    name=str(resolved_template.get("name", "Item")).strip() or "Item",
-                    description=str(resolved_template.get("description", "")),
-                    keywords=[
-                        str(keyword).strip().lower()
-                        for keyword in resolved_template.get("keywords", [])
-                        if str(keyword).strip()
-                    ],
                 )
             inventory_items.append(inventory_item)
     return inventory_items
+
+
+def _populate_room_ground_items_from_config(room) -> None:
+    if room is None:
+        return
+
+    room_items = shared_world_room_ground_items.setdefault(room.room_id, {})
+    for raw_room_item in room.items:
+        template_id = str(raw_room_item.get("template_id", "")).strip()
+        quantity = max(0, int(raw_room_item.get("count", 1)))
+        if not template_id or quantity <= 0:
+            continue
+
+        gear_template = get_gear_template_by_id(template_id)
+        item_template = get_item_template_by_id(template_id) if gear_template is None else None
+        resolved_template = gear_template or item_template
+        if resolved_template is None:
+            continue
+
+        for _ in range(quantity):
+            if gear_template is not None:
+                ground_item = build_equippable_item_from_template(
+                    gear_template,
+                    item_id=f"room-item-{uuid.uuid4().hex[:8]}",
+                )
+            else:
+                ground_item = build_misc_item_from_template(
+                    resolved_template,
+                    item_id=f"room-item-{uuid.uuid4().hex[:8]}",
+                )
+            room_items[ground_item.item_id] = ground_item
 
 
 def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: int) -> EntityState:
@@ -174,6 +209,8 @@ def reinitialize_zone(zone_id: str) -> int:
         if room is None:
             continue
 
+        _populate_room_ground_items_from_config(room)
+
         for npc_spawn in room.npcs:
             npc_id = str(npc_spawn.get("npc_id", "")).strip()
             if not npc_id:
@@ -253,6 +290,7 @@ def initialize_session_entities(session: ClientSession) -> None:
     next_spawn_sequence = max((entity.spawn_sequence for entity in session.entities.values()), default=0)
 
     for room in WORLD.rooms.values():
+        _populate_room_ground_items_from_config(room)
         for npc_spawn in room.npcs:
             npc_id = str(npc_spawn.get("npc_id", "")).strip()
             if not npc_id:

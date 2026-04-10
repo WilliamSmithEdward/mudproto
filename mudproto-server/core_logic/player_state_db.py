@@ -236,6 +236,9 @@ def _serialize_item(item: ItemState) -> dict:
         "armor_class_bonus": int(item.armor_class_bonus),
         "wear_slot": item.wear_slot,
         "wear_slots": list(item.wear_slots),
+        "item_type": str(getattr(item, "item_type", "misc") or "misc"),
+        "persistent": bool(getattr(item, "persistent", True)),
+        "lock_ids": [str(lock_id).strip().lower() for lock_id in getattr(item, "lock_ids", []) if str(lock_id).strip()],
     }
 
 
@@ -266,6 +269,9 @@ def _deserialize_item(raw: dict) -> ItemState:
         armor_class_bonus=int(raw.get("armor_class_bonus", 0)),
         wear_slot=str(raw.get("wear_slot", "")).strip(),
         wear_slots=[str(slot).strip().lower() for slot in raw.get("wear_slots", []) if str(slot).strip()],
+        item_type=str(raw.get("item_type", "misc")).strip().lower() or "misc",
+        persistent=bool(raw.get("persistent", True)),
+        lock_ids=[str(lock_id).strip().lower() for lock_id in raw.get("lock_ids", []) if str(lock_id).strip()],
     )
 
 

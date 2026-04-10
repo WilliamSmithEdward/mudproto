@@ -43,6 +43,12 @@
           }
         }
       },
+      "items": {
+        "type": "array[object]",
+        "required": false,
+        "default": [],
+        "description": "Optional ground items seeded into the room when the world or zone initializes. Each entry should include template_id and optional count."
+      },
       "keyword_actions": {
         "type": "array[object]",
         "required": false,
@@ -57,7 +63,7 @@
         "type": "array[object]",
         "required": false,
         "default": [],
-        "description": "Optional exit metadata/state. open_message, close_message, closed_message, locked_message, already_open_message, and already_closed_message are optional overrides; grammar defaults are generated from the exit name/type/direction when omitted."
+        "description": "Optional exit metadata/state. Supports close/open and lock/unlock behavior, including lock_id, can_lock, is_closed, is_locked, and optional message overrides. Grammar defaults are generated from the exit name/type/direction when omitted."
       }
     }
   }

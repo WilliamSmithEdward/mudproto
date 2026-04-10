@@ -20,6 +20,32 @@ def handle_loot_command(
     if verb != "get":
         return None
 
+    room_id = session.player.current_room_id
+    joined_selector = " ".join(arg.strip() for arg in args if arg.strip()).strip()
+    normalized_joined_selector = joined_selector.lower()
+    if (
+        joined_selector
+        and normalized_joined_selector not in {"coin", "coins", "all"}
+        and not normalized_joined_selector.startswith("all.")
+    ):
+        matches, requested_index, selector_error = _resolve_room_ground_matches(session, room_id, joined_selector)
+        if selector_error is None:
+            selected_item = matches[0] if requested_index is None else (
+                matches[requested_index - 1] if requested_index <= len(matches) else None
+            )
+            if selected_item is None:
+                return display_error(
+                    f"Only {len(matches)} match(es) found for '{joined_selector}'.",
+                    session,
+                )
+
+            _pickup_ground_item(session, room_id, selected_item)
+            return display_command_result(session, [
+                build_part("You take ", "bright_white"),
+                *_build_item_reference_parts(selected_item),
+                build_part(".", "bright_white"),
+            ])
+
     if len(args) == 1:
         single_selector = args[0].strip()
         normalized_selector = single_selector.lower()

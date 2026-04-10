@@ -27,26 +27,51 @@
         "required": false,
         "default": []
       },
+      "item_type": {
+        "type": "string",
+        "required": false,
+        "default": "consumable",
+        "allowed_values": [
+          "consumable",
+          "key",
+          "misc"
+        ]
+      },
       "effect_type": {
         "type": "string",
-        "required": true,
+        "required": false,
         "allowed_values": [
           "restore"
-        ]
+        ],
+        "notes": "Required for consumable restore items; omit for keys and misc items."
       },
       "effect_target": {
         "type": "string",
-        "required": true,
+        "required": false,
         "allowed_values": [
           "hit_points",
           "mana",
           "vigor"
-        ]
+        ],
+        "notes": "Required for consumable restore items; omit for keys and misc items."
       },
       "effect_amount": {
         "type": "integer",
-        "required": true,
-        "minimum": 1
+        "required": false,
+        "minimum": 1,
+        "notes": "Required for consumable restore items; omit for keys and misc items."
+      },
+      "persistent": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "notes": "When false, the item is purged from character inventory/equipment on permanent disconnect or future logout-style cleanup flows."
+      },
+      "lock_ids": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "For keys, list the lock IDs this item can lock or unlock."
       },
       "coin_value": {
         "type": "integer",

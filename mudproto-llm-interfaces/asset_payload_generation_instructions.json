@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.7",
-  "generated_at_utc": "2026-04-10T08:20:23.285268+00:00",
+  "generated_at_utc": "2026-04-10T17:11:54.416556+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -291,26 +291,51 @@
           "required": false,
           "default": []
         },
+        "item_type": {
+          "type": "string",
+          "required": false,
+          "default": "consumable",
+          "allowed_values": [
+            "consumable",
+            "key",
+            "misc"
+          ]
+        },
         "effect_type": {
           "type": "string",
-          "required": true,
+          "required": false,
           "allowed_values": [
             "restore"
-          ]
+          ],
+          "notes": "Required for consumable restore items; omit for keys and misc items."
         },
         "effect_target": {
           "type": "string",
-          "required": true,
+          "required": false,
           "allowed_values": [
             "hit_points",
             "mana",
             "vigor"
-          ]
+          ],
+          "notes": "Required for consumable restore items; omit for keys and misc items."
         },
         "effect_amount": {
           "type": "integer",
-          "required": true,
-          "minimum": 1
+          "required": false,
+          "minimum": 1,
+          "notes": "Required for consumable restore items; omit for keys and misc items."
+        },
+        "persistent": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "notes": "When false, the item is purged from character inventory/equipment on permanent disconnect or future logout-style cleanup flows."
+        },
+        "lock_ids": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "For keys, list the lock IDs this item can lock or unlock."
         },
         "coin_value": {
           "type": "integer",
@@ -624,6 +649,12 @@
             }
           }
         },
+        "items": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "description": "Optional ground items seeded into the room when the world or zone initializes. Each entry should include template_id and optional count."
+        },
         "keyword_actions": {
           "type": "array[object]",
           "required": false,
@@ -638,7 +669,7 @@
           "type": "array[object]",
           "required": false,
           "default": [],
-          "description": "Optional exit metadata/state. open_message, close_message, closed_message, locked_message, already_open_message, and already_closed_message are optional overrides; grammar defaults are generated from the exit name/type/direction when omitted."
+          "description": "Optional exit metadata/state. Supports close/open and lock/unlock behavior, including lock_id, can_lock, is_closed, is_locked, and optional message overrides. Grammar defaults are generated from the exit name/type/direction when omitted."
         }
       }
     },
@@ -1066,7 +1097,7 @@
   "current_game_assets": {
     "counts": {
       "gear": 14,
-      "items": 3,
+      "items": 4,
       "npcs": 5,
       "rooms": 8,
       "skills": 3,
@@ -1388,6 +1419,23 @@
           "use_lag_seconds": 0,
           "observer_action": "[actor_name] drinks a potion of vigor.",
           "observer_context": "Renewed energy surges through [actor_object]."
+        },
+        {
+          "template_id": "item.key.west-gate",
+          "name": "Brass Gate Key",
+          "description": "A small brass key with a worn square bit, likely meant for the western gate nearby.",
+          "keywords": [
+            "key",
+            "brass",
+            "gate",
+            "west gate"
+          ],
+          "item_type": "key",
+          "persistent": false,
+          "lock_ids": [
+            "lock.prototype.start-west-gate"
+          ],
+          "coin_value": 0
         }
       ],
       "npcs": {
@@ -1649,6 +1697,12 @@
               "description": "A stout iron gate bars the western opening. Its latch looks simple enough to work by hand if it has not been locked."
             }
           ],
+          "items": [
+            {
+              "template_id": "item.key.west-gate",
+              "count": 1
+            }
+          ],
           "exit_details": [
             {
               "direction": "west",
@@ -1659,8 +1713,9 @@
                 "west gate",
                 "iron gate"
               ],
+              "lock_id": "lock.prototype.start-west-gate",
               "is_closed": true,
-              "is_locked": false
+              "is_locked": true
             }
           ],
           "exits": {
@@ -1675,6 +1730,7 @@
           "title": "West Road",
           "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
           "zone_id": "zone.prototype-core",
+          "items": [],
           "room_objects": [
             {
               "object_id": "east-gate",
@@ -1699,8 +1755,9 @@
                 "iron gate",
                 "west gate"
               ],
+              "lock_id": "lock.prototype.start-west-gate",
               "is_closed": true,
-              "is_locked": false
+              "is_locked": true
             }
           ],
           "exits": {

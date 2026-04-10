@@ -37,5 +37,15 @@
     "use_lag_seconds": 0,
     "observer_action": "[actor_name] drinks a potion of vigor.",
     "observer_context": "Renewed energy surges through [actor_object]."
+  },
+  {
+    "template_id": "item.key.west-gate",
+    "name": "Brass Gate Key",
+    "description": "A small brass key with a worn square bit, likely meant for the western gate nearby.",
+    "keywords": ["key", "brass", "gate", "west gate"],
+    "item_type": "key",
+    "persistent": false,
+    "lock_ids": ["lock.prototype.start-west-gate"],
+    "coin_value": 0
   }
 ]

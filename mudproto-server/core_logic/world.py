@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from assets import load_rooms, load_zones
+from assets import get_gear_template_by_id, get_item_template_by_id, load_rooms, load_zones
 
 
 @dataclass
@@ -11,6 +11,7 @@ class Room:
     zone_id: str = ""
     exits: dict[str, str] = field(default_factory=dict)
     npcs: list[dict] = field(default_factory=list)
+    items: list[dict] = field(default_factory=list)
     keyword_actions: list[dict] = field(default_factory=list)
     room_objects: list[dict] = field(default_factory=list)
     exit_details: list[dict] = field(default_factory=list)
@@ -51,6 +52,7 @@ def build_default_world() -> WorldState:
             zone_id=room_data.get("zone_id", ""),
             exits=room_data["exits"],
             npcs=room_data.get("npcs", []),
+            items=room_data.get("items", []),
             keyword_actions=room_data.get("keyword_actions", []),
             room_objects=room_data.get("room_objects", []),
             exit_details=room_data.get("exit_details", []),
@@ -73,6 +75,15 @@ def build_default_world() -> WorldState:
             if exit_direction not in room.exits:
                 raise ValueError(
                     f"Room '{room.room_id}' exit detail references unknown direction '{exit_direction}'."
+                )
+
+        for room_item in room.items:
+            template_id = str(room_item.get("template_id", "")).strip()
+            if not template_id:
+                raise ValueError(f"Room '{room.room_id}' item entries must include template_id.")
+            if get_gear_template_by_id(template_id) is None and get_item_template_by_id(template_id) is None:
+                raise ValueError(
+                    f"Room '{room.room_id}' item '{template_id}' references an unknown gear or item template."
                 )
 
         for keyword_action in room.keyword_actions:

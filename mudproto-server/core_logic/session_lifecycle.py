@@ -5,6 +5,7 @@ from display_core import build_line, build_part
 from display_feedback import display_error
 from display_room import display_room
 from grammar import normalize_player_gender
+from inventory import hydrate_misc_item_from_template
 from models import ClientSession
 from player_resources import clamp_player_resources_to_caps
 from player_state_db import load_player_state, save_player_state
@@ -55,6 +56,33 @@ def stop_offline_character_processing(character_key: str) -> None:
     task = offline_character_tasks.pop(normalized_key, None)
     if task is not None:
         task.cancel()
+
+
+def purge_nonpersistent_items(session: ClientSession, *, reason: str = "disconnect") -> int:
+    removed_item_ids: set[str] = set()
+
+    for item_id, item in list(session.inventory_items.items()):
+        hydrate_misc_item_from_template(item)
+        if bool(getattr(item, "persistent", True)):
+            continue
+        session.inventory_items.pop(item_id, None)
+        removed_item_ids.add(item_id)
+
+    for item_id, item in list(session.equipment.equipped_items.items()):
+        hydrate_misc_item_from_template(item)
+        if bool(getattr(item, "persistent", True)):
+            continue
+        session.equipment.equipped_items.pop(item_id, None)
+        removed_item_ids.add(item_id)
+        if session.equipment.equipped_main_hand_id == item_id:
+            session.equipment.equipped_main_hand_id = None
+        if session.equipment.equipped_off_hand_id == item_id:
+            session.equipment.equipped_off_hand_id = None
+        for wear_slot, worn_item_id in list(session.equipment.worn_item_ids.items()):
+            if worn_item_id == item_id:
+                session.equipment.worn_item_ids.pop(wear_slot, None)
+
+    return len(removed_item_ids)
 
 
 def hydrate_session_from_active_character(target_session: ClientSession, character_key: str) -> bool:
@@ -214,6 +242,7 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
                     if session.login_room_id.strip():
                         session.player.current_room_id = session.login_room_id.strip()
                     end_combat(session)
+                    purge_nonpersistent_items(session, reason="offline_safe_disconnect")
                     save_player_state(session)
                     active_character_sessions.pop(character_key, None)
                     break
@@ -245,10 +274,12 @@ def handle_client_disconnect(session: ClientSession) -> None:
         start_offline_character_processing(session)
 
 
-def reset_session_to_login(session: ClientSession) -> None:
+def reset_session_to_login(session: ClientSession, *, purge_nonpersistent_items_on_logout: bool = False) -> None:
     """Save and deauthenticate a session, returning it to the login screen."""
     normalized_key = session.player_state_key.strip().lower()
     if normalized_key:
+        if purge_nonpersistent_items_on_logout:
+            purge_nonpersistent_items(session, reason="logout")
         save_player_state(session)
         active_character_sessions.pop(normalized_key, None)
         stop_offline_character_processing(normalized_key)
