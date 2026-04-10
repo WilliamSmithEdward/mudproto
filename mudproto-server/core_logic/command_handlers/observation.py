@@ -2,6 +2,7 @@ from display_feedback import display_error
 from display_room import display_entity_summary, display_exits, display_player_summary, display_room
 from item_logic import _display_corpse_examination, _display_item_examination
 from models import ClientSession
+from room_exits import normalize_direction_token
 from room_objects import display_room_object_examination, resolve_room_object_selector
 from targeting_entities import resolve_room_corpse_selector, resolve_room_entity_selector
 from targeting_follow import _resolve_room_player_selector
@@ -15,6 +16,22 @@ get_room = getattr(_world, "get_room")
 
 
 HandledResult = OutboundResult | None
+
+
+def _resolve_directional_room_look(room, selector_text: str):
+    cleaned_selector = str(selector_text).strip().lower()
+    if not cleaned_selector or " " in cleaned_selector:
+        return None
+
+    normalized_direction = normalize_direction_token(cleaned_selector)
+    if normalized_direction not in room.exits:
+        return None
+
+    destination_room_id = room.exits.get(normalized_direction)
+    if not destination_room_id:
+        return None
+
+    return get_room(destination_room_id)
 
 
 def handle_observation_command(
@@ -33,6 +50,10 @@ def handle_observation_command(
             normalized_selector, search_room_item = _normalize_item_look_selector(target_text)
             if not normalized_selector:
                 return display_room(session, room)
+
+            directional_room = _resolve_directional_room_look(room, normalized_selector)
+            if directional_room is not None:
+                return display_room(session, directional_room)
 
             if search_room_item:
                 room_item, room_item_error = _resolve_room_ground_item_selector(
