@@ -358,7 +358,7 @@ def take_all_from_container(session: ClientSession, container: ContainerTarget):
     taken_coins = _container_coin_amount(container)
 
     if not taken_items and taken_coins <= 0:
-        return display_error(f"{_container_label(container).title()} is empty.", session)
+        return display_error(f"{_sentence_case(_container_reference_text(container))} is empty.", session)
 
     if isinstance(container, CorpseState):
         container.coins = 0
