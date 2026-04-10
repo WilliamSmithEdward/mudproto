@@ -173,7 +173,8 @@ Level gains: +10HP +5V +6M
 | `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
 | `assets.py` | Content asset loaders for gear, items, rooms, zones, NPCs, spells, and skills with structural and cross-reference validation. |
 | `player_state_db.py` | SQLite persistence: character credentials, full session serialization/deserialization. |
-| `world.py` | `Room` and `Zone` dataclasses, including room zone membership and repopulation metadata. |
+| `world.py` | `Room` and `Zone` dataclasses, including room zone membership, repopulation metadata, and configurable room keyword actions. |
+| `room_actions.py` | Configurable room keyword interaction handling, including exit reveal/hide actions and room-specific triggers. |
 | `battle_round_ticks.py` | Per-round support effect processing during combat. |
 | `game_hour_ticks.py` | Per-hour regeneration (HP/vigor/mana) and timed support effect processing. |
 

@@ -305,6 +305,7 @@ def load_rooms() -> list[dict]:
         zone_id = str(raw_room.get("zone_id", "")).strip()
         exits = raw_room.get("exits", {})
         room_npcs = raw_room.get("npcs", [])
+        room_keyword_actions = raw_room.get("keyword_actions", [])
         normalized_room_id = str(room_id).strip().lower() if isinstance(room_id, str) else ""
         is_payload_override = _is_asset_payload_override(raw_room)
 
@@ -324,6 +325,74 @@ def load_rooms() -> list[dict]:
             room_npcs = []
         if not isinstance(room_npcs, list):
             raise ValueError(f"Room asset '{room_id}' npcs must be a list.")
+        if room_keyword_actions is None:
+            room_keyword_actions = []
+        if not isinstance(room_keyword_actions, list):
+            raise ValueError(f"Room asset '{room_id}' keyword_actions must be a list.")
+
+        normalized_keyword_actions: list[dict] = []
+        for raw_keyword_action in room_keyword_actions:
+            if not isinstance(raw_keyword_action, dict):
+                raise ValueError(f"Room asset '{room_id}' keyword_actions entries must be objects.")
+
+            raw_keywords = raw_keyword_action.get("keywords", [])
+            if raw_keywords is None:
+                raw_keywords = []
+            if not isinstance(raw_keywords, list):
+                raise ValueError(f"Room asset '{room_id}' keyword_actions keywords must be a list.")
+
+            normalized_keywords = [
+                " ".join(str(keyword).strip().lower().split())
+                for keyword in raw_keywords
+                if str(keyword).strip()
+            ]
+            if not normalized_keywords:
+                raise ValueError(f"Room asset '{room_id}' keyword_actions entries must define at least one keyword.")
+
+            raw_actions = raw_keyword_action.get("actions", [])
+            if raw_actions is None:
+                raw_actions = []
+            if not isinstance(raw_actions, list) or not raw_actions:
+                raise ValueError(f"Room asset '{room_id}' keyword_actions entries must define a non-empty actions list.")
+
+            refresh_view = str(raw_keyword_action.get("refresh_view", "none")).strip().lower() or "none"
+            if refresh_view not in {"none", "exits", "room"}:
+                raise ValueError(f"Room asset '{room_id}' keyword_actions refresh_view must be 'none', 'exits', or 'room'.")
+
+            normalized_actions: list[dict] = []
+            for raw_action in raw_actions:
+                if not isinstance(raw_action, dict):
+                    raise ValueError(f"Room asset '{room_id}' keyword action definitions must be objects.")
+
+                action_type = str(raw_action.get("type", "")).strip().lower()
+                if action_type not in {"set_exit", "reveal_exit", "show_exit", "hide_exit", "remove_exit", "unset_exit"}:
+                    raise ValueError(f"Room asset '{room_id}' keyword action has unsupported type '{action_type}'.")
+
+                direction = str(raw_action.get("direction", "")).strip().lower()
+                if not direction:
+                    raise ValueError(f"Room asset '{room_id}' keyword action '{action_type}' must include a direction.")
+
+                normalized_action = {
+                    "type": action_type,
+                    "direction": direction,
+                }
+                if action_type in {"set_exit", "reveal_exit", "show_exit"}:
+                    destination_room_id = str(raw_action.get("destination_room_id", "")).strip()
+                    if not destination_room_id:
+                        raise ValueError(
+                            f"Room asset '{room_id}' keyword action '{action_type}' must include destination_room_id."
+                        )
+                    normalized_action["destination_room_id"] = destination_room_id
+
+                normalized_actions.append(normalized_action)
+
+            normalized_keyword_actions.append({
+                "keywords": normalized_keywords,
+                "message": str(raw_keyword_action.get("message", "")).strip(),
+                "already_message": str(raw_keyword_action.get("already_message", "")).strip(),
+                "refresh_view": refresh_view,
+                "actions": normalized_actions,
+            })
 
         normalized_exits: dict[str, str] = {}
         for direction, destination_room_id in exits.items():
@@ -352,12 +421,17 @@ def load_rooms() -> list[dict]:
             })
 
         merged_exits = dict(normalized_exits)
+        merged_keyword_actions = list(normalized_keyword_actions)
         if normalized_room_id in normalized_rooms_by_id and is_payload_override:
             existing_room = normalized_rooms_by_id[normalized_room_id]
             existing_exits = existing_room.get("exits", {})
             if isinstance(existing_exits, dict):
                 merged_exits = dict(existing_exits)
                 merged_exits.update(normalized_exits)
+
+            existing_keyword_actions = existing_room.get("keyword_actions", [])
+            if isinstance(existing_keyword_actions, list):
+                merged_keyword_actions = list(existing_keyword_actions) + normalized_keyword_actions
 
         if normalized_room_id not in normalized_rooms_by_id:
             ordered_room_ids.append(normalized_room_id)
@@ -368,6 +442,7 @@ def load_rooms() -> list[dict]:
             "zone_id": zone_id,
             "exits": merged_exits,
             "npcs": normalized_npcs,
+            "keyword_actions": merged_keyword_actions,
         }
 
     return [normalized_rooms_by_id[room_id] for room_id in ordered_room_ids]

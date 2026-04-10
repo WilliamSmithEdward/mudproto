@@ -2,12 +2,48 @@
   {
     "room_id": "start",
     "title": "Prototype Chamber",
-    "description": "A plain stone chamber used for early server testing.",
+    "description": "A plain stone chamber used for early server testing. A sealed iron hatch is set into the ceiling overhead.",
     "zone_id": "zone.prototype-core",
+    "keyword_actions": [
+      {
+        "keywords": ["open hatch"],
+        "message": "You pull the iron hatch open. A ladder now leads up.",
+        "already_message": "The hatch is already open.",
+        "refresh_view": "none",
+        "actions": [
+          {
+            "type": "set_exit",
+            "direction": "up",
+            "destination_room_id": "hatch-loft"
+          }
+        ]
+      },
+      {
+        "keywords": ["close hatch"],
+        "message": "You pull the hatch shut, hiding the ladder above.",
+        "already_message": "The hatch is already closed.",
+        "refresh_view": "none",
+        "actions": [
+          {
+            "type": "hide_exit",
+            "direction": "up"
+          }
+        ]
+      }
+    ],
     "exits": {
       "north": "hall",
       "east": "sanctum",
       "south": "south-market"
+    }
+  },
+  {
+    "room_id": "hatch-loft",
+    "title": "Hidden Loft",
+    "description": "Dusty rafters and a narrow service ledge overlook the prototype chamber below.",
+    "zone_id": "zone.prototype-core",
+    "exits": {
+      "down": "start"
     }
   },
   {

@@ -1,6 +1,7 @@
 from combat import begin_attack
 from display_feedback import display_error
 from models import ClientSession
+from room_actions import handle_room_keyword_action
 from world_population import spawn_dummy
 
 from .movement import flee
@@ -35,5 +36,9 @@ def handle_world_command(
 
     if verb == "flee":
         return flee(session)
+
+    room_keyword_result = handle_room_keyword_action(session, _command_text)
+    if room_keyword_result is not None:
+        return room_keyword_result
 
     return None
