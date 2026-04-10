@@ -42,6 +42,16 @@
             "minimum": 1
           }
         }
+      },
+      "keyword_actions": {
+        "type": "array[object]",
+        "required": false,
+        "default": []
+      },
+      "room_objects": {
+        "type": "array[object]",
+        "required": false,
+        "default": []
       }
     }
   }

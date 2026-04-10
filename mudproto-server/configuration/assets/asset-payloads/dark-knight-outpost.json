@@ -426,7 +426,7 @@
     {
       "room_id": "start",
       "title": "Prototype Chamber",
-      "description": "A plain stone chamber used for early server testing.",
+      "description": "A plain stone chamber used for early server testing. Scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
       "zone_id": "zone.prototype-core",
       "exits": {
         "north": "hall",

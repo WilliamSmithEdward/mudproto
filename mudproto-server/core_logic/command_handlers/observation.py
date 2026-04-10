@@ -2,6 +2,7 @@ from display_feedback import display_error
 from display_room import display_entity_summary, display_exits, display_player_summary, display_room
 from item_logic import _display_corpse_examination, _display_item_examination
 from models import ClientSession
+from room_objects import display_room_object_examination, resolve_room_object_selector
 from targeting_entities import resolve_room_corpse_selector, resolve_room_entity_selector
 from targeting_follow import _resolve_room_player_selector
 from targeting_items import _resolve_owned_item_selector, _resolve_room_ground_item_selector
@@ -41,11 +42,23 @@ def handle_observation_command(
                 )
                 if room_item is not None:
                     return _display_item_examination(session, room_item, default_location="Room")
-                return display_error(room_item_error or f"No room item matches '{normalized_selector}'.", session)
+
+                room_object, room_object_error = resolve_room_object_selector(room, normalized_selector)
+                if room_object is not None:
+                    return display_room_object_examination(session, room, room_object)
+
+                return display_error(
+                    room_object_error or room_item_error or f"No room item or feature matches '{normalized_selector}'.",
+                    session,
+                )
 
             owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
             if owned_item is not None:
                 return _display_item_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
+
+            room_object, _ = resolve_room_object_selector(room, normalized_selector)
+            if room_object is not None:
+                return display_room_object_examination(session, room, room_object)
 
             player_target, _ = _resolve_room_player_selector(session, normalized_selector)
             if player_target is not None:
@@ -88,6 +101,8 @@ def handle_observation_command(
         if not normalized_selector:
             return display_error("Usage: examine <item|corpse selector> [in room]", session)
 
+        room = get_room(session.player.current_room_id)
+
         if search_room_item:
             room_item, room_item_error = _resolve_room_ground_item_selector(
                 session,
@@ -96,11 +111,24 @@ def handle_observation_command(
             )
             if room_item is not None:
                 return _display_item_examination(session, room_item, default_location="Room")
-            return display_error(room_item_error or f"No room item matches '{normalized_selector}'.", session)
+
+            if room is not None:
+                room_object, room_object_error = resolve_room_object_selector(room, normalized_selector)
+                if room_object is not None:
+                    return display_room_object_examination(session, room, room_object)
+            else:
+                room_object_error = None
+
+            return display_error(room_object_error or room_item_error or f"No room item or feature matches '{normalized_selector}'.", session)
 
         owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
         if owned_item is not None:
             return _display_item_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
+
+        if room is not None:
+            room_object, _ = resolve_room_object_selector(room, normalized_selector)
+            if room_object is not None:
+                return display_room_object_examination(session, room, room_object)
 
         corpse, resolve_error = resolve_room_corpse_selector(
             session,

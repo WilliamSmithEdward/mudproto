@@ -2,7 +2,7 @@
   {
     "room_id": "start",
     "title": "Prototype Chamber",
-    "description": "A plain stone chamber used for early server testing. A sealed iron hatch is set into the ceiling overhead.",
+    "description": "A plain stone chamber used for early server testing. Scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
     "zone_id": "zone.prototype-core",
     "keyword_actions": [
       {
@@ -29,6 +29,14 @@
             "direction": "up"
           }
         ]
+      }
+    ],
+    "room_objects": [
+      {
+        "object_id": "ceiling-hatch",
+        "name": "iron hatch",
+        "keywords": ["hatch", "ceiling hatch", "iron hatch"],
+        "description": "A square iron hatch is set into the ceiling overhead. Its worn pull-ring and the scrape marks around the frame suggest it can be worked open or shut by hand."
       }
     ],
     "exits": {

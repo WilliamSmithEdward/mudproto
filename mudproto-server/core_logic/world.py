@@ -12,6 +12,7 @@ class Room:
     exits: dict[str, str] = field(default_factory=dict)
     npcs: list[dict] = field(default_factory=list)
     keyword_actions: list[dict] = field(default_factory=list)
+    room_objects: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -50,6 +51,7 @@ def build_default_world() -> WorldState:
             exits=room_data["exits"],
             npcs=room_data.get("npcs", []),
             keyword_actions=room_data.get("keyword_actions", []),
+            room_objects=room_data.get("room_objects", []),
         )
         world.rooms[room.room_id] = room
 

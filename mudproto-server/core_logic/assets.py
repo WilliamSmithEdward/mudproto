@@ -306,6 +306,7 @@ def load_rooms() -> list[dict]:
         exits = raw_room.get("exits", {})
         room_npcs = raw_room.get("npcs", [])
         room_keyword_actions = raw_room.get("keyword_actions", [])
+        room_objects = raw_room.get("room_objects", [])
         normalized_room_id = str(room_id).strip().lower() if isinstance(room_id, str) else ""
         is_payload_override = _is_asset_payload_override(raw_room)
 
@@ -329,6 +330,38 @@ def load_rooms() -> list[dict]:
             room_keyword_actions = []
         if not isinstance(room_keyword_actions, list):
             raise ValueError(f"Room asset '{room_id}' keyword_actions must be a list.")
+        if room_objects is None:
+            room_objects = []
+        if not isinstance(room_objects, list):
+            raise ValueError(f"Room asset '{room_id}' room_objects must be a list.")
+
+        normalized_room_objects: list[dict] = []
+        for raw_room_object in room_objects:
+            if not isinstance(raw_room_object, dict):
+                raise ValueError(f"Room asset '{room_id}' room_objects entries must be objects.")
+
+            object_id = str(raw_room_object.get("object_id", "")).strip()
+            object_name = str(raw_room_object.get("name", "")).strip()
+            object_description = str(raw_room_object.get("description", "")).strip()
+            if not object_id:
+                raise ValueError(f"Room asset '{room_id}' room_objects entries must include object_id.")
+            if not object_name:
+                raise ValueError(f"Room asset '{room_id}' room object '{object_id}' must include name.")
+            if not object_description:
+                raise ValueError(f"Room asset '{room_id}' room object '{object_id}' must include description.")
+
+            raw_object_keywords = raw_room_object.get("keywords", [])
+            if raw_object_keywords is None:
+                raw_object_keywords = []
+            if not isinstance(raw_object_keywords, list):
+                raise ValueError(f"Room asset '{room_id}' room object '{object_id}' keywords must be a list.")
+
+            normalized_room_objects.append({
+                "object_id": object_id,
+                "name": object_name,
+                "description": object_description,
+                "keywords": [str(keyword).strip().lower() for keyword in raw_object_keywords if str(keyword).strip()],
+            })
 
         normalized_keyword_actions: list[dict] = []
         for raw_keyword_action in room_keyword_actions:
@@ -422,6 +455,7 @@ def load_rooms() -> list[dict]:
 
         merged_exits = dict(normalized_exits)
         merged_keyword_actions = list(normalized_keyword_actions)
+        merged_room_objects = list(normalized_room_objects)
         if normalized_room_id in normalized_rooms_by_id and is_payload_override:
             existing_room = normalized_rooms_by_id[normalized_room_id]
             existing_exits = existing_room.get("exits", {})
@@ -433,6 +467,10 @@ def load_rooms() -> list[dict]:
             if isinstance(existing_keyword_actions, list):
                 merged_keyword_actions = list(existing_keyword_actions) + normalized_keyword_actions
 
+            existing_room_objects = existing_room.get("room_objects", [])
+            if isinstance(existing_room_objects, list):
+                merged_room_objects = list(existing_room_objects) + normalized_room_objects
+
         if normalized_room_id not in normalized_rooms_by_id:
             ordered_room_ids.append(normalized_room_id)
         normalized_rooms_by_id[normalized_room_id] = {
@@ -443,6 +481,7 @@ def load_rooms() -> list[dict]:
             "exits": merged_exits,
             "npcs": normalized_npcs,
             "keyword_actions": merged_keyword_actions,
+            "room_objects": merged_room_objects,
         }
 
     return [normalized_rooms_by_id[room_id] for room_id in ordered_room_ids]
