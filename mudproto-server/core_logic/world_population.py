@@ -9,6 +9,7 @@ from session_registry import (
     connected_clients,
     shared_world_corpses,
     shared_world_entities,
+    shared_world_flags,
     shared_world_room_coin_piles,
     shared_world_room_ground_items,
 )
@@ -203,6 +204,19 @@ def _clear_zone_player_flags(zone) -> None:
             save_player_state(session)
 
 
+def _clear_zone_world_flags(zone) -> None:
+    flags_to_clear = {
+        str(flag).strip().lower()
+        for flag in getattr(zone, "reset_world_flags", [])
+        if str(flag).strip()
+    }
+    if not flags_to_clear:
+        return
+
+    for flag in flags_to_clear:
+        shared_world_flags.discard(flag)
+
+
 def _reset_zone_container_templates(zone) -> None:
     template_ids = {
         str(template_id).strip().lower()
@@ -338,6 +352,7 @@ def reinitialize_zone(zone_id: str) -> int:
         shared_world_room_ground_items.pop(room_id, None)
 
     _clear_zone_player_flags(zone)
+    _clear_zone_world_flags(zone)
     _reset_zone_container_templates(zone)
 
     next_spawn_sequence = max((entity.spawn_sequence for entity in shared_world_entities.values()), default=0)

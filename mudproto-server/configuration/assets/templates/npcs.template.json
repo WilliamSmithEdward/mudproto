@@ -238,6 +238,26 @@
             "required": false,
             "default": []
           },
+          "required_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "excluded_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "set_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "clear_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
           "message": {
             "type": "string",
             "required": true,
@@ -287,6 +307,26 @@
             "default": []
           },
           "clear_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "required_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "excluded_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "set_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "clear_world_flags": {
             "type": "array[string]",
             "required": false,
             "default": []

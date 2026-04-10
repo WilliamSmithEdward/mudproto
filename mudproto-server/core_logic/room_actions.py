@@ -6,6 +6,7 @@ from display_feedback import display_command_result, display_error
 from display_room import display_exits, display_room
 from inventory import build_equippable_item_from_template, build_misc_item_from_template
 from models import ClientSession
+from session_registry import shared_world_flags
 from targeting_entities import list_room_entities
 from world import Room, get_room
 
@@ -43,7 +44,15 @@ def _active_player_flags(session: ClientSession | None) -> set[str]:
     }
 
 
-def _entry_matches_player_flags(entry: dict, active_flags: set[str]) -> bool:
+def _active_world_flags() -> set[str]:
+    return {
+        str(flag).strip().lower()
+        for flag in shared_world_flags
+        if str(flag).strip()
+    }
+
+
+def _entry_matches_player_flags(entry: dict, active_flags: set[str], active_world_flags: set[str] | None = None) -> bool:
     required_flags = {
         str(flag).strip().lower()
         for flag in entry.get("required_player_flags", [])
@@ -54,32 +63,65 @@ def _entry_matches_player_flags(entry: dict, active_flags: set[str]) -> bool:
         for flag in entry.get("excluded_player_flags", [])
         if str(flag).strip()
     }
-    return required_flags.issubset(active_flags) and not bool(active_flags & excluded_flags)
+    normalized_world_flags = active_world_flags or set()
+    required_world_flags = {
+        str(flag).strip().lower()
+        for flag in entry.get("required_world_flags", [])
+        if str(flag).strip()
+    }
+    excluded_world_flags = {
+        str(flag).strip().lower()
+        for flag in entry.get("excluded_world_flags", [])
+        if str(flag).strip()
+    }
+    return (
+        required_flags.issubset(active_flags)
+        and not bool(active_flags & excluded_flags)
+        and required_world_flags.issubset(normalized_world_flags)
+        and not bool(normalized_world_flags & excluded_world_flags)
+    )
 
 
 def _apply_player_flag_updates(session: ClientSession | None, entry: dict) -> bool:
-    if session is None:
-        return False
-
     changed = False
-    interaction_flags = dict(getattr(session.player, "interaction_flags", {}) or {})
 
-    for flag in entry.get("set_player_flags", []):
+    if session is not None:
+        interaction_flags = dict(getattr(session.player, "interaction_flags", {}) or {})
+
+        for flag in entry.get("set_player_flags", []):
+            normalized_flag = str(flag).strip().lower()
+            if not normalized_flag or bool(interaction_flags.get(normalized_flag, False)):
+                continue
+            interaction_flags[normalized_flag] = True
+            changed = True
+
+        for flag in entry.get("clear_player_flags", []):
+            normalized_flag = str(flag).strip().lower()
+            if not normalized_flag or normalized_flag not in interaction_flags:
+                continue
+            interaction_flags.pop(normalized_flag, None)
+            changed = True
+
+        if changed:
+            session.player.interaction_flags = interaction_flags
+
+    normalized_world_flags = _active_world_flags()
+    for flag in entry.get("set_world_flags", []):
         normalized_flag = str(flag).strip().lower()
-        if not normalized_flag or bool(interaction_flags.get(normalized_flag, False)):
+        if not normalized_flag or normalized_flag in normalized_world_flags:
             continue
-        interaction_flags[normalized_flag] = True
+        shared_world_flags.add(normalized_flag)
+        normalized_world_flags.add(normalized_flag)
         changed = True
 
-    for flag in entry.get("clear_player_flags", []):
+    for flag in entry.get("clear_world_flags", []):
         normalized_flag = str(flag).strip().lower()
-        if not normalized_flag or normalized_flag not in interaction_flags:
+        if not normalized_flag or normalized_flag not in normalized_world_flags:
             continue
-        interaction_flags.pop(normalized_flag, None)
+        shared_world_flags.discard(normalized_flag)
+        normalized_world_flags.discard(normalized_flag)
         changed = True
 
-    if changed:
-        session.player.interaction_flags = interaction_flags
     return changed
 
 
@@ -234,6 +276,7 @@ def get_room_enter_communications(
         return []
 
     active_flags = _active_player_flags(session)
+    active_world_flags = _active_world_flags()
     entries: list[dict[str, str]] = []
     matched_entries: list[dict] = []
     for entity in list_room_entities(session, room.room_id):
@@ -245,7 +288,7 @@ def get_room_enter_communications(
             trigger = str(communication.get("trigger", "")).strip().lower()
             if trigger != "player_enter":
                 continue
-            if not _entry_matches_player_flags(communication, active_flags):
+            if not _entry_matches_player_flags(communication, active_flags, active_world_flags):
                 continue
 
             message = _render_keyword_text(
@@ -324,11 +367,12 @@ def prepend_room_enter_communications(outbound: dict, session: ClientSession, ro
 
 def _match_keyword_action(keyword_actions: list[dict], normalized_command: str, session: ClientSession | None = None) -> dict | None:
     active_flags = _active_player_flags(session)
+    active_world_flags = _active_world_flags()
     for keyword_action in keyword_actions:
         keywords = keyword_action.get("keywords", [])
         if not isinstance(keywords, list):
             continue
-        if not _entry_matches_player_flags(keyword_action, active_flags):
+        if not _entry_matches_player_flags(keyword_action, active_flags, active_world_flags):
             continue
         if any(_normalize_keyword_text(keyword) == normalized_command for keyword in keywords):
             return keyword_action

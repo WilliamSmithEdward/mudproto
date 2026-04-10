@@ -35,6 +35,12 @@
         "default": [],
         "notes": "When the zone repopulates, these per-player interaction flags are cleared for all active characters."
       },
+      "reset_world_flags": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "When the zone repopulates, these shared world flags are cleared for the live world state."
+      },
       "reset_container_template_ids": {
         "type": "array[string]",
         "required": false,

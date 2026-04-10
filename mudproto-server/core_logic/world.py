@@ -23,6 +23,7 @@ class Zone:
     name: str
     repopulate_game_hours: int = 0
     reset_player_flags: list[str] = field(default_factory=list)
+    reset_world_flags: list[str] = field(default_factory=list)
     reset_container_template_ids: list[str] = field(default_factory=list)
     repopulation_blocking_item_template_ids: list[str] = field(default_factory=list)
     repopulation_block_cooldown_game_hours: int = 0
@@ -47,6 +48,7 @@ def build_default_world() -> WorldState:
             name=zone_data["name"],
             repopulate_game_hours=max(0, int(zone_data.get("repopulate_game_hours", 0))),
             reset_player_flags=[str(flag).strip().lower() for flag in zone_data.get("reset_player_flags", []) if str(flag).strip()],
+            reset_world_flags=[str(flag).strip().lower() for flag in zone_data.get("reset_world_flags", []) if str(flag).strip()],
             reset_container_template_ids=[str(template_id).strip().lower() for template_id in zone_data.get("reset_container_template_ids", []) if str(template_id).strip()],
             repopulation_blocking_item_template_ids=[
                 str(template_id).strip().lower()

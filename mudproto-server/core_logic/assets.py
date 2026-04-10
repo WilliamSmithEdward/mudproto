@@ -347,6 +347,10 @@ def load_zones() -> list[dict]:
             raw_zone.get("reset_player_flags", []),
             context=f"Zone asset '{zone_id}' reset_player_flags",
         )
+        reset_world_flags = _normalize_flag_list(
+            raw_zone.get("reset_world_flags", []),
+            context=f"Zone asset '{zone_id}' reset_world_flags",
+        )
         reset_container_template_ids = [
             str(template_id).strip().lower()
             for template_id in raw_zone.get("reset_container_template_ids", [])
@@ -368,6 +372,7 @@ def load_zones() -> list[dict]:
             "name": name,
             "repopulate_game_hours": repopulate_game_hours,
             "reset_player_flags": reset_player_flags,
+            "reset_world_flags": reset_world_flags,
             "reset_container_template_ids": reset_container_template_ids,
             "repopulation_blocking_item_template_ids": repopulation_blocking_item_template_ids,
             "repopulation_block_cooldown_game_hours": repopulation_block_cooldown_game_hours,
@@ -457,6 +462,22 @@ def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> 
             raw_keyword_action.get("clear_player_flags", []),
             context=f"{context} clear_player_flags",
         )
+        required_world_flags = _normalize_flag_list(
+            raw_keyword_action.get("required_world_flags", []),
+            context=f"{context} required_world_flags",
+        )
+        excluded_world_flags = _normalize_flag_list(
+            raw_keyword_action.get("excluded_world_flags", []),
+            context=f"{context} excluded_world_flags",
+        )
+        set_world_flags = _normalize_flag_list(
+            raw_keyword_action.get("set_world_flags", []),
+            context=f"{context} set_world_flags",
+        )
+        clear_world_flags = _normalize_flag_list(
+            raw_keyword_action.get("clear_world_flags", []),
+            context=f"{context} clear_world_flags",
+        )
 
         normalized_actions: list[dict] = []
         for raw_action in raw_actions:
@@ -522,6 +543,10 @@ def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> 
             "excluded_player_flags": excluded_player_flags,
             "set_player_flags": set_player_flags,
             "clear_player_flags": clear_player_flags,
+            "required_world_flags": required_world_flags,
+            "excluded_world_flags": excluded_world_flags,
+            "set_world_flags": set_world_flags,
+            "clear_world_flags": clear_world_flags,
             "actions": normalized_actions,
         })
 
@@ -576,6 +601,22 @@ def _normalize_room_communications(raw_room_communications: object, *, context: 
             "clear_player_flags": _normalize_flag_list(
                 raw_entry.get("clear_player_flags", []),
                 context=f"{context} room_communications clear_player_flags",
+            ),
+            "required_world_flags": _normalize_flag_list(
+                raw_entry.get("required_world_flags", []),
+                context=f"{context} room_communications required_world_flags",
+            ),
+            "excluded_world_flags": _normalize_flag_list(
+                raw_entry.get("excluded_world_flags", []),
+                context=f"{context} room_communications excluded_world_flags",
+            ),
+            "set_world_flags": _normalize_flag_list(
+                raw_entry.get("set_world_flags", []),
+                context=f"{context} room_communications set_world_flags",
+            ),
+            "clear_world_flags": _normalize_flag_list(
+                raw_entry.get("clear_world_flags", []),
+                context=f"{context} room_communications clear_world_flags",
             ),
         })
 

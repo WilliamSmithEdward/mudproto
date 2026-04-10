@@ -11,6 +11,7 @@ shared_world_entities: dict = {}
 shared_world_corpses: dict = {}
 shared_world_room_coin_piles: dict[str, int] = {}
 shared_world_room_ground_items: dict[str, dict] = {}
+shared_world_flags: set[str] = set()
 
 
 def get_connection_count() -> int:
