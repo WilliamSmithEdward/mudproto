@@ -52,13 +52,7 @@
         "name": "west gate",
         "keywords": ["gate", "west gate", "iron gate"],
         "is_closed": true,
-        "is_locked": false,
-        "open_message": "You pull the west gate open.",
-        "close_message": "You swing the west gate shut.",
-        "closed_message": "The west gate is closed.",
-        "locked_message": "The west gate is locked.",
-        "already_open_message": "The west gate is already open.",
-        "already_closed_message": "The west gate is already closed."
+        "is_locked": false
       }
     ],
     "exits": {

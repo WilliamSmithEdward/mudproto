@@ -56,7 +56,8 @@
       "exit_details": {
         "type": "array[object]",
         "required": false,
-        "default": []
+        "default": [],
+        "description": "Optional exit metadata/state. open_message, close_message, closed_message, locked_message, already_open_message, and already_closed_message are optional overrides; grammar defaults are generated from the exit name/type/direction when omitted."
       }
     }
   }

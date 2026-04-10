@@ -67,6 +67,44 @@ def _exit_label(exit_detail: dict, *, include_direction: bool = False) -> str:
     return exit_type
 
 
+def _definite_exit_label(exit_detail: dict, *, include_direction: bool = True) -> str:
+    exit_label = _exit_label(exit_detail, include_direction=include_direction).strip()
+    if not exit_label:
+        return "the exit"
+    if exit_label.lower().startswith(("the ", "a ", "an ")):
+        return exit_label
+    return f"the {exit_label}"
+
+
+def _default_exit_message(exit_detail: dict, message_kind: str) -> str:
+    exit_type = str(exit_detail.get("exit_type", "exit")).strip().lower() or "exit"
+    exit_label = _definite_exit_label(exit_detail)
+
+    if message_kind == "open":
+        if exit_type in {"gate", "hatch", "trapdoor"}:
+            return f"You pull {exit_label} open."
+        if exit_type in {"door", "portcullis"}:
+            return f"You swing {exit_label} open."
+        return f"You open {exit_label}."
+
+    if message_kind == "close":
+        if exit_type in {"gate", "door", "portcullis"}:
+            return f"You swing {exit_label} shut."
+        if exit_type in {"hatch", "trapdoor"}:
+            return f"You pull {exit_label} shut."
+        return f"You close {exit_label}."
+
+    if message_kind == "closed":
+        return f"{exit_label.capitalize()} is closed."
+    if message_kind == "locked":
+        return f"{exit_label.capitalize()} is locked."
+    if message_kind == "already_open":
+        return f"{exit_label.capitalize()} is already open."
+    if message_kind == "already_closed":
+        return f"{exit_label.capitalize()} is already closed."
+    return exit_label.capitalize()
+
+
 def is_exit_closed(room: Room, direction: str) -> bool:
     exit_detail = get_exit_detail(room, direction)
     return bool(exit_detail and exit_detail.get("is_closed", False))
@@ -84,11 +122,11 @@ def can_traverse_exit(room: Room, direction: str) -> tuple[bool, str | None]:
 
     if bool(exit_detail.get("is_locked", False)):
         locked_message = str(exit_detail.get("locked_message", "")).strip()
-        return False, locked_message or f"The {_exit_label(exit_detail, include_direction=True)} is locked."
+        return False, locked_message or _default_exit_message(exit_detail, "locked")
 
     if bool(exit_detail.get("is_closed", False)):
         closed_message = str(exit_detail.get("closed_message", "")).strip()
-        return False, closed_message or f"The {_exit_label(exit_detail, include_direction=True)} is closed."
+        return False, closed_message or _default_exit_message(exit_detail, "closed")
 
     return True, None
 
@@ -202,27 +240,27 @@ def handle_room_exit_command(
     if normalized_verb in {"open", "ope", "op"}:
         if bool(exit_detail.get("is_locked", False)):
             locked_message = str(exit_detail.get("locked_message", "")).strip()
-            return display_error(locked_message or f"The {exit_label} is locked.", session)
+            return display_error(locked_message or _default_exit_message(exit_detail, "locked"), session)
         if not bool(exit_detail.get("is_closed", False)):
             already_open_message = str(exit_detail.get("already_open_message", "")).strip()
             return display_command_result(session, [
-                build_part(already_open_message or f"The {exit_label} is already open.", "bright_white"),
+                build_part(already_open_message or _default_exit_message(exit_detail, "already_open"), "bright_white"),
             ])
 
         exit_detail["is_closed"] = False
         open_message = str(exit_detail.get("open_message", "")).strip()
         return display_command_result(session, [
-            build_part(open_message or f"You open the {exit_label}.", "bright_white"),
+            build_part(open_message or _default_exit_message(exit_detail, "open"), "bright_white"),
         ])
 
     if bool(exit_detail.get("is_closed", False)):
         already_closed_message = str(exit_detail.get("already_closed_message", "")).strip()
         return display_command_result(session, [
-            build_part(already_closed_message or f"The {exit_label} is already closed.", "bright_white"),
+            build_part(already_closed_message or _default_exit_message(exit_detail, "already_closed"), "bright_white"),
         ])
 
     exit_detail["is_closed"] = True
     close_message = str(exit_detail.get("close_message", "")).strip()
     return display_command_result(session, [
-        build_part(close_message or f"You close the {exit_label}.", "bright_white"),
+        build_part(close_message or _default_exit_message(exit_detail, "close"), "bright_white"),
     ])
