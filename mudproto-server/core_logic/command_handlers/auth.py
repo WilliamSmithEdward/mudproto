@@ -5,7 +5,8 @@ from .character_creation import (
     start_character_creation,
 )
 from display_core import build_line, build_part
-from display_feedback import display_command_result, display_error, display_prompt
+from display_feedback import display_error
+from display_prompts import build_existing_password_prompt, initial_auth_prompt, login_prompt
 from display_views import display_room
 from grammar import normalize_player_gender
 from models import ClientSession
@@ -28,19 +29,6 @@ get_room = getattr(_world, "get_room")
 
 OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]
-
-
-def initial_auth_prompt(session: ClientSession) -> OutboundMessage:
-    return display_command_result(session, [
-        build_part("Enter an existing character name (letters only) or type ", "bright_white"),
-        build_part("start", "bright_yellow", True),
-        build_part(" to create a new character.", "bright_white"),
-    ])
-
-
-def login_prompt(session: ClientSession) -> OutboundMessage:
-    """Minimal login prompt (bare "> ") for re-entry after death or other events."""
-    return display_prompt(session)
 
 
 def _build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMessage) -> OutboundResult:
@@ -134,9 +122,7 @@ def process_auth_input(session: ClientSession, input_text: str) -> OutboundResul
 
         session.pending_character_name = str(character_record.get("character_name", normalized_name))
         session.auth_stage = "awaiting_existing_password"
-        return display_command_result(session, [
-            build_part("Character found. Enter your password.", "bright_white"),
-        ])
+        return build_existing_password_prompt(session)
 
     if session.auth_stage == "awaiting_existing_password":
         if not input_text.strip():

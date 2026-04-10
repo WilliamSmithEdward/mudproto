@@ -4,7 +4,7 @@ from item_logic import _build_item_reference_parts
 from models import ClientSession
 import commerce as _commerce
 
-from .runtime import OutboundResult
+from .types import OutboundResult
 
 _build_inventory_item_from_template = getattr(_commerce, "_build_inventory_item_from_template")
 _display_merchant_stock = getattr(_commerce, "_display_merchant_stock")

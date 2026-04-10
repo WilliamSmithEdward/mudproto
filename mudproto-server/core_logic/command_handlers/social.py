@@ -8,7 +8,7 @@ from targeting_follow import (
     _would_create_follow_loop,
 )
 
-from .runtime import OutboundResult
+from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None

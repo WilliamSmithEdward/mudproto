@@ -108,7 +108,7 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
 
             engaged = get_engaged_entity(session) is not None
             if engaged and now >= next_flee_attempt_monotonic:
-                from command_handlers.runtime import flee
+                from command_handlers.movement import flee
 
                 flee(session)
                 next_flee_attempt_monotonic = now + OFFLINE_FLEE_INTERVAL_SECONDS

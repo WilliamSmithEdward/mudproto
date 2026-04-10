@@ -6,8 +6,9 @@ from models import ClientSession
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from session_timing import apply_lag
 from targeting_parsing import _parse_cast_spell
+from display_menus import build_cost_menu_parts
 
-from .runtime import OutboundResult, _build_cost_menu_parts
+from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None
@@ -40,7 +41,7 @@ def handle_spell_command(
         ]
         return display_command_result(
             session,
-            _build_cost_menu_parts("Spells", menu_rows, "Mana", middle_column_header="School"),
+            build_cost_menu_parts("Spells", menu_rows, "Mana", middle_column_header="School"),
         )
 
     if verb in _CAST_VERBS:

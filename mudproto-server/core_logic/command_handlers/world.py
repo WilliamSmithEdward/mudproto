@@ -3,7 +3,8 @@ from display_feedback import display_error
 from models import ClientSession
 from world_population import spawn_dummy
 
-from .runtime import OutboundResult, flee
+from .movement import flee
+from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None

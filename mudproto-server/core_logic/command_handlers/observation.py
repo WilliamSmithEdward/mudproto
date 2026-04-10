@@ -8,7 +8,7 @@ from targeting_items import _resolve_owned_item_selector, _resolve_room_ground_i
 from targeting_parsing import _normalize_item_look_selector
 import world as _world
 
-from .runtime import OutboundResult
+from .types import OutboundResult
 
 get_room = getattr(_world, "get_room")
 

@@ -155,7 +155,9 @@ Level gains: +10HP +5V +6M
 | `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers. |
 | `combat_rewards.py` | Shared contributor tracking and XP/reward distribution helpers. |
 | `combat_observer.py` | Combat observer-line templating, room-broadcast line shaping, and third-person text helpers. |
-| `command_handlers/` | Grouped player-facing handlers plus `runtime.py` registry/orchestration for auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions. |
+| `command_handlers/` | Grouped player-facing handlers plus focused support modules like `parsing.py` and `types.py` for auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions. |
+| `display_menus.py` | Shared presentation helpers for spell and skill menu/table rendering. |
+| `display_prompts.py` | Shared auth and character-creation prompt builders. |
 | `combat.py` | Combat round orchestration, melee/flee flow, and encounter-resolution glue over the extracted combat helper modules. |
 | `combat_text.py` | Damage-severity classification and attack-verb templates for player and NPC combat messages. |
 | `damage.py` | Damage rolling (`roll_player_damage`, `roll_npc_weapon_damage`), hit-chance calculation, weapon verb resolution. |

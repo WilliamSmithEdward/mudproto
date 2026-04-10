@@ -4,7 +4,7 @@ import re
 
 from attribute_config import load_item_usage_config
 from assets import get_item_template_by_id, load_item_templates
-from command_handlers.runtime import OutboundResult
+from command_handlers.types import OutboundResult
 from display_core import build_menu_table_parts, build_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from grammar import indefinite_article, resolve_player_pronouns, with_article

@@ -7,8 +7,9 @@ from .equipment import handle_equipment_command, handle_item_use_command
 from .loot import handle_loot_command
 from .movement import handle_movement_command
 from .observation import handle_observation_command
-from .runtime import OutboundResult, parse_command
+from .parsing import parse_command
 from .skills import handle_skill_command, handle_skill_fallback_command
+from .types import OutboundResult
 from .social import handle_social_command
 from .spells import handle_spell_command
 from .world import handle_world_command

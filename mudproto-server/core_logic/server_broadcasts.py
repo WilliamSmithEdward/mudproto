@@ -3,7 +3,7 @@
 import json
 import re
 
-from command_handlers.runtime import parse_command
+from command_handlers.parsing import parse_command
 from display_core import build_display_lines
 from display_feedback import build_prompt_parts
 from grammar import third_personize_text, to_third_person

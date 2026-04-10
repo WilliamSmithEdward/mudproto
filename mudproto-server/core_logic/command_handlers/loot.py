@@ -5,7 +5,7 @@ from models import ClientSession
 from targeting_entities import list_room_corpses, resolve_corpse_item_selector, resolve_room_corpse_selector
 from targeting_items import _list_room_ground_items, _pickup_ground_item, _resolve_room_ground_matches
 
-from .runtime import OutboundResult
+from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None

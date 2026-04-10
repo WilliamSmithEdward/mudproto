@@ -1,8 +1,13 @@
 from collections.abc import Callable
 
 from attribute_config import get_player_class_by_id, load_player_classes
-from display_core import build_part
-from display_feedback import display_command_result, display_error
+from display_feedback import display_error
+from display_prompts import (
+    build_class_prompt,
+    build_gender_prompt,
+    build_new_character_name_prompt,
+    build_new_character_password_prompt,
+)
 from grammar import normalize_player_gender
 from models import ClientSession
 from player_state_db import character_exists, create_character, normalize_character_name
@@ -27,36 +32,7 @@ def start_character_creation(session: ClientSession) -> OutboundResult:
     session.pending_password = ""
     session.pending_gender = ""
     session.auth_stage = "awaiting_new_character_name"
-    return display_command_result(session, [
-        build_part("Enter a new character name (letters only).", "bright_white"),
-    ])
-
-
-def _build_gender_prompt(session: ClientSession) -> OutboundMessage:
-    return display_command_result(session, [
-        build_part("Choose a gender: ", "bright_white"),
-        build_part("male", "bright_cyan", True),
-        build_part(" or ", "bright_white"),
-        build_part("female", "bright_magenta", True),
-        build_part(".", "bright_white"),
-    ])
-
-
-def _build_class_prompt(session: ClientSession) -> OutboundMessage:
-    classes = load_player_classes()
-    parts: list[dict] = [
-        build_part("Choose a class by id or name:", "bright_white"),
-    ]
-    for player_class in classes:
-        parts.extend([
-            build_part("\n"),
-            build_part(" - ", "bright_white"),
-            build_part(str(player_class.get("class_id", "")), "bright_cyan", True),
-            build_part(" (", "bright_white"),
-            build_part(str(player_class.get("name", "")), "bright_yellow", True),
-            build_part(")", "bright_white"),
-        ])
-    return display_command_result(session, parts)
+    return build_new_character_name_prompt(session)
 
 
 def _resolve_class_selection(selection: str) -> dict | None:
@@ -91,9 +67,7 @@ def process_character_creation_input(
         session.pending_character_name = normalized_name
         session.pending_gender = ""
         session.auth_stage = "awaiting_new_character_password"
-        return display_command_result(session, [
-            build_part("Enter a password for your character.", "bright_white"),
-        ])
+        return build_new_character_password_prompt(session)
 
     if session.auth_stage == "awaiting_new_character_password":
         if not input_text.strip():
@@ -101,7 +75,7 @@ def process_character_creation_input(
 
         session.pending_password = input_text
         session.auth_stage = "awaiting_new_character_gender"
-        return _build_gender_prompt(session)
+        return build_gender_prompt(session)
 
     if session.auth_stage == "awaiting_new_character_gender":
         selected_gender = normalize_player_gender(input_text, allow_unspecified=False)
@@ -110,7 +84,7 @@ def process_character_creation_input(
 
         session.pending_gender = selected_gender
         session.auth_stage = "awaiting_new_character_class"
-        return _build_class_prompt(session)
+        return build_class_prompt(session)
 
     if session.auth_stage == "awaiting_new_character_class":
         selected_class = _resolve_class_selection(input_text)

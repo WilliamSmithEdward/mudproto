@@ -6,8 +6,9 @@ from models import ClientSession
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from session_timing import apply_lag
 from targeting_parsing import _parse_skill_use
+from display_menus import build_cost_menu_parts
 
-from .runtime import OutboundResult, _build_cost_menu_parts
+from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None
@@ -37,7 +38,7 @@ def handle_skill_command(
             )
             for skill in skills
         ]
-        return display_command_result(session, _build_cost_menu_parts("Skills", menu_rows, "Vigor"))
+        return display_command_result(session, build_cost_menu_parts("Skills", menu_rows, "Vigor"))
 
     if verb in _SKILL_VERBS:
         known_skills = _list_known_skills(session)

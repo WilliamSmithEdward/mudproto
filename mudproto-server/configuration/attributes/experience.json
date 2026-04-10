@@ -17,6 +17,18 @@
     {"level": 15, "total_experience": 8550},
     {"level": 16, "total_experience": 10150},
     {"level": 17, "total_experience": 11950},
-    {"level": 18, "total_experience": 14000}
+    {"level": 18, "total_experience": 14000},
+    {"level": 19, "total_experience": 16300},
+    {"level": 20, "total_experience": 19000},
+    {"level": 21, "total_experience": 22000},
+    {"level": 22, "total_experience": 25500},
+    {"level": 23, "total_experience": 29500},
+    {"level": 24, "total_experience": 34000},
+    {"level": 25, "total_experience": 39000},
+    {"level": 26, "total_experience": 44500},
+    {"level": 27, "total_experience": 50500},
+    {"level": 28, "total_experience": 57000},
+    {"level": 29, "total_experience": 64000},
+    {"level": 30, "total_experience": 71500}
   ]
 }

@@ -21,7 +21,7 @@ from models import ClientSession
 from targeting_items import _add_item_to_room_ground, _resolve_inventory_selector, _resolve_wear_inventory_selector
 from targeting_parsing import _parse_hand_and_selector, _parse_wear_selector_and_location
 
-from .runtime import OutboundResult
+from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None
