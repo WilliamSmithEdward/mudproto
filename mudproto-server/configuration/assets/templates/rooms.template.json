@@ -52,6 +52,11 @@
         "type": "array[object]",
         "required": false,
         "default": []
+      },
+      "exit_details": {
+        "type": "array[object]",
+        "required": false,
+        "default": []
       }
     }
   }

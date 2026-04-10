@@ -8,6 +8,7 @@ from session_timing import is_session_lagged
 from targeting_entities import list_room_entities
 
 from display_core import build_display, build_part, display_text
+from room_exits import format_prompt_exit_token
 
 
 def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
@@ -60,7 +61,7 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
     if room is not None and room.exits:
         exit_letters = "".join(
-            _direction_short_label(direction)
+            format_prompt_exit_token(room, direction)
             for direction in room.exits.keys()
             if str(direction).strip()
         )

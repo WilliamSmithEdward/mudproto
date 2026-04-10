@@ -307,6 +307,7 @@ def load_rooms() -> list[dict]:
         room_npcs = raw_room.get("npcs", [])
         room_keyword_actions = raw_room.get("keyword_actions", [])
         room_objects = raw_room.get("room_objects", [])
+        room_exit_details = raw_room.get("exit_details", [])
         normalized_room_id = str(room_id).strip().lower() if isinstance(room_id, str) else ""
         is_payload_override = _is_asset_payload_override(raw_room)
 
@@ -334,6 +335,10 @@ def load_rooms() -> list[dict]:
             room_objects = []
         if not isinstance(room_objects, list):
             raise ValueError(f"Room asset '{room_id}' room_objects must be a list.")
+        if room_exit_details is None:
+            room_exit_details = []
+        if not isinstance(room_exit_details, list):
+            raise ValueError(f"Room asset '{room_id}' exit_details must be a list.")
 
         normalized_room_objects: list[dict] = []
         for raw_room_object in room_objects:
@@ -361,6 +366,40 @@ def load_rooms() -> list[dict]:
                 "name": object_name,
                 "description": object_description,
                 "keywords": [str(keyword).strip().lower() for keyword in raw_object_keywords if str(keyword).strip()],
+            })
+
+        normalized_exit_details: list[dict] = []
+        for raw_exit_detail in room_exit_details:
+            if not isinstance(raw_exit_detail, dict):
+                raise ValueError(f"Room asset '{room_id}' exit_details entries must be objects.")
+
+            direction = str(raw_exit_detail.get("direction", "")).strip().lower()
+            if not direction:
+                raise ValueError(f"Room asset '{room_id}' exit details must include direction.")
+
+            exit_type = str(raw_exit_detail.get("exit_type", "exit")).strip().lower() or "exit"
+            name = str(raw_exit_detail.get("name", "")).strip()
+            raw_exit_keywords = raw_exit_detail.get("keywords", [])
+            if raw_exit_keywords is None:
+                raw_exit_keywords = []
+            if not isinstance(raw_exit_keywords, list):
+                raise ValueError(f"Room asset '{room_id}' exit detail '{direction}' keywords must be a list.")
+
+            normalized_exit_details.append({
+                "direction": direction,
+                "exit_type": exit_type,
+                "name": name,
+                "description": str(raw_exit_detail.get("description", "")).strip(),
+                "keywords": [str(keyword).strip().lower() for keyword in raw_exit_keywords if str(keyword).strip()],
+                "can_close": bool(raw_exit_detail.get("can_close", True)),
+                "is_closed": bool(raw_exit_detail.get("is_closed", False)),
+                "is_locked": bool(raw_exit_detail.get("is_locked", False)),
+                "open_message": str(raw_exit_detail.get("open_message", "")).strip(),
+                "close_message": str(raw_exit_detail.get("close_message", "")).strip(),
+                "closed_message": str(raw_exit_detail.get("closed_message", "")).strip(),
+                "locked_message": str(raw_exit_detail.get("locked_message", "")).strip(),
+                "already_open_message": str(raw_exit_detail.get("already_open_message", "")).strip(),
+                "already_closed_message": str(raw_exit_detail.get("already_closed_message", "")).strip(),
             })
 
         normalized_keyword_actions: list[dict] = []
@@ -456,6 +495,7 @@ def load_rooms() -> list[dict]:
         merged_exits = dict(normalized_exits)
         merged_keyword_actions = list(normalized_keyword_actions)
         merged_room_objects = list(normalized_room_objects)
+        merged_exit_details = list(normalized_exit_details)
         if normalized_room_id in normalized_rooms_by_id and is_payload_override:
             existing_room = normalized_rooms_by_id[normalized_room_id]
             existing_exits = existing_room.get("exits", {})
@@ -471,6 +511,19 @@ def load_rooms() -> list[dict]:
             if isinstance(existing_room_objects, list):
                 merged_room_objects = list(existing_room_objects) + normalized_room_objects
 
+            existing_exit_details = existing_room.get("exit_details", [])
+            if isinstance(existing_exit_details, list):
+                merged_exit_details = list(existing_exit_details)
+                for new_exit_detail in normalized_exit_details:
+                    new_direction = str(new_exit_detail.get("direction", "")).strip().lower()
+                    for index, existing_exit_detail in enumerate(merged_exit_details):
+                        existing_direction = str(existing_exit_detail.get("direction", "")).strip().lower()
+                        if existing_direction == new_direction:
+                            merged_exit_details[index] = dict(existing_exit_detail) | dict(new_exit_detail)
+                            break
+                    else:
+                        merged_exit_details.append(new_exit_detail)
+
         if normalized_room_id not in normalized_rooms_by_id:
             ordered_room_ids.append(normalized_room_id)
         normalized_rooms_by_id[normalized_room_id] = {
@@ -482,6 +535,7 @@ def load_rooms() -> list[dict]:
             "npcs": normalized_npcs,
             "keyword_actions": merged_keyword_actions,
             "room_objects": merged_room_objects,
+            "exit_details": merged_exit_details,
         }
 
     return [normalized_rooms_by_id[room_id] for room_id in ordered_room_ids]

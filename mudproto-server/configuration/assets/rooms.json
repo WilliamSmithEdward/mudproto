@@ -2,7 +2,7 @@
   {
     "room_id": "start",
     "title": "Prototype Chamber",
-    "description": "A plain stone chamber used for early server testing. Scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
+    "description": "A plain stone chamber used for early server testing. A stout western gate bars a road beyond, while scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
     "zone_id": "zone.prototype-core",
     "keyword_actions": [
       {
@@ -37,12 +37,44 @@
         "name": "iron hatch",
         "keywords": ["hatch", "ceiling hatch", "iron hatch"],
         "description": "A square iron hatch is set into the ceiling overhead. Its worn pull-ring and the scrape marks around the frame suggest it can be worked open or shut by hand."
+      },
+      {
+        "object_id": "west-gate",
+        "name": "west gate",
+        "keywords": ["gate", "west gate", "iron gate"],
+        "description": "A stout iron gate bars the western opening. Its latch looks simple enough to work by hand if it has not been locked."
+      }
+    ],
+    "exit_details": [
+      {
+        "direction": "west",
+        "exit_type": "gate",
+        "name": "west gate",
+        "keywords": ["gate", "west gate", "iron gate"],
+        "is_closed": true,
+        "is_locked": false,
+        "open_message": "You pull the west gate open.",
+        "close_message": "You swing the west gate shut.",
+        "closed_message": "The west gate is closed.",
+        "locked_message": "The west gate is locked.",
+        "already_open_message": "The west gate is already open.",
+        "already_closed_message": "The west gate is already closed."
       }
     ],
     "exits": {
       "north": "hall",
       "east": "sanctum",
-      "south": "south-market"
+      "south": "south-market",
+      "west": "west-road"
+    }
+  },
+  {
+    "room_id": "west-road",
+    "title": "West Road",
+    "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
+    "zone_id": "zone.prototype-core",
+    "exits": {
+      "east": "start"
     }
   },
   {

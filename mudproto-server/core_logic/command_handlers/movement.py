@@ -5,6 +5,7 @@ from display_core import build_line, build_part
 from display_feedback import display_command_result, display_error
 from display_room import display_room
 from models import ClientSession
+from room_exits import can_traverse_exit
 from settings import FLEE_SUCCESS_CHANCE
 import world as _world
 
@@ -75,7 +76,11 @@ def flee(session: ClientSession) -> OutboundResult:
     if current_room is None:
         return display_error(f"Current room not found: {session.player.current_room_id}", session)
 
-    exits = list(current_room.exits.items())
+    exits = [
+        (direction, room_id)
+        for direction, room_id in current_room.exits.items()
+        if can_traverse_exit(current_room, direction)[0]
+    ]
     if not exits:
         return display_error("There is nowhere to flee.", session)
 
@@ -129,6 +134,10 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
     next_room_id = current_room.exits.get(normalized_direction)
     if next_room_id is None:
         return display_error(f"You cannot go {normalized_direction} from here.", session)
+
+    can_traverse, blocked_message = can_traverse_exit(current_room, normalized_direction)
+    if not can_traverse:
+        return display_error(blocked_message or f"You cannot go {normalized_direction} from here.", session)
 
     next_room = get_room(next_room_id)
     if next_room is None:

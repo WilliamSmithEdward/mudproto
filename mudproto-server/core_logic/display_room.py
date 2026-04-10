@@ -10,6 +10,7 @@ from world import Room, get_room
 
 from display_core import _panel_divider, _panel_title_line, build_display, build_part
 from display_feedback import _direction_short_label, _direction_sort_key, resolve_prompt
+from room_exits import describe_exit_status
 
 
 def _scan_visible_hostiles(session: ClientSession, room_id: str) -> list:
@@ -120,6 +121,7 @@ def display_exits(session: ClientSession, room: Room) -> dict:
                 build_part(str(direction).strip().title().ljust(direction_width), "bright_cyan", True),
                 build_part(" -> ", "bright_black"),
                 build_part(destination_label, "bright_green", True),
+                build_part(describe_exit_status(room, direction), "bright_black"),
             ])
 
             nearby_hostiles = _scan_visible_hostiles(session, destination_room_id)

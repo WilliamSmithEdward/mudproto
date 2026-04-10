@@ -13,6 +13,7 @@ class Room:
     npcs: list[dict] = field(default_factory=list)
     keyword_actions: list[dict] = field(default_factory=list)
     room_objects: list[dict] = field(default_factory=list)
+    exit_details: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -52,6 +53,7 @@ def build_default_world() -> WorldState:
             npcs=room_data.get("npcs", []),
             keyword_actions=room_data.get("keyword_actions", []),
             room_objects=room_data.get("room_objects", []),
+            exit_details=room_data.get("exit_details", []),
         )
         world.rooms[room.room_id] = room
 
@@ -64,6 +66,13 @@ def build_default_world() -> WorldState:
             if destination_room_id not in world.rooms:
                 raise ValueError(
                     f"Room '{room.room_id}' has exit '{direction}' to unknown room '{destination_room_id}'."
+                )
+
+        for exit_detail in room.exit_details:
+            exit_direction = str(exit_detail.get("direction", "")).strip().lower()
+            if exit_direction not in room.exits:
+                raise ValueError(
+                    f"Room '{room.room_id}' exit detail references unknown direction '{exit_direction}'."
                 )
 
         for keyword_action in room.keyword_actions:
