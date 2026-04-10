@@ -3,7 +3,7 @@ import random
 from combat_state import end_combat, get_engaged_entity, maybe_auto_engage_current_room
 from display_core import build_line, build_part
 from display_feedback import display_command_result, display_error
-from display_views import display_room
+from display_room import display_room
 from models import ClientSession
 from settings import FLEE_SUCCESS_CHANCE
 import world as _world

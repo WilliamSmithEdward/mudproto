@@ -5,7 +5,7 @@ import json
 from combat_state import maybe_auto_engage_current_room
 from display_core import build_display, build_line, build_part
 from display_feedback import build_prompt_parts, display_error
-from display_views import display_room
+from display_room import display_room
 from models import ClientSession
 from session_registry import connected_clients
 from world import get_room

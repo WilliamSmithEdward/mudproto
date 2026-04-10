@@ -130,7 +130,9 @@ Level gains: +10HP +5V +6M
 
 | Module | Responsibility |
 |--------|----------------|
-| `server.py` | Thin WebSocket entrypoint plus global tick loops; delegates room broadcast shaping to `server_broadcasts.py` and movement/follow side effects to `server_movement.py`. |
+| `server.py` | Thin WebSocket entrypoint and startup orchestration; delegates background loops to `server_loops.py`, transport sending to `server_transport.py`, room broadcast shaping to `server_broadcasts.py`, and movement/follow side effects to `server_movement.py`. |
+| `server_loops.py` | Command scheduler, global game tick loop, and combat round loop orchestration. |
+| `server_transport.py` | WebSocket JSON/outbound send helpers used by the server entrypoint and background loops. |
 | `server_broadcasts.py` | Observer-facing room broadcast generation, private-line injection, prompt spacing, and unified room-round display helpers. |
 | `server_movement.py` | Movement notices, follower propagation, arrival/departure messaging, and post-move room refresh handling. |
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
@@ -139,7 +141,7 @@ Level gains: +10HP +5V +6M
 | `session_registry.py` | Shared connected/authenticated session maps, shared world state attachment, and session/world lookup helpers. |
 | `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
 | `session_bootstrap.py` | Player class application, attribute initialization, starting gear/items, and early progression bootstrap. |
-| `session_lifecycle.py` | Disconnect/login reset flow, offline character processing, and session hydration/re-attachment on reconnect. |
+| `session_lifecycle.py` | Disconnect/login reset flow, login completion, offline character processing, and session hydration/re-attachment on reconnect. |
 | `commands.py` | Inbound protocol-message dispatch, auth/input handling, and lag-aware routing into `command_handlers/`. |
 | `commerce.py` | Merchant/trade pricing, stock resolution, resale handling, and shared buy/sell helper logic used by command handlers. |
 | `targeting_parsing.py` | Shared selector parsing and normalization helpers for commands and resolvers. |
@@ -155,7 +157,9 @@ Level gains: +10HP +5V +6M
 | `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers. |
 | `combat_rewards.py` | Shared contributor tracking and XP/reward distribution helpers. |
 | `combat_observer.py` | Combat observer-line templating, room-broadcast line shaping, and third-person text helpers. |
-| `command_handlers/` | Grouped player-facing handlers plus focused support modules like `parsing.py` and `types.py` for auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions. |
+| `command_handlers/` | Grouped player-facing handlers plus focused support modules like `parsing.py`, `types.py`, and `item_actions.py` for auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions. |
+| `display_character.py` | Character, score, inventory, and equipment display builders. |
+| `display_room.py` | Room, exits, look-summary, and other spatial display builders. |
 | `display_menus.py` | Shared presentation helpers for spell and skill menu/table rendering. |
 | `display_prompts.py` | Shared auth and character-creation prompt builders. |
 | `combat.py` | Combat round orchestration, melee/flee flow, and encounter-resolution glue over the extracted combat helper modules. |
@@ -165,7 +169,6 @@ Level gains: +10HP +5V +6M
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
 | `display_core.py` | Core display builders, line/part composition, and item-highlight coloring helpers. |
 | `display_feedback.py` | Prompt/status displays, command results, and error/connection feedback builders. |
-| `display_views.py` | Room, inventory, equipment, spell, skill, and other structured gameplay views. |
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
 | `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
 | `assets.py` | Content asset loaders for gear, items, rooms, zones, NPCs, spells, and skills with structural and cross-reference validation. |
@@ -199,7 +202,7 @@ MudProto should stay organized around **layered ownership** rather than around a
    - If logic is shared by multiple commands, it should live here rather than in a handler file.
 
 5. **Presentation layer**
-   - Output formatting belongs in `display_core.py`, `display_feedback.py`, `display_views.py`, and `grammar.py`.
+   - Output formatting belongs in `display_core.py`, `display_feedback.py`, `display_character.py`, `display_room.py`, `display_menus.py`, `display_prompts.py`, and `grammar.py`.
    - Game rules should not be mixed with text styling or sentence transformation helpers.
 
 6. **Configuration and persistence layer**
@@ -543,7 +546,7 @@ consistently across inventory, room, loot, and action-message contexts.
 
 ## 11. Display & Rendering
 
-Display messages are built across `display_core.py`, `display_feedback.py`, and `display_views.py` and sent as structured JSON `lines`. Each line is an array of styled text parts, where each part carries `text`, optional `fg` color, and optional `bold` flag. Both the terminal client and the GUI client render these line arrays from the same server payload.
+Display messages are built across `display_core.py`, `display_feedback.py`, `display_character.py`, `display_room.py`, `display_menus.py`, and `display_prompts.py` and sent as structured JSON `lines`. Each line is an array of styled text parts, where each part carries `text`, optional `fg` color, and optional `bold` flag. Both the terminal client and the GUI client render these line arrays from the same server payload.
 
 Key builders:
 - `build_display()` / `build_display_lines()` — assemble final protocol payloads with structural `lines`.
@@ -678,7 +681,9 @@ mudproto/
     client_gui.py                # generic Tk GUI client
   mudproto-server/
     core_logic/
-      server.py                  # thin async server entry point and tick loops
+      server.py                  # thin async server entry point and startup orchestration
+      server_loops.py            # scheduler, combat, and game tick background loops
+      server_transport.py        # websocket JSON/outbound send helpers
       server_broadcasts.py       # room broadcast and outbound shaping helpers
       server_movement.py         # movement/follow side effects and room notices
       protocol.py                # envelope helpers and validation
@@ -700,7 +705,10 @@ mudproto/
       inventory.py               # item selectors and template hydration
       display_core.py            # low-level display builders and color helpers
       display_feedback.py        # prompts, errors, and command feedback builders
-      display_views.py           # room/inventory/equipment/etc. views
+      display_character.py       # score, inventory, and equipment views
+      display_room.py            # room, exits, and look-summary views
+      display_menus.py           # shared spell/skill menu builders
+      display_prompts.py         # auth and character-creation prompt builders
       targeting_parsing.py       # selector parsing helpers
       targeting_entities.py      # entity/player/corpse resolvers
       targeting_items.py         # item selector resolvers

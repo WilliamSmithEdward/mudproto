@@ -1,7 +1,14 @@
 import asyncio
 
+from combat_state import maybe_auto_engage_current_room
+from display_core import build_line, build_part
+from display_feedback import display_error
+from display_room import display_room
+from grammar import normalize_player_gender
 from models import ClientSession
-from player_state_db import save_player_state
+from player_resources import clamp_player_resources_to_caps
+from player_state_db import load_player_state, save_player_state
+from session_bootstrap import apply_player_class, ensure_player_attributes
 from session_registry import (
     active_character_sessions,
     attach_session_to_shared_world,
@@ -14,6 +21,7 @@ from settings import (
     OFFLINE_LOOP_SLEEP_SECONDS,
     OFFLINE_SAFE_HOURS_TO_DISCONNECT,
 )
+from world import get_room
 
 
 def _copy_runtime_state(source: ClientSession, target: ClientSession) -> None:
@@ -77,6 +85,76 @@ def register_authenticated_character_session(session: ClientSession) -> None:
     session.disconnected_by_server = False
     session.is_connected = True
     active_character_sessions[normalized_key] = session
+
+
+def complete_login(session: ClientSession, character_record: dict, *, is_new_character: bool) -> dict | list[dict]:
+    character_key = str(character_record.get("character_key", "")).strip()
+    character_name = str(character_record.get("character_name", "")).strip()
+    class_id = str(character_record.get("class_id", "")).strip()
+    login_room_id = str(character_record.get("login_room_id", "")).strip() or "start"
+    session.player.gender = normalize_player_gender(
+        character_record.get("gender", session.player.gender),
+        allow_unspecified=True,
+    ) or "unspecified"
+
+    session.player_state_key = character_key
+    session.authenticated_character_name = character_name
+    session.login_room_id = login_room_id
+    session.pending_character_name = ""
+    session.pending_password = ""
+    session.pending_gender = ""
+
+    resumed_from_active = hydrate_session_from_active_character(session, character_key)
+
+    loaded_state = False
+    if not resumed_from_active:
+        loaded_state = load_player_state(session, player_key=character_key)
+        if not loaded_state:
+            apply_player_class(session, class_id, initialize_progression=True)
+        elif class_id:
+            session.player.class_id = class_id
+
+        ensure_player_attributes(session)
+        session.player.current_room_id = login_room_id
+    else:
+        ensure_player_attributes(session)
+
+    clamp_player_resources_to_caps(session)
+
+    session.is_authenticated = True
+    session.is_connected = True
+    session.disconnected_by_server = False
+    session.auth_stage = "authenticated"
+    register_authenticated_character_session(session)
+
+    if (not resumed_from_active and not loaded_state) or is_new_character:
+        save_player_state(session, player_key=character_key)
+
+    login_room = get_room(session.player.current_room_id)
+    if login_room is None:
+        session.player.current_room_id = "start"
+        login_room = get_room("start")
+
+    if login_room is None:
+        return display_error("Login room is not configured.", session)
+
+    room_display = display_room(session, login_room)
+    payload = room_display.get("payload") if isinstance(room_display, dict) else None
+    if isinstance(payload, dict):
+        lines = payload.get("lines")
+        if isinstance(lines, list):
+            greeting = "Character created" if is_new_character else "Welcome back"
+            payload["lines"] = [
+                build_line(
+                    build_part(f"{greeting}, ", "bright_white"),
+                    build_part(character_name, "bright_green", True),
+                    build_part(".", "bright_white"),
+                ),
+                [],
+            ] + lines
+
+    maybe_auto_engage_current_room(session)
+    return room_display
 
 
 async def _offline_character_loop(character_key: str, session: ClientSession) -> None:

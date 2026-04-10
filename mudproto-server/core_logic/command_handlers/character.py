@@ -1,7 +1,7 @@
 from attribute_config import load_attributes
+from display_character import display_equipment, display_inventory, display_score
 from display_core import build_part
 from display_feedback import display_command_result
-from display_views import display_equipment, display_inventory, display_score
 from models import ClientSession
 
 from .types import OutboundResult

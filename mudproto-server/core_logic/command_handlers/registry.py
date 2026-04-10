@@ -3,7 +3,8 @@ from models import ClientSession
 
 from .character import handle_character_command
 from .commerce import handle_commerce_command
-from .equipment import handle_equipment_command, handle_item_use_command
+from .equipment import handle_equipment_command
+from .item_actions import handle_item_drop_command, handle_item_use_command
 from .loot import handle_loot_command
 from .movement import handle_movement_command
 from .observation import handle_observation_command
@@ -33,6 +34,7 @@ def dispatch_command(session: ClientSession, command_text: str) -> OutboundResul
         handle_spell_command,
         handle_skill_command,
         handle_equipment_command,
+        handle_item_drop_command,
         handle_social_command,
         handle_movement_command,
         handle_item_use_command,

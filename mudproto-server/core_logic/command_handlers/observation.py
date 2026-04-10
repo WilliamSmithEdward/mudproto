@@ -1,5 +1,5 @@
 from display_feedback import display_error
-from display_views import display_entity_summary, display_exits, display_player_summary, display_room
+from display_room import display_entity_summary, display_exits, display_player_summary, display_room
 from item_logic import _display_corpse_examination, _display_item_examination
 from models import ClientSession
 from targeting_entities import resolve_room_corpse_selector, resolve_room_entity_selector
