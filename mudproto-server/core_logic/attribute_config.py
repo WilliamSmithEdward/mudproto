@@ -14,6 +14,7 @@ COMBAT_SEVERITY_FILE = ATTRIBUTE_CONFIG_ROOT / "combat_severity.json"
 ITEM_USAGE_FILE = ATTRIBUTE_CONFIG_ROOT / "item_usage.json"
 LEVEL_SCALING_FILE = ATTRIBUTE_CONFIG_ROOT / "level_scaling.json"
 EXPERIENCE_TABLE_FILE = ATTRIBUTE_CONFIG_ROOT / "experience.json"
+WEAPON_TYPES_FILE = ATTRIBUTE_CONFIG_ROOT / "weapon_types.json"
 
 
 def _read_json_attribute_config(path: Path) -> object:
@@ -76,6 +77,46 @@ def load_wear_slot_config() -> dict:
         "wear_slots": wear_slots,
         "slot_options": slot_options,
         "location_aliases": location_aliases,
+    }
+
+
+@lru_cache(maxsize=1)
+def load_weapon_type_config() -> dict:
+    raw_config = _read_json_attribute_config(WEAPON_TYPES_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Weapon type config file must contain an object: {WEAPON_TYPES_FILE}")
+
+    raw_weapon_types = raw_config.get("weapon_types", {})
+    if not isinstance(raw_weapon_types, dict) or not raw_weapon_types:
+        raise ValueError("Weapon type config field 'weapon_types' must be a non-empty object.")
+
+    normalized_weapon_types: dict[str, dict[str, str]] = {}
+    for weapon_type_id, raw_entry in raw_weapon_types.items():
+        normalized_weapon_type_id = str(weapon_type_id).strip().lower()
+        if not normalized_weapon_type_id:
+            raise ValueError("Weapon type config contains an empty weapon type id.")
+        if not isinstance(raw_entry, dict):
+            raise ValueError(f"Weapon type config entry '{normalized_weapon_type_id}' must be an object.")
+
+        name = str(raw_entry.get("name", normalized_weapon_type_id.replace("_", " ").title())).strip()
+        verb = str(raw_entry.get("verb", "")).strip().lower()
+        if not verb:
+            raise ValueError(f"Weapon type config entry '{normalized_weapon_type_id}' must include a non-empty verb.")
+
+        normalized_weapon_types[normalized_weapon_type_id] = {
+            "name": name or normalized_weapon_type_id.replace("_", " ").title(),
+            "verb": verb,
+        }
+
+    default_weapon_type = str(raw_config.get("default_weapon_type", "unarmed")).strip().lower() or "unarmed"
+    if default_weapon_type not in normalized_weapon_types:
+        raise ValueError(
+            f"Weapon type config default_weapon_type '{default_weapon_type}' must be defined in weapon_types."
+        )
+
+    return {
+        "default_weapon_type": default_weapon_type,
+        "weapon_types": normalized_weapon_types,
     }
 
 

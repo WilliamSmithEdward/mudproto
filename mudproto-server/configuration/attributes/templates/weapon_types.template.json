@@ -1,0 +1,33 @@
+{
+  "schema_name": "weapon_types",
+  "description": "Generated schema template for configurable weapon types.",
+  "schema": {
+    "file": "weapon_types.json",
+    "top_level_type": "object",
+    "fields": {
+      "default_weapon_type": {
+        "type": "string",
+        "required": false,
+        "default": "unarmed",
+        "notes": "Fallback type used when a weapon does not specify weapon_type explicitly."
+      },
+      "weapon_types": {
+        "type": "object",
+        "required": true,
+        "notes": "Map of weapon type ids to display/verb metadata used by combat messaging and validation.",
+        "value_schema": {
+          "name": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "verb": {
+            "type": "string",
+            "required": true,
+            "notes": "Combat verb used for hit text, such as slash, stab, pierce, or bludgeon."
+          }
+        }
+      }
+    }
+  }
+}

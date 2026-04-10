@@ -2,7 +2,7 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from attribute_config import load_attributes
+from attribute_config import load_attributes, load_weapon_type_config
 from settings import CONFIGURABLE_ASSET_ROOT
 
 
@@ -101,6 +101,9 @@ def load_gear_templates() -> list[dict]:
 
     normalized_templates_by_id: dict[str, dict] = {}
     ordered_template_ids: list[str] = []
+    weapon_type_config = load_weapon_type_config()
+    configured_weapon_types = set((weapon_type_config.get("weapon_types", {}) or {}).keys())
+    default_weapon_type = str(weapon_type_config.get("default_weapon_type", "unarmed")).strip().lower() or "unarmed"
 
     for raw_template in raw_templates:
         if not isinstance(raw_template, dict):
@@ -136,6 +139,15 @@ def load_gear_templates() -> list[dict]:
         if armor_class_bonus < 0:
             raise ValueError(f"Gear asset '{template_id}' armor_class_bonus must be zero or greater.")
 
+        normalized_weapon_type = str(raw_template.get("weapon_type", default_weapon_type)).strip().lower() or default_weapon_type
+        if normalized_slot == "weapon" and normalized_weapon_type not in configured_weapon_types:
+            allowed_types = ", ".join(sorted(configured_weapon_types))
+            raise ValueError(
+                f"Gear asset '{template_id}' weapon_type '{normalized_weapon_type}' must be one of: {allowed_types}."
+            )
+        if normalized_slot != "weapon":
+            normalized_weapon_type = default_weapon_type
+
         if normalized_template_id not in normalized_templates_by_id:
             ordered_template_ids.append(normalized_template_id)
 
@@ -145,7 +157,7 @@ def load_gear_templates() -> list[dict]:
             "slot": normalized_slot,
             "description": str(raw_template.get("description", "")),
             "keywords": normalized_keywords,
-            "weapon_type": str(raw_template.get("weapon_type", "unarmed")).strip().lower() or "unarmed",
+            "weapon_type": normalized_weapon_type,
             "can_hold": bool(raw_template.get("can_hold", False)) if normalized_slot == "weapon" else False,
             "can_two_hand": bool(raw_template.get("can_two_hand", False)) if normalized_slot == "weapon" else False,
             "requires_two_hands": bool(raw_template.get("requires_two_hands", False)) if normalized_slot == "weapon" else False,

@@ -39,7 +39,8 @@
       "weapon_type": {
         "type": "string",
         "required": false,
-        "default": "unarmed"
+        "default": "unarmed",
+        "notes": "Weapon-only field. Allowed values come from `configuration/attributes/weapon_types.json`."
       },
       "can_hold": {
         "type": "boolean",

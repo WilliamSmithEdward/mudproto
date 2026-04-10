@@ -1,25 +1,17 @@
 import random
 
-from attribute_config import load_level_scaling_config
+from attribute_config import load_level_scaling_config, load_weapon_type_config
 from models import EntityState, ItemState, PlayerCombatState
 from settings import HIT_ROLL_DICE_SIDES, UNARMED_DAMAGE_VARIANCE
 
 
-WEAPON_TYPE_TO_VERB = {
-    "unarmed": "hit",
-    "sword": "slash",
-    "axe": "hack",
-    "bludgeon": "bludgeon",
-    "mace": "bludgeon",
-    "club": "bludgeon",
-    "dagger": "stab",
-    "spear": "pierce",
-}
-
-
 def resolve_weapon_verb(weapon_type: str) -> str:
-    normalized = weapon_type.strip().lower() if weapon_type else "unarmed"
-    return WEAPON_TYPE_TO_VERB.get(normalized, "hit")
+    weapon_type_config = load_weapon_type_config()
+    weapon_types = weapon_type_config.get("weapon_types", {}) if isinstance(weapon_type_config, dict) else {}
+    default_weapon_type = str(weapon_type_config.get("default_weapon_type", "unarmed")).strip().lower() or "unarmed"
+    normalized = weapon_type.strip().lower() if weapon_type else default_weapon_type
+    entry = weapon_types.get(normalized) or weapon_types.get(default_weapon_type, {})
+    return str(entry.get("verb", "hit")).strip().lower() or "hit"
 
 
 def roll_hit(total_modifier: int, target_armor_class: int) -> bool:

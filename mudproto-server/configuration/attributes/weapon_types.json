@@ -1,0 +1,37 @@
+{
+  "default_weapon_type": "unarmed",
+  "weapon_types": {
+    "unarmed": {
+      "name": "Unarmed",
+      "verb": "hit"
+    },
+    "sword": {
+      "name": "Sword",
+      "verb": "slash"
+    },
+    "axe": {
+      "name": "Axe",
+      "verb": "hack"
+    },
+    "bludgeon": {
+      "name": "Bludgeon",
+      "verb": "bludgeon"
+    },
+    "mace": {
+      "name": "Mace",
+      "verb": "bludgeon"
+    },
+    "club": {
+      "name": "Club",
+      "verb": "bludgeon"
+    },
+    "dagger": {
+      "name": "Dagger",
+      "verb": "stab"
+    },
+    "spear": {
+      "name": "Spear",
+      "verb": "pierce"
+    }
+  }
+}
