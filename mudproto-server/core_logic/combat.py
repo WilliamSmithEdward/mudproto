@@ -416,7 +416,7 @@ def resolve_combat_round(
         if session.combat.skip_melee_rounds > 0:
             session.combat.skip_melee_rounds -= 1
         else:
-            _apply_player_attacks(session, entity, parts, room_broadcast_lines, allow_off_hand=not is_opening_round)
+            _apply_player_attacks(session, entity, parts, room_broadcast_lines, allow_off_hand=True)
 
     # Mark entity dead if it reached 0 HP, but don't return yet — let the round finish.
     entity_died_this_round = _resolve_entity_defeat(
