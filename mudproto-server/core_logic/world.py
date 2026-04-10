@@ -22,6 +22,8 @@ class Zone:
     zone_id: str
     name: str
     repopulate_game_hours: int = 0
+    reset_player_flags: list[str] = field(default_factory=list)
+    reset_container_template_ids: list[str] = field(default_factory=list)
     room_ids: list[str] = field(default_factory=list)
     pending_repopulation: bool = False
     game_hours_since_repopulation: int = 0
@@ -41,6 +43,8 @@ def build_default_world() -> WorldState:
             zone_id=zone_data["zone_id"],
             name=zone_data["name"],
             repopulate_game_hours=max(0, int(zone_data.get("repopulate_game_hours", 0))),
+            reset_player_flags=[str(flag).strip().lower() for flag in zone_data.get("reset_player_flags", []) if str(flag).strip()],
+            reset_container_template_ids=[str(template_id).strip().lower() for template_id in zone_data.get("reset_container_template_ids", []) if str(template_id).strip()],
         )
         world.zones[zone.zone_id] = zone
 
@@ -89,7 +93,7 @@ def build_default_world() -> WorldState:
         for keyword_action in room.keyword_actions:
             for action in keyword_action.get("actions", []):
                 action_type = str(action.get("type", "")).strip().lower()
-                if action_type not in {"set_exit", "reveal_exit", "show_exit"}:
+                if action_type not in {"set_exit", "reveal_exit", "show_exit", "teleport_player"}:
                     continue
                 destination_room_id = str(action.get("destination_room_id", "")).strip()
                 if destination_room_id not in world.rooms:

@@ -49,6 +49,18 @@
     "coin_value": 0
   },
   {
+    "template_id": "item.key.loft-chest",
+    "name": "Loft Chest Key",
+    "description": "A bronze key etched with a simple sunburst, evidently meant for a locked chest tucked away above the starting chamber.",
+    "keywords": ["key", "loft", "chest", "loft chest", "bronze key"],
+    "item_type": "key",
+    "persistent": false,
+    "lock_ids": ["lock.prototype.loft-chest"],
+    "consume_on_use": true,
+    "consume_message": "The Loft Chest Key crumbles to dust after turning in the lock.",
+    "coin_value": 0
+  },
+  {
     "template_id": "item.container.loft-chest",
     "name": "Weathered Chest",
     "description": "A weathered cedar chest bound in dark iron bands rests beneath the loft rafters, sturdy and too awkward to carry off whole.",
@@ -56,6 +68,11 @@
     "item_type": "container",
     "portable": false,
     "persistent": true,
+    "can_close": true,
+    "can_lock": true,
+    "lock_id": "lock.prototype.loft-chest",
+    "is_closed": true,
+    "is_locked": true,
     "coin_value": 0
   }
 ]

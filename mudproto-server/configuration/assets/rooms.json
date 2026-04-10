@@ -29,6 +29,17 @@
             "direction": "up"
           }
         ]
+      },
+      {
+        "keywords": ["stand circle", "stand in circle", "step circle", "step into circle"],
+        "message": "The magic circle flares beneath your feet and whisks you away in a breath of pale light.",
+        "refresh_view": "room",
+        "actions": [
+          {
+            "type": "teleport_player",
+            "destination_room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+          }
+        ]
       }
     ],
     "room_objects": [
@@ -43,6 +54,12 @@
         "name": "west gate",
         "keywords": ["gate", "west gate", "iron gate"],
         "description": "A stout iron gate bars the western opening. Its latch looks simple enough to work by hand if it has not been locked."
+      },
+      {
+        "object_id": "magic-circle",
+        "name": "magic circle",
+        "keywords": ["circle", "magic circle", "teleport circle", "rune circle"],
+        "description": "A faintly glowing circle of chalk and old runes is scribed into the stone floor. The lines pulse softly, as if waiting for someone to stand within them."
       }
     ],
     "items": [

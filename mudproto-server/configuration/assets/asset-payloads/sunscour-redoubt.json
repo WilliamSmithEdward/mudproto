@@ -453,6 +453,113 @@
       "spell_ids": [
         "spell.solar-lance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
         "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.met"
+          ],
+          "set_player_flags": [
+            "npc.sunmarshal-aurek.met"
+          ],
+          "message": "Aurek says, \"Hail! Well met traveller. I may have something for you. Come, listen to an old man.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "npc.sunmarshal-aurek.met"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "message": "Aurek says, \"Welcome back. Are you ready to listen to my story?\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "message": "Aurek says, \"Thank you for listening to an old man ramble.\""
+        }
+      ],
+      "keyword_actions": [
+        {
+          "keywords": [
+            "listen aurek",
+            "listen sunmarshal",
+            "listen sunmarshal aurek",
+            "listen to aurek",
+            "listen to sunmarshal",
+            "listen for aurek",
+            "bow aurek",
+            "bow sunmarshal",
+            "bow sunmarshal aurek",
+            "bow to aurek",
+            "bow to sunmarshal",
+            "bow before aurek"
+          ],
+          "required_player_flags": [
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "message": "Aurek says, \"Thank you for listening to an old man ramble.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen aurek",
+            "listen sunmarshal",
+            "listen sunmarshal aurek",
+            "listen to aurek",
+            "listen to sunmarshal",
+            "listen for aurek"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "message": "Aurek says, \"Paladins of our order first bow with respect.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "bow aurek",
+            "bow sunmarshal",
+            "bow sunmarshal aurek",
+            "bow to aurek",
+            "bow to sunmarshal",
+            "bow before aurek"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "set_player_flags": [
+            "npc.sunmarshal-aurek.met",
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "message": "Aurek bows in return and places a bronze key in your hand. \"Take this to the weathered chest in the loft above the starting chamber.\"",
+          "already_message": "Aurek says, \"I've already given you everything I can.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "grant_item",
+              "template_id": "item.key.loft-chest",
+              "if_missing": true
+            }
+          ]
+        }
       ]
     },
     {
@@ -837,7 +944,14 @@
     {
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "name": "Sunscour Redoubt",
-      "repopulate_game_hours": 1
+      "repopulate_game_hours": 1,
+      "reset_player_flags": [
+        "npc.sunmarshal-aurek.met",
+        "npc.sunmarshal-aurek.rewarded"
+      ],
+      "reset_container_template_ids": [
+        "item.container.loft-chest"
+      ]
     }
   ]
 }

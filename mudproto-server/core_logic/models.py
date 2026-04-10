@@ -22,6 +22,7 @@ class PlayerState:
     level: int = 1
     experience_points: int = 0
     resource_level_gains: dict[str, int] = field(default_factory=dict)
+    interaction_flags: dict[str, bool] = field(default_factory=dict)
 
 
 @dataclass
@@ -90,6 +91,25 @@ class ItemState:
     persistent: bool = True
     lock_ids: list[str] = field(default_factory=list)
     portable: bool = True
+    consume_on_use: bool = False
+    consume_message: str = ""
+    can_close: bool = False
+    can_lock: bool = False
+    lock_id: str = ""
+    is_closed: bool = False
+    is_locked: bool = False
+    open_message: str = ""
+    close_message: str = ""
+    lock_message: str = ""
+    unlock_message: str = ""
+    closed_message: str = ""
+    locked_message: str = ""
+    needs_key_message: str = ""
+    must_close_to_lock_message: str = ""
+    already_open_message: str = ""
+    already_closed_message: str = ""
+    already_locked_message: str = ""
+    already_unlocked_message: str = ""
     container_items: dict[str, "ItemState"] = field(default_factory=dict)
 
 

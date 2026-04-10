@@ -200,6 +200,104 @@
         "required": false,
         "default": []
       },
+      "room_communications": {
+        "type": "array[object]",
+        "required": false,
+        "default": [],
+        "entry_schema": {
+          "trigger": {
+            "type": "string",
+            "required": false,
+            "default": "player_enter",
+            "allowed_values": ["player_enter"]
+          },
+          "audience": {
+            "type": "string",
+            "required": false,
+            "default": "both",
+            "allowed_values": ["private", "room", "both"],
+            "notes": "`private` shows only to the entering player, `room` broadcasts only to the room, and `both` does both."
+          },
+          "required_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "excluded_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "set_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "clear_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "message": {
+            "type": "string",
+            "required": true,
+            "notes": "Shown when the configured trigger fires, such as a player entering the NPC's room."
+          }
+        }
+      },
+      "keyword_actions": {
+        "type": "array[object]",
+        "required": false,
+        "default": [],
+        "notes": "NPC-side command triggers. Uses the same structure as room keyword_actions and supports `noop` and `grant_item` actions as well as room exit reveal/hide actions.",
+        "entry_schema": {
+          "keywords": {
+            "type": "array[string]",
+            "required": true
+          },
+          "message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "already_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "refresh_view": {
+            "type": "string",
+            "required": false,
+            "default": "none",
+            "allowed_values": ["none", "exits", "room"]
+          },
+          "required_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "excluded_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "set_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "clear_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "actions": {
+            "type": "array[object]",
+            "required": true,
+            "notes": "Supports `noop`, `grant_item`, `teleport_player`, and the standard room exit action types."
+          }
+        }
+      },
       "inventory_items": {
         "type": "array[object]",
         "required": false,

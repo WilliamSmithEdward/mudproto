@@ -8,10 +8,10 @@ from typing import Literal
 from display_core import build_menu_table_parts, build_part
 from display_feedback import display_command_result, display_error
 from grammar import with_article
-from inventory import get_item_keywords, hydrate_misc_item_from_template, parse_item_selector
+from inventory import consume_item_on_use, get_item_keywords, hydrate_misc_item_from_template, item_unlocks_lock, parse_item_selector
 from item_logic import _build_corpse_label, _build_item_reference_parts, _item_highlight_color
 from models import ClientSession, CorpseState, ItemState
-from targeting_entities import list_room_corpses, resolve_room_corpse_selector
+from targeting_entities import resolve_room_corpse_selector
 from targeting_items import _list_room_ground_items, _resolve_inventory_selector
 
 
@@ -38,11 +38,55 @@ def _container_label(container: ContainerTarget) -> str:
     return str(getattr(container, "name", "container")).strip() or "container"
 
 
+def _container_definite_label(container: ContainerTarget) -> str:
+    label = _container_label(container).strip() or "container"
+    if label.lower().startswith(("the ", "a ", "an ")):
+        return label
+    return f"the {label}"
+
+
 def _container_reference_text(container: ContainerTarget) -> str:
     label = _container_label(container)
     if isinstance(container, CorpseState):
         return label
     return with_article(label)
+
+
+def _sentence_case(text: str) -> str:
+    cleaned = str(text).strip()
+    if not cleaned:
+        return ""
+    return f"{cleaned[:1].upper()}{cleaned[1:]}"
+
+
+def _default_container_message(container: ContainerTarget, message_kind: str) -> str:
+    container_label = _container_definite_label(container)
+
+    if message_kind == "open":
+        return f"You open {container_label}."
+    if message_kind == "close":
+        return f"You close {container_label}."
+    if message_kind == "lock":
+        return f"You lock {container_label}."
+    if message_kind == "unlock":
+        return f"You unlock {container_label}."
+    if message_kind == "closed":
+        return f"{_sentence_case(container_label)} is closed."
+    if message_kind == "locked":
+        return f"{_sentence_case(container_label)} is locked."
+    if message_kind == "needs_key":
+        return f"You do not have the proper key for {container_label}."
+    if message_kind == "must_close_to_lock":
+        return f"{_sentence_case(container_label)} must be closed before it can be locked."
+    if message_kind == "already_open":
+        return f"{_sentence_case(container_label)} is already open."
+    if message_kind == "already_closed":
+        return f"{_sentence_case(container_label)} is already closed."
+    if message_kind == "already_locked":
+        return f"{_sentence_case(container_label)} is already locked."
+    if message_kind == "already_unlocked":
+        return f"{_sentence_case(container_label)} is already unlocked."
+    return _sentence_case(container_label)
 
 
 def _container_item_map(container: ContainerTarget) -> dict[str, ItemState]:
@@ -55,6 +99,63 @@ def _container_coin_amount(container: ContainerTarget) -> int:
     if isinstance(container, CorpseState):
         return max(0, int(container.coins))
     return 0
+
+
+def _container_can_close(container: ContainerTarget) -> bool:
+    if isinstance(container, CorpseState):
+        return False
+    hydrate_misc_item_from_template(container)
+    return bool(getattr(container, "can_close", True))
+
+
+def _container_can_lock(container: ContainerTarget) -> bool:
+    if isinstance(container, CorpseState):
+        return False
+    hydrate_misc_item_from_template(container)
+    return bool(getattr(container, "can_lock", bool(str(getattr(container, "lock_id", "")).strip())))
+
+
+def _container_lock_id(container: ContainerTarget) -> str:
+    if isinstance(container, CorpseState):
+        return ""
+    hydrate_misc_item_from_template(container)
+    return str(getattr(container, "lock_id", "")).strip().lower()
+
+
+def _container_is_closed(container: ContainerTarget) -> bool:
+    if isinstance(container, CorpseState):
+        return False
+    hydrate_misc_item_from_template(container)
+    return bool(getattr(container, "is_closed", False))
+
+
+def _container_is_locked(container: ContainerTarget) -> bool:
+    if isinstance(container, CorpseState):
+        return False
+    hydrate_misc_item_from_template(container)
+    return bool(getattr(container, "is_locked", False))
+
+
+def _container_contents_visible(container: ContainerTarget) -> bool:
+    if isinstance(container, CorpseState):
+        return True
+    if _container_is_locked(container):
+        return False
+    if _container_can_close(container) and _container_is_closed(container):
+        return False
+    return True
+
+
+def _container_access_message(container: ContainerTarget) -> str | None:
+    if isinstance(container, CorpseState):
+        return None
+    if _container_is_locked(container):
+        locked_message = str(getattr(container, "locked_message", "")).strip()
+        return locked_message or _default_container_message(container, "locked")
+    if _container_can_close(container) and _container_is_closed(container):
+        closed_message = str(getattr(container, "closed_message", "")).strip()
+        return closed_message or _default_container_message(container, "closed")
+    return None
 
 
 def _normalize_container_selector(selector_text: str) -> str:
@@ -169,42 +270,57 @@ def display_container_examination(
         rows.append(["Type", "Corpse"])
         row_cell_colors.append(["bright_cyan", "bright_yellow"])
     else:
+        hydrate_misc_item_from_template(container)
         rows.append(["Type", "Container"])
         row_cell_colors.append(["bright_cyan", "bright_yellow"])
         rows.append(["Location", str(default_location or "Room")])
         row_cell_colors.append(["bright_cyan", "bright_white"])
         rows.append(["Carryable", "Yes" if bool(getattr(container, "portable", True)) else "No"])
         row_cell_colors.append(["bright_cyan", "bright_white"])
+        status_text = "Open"
+        status_color = "bright_green"
+        if _container_is_locked(container):
+            status_text = "Locked"
+            status_color = "bright_yellow"
+        elif _container_can_close(container) and _container_is_closed(container):
+            status_text = "Closed"
+            status_color = "bright_yellow"
+        rows.append(["Status", status_text])
+        row_cell_colors.append(["bright_cyan", status_color])
 
-    rows.append(["Coins", str(_container_coin_amount(container))])
-    row_cell_colors.append(["bright_cyan", "bright_cyan"])
+    if _container_contents_visible(container):
+        rows.append(["Coins", str(_container_coin_amount(container))])
+        row_cell_colors.append(["bright_cyan", "bright_cyan"])
 
-    container_items = list(_container_item_map(container).values())
-    container_items.sort(key=lambda item: item.name.lower())
-    if container_items:
-        item_counts: dict[str, int] = {}
-        item_names: dict[str, str] = {}
-        item_colors: dict[str, str] = {}
-        item_order: list[str] = []
+        container_items = list(_container_item_map(container).values())
+        container_items.sort(key=lambda item: item.name.lower())
+        if container_items:
+            item_counts: dict[str, int] = {}
+            item_names: dict[str, str] = {}
+            item_colors: dict[str, str] = {}
+            item_order: list[str] = []
 
-        for contained_item in container_items:
-            normalized_name = contained_item.name.strip().lower()
-            if not normalized_name:
-                continue
-            if normalized_name not in item_counts:
-                item_counts[normalized_name] = 0
-                item_names[normalized_name] = contained_item.name
-                item_colors[normalized_name] = _item_highlight_color(contained_item)
-                item_order.append(normalized_name)
-            item_counts[normalized_name] += 1
+            for contained_item in container_items:
+                normalized_name = contained_item.name.strip().lower()
+                if not normalized_name:
+                    continue
+                if normalized_name not in item_counts:
+                    item_counts[normalized_name] = 0
+                    item_names[normalized_name] = contained_item.name
+                    item_colors[normalized_name] = _item_highlight_color(contained_item)
+                    item_order.append(normalized_name)
+                item_counts[normalized_name] += 1
 
-        for item_key in item_order:
-            count = item_counts[item_key]
-            item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
-            rows.append(["Item", item_label])
-            row_cell_colors.append(["bright_magenta", item_colors[item_key]])
+            for item_key in item_order:
+                count = item_counts[item_key]
+                item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
+                rows.append(["Item", item_label])
+                row_cell_colors.append(["bright_magenta", item_colors[item_key]])
+        else:
+            rows.append(["Items", "None"])
+            row_cell_colors.append(["bright_magenta", "bright_black"])
     else:
-        rows.append(["Items", "None"])
+        rows.append(["Contents", "Hidden while closed"])
         row_cell_colors.append(["bright_magenta", "bright_black"])
 
     parts = build_menu_table_parts(
@@ -230,6 +346,12 @@ def display_container_examination(
 
 
 def take_all_from_container(session: ClientSession, container: ContainerTarget):
+    access_message = _container_access_message(container)
+    if access_message is not None:
+        return display_command_result(session, [
+            build_part(access_message, "bright_white"),
+        ])
+
     item_map = _container_item_map(container)
     taken_items = list(item_map.values())
     taken_items.sort(key=lambda item: item.name.lower())
@@ -270,6 +392,12 @@ def take_all_from_container(session: ClientSession, container: ContainerTarget):
 
 
 def take_item_from_container(session: ClientSession, container: ContainerTarget, item_selector: str):
+    access_message = _container_access_message(container)
+    if access_message is not None:
+        return display_command_result(session, [
+            build_part(access_message, "bright_white"),
+        ])
+
     normalized = str(item_selector).strip().lower()
     if normalized == "all":
         return take_all_from_container(session, container)
@@ -316,6 +444,12 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
 
 
 def put_item_into_container(session: ClientSession, item_selector: str, container: ContainerTarget):
+    access_message = _container_access_message(container)
+    if access_message is not None:
+        return display_command_result(session, [
+            build_part(access_message, "bright_white"),
+        ])
+
     item, resolve_error = _resolve_inventory_selector(session, item_selector)
     if item is None:
         return display_error(resolve_error or f"No inventory item matches '{item_selector}'.", session)
@@ -332,3 +466,171 @@ def put_item_into_container(session: ClientSession, item_selector: str, containe
         build_part(_container_reference_text(container), "bright_yellow", True),
         build_part(".", "bright_white"),
     ])
+
+
+def _split_selector_and_key(selector_text: str) -> tuple[str, str | None]:
+    cleaned = " ".join(str(selector_text).strip().split())
+    if not cleaned:
+        return "", None
+
+    parts = re.split(r"\s+with\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)
+    if len(parts) == 2:
+        return parts[0].strip(), parts[1].strip() or None
+    return cleaned, None
+
+
+def _find_matching_key_item(session: ClientSession, lock_id: str, key_selector: str | None = None):
+    normalized_lock_id = str(lock_id).strip().lower()
+    if not normalized_lock_id:
+        return None
+
+    selector_tokens = [token.lower() for token in re.findall(r"[a-zA-Z0-9]+", key_selector or "")]
+    candidate_items = list(session.inventory_items.values())
+    candidate_items.sort(key=lambda item: (item.name.lower(), item.item_id))
+
+    for item in candidate_items:
+        if not item_unlocks_lock(item, normalized_lock_id):
+            continue
+        if selector_tokens and not all(token in get_item_keywords(item) for token in selector_tokens):
+            continue
+        return item
+
+    return None
+
+
+def handle_container_command(
+    session: ClientSession,
+    verb: str,
+    args: list[str],
+    _command_text: str,
+) -> dict | None:
+    normalized_verb = str(verb).strip().lower()
+    if normalized_verb not in {"open", "ope", "op", "close", "clos", "clo", "cl", "lock", "unlock", "unl", "unlo", "unloc"}:
+        return None
+
+    if not args:
+        return display_error(f"Usage: {normalized_verb} <container>", session)
+
+    selector_text = " ".join(args).strip()
+    key_selector: str | None = None
+    if normalized_verb in {"lock", "unlock", "unl", "unlo", "unloc"}:
+        selector_text, key_selector = _split_selector_and_key(selector_text)
+
+    container, _, container_error = resolve_accessible_container(session, selector_text)
+    if container is None:
+        return display_error(container_error or f"No container matching '{selector_text}' is here.", session)
+
+    container_label = _container_label(container)
+    if isinstance(container, CorpseState):
+        if normalized_verb in {"open", "ope", "op", "close", "clos", "clo", "cl"}:
+            return display_command_result(session, [
+                build_part(f"The {container_label} cannot be opened or closed.", "bright_white"),
+            ])
+        return display_command_result(session, [
+            build_part(f"The {container_label} cannot be locked or unlocked.", "bright_white"),
+        ])
+
+    hydrate_misc_item_from_template(container)
+    can_close = _container_can_close(container)
+    can_lock = _container_can_lock(container)
+    lock_id = _container_lock_id(container)
+
+    if normalized_verb in {"open", "ope", "op", "close", "clos", "clo", "cl"} and not can_close:
+        return display_command_result(session, [
+            build_part(f"The {container_label} cannot be opened or closed.", "bright_white"),
+        ])
+
+    if normalized_verb in {"open", "ope", "op"}:
+        if _container_is_locked(container):
+            locked_message = str(getattr(container, "locked_message", "")).strip()
+            return display_command_result(session, [
+                build_part(locked_message or _default_container_message(container, "locked"), "bright_white"),
+            ])
+        if not _container_is_closed(container):
+            already_open_message = str(getattr(container, "already_open_message", "")).strip()
+            return display_command_result(session, [
+                build_part(already_open_message or _default_container_message(container, "already_open"), "bright_white"),
+            ])
+
+        container.is_closed = False
+        open_message = str(getattr(container, "open_message", "")).strip()
+        return display_command_result(session, [
+            build_part(open_message or _default_container_message(container, "open"), "bright_white"),
+        ])
+
+    if normalized_verb in {"close", "clos", "clo", "cl"}:
+        if _container_is_closed(container):
+            already_closed_message = str(getattr(container, "already_closed_message", "")).strip()
+            return display_command_result(session, [
+                build_part(already_closed_message or _default_container_message(container, "already_closed"), "bright_white"),
+            ])
+
+        container.is_closed = True
+        close_message = str(getattr(container, "close_message", "")).strip()
+        return display_command_result(session, [
+            build_part(close_message or _default_container_message(container, "close"), "bright_white"),
+        ])
+
+    if not can_lock or not lock_id:
+        return display_command_result(session, [
+            build_part(f"The {container_label} cannot be locked or unlocked.", "bright_white"),
+        ])
+
+    if normalized_verb in {"unlock", "unl", "unlo", "unloc"}:
+        if not _container_is_locked(container):
+            already_unlocked_message = str(getattr(container, "already_unlocked_message", "")).strip()
+            return display_command_result(session, [
+                build_part(already_unlocked_message or _default_container_message(container, "already_unlocked"), "bright_white"),
+            ])
+
+        key_item = _find_matching_key_item(session, lock_id, key_selector)
+        if key_item is None:
+            needs_key_message = str(getattr(container, "needs_key_message", "")).strip()
+            return display_command_result(session, [
+                build_part(needs_key_message or _default_container_message(container, "needs_key"), "bright_white"),
+            ])
+
+        container.is_locked = False
+        unlock_message = str(getattr(container, "unlock_message", "")).strip()
+        parts = [
+            build_part(unlock_message or _default_container_message(container, "unlock"), "bright_white"),
+        ]
+        consume_message = consume_item_on_use(session, key_item)
+        if consume_message:
+            parts.extend([
+                build_part("\n"),
+                build_part(consume_message, "bright_white"),
+            ])
+        return display_command_result(session, parts)
+
+    if _container_is_locked(container):
+        already_locked_message = str(getattr(container, "already_locked_message", "")).strip()
+        return display_command_result(session, [
+            build_part(already_locked_message or _default_container_message(container, "already_locked"), "bright_white"),
+        ])
+
+    if not _container_is_closed(container):
+        must_close_message = str(getattr(container, "must_close_to_lock_message", "")).strip()
+        return display_command_result(session, [
+            build_part(must_close_message or _default_container_message(container, "must_close_to_lock"), "bright_white"),
+        ])
+
+    key_item = _find_matching_key_item(session, lock_id, key_selector)
+    if key_item is None:
+        needs_key_message = str(getattr(container, "needs_key_message", "")).strip()
+        return display_command_result(session, [
+            build_part(needs_key_message or _default_container_message(container, "needs_key"), "bright_white"),
+        ])
+
+    container.is_locked = True
+    lock_message = str(getattr(container, "lock_message", "")).strip()
+    parts = [
+        build_part(lock_message or _default_container_message(container, "lock"), "bright_white"),
+    ]
+    consume_message = consume_item_on_use(session, key_item)
+    if consume_message:
+        parts.extend([
+            build_part("\n"),
+            build_part(consume_message, "bright_white"),
+        ])
+    return display_command_result(session, parts)

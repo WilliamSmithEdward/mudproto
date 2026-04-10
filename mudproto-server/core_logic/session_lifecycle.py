@@ -7,6 +7,7 @@ from display_room import display_room
 from grammar import normalize_player_gender
 from inventory import hydrate_misc_item_from_template
 from models import ClientSession
+from room_actions import prepend_room_enter_communications
 from player_resources import clamp_player_resources_to_caps
 from player_state_db import load_player_state, save_player_state
 from session_bootstrap import apply_player_class, ensure_player_attributes
@@ -181,6 +182,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
                 ),
                 [],
             ] + lines
+    prepend_room_enter_communications(room_display, session, login_room.room_id)
 
     maybe_auto_engage_current_room(session)
     return room_display

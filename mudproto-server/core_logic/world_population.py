@@ -3,6 +3,7 @@ import uuid
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
 from inventory import build_equippable_item_from_template, build_misc_item_from_template
 from models import ClientSession, EntityState, ItemState
+from player_state_db import clear_player_interaction_flags, save_player_state
 from session_registry import (
     active_character_sessions,
     connected_clients,
@@ -160,17 +161,66 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     return entity
 
 
-def _clear_entity_ids_from_combat_state(entity_ids: set[str]) -> None:
-    if not entity_ids:
-        return
-
+def _iter_unique_sessions():
     seen_sessions: set[int] = set()
     for session in list(connected_clients.values()) + list(active_character_sessions.values()):
         session_marker = id(session)
         if session_marker in seen_sessions:
             continue
         seen_sessions.add(session_marker)
+        yield session
+
+
+def _clear_entity_ids_from_combat_state(entity_ids: set[str]) -> None:
+    if not entity_ids:
+        return
+
+    for session in _iter_unique_sessions():
         session.combat.engaged_entity_ids -= entity_ids
+
+
+def _clear_zone_player_flags(zone) -> None:
+    flags_to_clear = {
+        str(flag).strip().lower()
+        for flag in getattr(zone, "reset_player_flags", [])
+        if str(flag).strip()
+    }
+    if not flags_to_clear:
+        return
+
+    clear_player_interaction_flags(flags_to_clear)
+    for session in _iter_unique_sessions():
+        interaction_flags = dict(getattr(session.player, "interaction_flags", {}) or {})
+        changed = False
+        for flag in flags_to_clear:
+            if flag in interaction_flags:
+                interaction_flags.pop(flag, None)
+                changed = True
+        if not changed:
+            continue
+        session.player.interaction_flags = interaction_flags
+        if getattr(session, "is_authenticated", False) and str(getattr(session, "player_state_key", "")).strip():
+            save_player_state(session)
+
+
+def _reset_zone_container_templates(zone) -> None:
+    template_ids = {
+        str(template_id).strip().lower()
+        for template_id in getattr(zone, "reset_container_template_ids", [])
+        if str(template_id).strip()
+    }
+    if not template_ids:
+        return
+
+    for room_items in shared_world_room_ground_items.values():
+        for item_id, item in list(room_items.items()):
+            template_id = str(getattr(item, "template_id", "")).strip().lower()
+            if template_id not in template_ids:
+                continue
+            template = get_item_template_by_id(template_id)
+            if template is None:
+                continue
+            room_items[item_id] = build_misc_item_from_template(template, item_id=item_id)
 
 
 def reinitialize_zone(zone_id: str) -> int:
@@ -200,6 +250,9 @@ def reinitialize_zone(zone_id: str) -> int:
     for room_id in zone_room_ids:
         shared_world_room_coin_piles.pop(room_id, None)
         shared_world_room_ground_items.pop(room_id, None)
+
+    _clear_zone_player_flags(zone)
+    _reset_zone_container_templates(zone)
 
     next_spawn_sequence = max((entity.spawn_sequence for entity in shared_world_entities.values()), default=0)
     spawned_count = 0

@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.7",
-  "generated_at_utc": "2026-04-10T17:32:02.132296+00:00",
+  "version": "2.8",
+  "generated_at_utc": "2026-04-10T19:00:49.000415+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -45,6 +45,7 @@
       "spells[].spell_id",
       "skills[].skill_id",
       "npcs[].npc_id",
+      "quests[].quest_id",
       "rooms[].room_id",
       "zones[].zone_id"
     ],
@@ -58,12 +59,13 @@
     "policy": "On asset ID conflict, the LLM payload should override the base-game definition.",
     "rule": "If the user wants to replace or modify an existing asset, reuse that asset's ID in the payload and provide the full replacement definition.",
     "room_merge_behavior": "If multiple asset payloads target the same room ID, merge the room exits across those payloads while keeping all other room fields from the last loaded room definition.",
-    "other_asset_behavior": "For gear, items, spells, skills, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
+    "other_asset_behavior": "For gear, items, spells, skills, quests, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
     "scope": [
       "gear",
       "items",
       "spells",
       "skills",
+      "quests",
       "npcs",
       "rooms",
       "zones"
@@ -91,6 +93,9 @@
       },
       "skills": {
         "type": "array[skill]"
+      },
+      "quests": {
+        "type": "array[quest]"
       },
       "npcs": {
         "type": "array[npc]"
@@ -344,6 +349,118 @@
           "default": true,
           "notes": "For container items, when false the container can exist in the room but cannot be picked up into inventory. The alias `carryable` is also accepted."
         },
+        "consume_on_use": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "notes": "For keys or other special items, when true the item is removed after a successful use such as unlocking a chest."
+        },
+        "consume_message": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Optional text shown when a consume_on_use item is spent."
+        },
+        "set_player_flags_on_use": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "Optional player flags to set after the item is successfully used, such as completing a quest stage when a special key is turned in a lock."
+        },
+        "clear_player_flags_on_use": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "Optional player flags to clear after the item is successfully used."
+        },
+        "can_close": {
+          "type": "boolean",
+          "required": false,
+          "default": "true for containers",
+          "notes": "For containers, controls whether `open` and `close` commands apply."
+        },
+        "can_lock": {
+          "type": "boolean",
+          "required": false,
+          "default": "true when lock_id is provided",
+          "notes": "For containers, controls whether `lock` and `unlock` commands apply."
+        },
+        "lock_id": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "For lockable containers, the single lock id that a matching key item can open."
+        },
+        "is_closed": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "is_locked": {
+          "type": "boolean",
+          "required": false,
+          "default": false
+        },
+        "open_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "close_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "lock_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "unlock_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "closed_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "locked_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "needs_key_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "must_close_to_lock_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "already_open_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "already_closed_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "already_locked_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "already_unlocked_message": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
         "coin_value": {
           "type": "integer",
           "required": false,
@@ -567,6 +684,114 @@
           "required": false,
           "default": []
         },
+        "room_communications": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "entry_schema": {
+            "trigger": {
+              "type": "string",
+              "required": false,
+              "default": "player_enter",
+              "allowed_values": [
+                "player_enter"
+              ]
+            },
+            "audience": {
+              "type": "string",
+              "required": false,
+              "default": "both",
+              "allowed_values": [
+                "private",
+                "room",
+                "both"
+              ],
+              "notes": "`private` shows only to the entering player, `room` broadcasts only to the room, and `both` does both."
+            },
+            "required_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "excluded_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "set_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "clear_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "message": {
+              "type": "string",
+              "required": true,
+              "notes": "Shown when the configured trigger fires, such as a player entering the NPC's room."
+            }
+          }
+        },
+        "keyword_actions": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "notes": "NPC-side command triggers. Uses the same structure as room keyword_actions and supports `noop` and `grant_item` actions as well as room exit reveal/hide actions.",
+          "entry_schema": {
+            "keywords": {
+              "type": "array[string]",
+              "required": true
+            },
+            "message": {
+              "type": "string",
+              "required": false,
+              "default": ""
+            },
+            "already_message": {
+              "type": "string",
+              "required": false,
+              "default": ""
+            },
+            "refresh_view": {
+              "type": "string",
+              "required": false,
+              "default": "none",
+              "allowed_values": [
+                "none",
+                "exits",
+                "room"
+              ]
+            },
+            "required_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "excluded_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "set_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "clear_player_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "actions": {
+              "type": "array[object]",
+              "required": true,
+              "notes": "Supports `noop`, `grant_item`, `teleport_player`, and the standard room exit action types."
+            }
+          }
+        },
         "inventory_items": {
           "type": "array[object]",
           "required": false,
@@ -611,6 +836,40 @@
               "default": []
             }
           }
+        }
+      }
+    },
+    "quests": {
+      "file": "quests.json",
+      "top_level_type": "array",
+      "id_field": "quest_id",
+      "id_prefixes": [
+        "quest."
+      ],
+      "fields": {
+        "quest_id": {
+          "type": "string",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "required": false,
+          "default": ""
+        },
+        "flag_prefix": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Optional prefix applied to stage flags that do not already contain a namespace separator such as ':'."
+        },
+        "stages": {
+          "type": "array[object]",
+          "required": true,
+          "notes": "Each stage entry should include `stage` (integer), `description` (string), and `flags` (array[string]) describing the player flags that mark that stage complete."
         }
       }
     },
@@ -1092,6 +1351,18 @@
           "required": false,
           "legacy_alias": true,
           "notes": "Legacy compatibility flag; prefer repopulate_game_hours."
+        },
+        "reset_player_flags": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "When the zone repopulates, these per-player flags are cleared for all active characters."
+        },
+        "reset_container_template_ids": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "When the zone repopulates, any room containers using these item template ids are reset to their configured default state and contents."
         }
       }
     }
@@ -1104,8 +1375,9 @@
   "current_game_assets": {
     "counts": {
       "gear": 14,
-      "items": 5,
+      "items": 6,
       "npcs": 5,
+      "quests": 0,
       "rooms": 8,
       "skills": 3,
       "spells": 9,
@@ -1251,8 +1523,7 @@
           "description": "A reinforced jacket worn by front-line trainees.",
           "keywords": [
             "vanguard",
-            "jacket",
-            "chest"
+            "jacket"
           ],
           "weight": 10,
           "coin_value": 30,
@@ -1268,8 +1539,7 @@
           "description": "Heavy boots built for marching and impact.",
           "keywords": [
             "vanguard",
-            "boots",
-            "feet"
+            "boots"
           ],
           "weight": 6,
           "coin_value": 20,
@@ -1285,8 +1555,7 @@
           "description": "A rune-lined robe favored by novice arcanists.",
           "keywords": [
             "arcanist",
-            "robe",
-            "chest"
+            "robe"
           ],
           "weight": 4,
           "coin_value": 26,
@@ -1302,8 +1571,7 @@
           "description": "Light hand wraps that steady precise gestures.",
           "keywords": [
             "arcanist",
-            "wraps",
-            "hands"
+            "wraps"
           ],
           "weight": 1,
           "coin_value": 16,
@@ -1319,8 +1587,7 @@
           "description": "A simple brass ring used for slot testing.",
           "keywords": [
             "amber",
-            "ring",
-            "test"
+            "ring"
           ],
           "weight": 0,
           "armor_class_bonus": 0
@@ -1335,8 +1602,7 @@
           "description": "A polished silver ring used for multi-slot testing.",
           "keywords": [
             "azure",
-            "ring",
-            "test"
+            "ring"
           ],
           "weight": 0,
           "armor_class_bonus": 0
@@ -1351,9 +1617,7 @@
           "description": "A padded vest used to test occupied chest-slot behavior.",
           "keywords": [
             "practice",
-            "vest",
-            "chest",
-            "test"
+            "vest"
           ],
           "weight": 3,
           "armor_class_bonus": 0
@@ -1368,9 +1632,7 @@
           "description": "A padded cloak used to test occupied back-slot behavior.",
           "keywords": [
             "practice",
-            "cloak",
-            "back",
-            "test"
+            "cloak"
           ],
           "weight": 2,
           "armor_class_bonus": 0
@@ -1445,6 +1707,29 @@
           "coin_value": 0
         },
         {
+          "template_id": "item.key.loft-chest",
+          "name": "Loft Chest Key",
+          "description": "A bronze key etched with a simple sunburst, evidently meant for a locked chest tucked away above the starting chamber.",
+          "keywords": [
+            "key",
+            "loft",
+            "chest",
+            "loft chest",
+            "bronze key"
+          ],
+          "item_type": "key",
+          "persistent": false,
+          "lock_ids": [
+            "lock.prototype.loft-chest"
+          ],
+          "consume_on_use": true,
+          "consume_message": "The Loft Chest Key crumbles to dust after turning in the lock.",
+          "set_player_flags_on_use": [
+            "sunscour:aurek:key_delivered"
+          ],
+          "coin_value": 0
+        },
+        {
           "template_id": "item.container.loft-chest",
           "name": "Weathered Chest",
           "description": "A weathered cedar chest bound in dark iron bands rests beneath the loft rafters, sturdy and too awkward to carry off whole.",
@@ -1457,6 +1742,11 @@
           "item_type": "container",
           "portable": false,
           "persistent": true,
+          "can_close": true,
+          "can_lock": true,
+          "lock_id": "lock.prototype.loft-chest",
+          "is_closed": true,
+          "is_locked": true,
           "coin_value": 0
         }
       ],
@@ -1660,6 +1950,7 @@
           }
         ]
       },
+      "quests": [],
       "rooms": [
         {
           "room_id": "start",
@@ -1695,6 +1986,22 @@
                   "direction": "up"
                 }
               ]
+            },
+            {
+              "keywords": [
+                "stand circle",
+                "stand in circle",
+                "step circle",
+                "step into circle"
+              ],
+              "message": "The magic circle flares beneath your feet and whisks you away in a breath of pale light.",
+              "refresh_view": "room",
+              "actions": [
+                {
+                  "type": "teleport_player",
+                  "destination_room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+                }
+              ]
             }
           ],
           "room_objects": [
@@ -1717,6 +2024,17 @@
                 "iron gate"
               ],
               "description": "A stout iron gate bars the western opening. Its latch looks simple enough to work by hand if it has not been locked."
+            },
+            {
+              "object_id": "magic-circle",
+              "name": "magic circle",
+              "keywords": [
+                "circle",
+                "magic circle",
+                "teleport circle",
+                "rune circle"
+              ],
+              "description": "A faintly glowing circle of chalk and old runes is scribed into the stone floor. The lines pulse softly, as if waiting for someone to stand within them."
             }
           ],
           "items": [
@@ -1947,12 +2265,12 @@
           "spell_type": "damage",
           "cast_type": "target",
           "mana_cost": 12,
-          "level_scaling_multiplier": 1.0,
+          "level_scaling_multiplier": 1.5,
           "damage_dice_count": 10,
           "damage_dice_sides": 40,
           "damage_modifier": 4,
           "damage_scaling_attribute_id": "int",
-          "damage_scaling_multiplier": 1.0,
+          "damage_scaling_multiplier": 1.5,
           "damage_context": "[a/an] is jolted by crackling force."
         },
         {
@@ -1964,7 +2282,7 @@
           "cast_type": "aoe",
           "mana_cost": 18,
           "level_scaling_multiplier": 1.0,
-          "damage_dice_count": 80,
+          "damage_dice_count": 4,
           "damage_dice_sides": 20,
           "damage_modifier": 5,
           "damage_scaling_attribute_id": "int",
@@ -2815,8 +3133,7 @@
               "keywords": [
                 "veilwalker",
                 "cloak",
-                "sand",
-                "back"
+                "sand"
               ],
               "weight": 2,
               "coin_value": 54,
@@ -2833,8 +3150,7 @@
               "keywords": [
                 "sunwarden",
                 "cuirass",
-                "paladin",
-                "chest"
+                "paladin"
               ],
               "weight": 11,
               "coin_value": 88,
@@ -2976,6 +3292,36 @@
               "observer_context": "[actor_name] seems to draw strength from disciplined conviction.",
               "lag_rounds": 1,
               "cooldown_rounds": 4
+            }
+          ],
+          "quests": [
+            {
+              "quest_id": "quest.aurek-loft-key",
+              "name": "Aurek's Request",
+              "flag_prefix": "sunscour:aurek",
+              "stages": [
+                {
+                  "stage": 0,
+                  "description": "Speak with Sunmarshal Aurek",
+                  "flags": [
+                    "met"
+                  ]
+                },
+                {
+                  "stage": 1,
+                  "description": "Bow to Aurek and receive the key",
+                  "flags": [
+                    "rewarded"
+                  ]
+                },
+                {
+                  "stage": 2,
+                  "description": "Place the bronze key in the Weathered Chest in the Hidden Loft",
+                  "flags": [
+                    "key_delivered"
+                  ]
+                }
+              ]
             }
           ],
           "npcs": [
@@ -3215,6 +3561,113 @@
               "spell_ids": [
                 "spell.solar-lance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
                 "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "room_communications": [
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "excluded_player_flags": [
+                    "sunscour:aurek:met"
+                  ],
+                  "set_player_flags": [
+                    "sunscour:aurek:met"
+                  ],
+                  "message": "Aurek says, \"Hail! Well met traveller. I may have something for you. Come, listen to an old man.\""
+                },
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "required_player_flags": [
+                    "sunscour:aurek:met"
+                  ],
+                  "excluded_player_flags": [
+                    "sunscour:aurek:rewarded"
+                  ],
+                  "message": "Aurek says, \"Welcome back. Are you ready to listen to my story?\""
+                },
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "required_player_flags": [
+                    "sunscour:aurek:rewarded"
+                  ],
+                  "message": "Aurek says, \"Thank you for listening to an old man ramble.\""
+                }
+              ],
+              "keyword_actions": [
+                {
+                  "keywords": [
+                    "listen aurek",
+                    "listen sunmarshal",
+                    "listen sunmarshal aurek",
+                    "listen to aurek",
+                    "listen to sunmarshal",
+                    "listen for aurek",
+                    "bow aurek",
+                    "bow sunmarshal",
+                    "bow sunmarshal aurek",
+                    "bow to aurek",
+                    "bow to sunmarshal",
+                    "bow before aurek"
+                  ],
+                  "required_player_flags": [
+                    "sunscour:aurek:rewarded"
+                  ],
+                  "message": "Aurek says, \"Thank you for listening to an old man ramble.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "listen aurek",
+                    "listen sunmarshal",
+                    "listen sunmarshal aurek",
+                    "listen to aurek",
+                    "listen to sunmarshal",
+                    "listen for aurek"
+                  ],
+                  "excluded_player_flags": [
+                    "sunscour:aurek:rewarded"
+                  ],
+                  "message": "Aurek says, \"Paladins of our order first bow with respect.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "bow aurek",
+                    "bow sunmarshal",
+                    "bow sunmarshal aurek",
+                    "bow to aurek",
+                    "bow to sunmarshal",
+                    "bow before aurek"
+                  ],
+                  "excluded_player_flags": [
+                    "sunscour:aurek:rewarded"
+                  ],
+                  "set_player_flags": [
+                    "sunscour:aurek:met",
+                    "sunscour:aurek:rewarded"
+                  ],
+                  "message": "Aurek bows in return and places a bronze key in your hand. \"Take this to the weathered chest in the loft above the starting chamber.\"",
+                  "already_message": "Aurek says, \"I've already given you everything I can.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "grant_item",
+                      "template_id": "item.key.loft-chest",
+                      "if_missing": true
+                    }
+                  ]
+                }
               ]
             },
             {
@@ -3599,7 +4052,15 @@
             {
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "name": "Sunscour Redoubt",
-              "repopulate_game_hours": 1
+              "repopulate_game_hours": 1,
+              "reset_player_flags": [
+                "sunscour:aurek:met",
+                "sunscour:aurek:rewarded",
+                "sunscour:aurek:key_delivered"
+              ],
+              "reset_container_template_ids": [
+                "item.container.loft-chest"
+              ]
             }
           ]
         }
@@ -3613,6 +4074,7 @@
     "items": [],
     "spells": [],
     "skills": [],
+    "quests": [],
     "npcs": [],
     "rooms": [],
     "zones": []

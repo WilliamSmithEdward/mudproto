@@ -240,6 +240,25 @@ def _serialize_item(item: ItemState) -> dict:
         "persistent": bool(getattr(item, "persistent", True)),
         "lock_ids": [str(lock_id).strip().lower() for lock_id in getattr(item, "lock_ids", []) if str(lock_id).strip()],
         "portable": bool(getattr(item, "portable", True)),
+        "consume_on_use": bool(getattr(item, "consume_on_use", False)),
+        "consume_message": str(getattr(item, "consume_message", "")).strip(),
+        "can_close": bool(getattr(item, "can_close", False)),
+        "can_lock": bool(getattr(item, "can_lock", False)),
+        "lock_id": str(getattr(item, "lock_id", "")).strip().lower(),
+        "is_closed": bool(getattr(item, "is_closed", False)),
+        "is_locked": bool(getattr(item, "is_locked", False)),
+        "open_message": str(getattr(item, "open_message", "")).strip(),
+        "close_message": str(getattr(item, "close_message", "")).strip(),
+        "lock_message": str(getattr(item, "lock_message", "")).strip(),
+        "unlock_message": str(getattr(item, "unlock_message", "")).strip(),
+        "closed_message": str(getattr(item, "closed_message", "")).strip(),
+        "locked_message": str(getattr(item, "locked_message", "")).strip(),
+        "needs_key_message": str(getattr(item, "needs_key_message", "")).strip(),
+        "must_close_to_lock_message": str(getattr(item, "must_close_to_lock_message", "")).strip(),
+        "already_open_message": str(getattr(item, "already_open_message", "")).strip(),
+        "already_closed_message": str(getattr(item, "already_closed_message", "")).strip(),
+        "already_locked_message": str(getattr(item, "already_locked_message", "")).strip(),
+        "already_unlocked_message": str(getattr(item, "already_unlocked_message", "")).strip(),
         "container_items": {
             nested_item_id: _serialize_item(nested_item)
             for nested_item_id, nested_item in getattr(item, "container_items", {}).items()
@@ -282,6 +301,25 @@ def _deserialize_item(raw: dict) -> ItemState:
         persistent=bool(raw.get("persistent", True)),
         lock_ids=[str(lock_id).strip().lower() for lock_id in raw.get("lock_ids", []) if str(lock_id).strip()],
         portable=bool(raw.get("portable", True)),
+        consume_on_use=bool(raw.get("consume_on_use", False)),
+        consume_message=str(raw.get("consume_message", "")).strip(),
+        can_close=bool(raw.get("can_close", False)),
+        can_lock=bool(raw.get("can_lock", False)),
+        lock_id=str(raw.get("lock_id", "")).strip().lower(),
+        is_closed=bool(raw.get("is_closed", False)),
+        is_locked=bool(raw.get("is_locked", False)),
+        open_message=str(raw.get("open_message", "")).strip(),
+        close_message=str(raw.get("close_message", "")).strip(),
+        lock_message=str(raw.get("lock_message", "")).strip(),
+        unlock_message=str(raw.get("unlock_message", "")).strip(),
+        closed_message=str(raw.get("closed_message", "")).strip(),
+        locked_message=str(raw.get("locked_message", "")).strip(),
+        needs_key_message=str(raw.get("needs_key_message", "")).strip(),
+        must_close_to_lock_message=str(raw.get("must_close_to_lock_message", "")).strip(),
+        already_open_message=str(raw.get("already_open_message", "")).strip(),
+        already_closed_message=str(raw.get("already_closed_message", "")).strip(),
+        already_locked_message=str(raw.get("already_locked_message", "")).strip(),
+        already_unlocked_message=str(raw.get("already_unlocked_message", "")).strip(),
         container_items={
             str(nested_item_id).strip(): _deserialize_item(nested_raw)
             for nested_item_id, nested_raw in raw_container_items.items()
@@ -335,6 +373,11 @@ def _serialize_session(session: ClientSession) -> dict:
                 str(resource_key): int(value)
                 for resource_key, value in dict(session.player.resource_level_gains or {}).items()
             },
+            "interaction_flags": {
+                str(flag_key).strip().lower(): bool(flag_value)
+                for flag_key, flag_value in dict(session.player.interaction_flags or {}).items()
+                if str(flag_key).strip() and bool(flag_value)
+            },
         },
         "player_combat": {
             "attack_damage": int(session.player_combat.attack_damage),
@@ -384,6 +427,53 @@ def save_player_state(session: ClientSession, player_key: str | None = None) -> 
         connection.commit()
 
 
+def clear_player_interaction_flags(flag_keys: list[str] | set[str] | tuple[str, ...]) -> int:
+    normalized_flags = {
+        str(flag_key).strip().lower()
+        for flag_key in (flag_keys or [])
+        if str(flag_key).strip()
+    }
+    if not normalized_flags:
+        return 0
+
+    initialize_player_state_db()
+    updated_count = 0
+    with _connect() as connection:
+        rows = connection.execute("SELECT player_key, state_json FROM player_state").fetchall()
+        for row in rows:
+            raw_state = json.loads(str(row["state_json"]))
+            if not isinstance(raw_state, dict):
+                continue
+
+            raw_player = raw_state.get("player", {})
+            if not isinstance(raw_player, dict):
+                continue
+
+            raw_flags = raw_player.get("interaction_flags", {})
+            if not isinstance(raw_flags, dict):
+                continue
+
+            updated_flags = {
+                str(flag_key).strip().lower(): bool(flag_value)
+                for flag_key, flag_value in raw_flags.items()
+                if str(flag_key).strip() and bool(flag_value) and str(flag_key).strip().lower() not in normalized_flags
+            }
+            if len(updated_flags) == len(raw_flags):
+                continue
+
+            raw_player["interaction_flags"] = updated_flags
+            raw_state["player"] = raw_player
+            connection.execute(
+                "UPDATE player_state SET state_json = ?, updated_at = ? WHERE player_key = ?",
+                (json.dumps(raw_state, separators=(",", ":")), _utc_now_iso(), str(row["player_key"])),
+            )
+            updated_count += 1
+
+        connection.commit()
+
+    return updated_count
+
+
 def load_player_state(session: ClientSession, player_key: str | None = None) -> bool:
     initialize_player_state_db()
     resolved_player_key = (player_key or session.player_state_key or DEFAULT_PLAYER_STATE_KEY).strip()
@@ -429,6 +519,13 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
                 str(attribute_id).strip().lower(): int(value)
                 for attribute_id, value in raw_attributes.items()
                 if str(attribute_id).strip()
+            }
+        raw_interaction_flags = raw_player.get("interaction_flags", {})
+        if isinstance(raw_interaction_flags, dict):
+            session.player.interaction_flags = {
+                str(flag_key).strip().lower(): bool(flag_value)
+                for flag_key, flag_value in raw_interaction_flags.items()
+                if str(flag_key).strip() and bool(flag_value)
             }
 
     raw_player_combat = raw_state.get("player_combat", {})

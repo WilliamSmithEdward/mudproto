@@ -80,6 +80,106 @@
         "default": true,
         "notes": "For container items, when false the container can exist in the room but cannot be picked up into inventory. The alias `carryable` is also accepted."
       },
+      "consume_on_use": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "notes": "For keys or other special items, when true the item is removed after a successful use such as unlocking a chest."
+      },
+      "consume_message": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "Optional text shown when a consume_on_use item is spent."
+      },
+      "can_close": {
+        "type": "boolean",
+        "required": false,
+        "default": "true for containers",
+        "notes": "For containers, controls whether `open` and `close` commands apply."
+      },
+      "can_lock": {
+        "type": "boolean",
+        "required": false,
+        "default": "true when lock_id is provided",
+        "notes": "For containers, controls whether `lock` and `unlock` commands apply."
+      },
+      "lock_id": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "For lockable containers, the single lock id that a matching key item can open."
+      },
+      "is_closed": {
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      "is_locked": {
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      "open_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "close_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "lock_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "unlock_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "closed_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "locked_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "needs_key_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "must_close_to_lock_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "already_open_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "already_closed_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "already_locked_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "already_unlocked_message": {
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
       "coin_value": {
         "type": "integer",
         "required": false,

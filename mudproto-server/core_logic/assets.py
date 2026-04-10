@@ -201,7 +201,7 @@ def load_item_templates() -> list[dict]:
             raw_item_type = "consumable" if effect_type else "misc"
         if raw_item_type not in allowed_item_types:
             raise ValueError(
-                f"Item asset '{template_id}' item_type must be one of: consumable, key, misc."
+                f"Item asset '{template_id}' item_type must be one of: consumable, key, misc, container."
             )
 
         raw_persistent = raw_template.get("persistent")
@@ -219,6 +219,11 @@ def load_item_templates() -> list[dict]:
             for lock_id in raw_template.get("lock_ids", [])
             if str(lock_id).strip()
         ]
+        lock_id = str(raw_template.get("lock_id", "")).strip().lower()
+        can_close = bool(raw_template.get("can_close", raw_item_type == "container"))
+        can_lock = bool(raw_template.get("can_lock", bool(lock_id)))
+        is_closed = bool(raw_template.get("is_closed", False))
+        is_locked = bool(raw_template.get("is_locked", False))
 
         if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate item template_id: {template_id}")
@@ -248,6 +253,25 @@ def load_item_templates() -> list[dict]:
             "persistent": persistent,
             "portable": portable,
             "lock_ids": lock_ids,
+            "consume_on_use": bool(raw_template.get("consume_on_use", False)),
+            "consume_message": str(raw_template.get("consume_message", "")).strip(),
+            "can_close": can_close,
+            "can_lock": can_lock,
+            "lock_id": lock_id,
+            "is_closed": is_closed,
+            "is_locked": is_locked,
+            "open_message": str(raw_template.get("open_message", "")).strip(),
+            "close_message": str(raw_template.get("close_message", "")).strip(),
+            "lock_message": str(raw_template.get("lock_message", "")).strip(),
+            "unlock_message": str(raw_template.get("unlock_message", "")).strip(),
+            "closed_message": str(raw_template.get("closed_message", "")).strip(),
+            "locked_message": str(raw_template.get("locked_message", "")).strip(),
+            "needs_key_message": str(raw_template.get("needs_key_message", "")).strip(),
+            "must_close_to_lock_message": str(raw_template.get("must_close_to_lock_message", "")).strip(),
+            "already_open_message": str(raw_template.get("already_open_message", "")).strip(),
+            "already_closed_message": str(raw_template.get("already_closed_message", "")).strip(),
+            "already_locked_message": str(raw_template.get("already_locked_message", "")).strip(),
+            "already_unlocked_message": str(raw_template.get("already_unlocked_message", "")).strip(),
             "effect_type": effect_type,
             "effect_target": effect_target,
             "effect_amount": effect_amount,
@@ -301,12 +325,24 @@ def load_zones() -> list[dict]:
         if repopulate_game_hours < 0:
             raise ValueError(f"Zone asset '{zone_id}' repopulate_game_hours must be zero or greater.")
 
+        reset_player_flags = _normalize_flag_list(
+            raw_zone.get("reset_player_flags", []),
+            context=f"Zone asset '{zone_id}' reset_player_flags",
+        )
+        reset_container_template_ids = [
+            str(template_id).strip().lower()
+            for template_id in raw_zone.get("reset_container_template_ids", [])
+            if str(template_id).strip()
+        ]
+
         if normalized_zone_id not in normalized_zones_by_id:
             ordered_zone_ids.append(normalized_zone_id)
         normalized_zones_by_id[normalized_zone_id] = {
             "zone_id": zone_id,
             "name": name,
             "repopulate_game_hours": repopulate_game_hours,
+            "reset_player_flags": reset_player_flags,
+            "reset_container_template_ids": reset_container_template_ids,
         }
 
     return [normalized_zones_by_id[zone_id] for zone_id in ordered_zone_ids]
@@ -318,6 +354,204 @@ def get_zone_by_id(zone_id: str) -> dict | None:
         if str(zone.get("zone_id", "")).strip().lower() == normalized:
             return zone
     return None
+
+
+_KEYWORD_REVEAL_ACTIONS = {"set_exit", "reveal_exit", "show_exit"}
+_KEYWORD_HIDE_ACTIONS = {"hide_exit", "remove_exit", "unset_exit"}
+_KEYWORD_TELEPORT_ACTIONS = {"teleport_player", "teleport", "move_player"}
+_KEYWORD_NOOP_ACTIONS = {"noop", "none"}
+
+
+def _normalize_flag_list(raw_flags: object, *, context: str) -> list[str]:
+    if raw_flags is None:
+        raw_flags = []
+    elif isinstance(raw_flags, str):
+        raw_flags = [raw_flags]
+
+    if not isinstance(raw_flags, list):
+        raise ValueError(f"{context} must be a list or string.")
+
+    return [
+        " ".join(str(flag).strip().lower().split())
+        for flag in raw_flags
+        if str(flag).strip()
+    ]
+
+
+def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> list[dict]:
+    if raw_keyword_actions is None:
+        raw_keyword_actions = []
+    if not isinstance(raw_keyword_actions, list):
+        raise ValueError(f"{context} must be a list.")
+
+    normalized_keyword_actions: list[dict] = []
+    for raw_keyword_action in raw_keyword_actions:
+        if not isinstance(raw_keyword_action, dict):
+            raise ValueError(f"{context} entries must be objects.")
+
+        raw_keywords = raw_keyword_action.get("keywords", [])
+        if raw_keywords is None:
+            raw_keywords = []
+        if not isinstance(raw_keywords, list):
+            raise ValueError(f"{context} keywords must be a list.")
+
+        normalized_keywords = [
+            " ".join(str(keyword).strip().lower().split())
+            for keyword in raw_keywords
+            if str(keyword).strip()
+        ]
+        if not normalized_keywords:
+            raise ValueError(f"{context} entries must define at least one keyword.")
+
+        raw_actions = raw_keyword_action.get("actions", [])
+        if raw_actions is None:
+            raw_actions = []
+        if not isinstance(raw_actions, list) or not raw_actions:
+            raise ValueError(f"{context} entries must define a non-empty actions list.")
+
+        refresh_view = str(raw_keyword_action.get("refresh_view", "none")).strip().lower() or "none"
+        if refresh_view not in {"none", "exits", "room"}:
+            raise ValueError(f"{context} refresh_view must be 'none', 'exits', or 'room'.")
+
+        required_player_flags = _normalize_flag_list(
+            raw_keyword_action.get("required_player_flags", raw_keyword_action.get("if_player_flags", [])),
+            context=f"{context} required_player_flags",
+        )
+        excluded_player_flags = _normalize_flag_list(
+            raw_keyword_action.get("excluded_player_flags", raw_keyword_action.get("unless_player_flags", [])),
+            context=f"{context} excluded_player_flags",
+        )
+        set_player_flags = _normalize_flag_list(
+            raw_keyword_action.get("set_player_flags", []),
+            context=f"{context} set_player_flags",
+        )
+        clear_player_flags = _normalize_flag_list(
+            raw_keyword_action.get("clear_player_flags", []),
+            context=f"{context} clear_player_flags",
+        )
+
+        normalized_actions: list[dict] = []
+        for raw_action in raw_actions:
+            if not isinstance(raw_action, dict):
+                raise ValueError(f"{context} action definitions must be objects.")
+
+            action_type = str(raw_action.get("type", "")).strip().lower()
+            if action_type in _KEYWORD_REVEAL_ACTIONS | _KEYWORD_HIDE_ACTIONS:
+                direction = str(raw_action.get("direction", "")).strip().lower()
+                if not direction:
+                    raise ValueError(f"{context} action '{action_type}' must include a direction.")
+
+                normalized_action = {
+                    "type": action_type,
+                    "direction": direction,
+                }
+                if action_type in _KEYWORD_REVEAL_ACTIONS:
+                    destination_room_id = str(raw_action.get("destination_room_id", "")).strip()
+                    if not destination_room_id:
+                        raise ValueError(
+                            f"{context} action '{action_type}' must include destination_room_id."
+                        )
+                    normalized_action["destination_room_id"] = destination_room_id
+                normalized_actions.append(normalized_action)
+                continue
+
+            if action_type in _KEYWORD_TELEPORT_ACTIONS:
+                destination_room_id = str(raw_action.get("destination_room_id", "")).strip()
+                if not destination_room_id:
+                    raise ValueError(f"{context} action '{action_type}' must include destination_room_id.")
+                normalized_actions.append({
+                    "type": "teleport_player",
+                    "destination_room_id": destination_room_id,
+                })
+                continue
+
+            if action_type == "grant_item":
+                template_id = str(raw_action.get("template_id", "")).strip()
+                if not template_id:
+                    raise ValueError(f"{context} grant_item actions must include template_id.")
+                if get_gear_template_by_id(template_id) is None and get_item_template_by_id(template_id) is None:
+                    raise ValueError(f"{context} grant_item references unknown template_id '{template_id}'.")
+                normalized_actions.append({
+                    "type": action_type,
+                    "template_id": template_id,
+                    "quantity": max(1, int(raw_action.get("quantity", 1))),
+                    "if_missing": bool(raw_action.get("if_missing", raw_action.get("only_if_missing", True))),
+                })
+                continue
+
+            if action_type in _KEYWORD_NOOP_ACTIONS:
+                normalized_actions.append({"type": "noop"})
+                continue
+
+            raise ValueError(f"{context} action has unsupported type '{action_type}'.")
+
+        normalized_keyword_actions.append({
+            "keywords": normalized_keywords,
+            "message": str(raw_keyword_action.get("message", "")).strip(),
+            "already_message": str(raw_keyword_action.get("already_message", "")).strip(),
+            "refresh_view": refresh_view,
+            "required_player_flags": required_player_flags,
+            "excluded_player_flags": excluded_player_flags,
+            "set_player_flags": set_player_flags,
+            "clear_player_flags": clear_player_flags,
+            "actions": normalized_actions,
+        })
+
+    return normalized_keyword_actions
+
+
+def _normalize_room_communications(raw_room_communications: object, *, context: str) -> list[dict]:
+    if raw_room_communications is None:
+        raw_room_communications = []
+    if not isinstance(raw_room_communications, list):
+        raise ValueError(f"{context} room_communications must be a list.")
+
+    normalized_communications: list[dict] = []
+    for raw_entry in raw_room_communications:
+        if not isinstance(raw_entry, dict):
+            raise ValueError(f"{context} room_communications entries must be objects.")
+
+        trigger = str(raw_entry.get("trigger", "player_enter")).strip().lower() or "player_enter"
+        if trigger in {"enter", "on_enter", "player_enters_room"}:
+            trigger = "player_enter"
+        if trigger not in {"player_enter"}:
+            raise ValueError(f"{context} room_communications trigger '{trigger}' is unsupported.")
+
+        audience = str(raw_entry.get("audience", "both")).strip().lower() or "both"
+        if audience in {"broadcast", "room_only"}:
+            audience = "room"
+        elif audience in {"private_only", "self"}:
+            audience = "private"
+        if audience not in {"private", "room", "both"}:
+            raise ValueError(f"{context} room_communications audience '{audience}' is unsupported.")
+
+        message = str(raw_entry.get("message", "")).strip()
+        if not message:
+            raise ValueError(f"{context} room_communications entries must include message.")
+
+        normalized_communications.append({
+            "trigger": trigger,
+            "audience": audience,
+            "message": message,
+            "required_player_flags": _normalize_flag_list(
+                raw_entry.get("required_player_flags", raw_entry.get("if_player_flags", [])),
+                context=f"{context} room_communications required_player_flags",
+            ),
+            "excluded_player_flags": _normalize_flag_list(
+                raw_entry.get("excluded_player_flags", raw_entry.get("unless_player_flags", [])),
+                context=f"{context} room_communications excluded_player_flags",
+            ),
+            "set_player_flags": _normalize_flag_list(
+                raw_entry.get("set_player_flags", []),
+                context=f"{context} room_communications set_player_flags",
+            ),
+            "clear_player_flags": _normalize_flag_list(
+                raw_entry.get("clear_player_flags", []),
+                context=f"{context} room_communications clear_player_flags",
+            ),
+        })
+
+    return normalized_communications
 
 
 @lru_cache(maxsize=1)
@@ -465,69 +699,10 @@ def load_rooms() -> list[dict]:
                 "already_unlocked_message": str(raw_exit_detail.get("already_unlocked_message", "")).strip(),
             })
 
-        normalized_keyword_actions: list[dict] = []
-        for raw_keyword_action in room_keyword_actions:
-            if not isinstance(raw_keyword_action, dict):
-                raise ValueError(f"Room asset '{room_id}' keyword_actions entries must be objects.")
-
-            raw_keywords = raw_keyword_action.get("keywords", [])
-            if raw_keywords is None:
-                raw_keywords = []
-            if not isinstance(raw_keywords, list):
-                raise ValueError(f"Room asset '{room_id}' keyword_actions keywords must be a list.")
-
-            normalized_keywords = [
-                " ".join(str(keyword).strip().lower().split())
-                for keyword in raw_keywords
-                if str(keyword).strip()
-            ]
-            if not normalized_keywords:
-                raise ValueError(f"Room asset '{room_id}' keyword_actions entries must define at least one keyword.")
-
-            raw_actions = raw_keyword_action.get("actions", [])
-            if raw_actions is None:
-                raw_actions = []
-            if not isinstance(raw_actions, list) or not raw_actions:
-                raise ValueError(f"Room asset '{room_id}' keyword_actions entries must define a non-empty actions list.")
-
-            refresh_view = str(raw_keyword_action.get("refresh_view", "none")).strip().lower() or "none"
-            if refresh_view not in {"none", "exits", "room"}:
-                raise ValueError(f"Room asset '{room_id}' keyword_actions refresh_view must be 'none', 'exits', or 'room'.")
-
-            normalized_actions: list[dict] = []
-            for raw_action in raw_actions:
-                if not isinstance(raw_action, dict):
-                    raise ValueError(f"Room asset '{room_id}' keyword action definitions must be objects.")
-
-                action_type = str(raw_action.get("type", "")).strip().lower()
-                if action_type not in {"set_exit", "reveal_exit", "show_exit", "hide_exit", "remove_exit", "unset_exit"}:
-                    raise ValueError(f"Room asset '{room_id}' keyword action has unsupported type '{action_type}'.")
-
-                direction = str(raw_action.get("direction", "")).strip().lower()
-                if not direction:
-                    raise ValueError(f"Room asset '{room_id}' keyword action '{action_type}' must include a direction.")
-
-                normalized_action = {
-                    "type": action_type,
-                    "direction": direction,
-                }
-                if action_type in {"set_exit", "reveal_exit", "show_exit"}:
-                    destination_room_id = str(raw_action.get("destination_room_id", "")).strip()
-                    if not destination_room_id:
-                        raise ValueError(
-                            f"Room asset '{room_id}' keyword action '{action_type}' must include destination_room_id."
-                        )
-                    normalized_action["destination_room_id"] = destination_room_id
-
-                normalized_actions.append(normalized_action)
-
-            normalized_keyword_actions.append({
-                "keywords": normalized_keywords,
-                "message": str(raw_keyword_action.get("message", "")).strip(),
-                "already_message": str(raw_keyword_action.get("already_message", "")).strip(),
-                "refresh_view": refresh_view,
-                "actions": normalized_actions,
-            })
+        normalized_keyword_actions = _normalize_keyword_actions(
+            room_keyword_actions,
+            context=f"Room asset '{room_id}' keyword_actions",
+        )
 
         normalized_exits: dict[str, str] = {}
         for direction, destination_room_id in exits.items():
@@ -773,6 +948,15 @@ def load_npc_templates() -> list[dict]:
         if is_merchant and not merchant_inventory:
             raise ValueError(f"Merchant NPC '{npc_id}' must define merchant_inventory or merchant_inventory_template_ids.")
 
+        keyword_actions = _normalize_keyword_actions(
+            raw_npc.get("keyword_actions", []),
+            context=f"NPC '{npc_id}' keyword_actions",
+        )
+        room_communications = _normalize_room_communications(
+            raw_npc.get("room_communications", []),
+            context=f"NPC '{npc_id}'",
+        )
+
         raw_skill_ids = raw_npc.get("skill_ids", [])
         if raw_skill_ids is None:
             raw_skill_ids = []
@@ -874,6 +1058,8 @@ def load_npc_templates() -> list[dict]:
             "spell_ids": normalized_spell_ids,
             "inventory_items": normalized_inventory_items,
             "loot_items": normalized_loot_items,
+            "keyword_actions": keyword_actions,
+            "room_communications": room_communications,
         }
 
     return [normalized_npcs_by_id[npc_id] for npc_id in ordered_npc_ids]

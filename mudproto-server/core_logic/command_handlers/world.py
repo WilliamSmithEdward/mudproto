@@ -1,4 +1,5 @@
 from combat import begin_attack
+from containers import handle_container_command
 from display_feedback import display_error
 from models import ClientSession
 from room_actions import handle_room_keyword_action
@@ -45,5 +46,9 @@ def handle_world_command(
     room_keyword_result = handle_room_keyword_action(session, _command_text)
     if room_keyword_result is not None:
         return room_keyword_result
+
+    container_result = handle_container_command(session, verb, args, _command_text)
+    if container_result is not None:
+        return container_result
 
     return None

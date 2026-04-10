@@ -7,6 +7,7 @@ from display_core import build_display, build_line, build_part
 from display_feedback import build_prompt_parts, display_error
 from display_room import display_room
 from models import ClientSession
+from room_actions import get_room_enter_communications, insert_room_communication_lines
 from session_registry import connected_clients
 from world import get_room
 
@@ -67,6 +68,25 @@ def _prepend_display_lines(message: dict | None, lines: list[list[dict]]) -> dic
     else:
         payload["lines"] = normalized_prefix
     return message
+
+
+def _message_lines(messages: list[dict] | list[str], *, audience_filter: set[str] | None = None) -> list[list[dict]]:
+    allowed_audiences = {str(value).strip().lower() for value in (audience_filter or {"private", "both", "room"}) if str(value).strip()}
+    lines: list[list[dict]] = []
+    for message in messages:
+        if isinstance(message, dict):
+            audience = str(message.get("audience", "both")).strip().lower() or "both"
+            if audience not in allowed_audiences:
+                continue
+            cleaned = str(message.get("message", "")).strip()
+        else:
+            cleaned = str(message).strip()
+        if not cleaned:
+            continue
+        lines.append(build_line(build_part(cleaned, "bright_white")))
+    if lines:
+        lines.append([])
+    return lines
 
 
 def _refresh_origin_room_display(origin_session: ClientSession, outbound: dict | list[dict], to_room_id: str) -> None:
@@ -230,6 +250,24 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             exclude_client_ids=moving_group_ids,
         )
 
+        entry_messages = get_room_enter_communications(origin_session, to_room_id, apply_state=True)
+        entry_lines = _message_lines(entry_messages, audience_filter={"private", "both"})
+        if entry_lines:
+            insert_room_communication_lines(outbound, entry_lines)
+        for entry in entry_messages:
+            audience = str(entry.get("audience", "both")).strip().lower() or "both"
+            if audience not in {"room", "both"}:
+                continue
+            message = str(entry.get("message", "")).strip()
+            if not message:
+                continue
+            await _send_room_notice(
+                to_room_id,
+                [build_part(message, "bright_white")],
+                send_outbound_fn,
+                exclude_client_ids=moving_group_ids,
+            )
+
         destination_room = get_room(to_room_id)
         for follower in moving_followers:
             leader_name = _resolve_follow_leader_name(follower)
@@ -270,7 +308,7 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                 maybe_auto_engage_current_room(follower)
                 follow_display = display_room(follower, destination_room)
 
-            _prepend_display_lines(follow_display, [
+            follow_prefix_lines = [
                 build_line(
                     build_part("You follow ", "bright_white"),
                     build_part(leader_name, "bright_cyan", True),
@@ -279,7 +317,27 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                     build_part(".", "bright_white"),
                 ),
                 [],
-            ])
+            ]
+            follow_entry_messages = get_room_enter_communications(follower, to_room_id, apply_state=True)
+            follow_entry_lines = _message_lines(follow_entry_messages, audience_filter={"private", "both"})
+            _prepend_display_lines(follow_display, follow_prefix_lines)
+            if follow_entry_lines:
+                insert_room_communication_lines(follow_display, follow_entry_lines)
+            for entry in follow_entry_messages:
+                audience = str(entry.get("audience", "both")).strip().lower() or "both"
+                if audience not in {"room", "both"}:
+                    continue
+                message = str(entry.get("message", "")).strip()
+                if not message:
+                    continue
+                await _send_room_notice(
+                    to_room_id,
+                    [build_part(message, "bright_white")],
+                    send_outbound_fn,
+                    exclude_client_ids=moving_group_ids,
+                )
             await send_outbound_fn(follower.websocket, follow_display)
 
         _refresh_origin_room_display(origin_session, outbound, to_room_id)
+        if entry_lines:
+            insert_room_communication_lines(outbound, entry_lines)

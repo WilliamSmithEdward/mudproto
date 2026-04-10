@@ -1,9 +1,12 @@
-"""Configurable room keyword interactions and action application."""
+"""Configurable room and NPC keyword interactions plus action application."""
 
+from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
 from display_core import build_line, build_part
 from display_feedback import display_command_result, display_error
 from display_room import display_exits, display_room
+from inventory import build_equippable_item_from_template, build_misc_item_from_template
 from models import ClientSession
+from targeting_entities import list_room_entities
 from world import Room, get_room
 
 
@@ -15,9 +18,74 @@ def _normalize_keyword_text(text: str) -> str:
     return " ".join(str(text).strip().lower().split())
 
 
+def _render_keyword_text(message: str, *, session: ClientSession, room: Room | None, actor_name: str = "") -> str:
+    rendered = str(message).strip()
+    if not rendered:
+        return ""
+
+    replacements = {
+        "[player_name]": session.authenticated_character_name.strip() or "traveller",
+        "[room_title]": getattr(room, "title", "") or "",
+        "[npc_name]": actor_name.strip(),
+    }
+    for token, value in replacements.items():
+        rendered = rendered.replace(token, value)
+    return rendered
+
+
+def _active_player_flags(session: ClientSession | None) -> set[str]:
+    if session is None:
+        return set()
+    return {
+        str(flag_key).strip().lower()
+        for flag_key, is_enabled in dict(getattr(session.player, "interaction_flags", {}) or {}).items()
+        if str(flag_key).strip() and bool(is_enabled)
+    }
+
+
+def _entry_matches_player_flags(entry: dict, active_flags: set[str]) -> bool:
+    required_flags = {
+        str(flag).strip().lower()
+        for flag in entry.get("required_player_flags", [])
+        if str(flag).strip()
+    }
+    excluded_flags = {
+        str(flag).strip().lower()
+        for flag in entry.get("excluded_player_flags", [])
+        if str(flag).strip()
+    }
+    return required_flags.issubset(active_flags) and not bool(active_flags & excluded_flags)
+
+
+def _apply_player_flag_updates(session: ClientSession | None, entry: dict) -> bool:
+    if session is None:
+        return False
+
+    changed = False
+    interaction_flags = dict(getattr(session.player, "interaction_flags", {}) or {})
+
+    for flag in entry.get("set_player_flags", []):
+        normalized_flag = str(flag).strip().lower()
+        if not normalized_flag or bool(interaction_flags.get(normalized_flag, False)):
+            continue
+        interaction_flags[normalized_flag] = True
+        changed = True
+
+    for flag in entry.get("clear_player_flags", []):
+        normalized_flag = str(flag).strip().lower()
+        if not normalized_flag or normalized_flag not in interaction_flags:
+            continue
+        interaction_flags.pop(normalized_flag, None)
+        changed = True
+
+    if changed:
+        session.player.interaction_flags = interaction_flags
+    return changed
+
+
 def _prepend_message(outbound: dict, message: str) -> dict:
     payload = outbound.get("payload") if isinstance(outbound, dict) else None
-    if not isinstance(payload, dict):
+    if not isinstance(payload, dict) or not str(message).strip():
         return outbound
 
     lines = payload.get("lines")
@@ -31,11 +99,74 @@ def _prepend_message(outbound: dict, message: str) -> dict:
     return outbound
 
 
-def _apply_keyword_actions(room: Room, keyword_action: dict) -> bool:
+def _session_has_template_item(session: ClientSession, template_id: str) -> bool:
+    normalized_template_id = str(template_id).strip().lower()
+    if not normalized_template_id:
+        return False
+
+    for item in session.inventory_items.values():
+        if str(getattr(item, "template_id", "")).strip().lower() == normalized_template_id:
+            return True
+
+    for item in session.equipment.equipped_items.values():
+        if str(getattr(item, "template_id", "")).strip().lower() == normalized_template_id:
+            return True
+
+    return False
+
+
+def _grant_template_item(session: ClientSession, template_id: str) -> bool:
+    gear_template = get_gear_template_by_id(template_id)
+    item_template = get_item_template_by_id(template_id) if gear_template is None else None
+    resolved_template = gear_template or item_template
+    if resolved_template is None:
+        return False
+
+    if gear_template is not None:
+        granted_item = build_equippable_item_from_template(gear_template)
+    else:
+        granted_item = build_misc_item_from_template(resolved_template)
+    session.inventory_items[granted_item.item_id] = granted_item
+    return True
+
+
+def _apply_keyword_actions(room: Room | None, keyword_action: dict, *, session: ClientSession | None = None) -> bool:
     changed = False
+    _apply_player_flag_updates(session, keyword_action)
 
     for action in keyword_action.get("actions", []):
         action_type = str(action.get("type", "")).strip().lower()
+        if action_type == "grant_item":
+            if session is None:
+                continue
+
+            template_id = str(action.get("template_id", "")).strip()
+            quantity = max(1, int(action.get("quantity", 1)))
+            if_missing = bool(action.get("if_missing", True))
+            if if_missing and _session_has_template_item(session, template_id):
+                continue
+
+            granted_any = False
+            for _ in range(quantity):
+                granted_any = _grant_template_item(session, template_id) or granted_any
+            changed = changed or granted_any
+            continue
+
+        if action_type == "teleport_player":
+            if session is None:
+                continue
+
+            destination_room_id = str(action.get("destination_room_id", "")).strip()
+            if not destination_room_id:
+                continue
+            if session.player.current_room_id != destination_room_id:
+                session.player.current_room_id = destination_room_id
+                changed = True
+            continue
+
+        if room is None:
+            continue
+
         direction = str(action.get("direction", "")).strip().lower()
         if not direction:
             continue
@@ -56,9 +187,26 @@ def _apply_keyword_actions(room: Room, keyword_action: dict) -> bool:
     return changed
 
 
-def _build_room_keyword_outbound(session: ClientSession, room: Room, keyword_action: dict, *, changed: bool) -> dict:
-    message = str(keyword_action.get("message", "")).strip()
-    already_message = str(keyword_action.get("already_message", "")).strip()
+def _build_room_keyword_outbound(
+    session: ClientSession,
+    room: Room,
+    keyword_action: dict,
+    *,
+    changed: bool,
+    actor_name: str = "",
+) -> dict:
+    message = _render_keyword_text(
+        str(keyword_action.get("message", "")),
+        session=session,
+        room=room,
+        actor_name=actor_name,
+    )
+    already_message = _render_keyword_text(
+        str(keyword_action.get("already_message", "")),
+        session=session,
+        room=room,
+        actor_name=actor_name,
+    )
     display_message = message if changed else (already_message or message or "Nothing happens.")
 
     refresh_view = str(keyword_action.get("refresh_view", "none")).strip().lower() or "none"
@@ -75,6 +223,118 @@ def _build_room_keyword_outbound(session: ClientSession, room: Room, keyword_act
     return _prepend_message(outbound, display_message)
 
 
+def get_room_enter_communications(
+    session: ClientSession,
+    room_id: str,
+    *,
+    apply_state: bool = False,
+) -> list[dict[str, str]]:
+    room = get_room(room_id)
+    if room is None:
+        return []
+
+    active_flags = _active_player_flags(session)
+    entries: list[dict[str, str]] = []
+    matched_entries: list[dict] = []
+    for entity in list_room_entities(session, room.room_id):
+        npc_template = get_npc_template_by_id(getattr(entity, "npc_id", ""))
+        if npc_template is None:
+            continue
+
+        for communication in npc_template.get("room_communications", []):
+            trigger = str(communication.get("trigger", "")).strip().lower()
+            if trigger != "player_enter":
+                continue
+            if not _entry_matches_player_flags(communication, active_flags):
+                continue
+
+            message = _render_keyword_text(
+                str(communication.get("message", "")),
+                session=session,
+                room=room,
+                actor_name=str(getattr(entity, "name", "")).strip(),
+            )
+            if not message:
+                continue
+
+            matched_entries.append(communication)
+            entries.append({
+                "message": message,
+                "audience": str(communication.get("audience", "both")).strip().lower() or "both",
+            })
+
+    if apply_state:
+        for communication in matched_entries:
+            _apply_player_flag_updates(session, communication)
+
+    return entries
+
+
+def _line_text(line: list[dict]) -> str:
+    return "".join(str(part.get("text", "")) for part in line if isinstance(part, dict)).strip()
+
+
+def insert_room_communication_lines(outbound: dict, communication_lines: list[list[dict]]) -> dict:
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    if not isinstance(payload, dict):
+        return outbound
+
+    lines = payload.get("lines")
+    if not isinstance(lines, list):
+        return outbound
+
+    normalized_existing = [line for line in lines if isinstance(line, list)]
+    normalized_insert = [line for line in communication_lines if isinstance(line, list)]
+    if not normalized_insert:
+        return outbound
+
+    section_headers = {"You see here:", "Players here:", "Corpses:", "Coin pile:", "Items on ground:"}
+    insert_index = len(normalized_existing)
+    for index, line in enumerate(normalized_existing):
+        if _line_text(line) in section_headers:
+            insert_index = index
+            break
+
+    if insert_index > 0 and _line_text(normalized_existing[insert_index - 1]):
+        normalized_insert = [[]] + normalized_insert
+
+    while normalized_insert and insert_index < len(normalized_existing) and not normalized_insert[-1] and not normalized_existing[insert_index]:
+        normalized_existing.pop(insert_index)
+
+    payload["lines"] = normalized_existing[:insert_index] + normalized_insert + normalized_existing[insert_index:]
+    return outbound
+
+
+def prepend_room_enter_communications(outbound: dict, session: ClientSession, room_id: str) -> dict:
+    communications = get_room_enter_communications(session, room_id, apply_state=True)
+    if not communications:
+        return outbound
+
+    communication_lines = [
+        build_line(build_part(str(entry.get("message", "")).strip(), "bright_white"))
+        for entry in communications
+        if str(entry.get("message", "")).strip() and str(entry.get("audience", "both")).strip().lower() in {"private", "both"}
+    ]
+    if not communication_lines:
+        return outbound
+
+    communication_lines.append([])
+    return insert_room_communication_lines(outbound, communication_lines)
+
+
+def _match_keyword_action(keyword_actions: list[dict], normalized_command: str, session: ClientSession | None = None) -> dict | None:
+    active_flags = _active_player_flags(session)
+    for keyword_action in keyword_actions:
+        keywords = keyword_action.get("keywords", [])
+        if not isinstance(keywords, list):
+            continue
+        if not _entry_matches_player_flags(keyword_action, active_flags):
+            continue
+        if any(_normalize_keyword_text(keyword) == normalized_command for keyword in keywords):
+            return keyword_action
+    return None
+
+
 def handle_room_keyword_action(session: ClientSession, command_text: str) -> dict | None:
     room = get_room(session.player.current_room_id)
     if room is None:
@@ -84,13 +344,35 @@ def handle_room_keyword_action(session: ClientSession, command_text: str) -> dic
     if not normalized_command:
         return None
 
-    for keyword_action in room.keyword_actions:
-        keywords = keyword_action.get("keywords", [])
-        if not isinstance(keywords, list):
+    keyword_action = _match_keyword_action(room.keyword_actions, normalized_command, session)
+    if keyword_action is not None:
+        changed = _apply_keyword_actions(room, keyword_action, session=session)
+        active_room = get_room(session.player.current_room_id) or room
+        outbound = _build_room_keyword_outbound(session, active_room, keyword_action, changed=changed)
+        if active_room.room_id != room.room_id:
+            prepend_room_enter_communications(outbound, session, active_room.room_id)
+        return outbound
+
+    for entity in list_room_entities(session, room.room_id):
+        npc_template = get_npc_template_by_id(getattr(entity, "npc_id", ""))
+        if npc_template is None:
             continue
 
-        if any(_normalize_keyword_text(keyword) == normalized_command for keyword in keywords):
-            changed = _apply_keyword_actions(room, keyword_action)
-            return _build_room_keyword_outbound(session, room, keyword_action, changed=changed)
+        keyword_action = _match_keyword_action(npc_template.get("keyword_actions", []), normalized_command, session)
+        if keyword_action is None:
+            continue
+
+        changed = _apply_keyword_actions(room, keyword_action, session=session)
+        active_room = get_room(session.player.current_room_id) or room
+        outbound = _build_room_keyword_outbound(
+            session,
+            active_room,
+            keyword_action,
+            changed=changed,
+            actor_name=str(getattr(entity, "name", "")).strip(),
+        )
+        if active_room.room_id != room.room_id:
+            prepend_room_enter_communications(outbound, session, active_room.room_id)
+        return outbound
 
     return None

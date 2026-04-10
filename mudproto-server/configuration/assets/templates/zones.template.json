@@ -28,6 +28,18 @@
         "required": false,
         "legacy_alias": true,
         "notes": "Legacy compatibility flag; prefer repopulate_game_hours."
+      },
+      "reset_player_flags": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "When the zone repopulates, these per-player interaction flags are cleared for all active characters."
+      },
+      "reset_container_template_ids": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "When the zone repopulates, any room containers using these item template ids are reset to their configured default state and contents."
       }
     }
   }

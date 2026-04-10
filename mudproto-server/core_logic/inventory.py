@@ -52,6 +52,25 @@ def build_misc_item_from_template(template: dict, *, item_id: str | None = None)
         persistent=bool(template.get("persistent", True)),
         lock_ids=[str(lock_id).strip().lower() for lock_id in template.get("lock_ids", []) if str(lock_id).strip()],
         portable=bool(template.get("portable", template.get("carryable", True))),
+        consume_on_use=bool(template.get("consume_on_use", False)),
+        consume_message=str(template.get("consume_message", "")).strip(),
+        can_close=bool(template.get("can_close", raw_item_type == "container")),
+        can_lock=bool(template.get("can_lock", bool(str(template.get("lock_id", "")).strip()))),
+        lock_id=str(template.get("lock_id", "")).strip().lower(),
+        is_closed=bool(template.get("is_closed", False)),
+        is_locked=bool(template.get("is_locked", False)),
+        open_message=str(template.get("open_message", "")).strip(),
+        close_message=str(template.get("close_message", "")).strip(),
+        lock_message=str(template.get("lock_message", "")).strip(),
+        unlock_message=str(template.get("unlock_message", "")).strip(),
+        closed_message=str(template.get("closed_message", "")).strip(),
+        locked_message=str(template.get("locked_message", "")).strip(),
+        needs_key_message=str(template.get("needs_key_message", "")).strip(),
+        must_close_to_lock_message=str(template.get("must_close_to_lock_message", "")).strip(),
+        already_open_message=str(template.get("already_open_message", "")).strip(),
+        already_closed_message=str(template.get("already_closed_message", "")).strip(),
+        already_locked_message=str(template.get("already_locked_message", "")).strip(),
+        already_unlocked_message=str(template.get("already_unlocked_message", "")).strip(),
         container_items={},
     )
 
@@ -118,6 +137,25 @@ def hydrate_misc_item_from_template(item: ItemState, template: dict | None = Non
     item.item_type = str(resolved_template.get("item_type", getattr(item, "item_type", "misc"))).strip().lower() or "misc"
     item.persistent = bool(resolved_template.get("persistent", getattr(item, "persistent", True)))
     item.portable = bool(resolved_template.get("portable", resolved_template.get("carryable", getattr(item, "portable", True))))
+    item.consume_on_use = bool(resolved_template.get("consume_on_use", getattr(item, "consume_on_use", False)))
+    item.consume_message = str(getattr(item, "consume_message", "") or resolved_template.get("consume_message", "")).strip()
+    item.can_close = bool(resolved_template.get("can_close", getattr(item, "can_close", item.item_type == "container")))
+    item.can_lock = bool(resolved_template.get("can_lock", getattr(item, "can_lock", bool(str(resolved_template.get("lock_id", getattr(item, "lock_id", ""))).strip()))))
+    item.lock_id = str(resolved_template.get("lock_id", getattr(item, "lock_id", ""))).strip().lower()
+    item.is_closed = bool(getattr(item, "is_closed", bool(resolved_template.get("is_closed", False))))
+    item.is_locked = bool(getattr(item, "is_locked", bool(resolved_template.get("is_locked", False))))
+    item.open_message = str(getattr(item, "open_message", "") or resolved_template.get("open_message", "")).strip()
+    item.close_message = str(getattr(item, "close_message", "") or resolved_template.get("close_message", "")).strip()
+    item.lock_message = str(getattr(item, "lock_message", "") or resolved_template.get("lock_message", "")).strip()
+    item.unlock_message = str(getattr(item, "unlock_message", "") or resolved_template.get("unlock_message", "")).strip()
+    item.closed_message = str(getattr(item, "closed_message", "") or resolved_template.get("closed_message", "")).strip()
+    item.locked_message = str(getattr(item, "locked_message", "") or resolved_template.get("locked_message", "")).strip()
+    item.needs_key_message = str(getattr(item, "needs_key_message", "") or resolved_template.get("needs_key_message", "")).strip()
+    item.must_close_to_lock_message = str(getattr(item, "must_close_to_lock_message", "") or resolved_template.get("must_close_to_lock_message", "")).strip()
+    item.already_open_message = str(getattr(item, "already_open_message", "") or resolved_template.get("already_open_message", "")).strip()
+    item.already_closed_message = str(getattr(item, "already_closed_message", "") or resolved_template.get("already_closed_message", "")).strip()
+    item.already_locked_message = str(getattr(item, "already_locked_message", "") or resolved_template.get("already_locked_message", "")).strip()
+    item.already_unlocked_message = str(getattr(item, "already_unlocked_message", "") or resolved_template.get("already_unlocked_message", "")).strip()
     if not getattr(item, "lock_ids", None):
         item.lock_ids = [
             str(lock_id).strip().lower()
@@ -141,6 +179,18 @@ def item_unlocks_lock(item: ItemState, lock_id: str) -> bool:
         for candidate in getattr(item, "lock_ids", [])
         if str(candidate).strip()
     }
+
+
+def consume_item_on_use(session: ClientSession, item: ItemState) -> str | None:
+    hydrate_misc_item_from_template(item)
+    if not bool(getattr(item, "consume_on_use", False)):
+        return None
+
+    session.inventory_items.pop(item.item_id, None)
+    consume_message = str(getattr(item, "consume_message", "")).strip()
+    if consume_message:
+        return consume_message
+    return f"{item.name.strip() or 'The key'} crumbles to dust after its magic is spent."
 
 
 def is_item_equippable(item: ItemState) -> bool:

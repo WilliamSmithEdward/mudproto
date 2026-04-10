@@ -3,7 +3,7 @@
 import re
 
 from display_core import build_part
-from inventory import get_item_keywords, item_unlocks_lock
+from inventory import consume_item_on_use, get_item_keywords, item_unlocks_lock
 from models import ClientSession
 from world import Room, get_room
 
@@ -372,9 +372,16 @@ def handle_room_exit_command(
         exit_detail["is_locked"] = False
         _sync_linked_exit_state(room, exit_detail)
         unlock_message = str(exit_detail.get("unlock_message", "")).strip()
-        return display_command_result(session, [
+        parts = [
             build_part(unlock_message or _default_exit_message(exit_detail, "unlock"), "bright_white"),
-        ])
+        ]
+        consume_message = consume_item_on_use(session, key_item)
+        if consume_message:
+            parts.extend([
+                build_part("\n"),
+                build_part(consume_message, "bright_white"),
+            ])
+        return display_command_result(session, parts)
 
     if bool(exit_detail.get("is_locked", False)):
         already_locked_message = str(exit_detail.get("already_locked_message", "")).strip()
@@ -398,6 +405,13 @@ def handle_room_exit_command(
     exit_detail["is_locked"] = True
     _sync_linked_exit_state(room, exit_detail)
     lock_message = str(exit_detail.get("lock_message", "")).strip()
-    return display_command_result(session, [
+    parts = [
         build_part(lock_message or _default_exit_message(exit_detail, "lock"), "bright_white"),
-    ])
+    ]
+    consume_message = consume_item_on_use(session, key_item)
+    if consume_message:
+        parts.extend([
+            build_part("\n"),
+            build_part(consume_message, "bright_white"),
+        ])
+    return display_command_result(session, parts)
