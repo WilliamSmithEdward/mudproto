@@ -84,6 +84,18 @@ class ItemState:
     hit_roll_modifier: int = 0
     attack_damage_bonus: int = 0
     attacks_per_round_bonus: int = 0
+    on_hit_room_damage_chance: float = 0.0
+    on_hit_room_damage_dice_count: int = 0
+    on_hit_room_damage_dice_sides: int = 0
+    on_hit_room_damage_roll_modifier: int = 0
+    on_hit_room_damage_message: str = ""
+    on_hit_room_damage_observer_message: str = ""
+    on_hit_target_damage_chance: float = 0.0
+    on_hit_target_damage_dice_count: int = 0
+    on_hit_target_damage_dice_sides: int = 0
+    on_hit_target_damage_roll_modifier: int = 0
+    on_hit_target_damage_message: str = ""
+    on_hit_target_damage_observer_message: str = ""
     armor_class_bonus: int = 0
     wear_slot: str = ""
     wear_slots: list[str] = field(default_factory=list)

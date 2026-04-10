@@ -5,6 +5,41 @@ from assets import get_gear_template_by_id, get_item_template_by_id, load_gear_t
 from models import ClientSession, ItemState
 
 
+def _build_container_item_map_from_template(template: dict) -> dict[str, ItemState]:
+    container_items: dict[str, ItemState] = {}
+    parent_template_id = str(template.get("template_id", "")).strip().lower()
+    raw_contents = template.get("contents", [])
+    if not isinstance(raw_contents, list):
+        return container_items
+
+    for raw_entry in raw_contents:
+        if not isinstance(raw_entry, dict):
+            continue
+
+        template_id = str(raw_entry.get("template_id", "")).strip()
+        if not template_id or template_id.strip().lower() == parent_template_id:
+            continue
+
+        quantity = max(0, int(raw_entry.get("quantity", 1)))
+        if quantity <= 0:
+            continue
+
+        gear_template = get_gear_template_by_id(template_id)
+        item_template = get_item_template_by_id(template_id) if gear_template is None else None
+        resolved_template = gear_template or item_template
+        if resolved_template is None:
+            continue
+
+        for _ in range(quantity):
+            if gear_template is not None:
+                nested_item = build_equippable_item_from_template(gear_template)
+            else:
+                nested_item = build_misc_item_from_template(resolved_template)
+            container_items[nested_item.item_id] = nested_item
+
+    return container_items
+
+
 def build_equippable_item_from_template(template: dict, *, item_id: str | None = None) -> ItemState:
     resolved_item_id = (item_id or f"item-{uuid.uuid4().hex[:8]}").strip()
     wear_slots = [str(slot).strip().lower() for slot in template.get("wear_slots", []) if str(slot).strip()]
@@ -28,6 +63,18 @@ def build_equippable_item_from_template(template: dict, *, item_id: str | None =
         hit_roll_modifier=int(template.get("hit_roll_modifier", 0)),
         attack_damage_bonus=int(template.get("attack_damage_bonus", 0)),
         attacks_per_round_bonus=int(template.get("attacks_per_round_bonus", 0)),
+        on_hit_room_damage_chance=float(template.get("on_hit_room_damage_chance", 0.0) or 0.0),
+        on_hit_room_damage_dice_count=int(template.get("on_hit_room_damage_dice_count", 0)),
+        on_hit_room_damage_dice_sides=int(template.get("on_hit_room_damage_dice_sides", 0)),
+        on_hit_room_damage_roll_modifier=int(template.get("on_hit_room_damage_roll_modifier", 0)),
+        on_hit_room_damage_message=str(template.get("on_hit_room_damage_message", "")).strip(),
+        on_hit_room_damage_observer_message=str(template.get("on_hit_room_damage_observer_message", "")).strip(),
+        on_hit_target_damage_chance=float(template.get("on_hit_target_damage_chance", 0.0) or 0.0),
+        on_hit_target_damage_dice_count=int(template.get("on_hit_target_damage_dice_count", 0)),
+        on_hit_target_damage_dice_sides=int(template.get("on_hit_target_damage_dice_sides", 0)),
+        on_hit_target_damage_roll_modifier=int(template.get("on_hit_target_damage_roll_modifier", 0)),
+        on_hit_target_damage_message=str(template.get("on_hit_target_damage_message", "")).strip(),
+        on_hit_target_damage_observer_message=str(template.get("on_hit_target_damage_observer_message", "")).strip(),
         armor_class_bonus=int(template.get("armor_class_bonus", 0)),
         wear_slot=wear_slot,
         wear_slots=wear_slots,
@@ -74,7 +121,7 @@ def build_misc_item_from_template(template: dict, *, item_id: str | None = None)
         already_closed_message=str(template.get("already_closed_message", "")).strip(),
         already_locked_message=str(template.get("already_locked_message", "")).strip(),
         already_unlocked_message=str(template.get("already_unlocked_message", "")).strip(),
-        container_items={},
+        container_items=_build_container_item_map_from_template(template),
     )
 
 
@@ -271,6 +318,18 @@ def is_item_equippable(item: ItemState) -> bool:
     item.hit_roll_modifier = int(template.get("hit_roll_modifier", item.hit_roll_modifier))
     item.attack_damage_bonus = int(template.get("attack_damage_bonus", item.attack_damage_bonus))
     item.attacks_per_round_bonus = int(template.get("attacks_per_round_bonus", item.attacks_per_round_bonus))
+    item.on_hit_room_damage_chance = float(template.get("on_hit_room_damage_chance", getattr(item, "on_hit_room_damage_chance", 0.0)) or 0.0)
+    item.on_hit_room_damage_dice_count = int(template.get("on_hit_room_damage_dice_count", getattr(item, "on_hit_room_damage_dice_count", 0)))
+    item.on_hit_room_damage_dice_sides = int(template.get("on_hit_room_damage_dice_sides", getattr(item, "on_hit_room_damage_dice_sides", 0)))
+    item.on_hit_room_damage_roll_modifier = int(template.get("on_hit_room_damage_roll_modifier", getattr(item, "on_hit_room_damage_roll_modifier", 0)))
+    item.on_hit_room_damage_message = str(template.get("on_hit_room_damage_message", getattr(item, "on_hit_room_damage_message", ""))).strip()
+    item.on_hit_room_damage_observer_message = str(template.get("on_hit_room_damage_observer_message", getattr(item, "on_hit_room_damage_observer_message", ""))).strip()
+    item.on_hit_target_damage_chance = float(template.get("on_hit_target_damage_chance", getattr(item, "on_hit_target_damage_chance", 0.0)) or 0.0)
+    item.on_hit_target_damage_dice_count = int(template.get("on_hit_target_damage_dice_count", getattr(item, "on_hit_target_damage_dice_count", 0)))
+    item.on_hit_target_damage_dice_sides = int(template.get("on_hit_target_damage_dice_sides", getattr(item, "on_hit_target_damage_dice_sides", 0)))
+    item.on_hit_target_damage_roll_modifier = int(template.get("on_hit_target_damage_roll_modifier", getattr(item, "on_hit_target_damage_roll_modifier", 0)))
+    item.on_hit_target_damage_message = str(template.get("on_hit_target_damage_message", getattr(item, "on_hit_target_damage_message", ""))).strip()
+    item.on_hit_target_damage_observer_message = str(template.get("on_hit_target_damage_observer_message", getattr(item, "on_hit_target_damage_observer_message", ""))).strip()
     item.armor_class_bonus = int(template.get("armor_class_bonus", item.armor_class_bonus))
     item.wear_slots = [str(slot).strip().lower() for slot in template.get("wear_slots", []) if str(slot).strip()]
     item.wear_slot = item.wear_slots[0] if item.wear_slots else ""

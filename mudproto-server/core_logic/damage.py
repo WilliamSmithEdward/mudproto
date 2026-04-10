@@ -14,6 +14,36 @@ def resolve_weapon_verb(weapon_type: str) -> str:
     return str(entry.get("verb", "hit")).strip().lower() or "hit"
 
 
+def roll_weapon_room_proc_damage(weapon: ItemState | None) -> tuple[bool, int]:
+    if weapon is None:
+        return False, 0
+
+    chance = max(0.0, float(getattr(weapon, "on_hit_room_damage_chance", 0.0) or 0.0))
+    if chance <= 0.0 or random.random() > chance:
+        return False, 0
+
+    damage = _roll_damage_dice(
+        int(getattr(weapon, "on_hit_room_damage_dice_count", 0)),
+        int(getattr(weapon, "on_hit_room_damage_dice_sides", 0)),
+    ) + int(getattr(weapon, "on_hit_room_damage_roll_modifier", 0))
+    return (damage > 0), max(0, damage)
+
+
+def roll_weapon_target_proc_damage(weapon: ItemState | None) -> tuple[bool, int]:
+    if weapon is None:
+        return False, 0
+
+    chance = max(0.0, float(getattr(weapon, "on_hit_target_damage_chance", 0.0) or 0.0))
+    if chance <= 0.0 or random.random() > chance:
+        return False, 0
+
+    damage = _roll_damage_dice(
+        int(getattr(weapon, "on_hit_target_damage_dice_count", 0)),
+        int(getattr(weapon, "on_hit_target_damage_dice_sides", 0)),
+    ) + int(getattr(weapon, "on_hit_target_damage_roll_modifier", 0))
+    return (damage > 0), max(0, damage)
+
+
 def roll_hit(total_modifier: int, target_armor_class: int) -> bool:
     roll = random.randint(1, HIT_ROLL_DICE_SIDES)
     return (roll + total_modifier) >= target_armor_class

@@ -140,6 +140,16 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
                         _strip_observer_actor_line_style(line, actor_name)
                         filtered_lines.append(line)
                     copied_payload["lines"] = filtered_lines
+            additional_observer_lines = copied_payload.get("additional_room_broadcast_lines")
+            if isinstance(additional_observer_lines, list) and additional_observer_lines:
+                normalized_additional_lines = [line for line in additional_observer_lines if isinstance(line, list)]
+                copied_lines = copied_payload.get("lines")
+                normalized_lines = [line for line in copied_lines if isinstance(line, list)] if isinstance(copied_lines, list) else []
+                if normalized_lines and normalized_lines[-1]:
+                    normalized_lines.append([])
+                normalized_lines.extend(normalized_additional_lines)
+                copied_payload["lines"] = normalized_lines
+
             copied_lines = copied_payload.get("lines")
             if isinstance(copied_lines, list):
                 normalized_lines = [line for line in copied_lines if isinstance(line, list)]

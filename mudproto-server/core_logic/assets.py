@@ -131,6 +131,30 @@ def load_gear_templates() -> list[dict]:
             raise ValueError(f"Gear asset '{template_id}' wear_slots must be a list.")
         wear_slots = [str(slot).strip().lower() for slot in raw_wear_slots if str(slot).strip()]
 
+        raw_on_hit_room_damage_chance = float(raw_template.get("on_hit_room_damage_chance", 0.0) or 0.0)
+        if raw_on_hit_room_damage_chance > 1.0:
+            raw_on_hit_room_damage_chance /= 100.0
+        if raw_on_hit_room_damage_chance < 0.0 or raw_on_hit_room_damage_chance > 1.0:
+            raise ValueError(f"Gear asset '{template_id}' on_hit_room_damage_chance must be between 0 and 1, or 0 and 100 for percent values.")
+
+        on_hit_room_damage_dice_count = max(0, int(raw_template.get("on_hit_room_damage_dice_count", 0)))
+        on_hit_room_damage_dice_sides = max(0, int(raw_template.get("on_hit_room_damage_dice_sides", 0)))
+        on_hit_room_damage_roll_modifier = int(raw_template.get("on_hit_room_damage_roll_modifier", 0))
+        on_hit_room_damage_message = str(raw_template.get("on_hit_room_damage_message", "")).strip()
+        on_hit_room_damage_observer_message = str(raw_template.get("on_hit_room_damage_observer_message", "")).strip()
+
+        raw_on_hit_target_damage_chance = float(raw_template.get("on_hit_target_damage_chance", 0.0) or 0.0)
+        if raw_on_hit_target_damage_chance > 1.0:
+            raw_on_hit_target_damage_chance /= 100.0
+        if raw_on_hit_target_damage_chance < 0.0 or raw_on_hit_target_damage_chance > 1.0:
+            raise ValueError(f"Gear asset '{template_id}' on_hit_target_damage_chance must be between 0 and 1, or 0 and 100 for percent values.")
+
+        on_hit_target_damage_dice_count = max(0, int(raw_template.get("on_hit_target_damage_dice_count", 0)))
+        on_hit_target_damage_dice_sides = max(0, int(raw_template.get("on_hit_target_damage_dice_sides", 0)))
+        on_hit_target_damage_roll_modifier = int(raw_template.get("on_hit_target_damage_roll_modifier", 0))
+        on_hit_target_damage_message = str(raw_template.get("on_hit_target_damage_message", "")).strip()
+        on_hit_target_damage_observer_message = str(raw_template.get("on_hit_target_damage_observer_message", "")).strip()
+
         armor_class_bonus = int(raw_template.get("armor_class_bonus", 0))
         if normalized_slot == "armor" and not wear_slots:
             raise ValueError(f"Gear asset '{template_id}' armor items must define wear_slots.")
@@ -169,6 +193,18 @@ def load_gear_templates() -> list[dict]:
             "hit_roll_modifier": int(raw_template.get("hit_roll_modifier", 0)),
             "attack_damage_bonus": int(raw_template.get("attack_damage_bonus", 0)),
             "attacks_per_round_bonus": int(raw_template.get("attacks_per_round_bonus", 0)),
+            "on_hit_room_damage_chance": raw_on_hit_room_damage_chance,
+            "on_hit_room_damage_dice_count": on_hit_room_damage_dice_count,
+            "on_hit_room_damage_dice_sides": on_hit_room_damage_dice_sides,
+            "on_hit_room_damage_roll_modifier": on_hit_room_damage_roll_modifier,
+            "on_hit_room_damage_message": on_hit_room_damage_message,
+            "on_hit_room_damage_observer_message": on_hit_room_damage_observer_message,
+            "on_hit_target_damage_chance": raw_on_hit_target_damage_chance,
+            "on_hit_target_damage_dice_count": on_hit_target_damage_dice_count,
+            "on_hit_target_damage_dice_sides": on_hit_target_damage_dice_sides,
+            "on_hit_target_damage_roll_modifier": on_hit_target_damage_roll_modifier,
+            "on_hit_target_damage_message": on_hit_target_damage_message,
+            "on_hit_target_damage_observer_message": on_hit_target_damage_observer_message,
             "armor_class_bonus": armor_class_bonus,
             "wear_slots": wear_slots,
         }
@@ -231,6 +267,29 @@ def load_item_templates() -> list[dict]:
             for lock_id in raw_template.get("lock_ids", [])
             if str(lock_id).strip()
         ]
+        raw_contents = raw_template.get("contents", [])
+        if raw_contents is None:
+            raw_contents = []
+        if not isinstance(raw_contents, list):
+            raise ValueError(f"Item asset '{template_id}' contents must be a list.")
+
+        normalized_contents: list[dict] = []
+        for raw_content in raw_contents:
+            if not isinstance(raw_content, dict):
+                raise ValueError(f"Item asset '{template_id}' contents entries must be objects.")
+            content_template_id = str(raw_content.get("template_id", "")).strip()
+            if not content_template_id:
+                raise ValueError(f"Item asset '{template_id}' contents entries must include template_id.")
+            if get_gear_template_by_id(content_template_id) is None and str(content_template_id).strip().lower() not in {
+                str(candidate.get("template_id", "")).strip().lower() for candidate in raw_templates if isinstance(candidate, dict)
+            }:
+                raise ValueError(
+                    f"Item asset '{template_id}' contents references unknown template_id '{content_template_id}'."
+                )
+            normalized_contents.append({
+                "template_id": content_template_id,
+                "quantity": max(1, int(raw_content.get("quantity", 1))),
+            })
         lock_id = str(raw_template.get("lock_id", "")).strip().lower()
         can_close = bool(raw_template.get("can_close", raw_item_type == "container"))
         can_lock = bool(raw_template.get("can_lock", bool(lock_id)))
@@ -269,6 +328,7 @@ def load_item_templates() -> list[dict]:
             "persistent": persistent,
             "portable": portable,
             "lock_ids": lock_ids,
+            "contents": normalized_contents,
             "consume_on_use": bool(raw_template.get("consume_on_use", False)),
             "consume_message": str(raw_template.get("consume_message", "")).strip(),
             "decay_game_hours": decay_game_hours,

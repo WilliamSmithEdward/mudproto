@@ -75,6 +75,16 @@
     "lock_id": "lock.prototype.loft-chest",
     "is_closed": true,
     "is_locked": true,
+    "contents": [
+      {
+        "template_id": "weapon.sunscour",
+        "quantity": 1
+      },
+      {
+        "template_id": "weapon.daystar-club",
+        "quantity": 1
+      }
+    ],
     "coin_value": 0
   }
 ]

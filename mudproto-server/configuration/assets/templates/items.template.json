@@ -80,6 +80,25 @@
         "default": true,
         "notes": "For container items, when false the container can exist in the room but cannot be picked up into inventory. The alias `carryable` is also accepted."
       },
+      "contents": {
+        "type": "array[object]",
+        "required": false,
+        "default": [],
+        "notes": "For containers, default item contents that are spawned inside when the container is created or reset from its template.",
+        "entry_schema": {
+          "template_id": {
+            "type": "string",
+            "required": true,
+            "notes": "Must match an existing gear or item template id."
+          },
+          "quantity": {
+            "type": "integer",
+            "required": false,
+            "default": 1,
+            "minimum": 1
+          }
+        }
+      },
       "consume_on_use": {
         "type": "boolean",
         "required": false,

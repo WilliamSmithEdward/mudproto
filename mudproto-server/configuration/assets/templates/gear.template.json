@@ -102,6 +102,78 @@
         "required": false,
         "default": 0
       },
+      "on_hit_room_damage_chance": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only field. Percent or fractional chance for an on-hit room-wide damage proc; `33` and `0.33` both mean 33%."
+      },
+      "on_hit_room_damage_dice_count": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only field. Damage dice count for the room proc."
+      },
+      "on_hit_room_damage_dice_sides": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only field. Damage dice sides for the room proc."
+      },
+      "on_hit_room_damage_roll_modifier": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only flat modifier added to the room proc damage roll."
+      },
+      "on_hit_room_damage_message": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "Private message shown to the wielder when the proc fires. Supports `[weapon_name]`."
+      },
+      "on_hit_room_damage_observer_message": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "Broadcast message shown to other players in the room when the proc fires. Supports `[actor_name]` and `[weapon_name]`."
+      },
+      "on_hit_target_damage_chance": {
+        "type": "number",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only field. Percent or fractional chance for an additional single-target on-hit damage proc against the engaged enemy; `33` and `0.33` both mean 33%."
+      },
+      "on_hit_target_damage_dice_count": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only field. Damage dice count for the single-target proc."
+      },
+      "on_hit_target_damage_dice_sides": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only field. Damage dice sides for the single-target proc."
+      },
+      "on_hit_target_damage_roll_modifier": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "notes": "Weapon-only flat modifier added to the single-target proc damage roll."
+      },
+      "on_hit_target_damage_message": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "Private message shown to the wielder when the single-target proc fires. Supports `[weapon_name]`."
+      },
+      "on_hit_target_damage_observer_message": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "Broadcast message shown to other players in the room when the single-target proc fires. Supports `[actor_name]` and `[weapon_name]`."
+      },
       "armor_class_bonus": {
         "type": "integer",
         "required": false,

@@ -28,12 +28,14 @@ from damage import (
     roll_hit,
     roll_npc_weapon_damage,
     roll_player_damage,
+    roll_weapon_room_proc_damage,
+    roll_weapon_target_proc_damage,
 )
 from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
 from equipment_logic import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from grammar import with_article
 from models import ClientSession, EntityState, ItemState
-from targeting_entities import resolve_room_entity_selector
+from targeting_entities import list_room_entities, resolve_room_entity_selector
 
 
 OPENING_ATTACKER_PLAYER = "player"
@@ -58,6 +60,148 @@ def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) 
 
     return attack_sequence
 
+
+def _render_weapon_proc_message(template_text: str, *, actor_name: str, weapon_name: str) -> str:
+    return (
+        str(template_text).strip()
+        .replace("[actor_name]", actor_name.strip() or "Someone")
+        .replace("[weapon_name]", weapon_name.strip() or "weapon")
+    )
+
+
+def _queue_private_combat_message(session: ClientSession, message: str) -> None:
+    cleaned = str(message).strip()
+    if not cleaned:
+        return
+    session.pending_private_lines.append([
+        {"text": cleaned, "fg": "bright_yellow", "bold": True},
+    ])
+
+
+def _record_observer_broadcast_line(room_broadcast_lines: list[list[dict]], message: str) -> None:
+    cleaned = str(message).strip()
+    if not cleaned:
+        return
+    room_broadcast_lines.append([
+        {"text": cleaned, "fg": "bright_white", "bold": False},
+    ])
+
+
+def _resolve_entity_defeat(
+    session: ClientSession,
+    entity: EntityState,
+    parts: list[dict],
+    *,
+    active_target_entity_ids: set[str] | None = None,
+    allow_turn_message: bool = False,
+) -> bool:
+    from display_core import build_part
+
+    if entity.hit_points > 0 or not entity.is_alive:
+        return False
+
+    entity.is_alive = False
+    spawn_corpse_for_entity(session, entity)
+    _award_shared_entity_experience(session, entity, parts, build_part)
+
+    append_newline_if_needed(parts)
+    parts.extend([
+        build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+        build_part(" is dead!", "bright_red", True),
+    ])
+
+    if entity.entity_id in session.combat.engaged_entity_ids:
+        session.combat.engaged_entity_ids.discard(entity.entity_id)
+        if allow_turn_message:
+            next_target = _engage_next_targeting_entity(
+                session,
+                entity.entity_id,
+                active_target_entity_ids=active_target_entity_ids,
+            )
+            if next_target is not None:
+                append_newline_if_needed(parts)
+                parts.extend([
+                    build_part("You turn to ", "bright_white"),
+                    build_part(with_article(next_target.name)),
+                    build_part(".", "bright_white"),
+                ])
+
+    return True
+
+
+def _apply_weapon_room_damage_proc(
+    session: ClientSession,
+    weapon: ItemState | None,
+    primary_target: EntityState,
+    parts: list[dict],
+    room_broadcast_lines: list[list[dict]],
+) -> None:
+    triggered, proc_damage = roll_weapon_room_proc_damage(weapon)
+    if not triggered or weapon is None:
+        return
+
+    actor_name = session.authenticated_character_name or "Someone"
+    weapon_name = weapon.name.strip() or "weapon"
+    player_message = _render_weapon_proc_message(
+        str(getattr(weapon, "on_hit_room_damage_message", "")),
+        actor_name=actor_name,
+        weapon_name=weapon_name,
+    ) or f"{weapon_name} erupts with searing sunlight, scorching every enemy in the room!"
+    observer_message = _render_weapon_proc_message(
+        str(getattr(weapon, "on_hit_room_damage_observer_message", "")),
+        actor_name=actor_name,
+        weapon_name=weapon_name,
+    ) or f"{actor_name}'s {weapon_name} erupts with searing sunlight, scorching every enemy in the room!"
+
+    _queue_private_combat_message(session, player_message)
+    _record_observer_broadcast_line(room_broadcast_lines, observer_message)
+
+    for target in list_room_entities(session, session.player.current_room_id):
+        if not getattr(target, "is_alive", False):
+            continue
+        if bool(getattr(target, "is_ally", False)) or bool(getattr(target, "is_peaceful", False)):
+            continue
+
+        _mark_entity_contributor(session, target)
+        target.hit_points = max(0, target.hit_points - proc_damage)
+
+        if target.entity_id != primary_target.entity_id and target.hit_points > 0:
+            session.combat.engaged_entity_ids.add(target.entity_id)
+
+        if target.entity_id != primary_target.entity_id:
+            _resolve_entity_defeat(session, target, parts, allow_turn_message=False)
+
+
+def _apply_weapon_target_damage_proc(
+    session: ClientSession,
+    weapon: ItemState | None,
+    target: EntityState,
+    room_broadcast_lines: list[list[dict]],
+) -> None:
+    if weapon is None or not getattr(target, "is_alive", False):
+        return
+
+    triggered, proc_damage = roll_weapon_target_proc_damage(weapon)
+    if not triggered:
+        return
+
+    actor_name = session.authenticated_character_name or "Someone"
+    weapon_name = weapon.name.strip() or "weapon"
+    player_message = _render_weapon_proc_message(
+        str(getattr(weapon, "on_hit_target_damage_message", "")),
+        actor_name=actor_name,
+        weapon_name=weapon_name,
+    ) or f"{weapon_name} flashes with focused sunlight and strikes your foe again!"
+    observer_message = _render_weapon_proc_message(
+        str(getattr(weapon, "on_hit_target_damage_observer_message", "")),
+        actor_name=actor_name,
+        weapon_name=weapon_name,
+    ) or f"{actor_name}'s {weapon_name} flashes with focused sunlight and strikes the target again!"
+
+    _queue_private_combat_message(session, player_message)
+    _record_observer_broadcast_line(room_broadcast_lines, observer_message)
+    _mark_entity_contributor(session, target)
+    target.hit_points = max(0, target.hit_points - proc_damage)
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
@@ -89,7 +233,13 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     return display_error(f"You fail to engage {entity.name}.", session)
 
 
-def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
+def _apply_player_attacks(
+    session: ClientSession,
+    entity: EntityState,
+    parts: list[dict],
+    room_broadcast_lines: list[list[dict]],
+    allow_off_hand: bool,
+) -> None:
     attack_sequence = _build_player_attack_sequence(session, allow_off_hand)
 
     for weapon in attack_sequence:
@@ -122,6 +272,8 @@ def _apply_player_attacks(session: ClientSession, entity: EntityState, parts: li
             damage=rolled_damage,
             target_max_hp=entity.max_hit_points,
         ))
+        _apply_weapon_room_damage_proc(session, weapon, entity, parts, room_broadcast_lines)
+        _apply_weapon_target_damage_proc(session, weapon, entity, room_broadcast_lines)
 
         if entity.hit_points <= 0:
             break
@@ -243,6 +395,7 @@ def resolve_combat_round(
     process_battle_round_support_effects(session)
 
     parts: list[dict] = []
+    room_broadcast_lines: list[list[dict]] = []
     status = session.status
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
@@ -263,39 +416,16 @@ def resolve_combat_round(
         if session.combat.skip_melee_rounds > 0:
             session.combat.skip_melee_rounds -= 1
         else:
-            _apply_player_attacks(session, entity, parts, allow_off_hand=not is_opening_round)
+            _apply_player_attacks(session, entity, parts, room_broadcast_lines, allow_off_hand=not is_opening_round)
 
     # Mark entity dead if it reached 0 HP, but don't return yet — let the round finish.
-    entity_died_this_round = False
-    if entity.hit_points <= 0:
-        entity_died_this_round = True
-        if entity.is_alive:
-            entity.is_alive = False
-        spawn_corpse_for_entity(session, entity)
-        _award_shared_entity_experience(session, entity, parts, build_part)
-
-    # Announce entity death immediately after the lethal hit is resolved.
-    if entity_died_this_round:
-        append_newline_if_needed(parts)
-        parts.extend([
-            build_part(with_article(entity.name, capitalize=True), "bright_red", True),
-            build_part(" is dead!", "bright_red", True),
-        ])
-
-        if entity.entity_id in session.combat.engaged_entity_ids:
-            session.combat.engaged_entity_ids.discard(entity.entity_id)
-            next_target = _engage_next_targeting_entity(
-                session,
-                entity.entity_id,
-                active_target_entity_ids=allowed_entity_retaliation_ids,
-            )
-            if next_target is not None:
-                append_newline_if_needed(parts)
-                parts.extend([
-                    build_part("You turn to ", "bright_white"),
-                    build_part(with_article(next_target.name)),
-                    build_part(".", "bright_white"),
-                ])
+    entity_died_this_round = _resolve_entity_defeat(
+        session,
+        entity,
+        parts,
+        active_target_entity_ids=allowed_entity_retaliation_ids,
+        allow_turn_message=True,
+    )
 
     # Continue retaliation phase after player-side output has been assembled.
     if opening_attacker is not None:
@@ -325,19 +455,26 @@ def resolve_combat_round(
         payload = result.get("payload") if isinstance(result, dict) else None
         if isinstance(payload, dict):
             actor_name = session.authenticated_character_name or "Someone"
-            room_broadcast_lines: list[list[dict]] = []
+            death_broadcast_lines: list[list[dict]] = []
             if entity_died_this_round:
-                room_broadcast_lines.append([
+                death_broadcast_lines.append([
                     build_part(with_article(entity.name, capitalize=True), "bright_red", True),
                     build_part(" is dead!", "bright_red", True),
                 ])
-            room_broadcast_lines.append(build_player_death_broadcast_parts(actor_name))
-            payload["room_broadcast_lines"] = room_broadcast_lines
+            death_broadcast_lines.append(build_player_death_broadcast_parts(actor_name))
+            payload["room_broadcast_lines"] = death_broadcast_lines
+            if room_broadcast_lines:
+                payload["additional_room_broadcast_lines"] = room_broadcast_lines
 
         return result
 
+    result = display_combat_round_result(session, parts)
+    payload = result.get("payload") if isinstance(result, dict) else None
+    if isinstance(payload, dict) and room_broadcast_lines:
+        payload["additional_room_broadcast_lines"] = room_broadcast_lines
+
     if entity_died_this_round:
-        return display_combat_round_result(session, parts)
+        return result
 
     _schedule_next_combat_round(session)
-    return display_combat_round_result(session, parts)
+    return result
