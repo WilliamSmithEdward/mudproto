@@ -319,7 +319,6 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
         cleaned += "."
 
     return [
-        build_part("A warning stirs within you: ", "bright_white"),
         build_part(cleaned, "bright_white", False),
     ]
 
