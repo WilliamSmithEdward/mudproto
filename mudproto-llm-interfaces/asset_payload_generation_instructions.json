@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.6",
-  "generated_at_utc": "2026-04-04T22:30:18.232641+00:00",
+  "version": "2.7",
+  "generated_at_utc": "2026-04-10T08:20:23.285268+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -110,7 +110,6 @@
     "If multiple asset payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
     "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
     "Use lowercase IDs and keywords to match project conventions.",
-    "Use Title Case for all human-facing asset names, including room titles, NPC names, gear names, item names, spell names, skill names, and zone names unless the user explicitly requests a stylistic exception.",
     "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
     "Every asset section must be present and must be a JSON array, even when empty.",
     "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/asset-payloads/`.",
@@ -119,9 +118,9 @@
     "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
     "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
     "Only reference assets that exist in the base game or in this same payload.",
-    "Valid room exit directions are north, east, south, west, up, and down, and generated room connections should use only those direction keys.",
     "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
     "Preserve MudProto's existing fantasy tone and naming style.",
+    "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
     "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
     "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition."
   ],
@@ -143,8 +142,9 @@
     "Validate all cross-references before returning the final JSON."
   ],
   "minimum_quality_bar": [
-    "Descriptions should be concise and usable in-game.",
-    "Room titles, spell names, skill names, NPC names, gear names, item names, and zone names should be vivid, flavorful, memorable, and written in Title Case while fitting MudProto's tone.",
+    "Descriptions should be concise, usable in-game, and support the intended fantasy atmosphere.",
+    "Room descriptions should be 3-4 sentences in length and should tie directly into the theme of their zone.",
+    "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
     "Combat/support context strings should be ready for player-facing text.",
     "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
     "Merchant inventories should be sensible for the NPC role.",
@@ -623,6 +623,22 @@
               "minimum": 1
             }
           }
+        },
+        "keyword_actions": {
+          "type": "array[object]",
+          "required": false,
+          "default": []
+        },
+        "room_objects": {
+          "type": "array[object]",
+          "required": false,
+          "default": []
+        },
+        "exit_details": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "description": "Optional exit metadata/state. open_message, close_message, closed_message, locked_message, already_open_message, and already_closed_message are optional overrides; grammar defaults are generated from the exit name/type/direction when omitted."
         }
       }
     },
@@ -1052,11 +1068,11 @@
       "gear": 14,
       "items": 3,
       "npcs": 5,
-      "rooms": 6,
+      "rooms": 8,
       "skills": 3,
       "spells": 9,
       "zones": 3,
-      "asset_payload_files": 1
+      "asset_payload_files": 2
     },
     "base_assets": {
       "gear": [
@@ -1578,12 +1594,126 @@
         {
           "room_id": "start",
           "title": "Prototype Chamber",
-          "description": "A plain stone chamber used for early server testing.",
+          "description": "A plain stone chamber used for early server testing. A stout western gate bars a road beyond, while scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
           "zone_id": "zone.prototype-core",
+          "keyword_actions": [
+            {
+              "keywords": [
+                "open hatch"
+              ],
+              "message": "You pull the iron hatch open. A ladder now leads up.",
+              "already_message": "The hatch is already open.",
+              "refresh_view": "none",
+              "actions": [
+                {
+                  "type": "set_exit",
+                  "direction": "up",
+                  "destination_room_id": "hatch-loft"
+                }
+              ]
+            },
+            {
+              "keywords": [
+                "close hatch"
+              ],
+              "message": "You pull the hatch shut, hiding the ladder above.",
+              "already_message": "The hatch is already closed.",
+              "refresh_view": "none",
+              "actions": [
+                {
+                  "type": "hide_exit",
+                  "direction": "up"
+                }
+              ]
+            }
+          ],
+          "room_objects": [
+            {
+              "object_id": "ceiling-hatch",
+              "name": "iron hatch",
+              "keywords": [
+                "hatch",
+                "ceiling hatch",
+                "iron hatch"
+              ],
+              "description": "A square iron hatch is set into the ceiling overhead. Its worn pull-ring and the scrape marks around the frame suggest it can be worked open or shut by hand."
+            },
+            {
+              "object_id": "west-gate",
+              "name": "west gate",
+              "keywords": [
+                "gate",
+                "west gate",
+                "iron gate"
+              ],
+              "description": "A stout iron gate bars the western opening. Its latch looks simple enough to work by hand if it has not been locked."
+            }
+          ],
+          "exit_details": [
+            {
+              "direction": "west",
+              "exit_type": "gate",
+              "name": "west gate",
+              "keywords": [
+                "gate",
+                "west gate",
+                "iron gate"
+              ],
+              "is_closed": true,
+              "is_locked": false
+            }
+          ],
           "exits": {
             "north": "hall",
             "east": "sanctum",
-            "south": "south-market"
+            "south": "south-market",
+            "west": "west-road"
+          }
+        },
+        {
+          "room_id": "west-road",
+          "title": "West Road",
+          "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
+          "zone_id": "zone.prototype-core",
+          "room_objects": [
+            {
+              "object_id": "east-gate",
+              "name": "east gate",
+              "keywords": [
+                "gate",
+                "east gate",
+                "iron gate",
+                "west gate"
+              ],
+              "description": "A stout iron gate stands in the eastern opening back toward the chamber. Its latch looks simple enough to work by hand if it has not been locked."
+            }
+          ],
+          "exit_details": [
+            {
+              "direction": "east",
+              "exit_type": "gate",
+              "name": "east gate",
+              "keywords": [
+                "gate",
+                "east gate",
+                "iron gate",
+                "west gate"
+              ],
+              "is_closed": true,
+              "is_locked": false
+            }
+          ],
+          "exits": {
+            "east": "start"
+          }
+        },
+        {
+          "room_id": "hatch-loft",
+          "title": "Hidden Loft",
+          "description": "Dusty rafters and a narrow service ledge overlook the prototype chamber below.",
+          "zone_id": "zone.prototype-core",
+          "exits": {
+            "down": "start"
           }
         },
         {
@@ -2325,7 +2455,7 @@
             {
               "room_id": "start",
               "title": "Prototype Chamber",
-              "description": "A plain stone chamber used for early server testing.",
+              "description": "A plain stone chamber used for early server testing. A stout western gate bars a road beyond, while scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
               "zone_id": "zone.prototype-core",
               "exits": {
                 "north": "hall",
@@ -2536,6 +2666,854 @@
             {
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "name": "Blackwatch Outpost",
+              "repopulate_game_hours": 1
+            }
+          ]
+        }
+      },
+      {
+        "file_name": "sunscour-redoubt.json",
+        "content": {
+          "payload_id": "sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "description": "Adds a westward desert frontier off the Northern Hall leading into a hidden paladin redoubt buried beneath the dunes.",
+          "gear": [
+            {
+              "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Sunpiercer Sabre",
+              "slot": "weapon",
+              "description": "A curved paladin blade polished bright enough to throw hard desert light into an enemy's eyes.",
+              "keywords": [
+                "sunpiercer",
+                "sabre",
+                "paladin",
+                "sword"
+              ],
+              "weapon_type": "sword",
+              "can_hold": false,
+              "can_two_hand": true,
+              "weight": 7,
+              "coin_value": 82,
+              "damage_dice_count": 4,
+              "damage_dice_sides": 7,
+              "damage_roll_modifier": 2,
+              "hit_roll_modifier": 3,
+              "attack_damage_bonus": 1,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Glassfang Knife",
+              "slot": "weapon",
+              "description": "A serrated blade chipped from amber desert glass and wrapped in cracked leather.",
+              "keywords": [
+                "glassfang",
+                "knife",
+                "glass",
+                "dagger"
+              ],
+              "weapon_type": "dagger",
+              "can_hold": true,
+              "weight": 2,
+              "coin_value": 48,
+              "damage_dice_count": 3,
+              "damage_dice_sides": 4,
+              "damage_roll_modifier": 1,
+              "hit_roll_modifier": 2,
+              "attack_damage_bonus": 0,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "armor.veilwalker-cloak-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Veilwalker Cloak",
+              "slot": "armor",
+              "description": "A pale sand-colored cloak woven to blur the wearer's outline against moving dunes.",
+              "keywords": [
+                "veilwalker",
+                "cloak",
+                "sand",
+                "back"
+              ],
+              "weight": 2,
+              "coin_value": 54,
+              "armor_class_bonus": 1,
+              "wear_slots": [
+                "back"
+              ]
+            },
+            {
+              "template_id": "armor.sunwarden-cuirass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Sunwarden Cuirass",
+              "slot": "armor",
+              "description": "A disciplined breastplate marked with a hidden order's radiant seal beneath the dust.",
+              "keywords": [
+                "sunwarden",
+                "cuirass",
+                "paladin",
+                "chest"
+              ],
+              "weight": 11,
+              "coin_value": 88,
+              "armor_class_bonus": 3,
+              "wear_slots": [
+                "chest"
+              ]
+            }
+          ],
+          "items": [
+            {
+              "template_id": "item.waterskin-of-reprieve-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Waterskin of Reprieve",
+              "description": "A cool leather waterskin infused with salts and herbs to steady a fading body.",
+              "keywords": [
+                "waterskin",
+                "reprieve",
+                "healing",
+                "water"
+              ],
+              "effect_type": "restore",
+              "effect_target": "hit_points",
+              "effect_amount": 38,
+              "coin_value": 18,
+              "use_lag_seconds": 0.0,
+              "observer_action": "[actor_name] drinks from a waterskin of reprieve.",
+              "observer_context": "Strength returns to [actor_object] with a cool breath of relief."
+            },
+            {
+              "template_id": "item.saltfire-phial-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Saltfire Phial",
+              "description": "A bitter mineral tonic carried by desert walkers to restore spent vigor.",
+              "keywords": [
+                "saltfire",
+                "phial",
+                "vigor",
+                "tonic"
+              ],
+              "effect_type": "restore",
+              "effect_target": "vigor",
+              "effect_amount": 34,
+              "coin_value": 17,
+              "use_lag_seconds": 0.0,
+              "observer_action": "[actor_name] downs a saltfire phial.",
+              "observer_context": "A taut steadiness returns to [actor_object]."
+            },
+            {
+              "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Sunwell Drop",
+              "description": "A clear golden draught prepared beneath the hidden fort's sacred basin to restore mana.",
+              "keywords": [
+                "sunwell",
+                "drop",
+                "mana",
+                "golden"
+              ],
+              "effect_type": "restore",
+              "effect_target": "mana",
+              "effect_amount": 42,
+              "coin_value": 20,
+              "use_lag_seconds": 0.0,
+              "observer_action": "[actor_name] drinks a sunwell drop.",
+              "observer_context": "A clean radiance settles behind [actor_object]'s eyes."
+            }
+          ],
+          "spells": [
+            {
+              "spell_id": "spell.solar-lance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Solar Lance",
+              "school": "Radiance",
+              "description": "A spear of concentrated sunfire hurled into a single foe.",
+              "mana_cost": 16,
+              "spell_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 6,
+              "damage_dice_sides": 12,
+              "damage_modifier": 6,
+              "damage_scaling_attribute_id": "wis",
+              "damage_scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "[a/an] [verb] pierced by a burning lance of radiant force."
+            },
+            {
+              "spell_id": "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Oasis Prayer",
+              "school": "Restoration",
+              "description": "A hushed prayer that draws hidden mercy like water from stone.",
+              "mana_cost": 14,
+              "spell_type": "support",
+              "cast_type": "self",
+              "support_effect": "heal",
+              "support_amount": 0,
+              "support_dice_count": 2,
+              "support_dice_sides": 12,
+              "support_roll_modifier": 14,
+              "support_scaling_attribute_id": "wis",
+              "support_scaling_multiplier": 1.0,
+              "support_mode": "instant",
+              "support_context": "A cool and hidden mercy passes through you, closing wounds like water over stone.",
+              "observer_action": "[actor_name] bows [actor_possessive] head and whispers an oasis prayer.",
+              "observer_context": "A soft gold hush settles over [actor_object] as wounds begin to close."
+            }
+          ],
+          "skills": [
+            {
+              "skill_id": "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Sandrush",
+              "description": "A low rushing charge that uses the dune itself as cover.",
+              "skill_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 2,
+              "damage_dice_sides": 7,
+              "damage_modifier": 3,
+              "vigor_cost": 7,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "dex",
+              "scaling_multiplier": 2.0,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "[a/an] [verb] slammed aside by a sudden sand-hidden rush.",
+              "observer_action": "[actor_name] bursts forward in a spray of sand.",
+              "lag_rounds": 1,
+              "cooldown_rounds": 2
+            },
+            {
+              "skill_id": "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Vow of Endurance",
+              "description": "A disciplined battle vow that hardens resolve and restores a little health.",
+              "skill_type": "support",
+              "cast_type": "self",
+              "vigor_cost": 6,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "con",
+              "scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "support_effect": "heal",
+              "support_amount": 12,
+              "support_context": "You steady your breath under an old vow and force your body to hold.",
+              "observer_action": "[actor_name] sets [actor_possessive] feet and murmurs an old battle vow.",
+              "observer_context": "[actor_name] seems to draw strength from disciplined conviction.",
+              "lag_rounds": 1,
+              "cooldown_rounds": 4
+            }
+          ],
+          "npcs": [
+            {
+              "npc_id": "npc.dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Dune Scarab",
+              "hit_points": 210,
+              "max_hit_points": 210,
+              "power_level": 3,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 2,
+              "armor_class": 10,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 12,
+              "experience_reward": 26,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "its",
+              "main_hand_weapon_template_id": "",
+              "off_hand_weapon_template_id": "",
+              "vigor": 34,
+              "max_vigor": 34,
+              "skill_use_chance": 0.3,
+              "skill_ids": [
+                "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "loot_items": [
+                {
+                  "name": "scarab shell",
+                  "description": "A lacquered dune scarab shell with bands of sun-baked gold.",
+                  "keywords": [
+                    "scarab",
+                    "shell"
+                  ]
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.glass-asp-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Glass Asp",
+              "hit_points": 225,
+              "max_hit_points": 225,
+              "power_level": 4,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 2,
+              "armor_class": 11,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 16,
+              "experience_reward": 32,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "its",
+              "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "off_hand_weapon_template_id": "",
+              "vigor": 40,
+              "max_vigor": 40,
+              "skill_use_chance": 0.35,
+              "skill_ids": [
+                "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": []
+            },
+            {
+              "npc_id": "npc.sunken-guardian-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Sunken Guardian",
+              "hit_points": 285,
+              "max_hit_points": 285,
+              "power_level": 5,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 3,
+              "armor_class": 12,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 28,
+              "experience_reward": 44,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "its",
+              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "off_hand_weapon_template_id": "",
+              "vigor": 58,
+              "max_vigor": 58,
+              "mana": 40,
+              "max_mana": 40,
+              "skill_use_chance": 0.25,
+              "skill_ids": [
+                "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "spell_use_chance": 0.2,
+              "spell_ids": [
+                "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ]
+            },
+            {
+              "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Veiled Paladin",
+              "hit_points": 310,
+              "max_hit_points": 310,
+              "power_level": 6,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 3,
+              "armor_class": 13,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 0,
+              "experience_reward": 0,
+              "is_aggro": false,
+              "is_ally": true,
+              "is_peaceful": true,
+              "respawn": true,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "off_hand_weapon_template_id": "",
+              "vigor": 70,
+              "max_vigor": 70,
+              "mana": 80,
+              "max_mana": 80,
+              "skill_use_chance": 0.2,
+              "skill_ids": [
+                "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "spell_use_chance": 0.2,
+              "spell_ids": [
+                "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ]
+            },
+            {
+              "npc_id": "npc.lamp-keeper-sera-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Lamp-Keeper Sera",
+              "hit_points": 190,
+              "max_hit_points": 190,
+              "power_level": 1,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 0,
+              "armor_class": 10,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 0,
+              "experience_reward": 0,
+              "is_aggro": false,
+              "is_ally": true,
+              "is_peaceful": true,
+              "respawn": false,
+              "is_merchant": true,
+              "merchant_inventory": [
+                {
+                  "template_id": "item.waterskin-of-reprieve-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "quantity": 4,
+                  "infinite": false
+                },
+                {
+                  "template_id": "item.saltfire-phial-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "quantity": 4,
+                  "infinite": false
+                },
+                {
+                  "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "quantity": 4,
+                  "infinite": false
+                },
+                {
+                  "template_id": "armor.veilwalker-cloak-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "infinite": true
+                },
+                {
+                  "template_id": "armor.sunwarden-cuirass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "infinite": true
+                },
+                {
+                  "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "infinite": true
+                },
+                {
+                  "template_id": "item.potion.mending",
+                  "infinite": true
+                },
+                {
+                  "template_id": "item.potion.mana",
+                  "infinite": true
+                },
+                {
+                  "template_id": "item.potion.vigor",
+                  "infinite": true
+                }
+              ],
+              "merchant_buy_markup": 1.0,
+              "merchant_sell_ratio": 0.55,
+              "pronoun_possessive": "her",
+              "main_hand_weapon_template_id": "",
+              "off_hand_weapon_template_id": "",
+              "vigor": 0,
+              "max_vigor": 0,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.0,
+              "skill_ids": [],
+              "spell_use_chance": 0.0,
+              "spell_ids": []
+            },
+            {
+              "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Sunmarshal Aurek",
+              "hit_points": 360,
+              "max_hit_points": 360,
+              "power_level": 7,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 4,
+              "armor_class": 14,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 0,
+              "experience_reward": 0,
+              "is_aggro": false,
+              "is_ally": true,
+              "is_peaceful": true,
+              "respawn": true,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "off_hand_weapon_template_id": "",
+              "vigor": 90,
+              "max_vigor": 90,
+              "mana": 110,
+              "max_mana": 110,
+              "skill_use_chance": 0.25,
+              "skill_ids": [
+                "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "spell_use_chance": 0.25,
+              "spell_ids": [
+                "spell.solar-lance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ]
+            },
+            {
+              "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Buried Heresiarch",
+              "hit_points": 410,
+              "max_hit_points": 410,
+              "power_level": 8,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 4,
+              "armor_class": 13,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 96,
+              "experience_reward": 130,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "off_hand_weapon_template_id": "",
+              "vigor": 72,
+              "max_vigor": 72,
+              "mana": 170,
+              "max_mana": 170,
+              "skill_use_chance": 0.35,
+              "skill_ids": [
+                "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "spell_use_chance": 0.55,
+              "spell_ids": [
+                "spell.solar-lance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "quantity": 1
+                }
+              ],
+              "loot_items": [
+                {
+                  "name": "cracked sun medallion",
+                  "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
+                  "keywords": [
+                    "sun",
+                    "medallion",
+                    "cracked"
+                  ]
+                }
+              ]
+            }
+          ],
+          "rooms": [
+            {
+              "room_id": "hall",
+              "title": "Northern Hall",
+              "description": "A narrow hall of cold stone extends here, quiet and still.",
+              "zone_id": "zone.northern-wing",
+              "exits": {
+                "south": "start",
+                "east": "east-watch",
+                "west": "room.desert-threshold-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.hall-scout",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "room_id": "room.desert-threshold-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Desert Threshold",
+              "description": "Cold stone gives way to dry heat and drifting grit where a cracked breach opens onto a pale waste of wind-cut sand.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "hall",
+                "west": "room.wind-cut-pass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.half-buried-waymarker-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              }
+            },
+            {
+              "room_id": "room.wind-cut-pass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Wind-Cut Pass",
+              "description": "Tall shelves of sandstone rise on either side, funneling the wind into a harsh steady moan.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.desert-threshold-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.dune-shelf-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.sunken-caravan-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "room_id": "room.half-buried-waymarker-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Half-Buried Waymarker",
+              "description": "The broken top of an old marker stone juts from the sand, its chiseled face almost erased by years of abrasion.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.desert-threshold-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.glassbone-hollow-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.glass-asp-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.dune-shelf-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Dune Shelf",
+              "description": "A high shelf of packed sand overlooks rippling basins of gold and white beneath a punishing sky.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.wind-cut-pass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.whisper-dune-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.dried-cistern-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              }
+            },
+            {
+              "room_id": "room.sunken-caravan-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Sunken Caravan",
+              "description": "Rotted wagon frames and half-exposed crates lie trapped in a bowl of sand where a caravan met the desert and lost.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.wind-cut-pass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.dried-cistern-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                },
+                {
+                  "npc_id": "npc.glass-asp-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.glassbone-hollow-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Glassbone Hollow",
+              "description": "The sand here has fused into slick dark glass around white ribs of some vast dead thing.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.half-buried-waymarker-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.mirage-flats-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.glass-asp-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "room_id": "room.whisper-dune-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Whisper Dune",
+              "description": "A long crescent dune sighs with each passing gust, spilling fine sand in hushed curtains down its face.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.dune-shelf-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.basalt-teeth-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.buried-stair-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              }
+            },
+            {
+              "room_id": "room.dried-cistern-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Dried Cistern",
+              "description": "A circular pit lined with ancient stone yawns open here, empty now but cool at its shadowed bottom.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.dune-shelf-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "east": "room.sunken-caravan-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.mirage-flats-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.sunken-guardian-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.mirage-flats-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Mirage Flats",
+              "description": "Heat ripples turn the horizon liquid here, making false towers shimmer in and out of existence.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.glassbone-hollow-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "east": "room.dried-cistern-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.sealed-breach-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.basalt-teeth-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Basalt Teeth",
+              "description": "Black stone spires erupt from the sand like a buried jaw, their shadows sharp and cold against the dunes.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.whisper-dune-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.sealed-breach-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.glass-asp-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                },
+                {
+                  "npc_id": "npc.dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.buried-stair-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Buried Stair",
+              "description": "Long sandstone steps descend beneath the dune at an angle too precise to be natural, half-hidden under veils of grit.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.whisper-dune-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.hidden-gate-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              }
+            },
+            {
+              "room_id": "room.sealed-breach-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Sealed Breach",
+              "description": "A shattered wall segment lies beneath drifts of sand, revealing a worked passage concealed behind ruined masonry.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.basalt-teeth-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "east": "room.mirage-flats-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.hidden-gate-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.sunken-guardian-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.hidden-gate-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Hidden Gate",
+              "description": "A narrow gate of bronze and pale stone stands here beneath the dunes, nearly invisible until one is almost upon it.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.buried-stair-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "east": "room.sealed-breach-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Outer Court",
+              "description": "A buried court opens beneath a cracked dome where disciplined steps have kept the dust from swallowing the floor.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.hidden-gate-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Prayer Walk",
+              "description": "A pillared corridor runs beneath painted oaths and sun motifs dimmed by long concealment.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.lamp-hall-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              }
+            },
+            {
+              "room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Training Yard",
+              "description": "Sand has been swept into neat circles here for drills, and practice scars mark every shield post and standing stone.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.commander-chamber-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "room_id": "room.lamp-hall-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Lamp Hall",
+              "description": "Rows of hooded lamps cast a warm, restrained gold over supply shelves and carefully maintained armor stands.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.sunwell-sanctuary-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.lamp-keeper-sera-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Reliquary Vault",
+              "description": "Broken reliquaries and scattered seals lie in disarray here, and a wrong heat pulses from the chamber's center.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "north": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.commander-chamber-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Commander Chamber",
+              "description": "Maps, prayer tablets, and carefully stacked weapons fill this hidden command room with quiet readiness.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "north": "room.sunwell-sanctuary-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.sunwell-sanctuary-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "title": "Sunwell Sanctuary",
+              "description": "A circular basin of clear water mirrors a shaft of hidden light above, filling the chamber with a calm radiant hush.",
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "exits": {
+                "east": "room.lamp-hall-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "south": "room.commander-chamber-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Sunscour Redoubt",
               "repopulate_game_hours": 1
             }
           ]

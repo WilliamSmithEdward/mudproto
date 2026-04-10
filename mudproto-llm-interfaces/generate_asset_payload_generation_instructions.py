@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.6",
+        "version": "2.7",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
@@ -205,6 +205,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Only reference assets that exist in the base game or in this same payload.",
             "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
             "Preserve MudProto's existing fantasy tone and naming style.",
+            "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
             "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
             "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition."
         ],
@@ -226,7 +227,8 @@ def build_instruction_payload() -> dict[str, object]:
             "Validate all cross-references before returning the final JSON."
         ],
         "minimum_quality_bar": [
-            "Descriptions should be concise and usable in-game.",
+            "Descriptions should be concise, usable in-game, and support the intended fantasy atmosphere.",
+            "Room descriptions should be 3-4 sentences in length and should tie directly into the theme of their zone.",
             "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
             "Combat/support context strings should be ready for player-facing text.",
             "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
