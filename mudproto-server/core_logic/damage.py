@@ -95,11 +95,13 @@ def roll_player_damage(
     weapon: ItemState | None,
     *,
     player_level: int = 1,
+    unarmed_damage_bonus: int = 0,
 ) -> tuple[int, str | None, str]:
     _, level_damage_bonus = _resolve_player_melee_level_bonuses(player_level)
 
     if weapon is None:
-        base_damage = roll_unarmed_damage(player_combat.attack_damage) + level_damage_bonus
+        bonus_damage = max(0, int(unarmed_damage_bonus))
+        base_damage = roll_unarmed_damage(player_combat.attack_damage + bonus_damage) + level_damage_bonus
         return max(0, base_damage), None, "hit"
 
     rolled_damage = _roll_damage_dice(weapon.damage_dice_count, weapon.damage_dice_sides)

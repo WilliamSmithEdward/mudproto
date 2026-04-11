@@ -24,6 +24,40 @@
       "default": true,
       "notes": "Set to false for classes that should not have a mana resource or mana prompt display."
     },
+    "unarmed_damage_bonus": {
+      "type": "integer",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "notes": "Flat bonus applied to the class's unarmed base damage before rolling melee hits."
+    },
+    "unarmed_scaling_attribute_id": {
+      "type": "string",
+      "required": false,
+      "default": "",
+      "allowed_values": ["", "str", "dex", "con", "int", "wis"],
+      "notes": "Optional attribute used to add a scaling bonus to unarmed damage for this class."
+    },
+    "unarmed_scaling_multiplier": {
+      "type": "number",
+      "required": false,
+      "default": 0.0,
+      "minimum": 0.0,
+      "notes": "Multiplier applied to the chosen attribute's modifier when calculating extra unarmed damage."
+    },
+    "unarmed_level_scaling_multiplier": {
+      "type": "number",
+      "required": false,
+      "default": 0.0,
+      "minimum": 0.0,
+      "notes": "Additional unarmed damage gained per level after level 1 for this class."
+    },
+    "dual_unarmed_attacks": {
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "notes": "If true, the class gets a second melee strike when both hands are fully unarmed."
+    },
     "attribute_ranges": {
       "type": "object",
       "required": true,
@@ -78,6 +112,11 @@
       "name": "Example",
       "description": "A reference starter class.",
       "uses_mana": true,
+      "unarmed_damage_bonus": 0,
+      "unarmed_scaling_attribute_id": "",
+      "unarmed_scaling_multiplier": 0.0,
+      "unarmed_level_scaling_multiplier": 0.0,
+      "dual_unarmed_attacks": false,
       "attribute_ranges": {
         "str": {"min": 8, "max": 14},
         "dex": {"min": 8, "max": 14},

@@ -476,6 +476,11 @@ def load_player_classes() -> list[dict]:
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
         raw_resource_progression = raw_class.get("resource_progression", {})
         uses_mana = bool(raw_class.get("uses_mana", True))
+        unarmed_damage_bonus = int(raw_class.get("unarmed_damage_bonus", 0))
+        unarmed_scaling_attribute_id = str(raw_class.get("unarmed_scaling_attribute_id", "")).strip().lower()
+        unarmed_scaling_multiplier = float(raw_class.get("unarmed_scaling_multiplier", 0.0))
+        unarmed_level_scaling_multiplier = float(raw_class.get("unarmed_level_scaling_multiplier", 0.0))
+        dual_unarmed_attacks = bool(raw_class.get("dual_unarmed_attacks", False))
         if not isinstance(raw_gear_ids, list):
             raise ValueError(
                 f"Player class '{class_id}' starting_gear_template_ids must be a list."
@@ -494,6 +499,16 @@ def load_player_classes() -> list[dict]:
             raise ValueError(f"Player class '{class_id}' attribute_ranges must be an object.")
         if not isinstance(raw_resource_progression, dict):
             raise ValueError(f"Player class '{class_id}' resource_progression must be an object.")
+        if unarmed_damage_bonus < 0:
+            raise ValueError(f"Player class '{class_id}' unarmed_damage_bonus must be zero or greater.")
+        if unarmed_scaling_attribute_id and unarmed_scaling_attribute_id not in configured_attribute_ids:
+            raise ValueError(
+                f"Player class '{class_id}' unarmed_scaling_attribute_id references unknown attribute '{unarmed_scaling_attribute_id}'."
+            )
+        if unarmed_scaling_multiplier < 0.0:
+            raise ValueError(f"Player class '{class_id}' unarmed_scaling_multiplier must be zero or greater.")
+        if unarmed_level_scaling_multiplier < 0.0:
+            raise ValueError(f"Player class '{class_id}' unarmed_level_scaling_multiplier must be zero or greater.")
 
         attribute_ranges: dict[str, dict[str, int]] = {}
         for attribute_id in configured_attribute_ids:
@@ -655,6 +670,11 @@ def load_player_classes() -> list[dict]:
             "name": name.strip(),
             "description": str(raw_class.get("description", "")).strip(),
             "uses_mana": uses_mana,
+            "unarmed_damage_bonus": unarmed_damage_bonus,
+            "unarmed_scaling_attribute_id": unarmed_scaling_attribute_id,
+            "unarmed_scaling_multiplier": unarmed_scaling_multiplier,
+            "unarmed_level_scaling_multiplier": unarmed_level_scaling_multiplier,
+            "dual_unarmed_attacks": dual_unarmed_attacks,
             "attribute_ranges": attribute_ranges,
             "starting_gear_template_ids": gear_ids,
             "starting_equipped_gear_template_ids": equipped_gear_ids,

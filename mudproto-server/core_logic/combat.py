@@ -1,3 +1,4 @@
+from attribute_config import get_default_player_class, get_player_class_by_id
 from assets import get_gear_template_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_ability_effects import _apply_entity_damage_with_reduction, _apply_player_damage_with_reduction
@@ -44,8 +45,33 @@ OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
 
 
+def _get_player_unarmed_profile(session: ClientSession) -> tuple[int, bool]:
+    class_id = str(session.player.class_id).strip()
+    player_class = get_player_class_by_id(class_id) if class_id else None
+    if player_class is None:
+        player_class = get_default_player_class()
+
+    unarmed_damage_bonus = max(0, int(player_class.get("unarmed_damage_bonus", 0)))
+    scaling_attribute_id = str(player_class.get("unarmed_scaling_attribute_id", "")).strip().lower()
+    scaling_multiplier = max(0.0, float(player_class.get("unarmed_scaling_multiplier", 0.0)))
+    if scaling_attribute_id and scaling_multiplier > 0.0:
+        attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
+        attribute_modifier = (attribute_value - 10) // 2
+        unarmed_damage_bonus += max(0, int(attribute_modifier * scaling_multiplier))
+
+    level_scaling_multiplier = max(0.0, float(player_class.get("unarmed_level_scaling_multiplier", 0.0)))
+    player_level = max(1, int(session.player.level))
+    if level_scaling_multiplier > 0.0:
+        unarmed_damage_bonus += max(0, int((player_level - 1) * level_scaling_multiplier))
+
+    dual_unarmed_attacks = bool(player_class.get("dual_unarmed_attacks", False))
+    return unarmed_damage_bonus, dual_unarmed_attacks
+
+
 def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[ItemState | None]:
     attack_sequence: list[ItemState | None] = []
+
+    _, dual_unarmed_attacks = _get_player_unarmed_profile(session)
 
     main_hand = get_equipped_main_hand(session)
     main_weapon = main_hand if main_hand is not None and main_hand.slot == "weapon" else None
@@ -59,6 +85,8 @@ def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) 
 
     if allow_off_hand and off_weapon is not None:
         attack_sequence.append(off_weapon)
+    elif allow_off_hand and main_weapon is None and dual_unarmed_attacks:
+        attack_sequence.append(None)
 
     return attack_sequence
 
@@ -244,6 +272,7 @@ def _apply_player_attacks(
     allow_off_hand: bool,
 ) -> None:
     attack_sequence = _build_player_attack_sequence(session, allow_off_hand)
+    unarmed_damage_bonus, _ = _get_player_unarmed_profile(session)
 
     for weapon in attack_sequence:
         if not entity.is_alive:
@@ -266,6 +295,7 @@ def _apply_player_attacks(
             session.player_combat,
             weapon,
             player_level=session.player.level,
+            unarmed_damage_bonus=unarmed_damage_bonus,
         )
         _mark_entity_contributor(session, entity)
         applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)

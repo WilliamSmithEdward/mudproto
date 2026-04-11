@@ -67,6 +67,11 @@
     "name": "Monk",
     "description": "A disciplined martial artist who turns breath, balance, and stamina into relentless close-quarters pressure.",
     "uses_mana": false,
+    "unarmed_damage_bonus": 6,
+    "unarmed_scaling_attribute_id": "dex",
+    "unarmed_scaling_multiplier": 1.0,
+    "unarmed_level_scaling_multiplier": 1.0,
+    "dual_unarmed_attacks": true,
     "attribute_ranges": {
       "str": { "min": 11, "max": 17 },
       "wis": { "min": 10, "max": 15 },
