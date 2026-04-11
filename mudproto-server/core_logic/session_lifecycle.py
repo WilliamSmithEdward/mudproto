@@ -9,7 +9,7 @@ from inventory import hydrate_misc_item_from_template
 from models import ClientSession
 from room_actions import prepend_room_enter_communications
 from player_resources import clamp_player_resources_to_caps
-from player_state_db import load_player_state, save_player_state
+from player_state_db import clear_transient_interaction_flags_for_session, load_player_state, save_player_state
 from session_bootstrap import apply_player_class, ensure_player_attributes
 from session_registry import (
     active_character_sessions,
@@ -149,6 +149,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
         ensure_player_attributes(session)
 
     removed_nonpersistent_count = purge_nonpersistent_items(session, reason="login_sanitization")
+    cleared_transient_flags = clear_transient_interaction_flags_for_session(session)
     clamp_player_resources_to_caps(session)
 
     session.is_authenticated = True
@@ -157,7 +158,12 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     session.auth_stage = "authenticated"
     register_authenticated_character_session(session)
 
-    if (not resumed_from_active and not loaded_state) or is_new_character or removed_nonpersistent_count > 0:
+    if (
+        (not resumed_from_active and not loaded_state)
+        or is_new_character
+        or removed_nonpersistent_count > 0
+        or cleared_transient_flags > 0
+    ):
         save_player_state(session, player_key=character_key)
 
     login_room = get_room(session.player.current_room_id)
@@ -274,6 +280,9 @@ def start_offline_character_processing(session: ClientSession) -> None:
 def handle_client_disconnect(session: ClientSession) -> None:
     unregister_client(session.client_id)
     if session.is_authenticated:
+        clear_transient_interaction_flags_for_session(session)
+        if session.player_state_key.strip():
+            save_player_state(session)
         start_offline_character_processing(session)
 
 

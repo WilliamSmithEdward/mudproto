@@ -21,6 +21,41 @@ def _connect() -> sqlite3.Connection:
     return connection
 
 
+def _is_transient_interaction_flag(flag_key: str) -> bool:
+    normalized_flag = str(flag_key).strip().lower()
+    if not normalized_flag or not normalized_flag.startswith("zone."):
+        return False
+    return "hostile" in normalized_flag or "aggro" in normalized_flag
+
+
+def _normalize_interaction_flags(raw_flags: dict | None, *, include_transient: bool = False) -> dict[str, bool]:
+    if not isinstance(raw_flags, dict):
+        return {}
+
+    normalized_flags: dict[str, bool] = {}
+    for flag_key, flag_value in raw_flags.items():
+        normalized_key = str(flag_key).strip().lower()
+        if not normalized_key or not bool(flag_value):
+            continue
+        if not include_transient and _is_transient_interaction_flag(normalized_key):
+            continue
+        normalized_flags[normalized_key] = True
+    return normalized_flags
+
+
+def clear_transient_interaction_flags_for_session(session: ClientSession) -> int:
+    current_flags = _normalize_interaction_flags(getattr(session.player, "interaction_flags", {}) or {}, include_transient=True)
+    persistent_flags = {
+        flag_key: flag_value
+        for flag_key, flag_value in current_flags.items()
+        if not _is_transient_interaction_flag(flag_key)
+    }
+    removed_count = len(current_flags) - len(persistent_flags)
+    if removed_count > 0:
+        session.player.interaction_flags = persistent_flags
+    return removed_count
+
+
 def initialize_player_state_db() -> None:
     with _connect() as connection:
         connection.execute(
@@ -403,11 +438,7 @@ def _serialize_session(session: ClientSession) -> dict:
                 str(resource_key): int(value)
                 for resource_key, value in dict(session.player.resource_level_gains or {}).items()
             },
-            "interaction_flags": {
-                str(flag_key).strip().lower(): bool(flag_value)
-                for flag_key, flag_value in dict(session.player.interaction_flags or {}).items()
-                if str(flag_key).strip() and bool(flag_value)
-            },
+            "interaction_flags": _normalize_interaction_flags(dict(session.player.interaction_flags or {})),
         },
         "player_combat": {
             "attack_damage": int(session.player_combat.attack_damage),
@@ -552,11 +583,7 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
             }
         raw_interaction_flags = raw_player.get("interaction_flags", {})
         if isinstance(raw_interaction_flags, dict):
-            session.player.interaction_flags = {
-                str(flag_key).strip().lower(): bool(flag_value)
-                for flag_key, flag_value in raw_interaction_flags.items()
-                if str(flag_key).strip() and bool(flag_value)
-            }
+            session.player.interaction_flags = _normalize_interaction_flags(raw_interaction_flags)
 
     raw_player_combat = raw_state.get("player_combat", {})
     if isinstance(raw_player_combat, dict):
