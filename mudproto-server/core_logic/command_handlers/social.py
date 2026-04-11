@@ -82,7 +82,7 @@ def handle_social_command(
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
-    if verb in {"group", "grp", "ungroup"}:
+    if verb in {"group", "grp", "g", "gr", "gro", "grou", "ungroup"}:
         if verb == "ungroup":
             selector_text = " ".join(args).strip()
             if not selector_text:
