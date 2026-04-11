@@ -34,8 +34,7 @@ venv\Scripts\activate          # Windows
 pip install websockets
 
 # Start the server
-cd mudproto-server
-python server.py
+python mudproto-server/core_logic/server.py
 
 # In a second terminal — connect a client
 cd mudproto-client
@@ -87,6 +86,7 @@ Built as both a playable game and a systems-focused codebase, MudProto emphasize
 - **Multi-NPC engagement** — fight several enemies at once, each retaliating independently.
 - **Room-round consolidation** — all players in a room see a unified, chronological combat log each round.
 - **Opening-round initiative** — the opener acts before the first full exchange, with off-hand attacks held back during that opening moment.
+- **Selective spell engagement** — offensive spell casts only enroll the caster in combat against non-engaged targets; already-engaged targets can still be damaged without pulling the caster in.
 - **Configurable damage severity messaging** — attack text uses threshold-based tiers from `miss` and `barely` up through `massacre`, `annihilate`, and `obliterate`.
 - **Flee with uncertainty** — escaping is possible, but never guaranteed.
 
@@ -94,7 +94,14 @@ Built as both a playable game and a systems-focused codebase, MudProto emphasize
 - **Mana-based spells** — targeted damage, AoE, self-heal, vigor restore, mana restore.
 - **Vigor-based skills** — attribute-scaled damage and support, with per-skill cooldowns.
 - **Support effects** — instant, timed (game hours), or combat-round durations.
+- **Step-scaled support tuning** — skills can scale support effects by level steps using `support_level_step` and `support_amount_per_level_step`.
+- **Game-hour skill cooldowns** — support/damage skills can use `cooldown_hours`, and these persist across full disconnect/reconnect.
 - **NPC AI** — enemies can use both skills and spells with independent cooldown tracking.
+
+### 👥 Social Systems
+- **Follow + watch targeting** — players can follow allies and watch a nearby player's status from the prompt.
+- **Group management** — `group`, `group form`, `group <player>`, `ungroup <player>`, and `group disband` are supported.
+- **Death-aware follow behavior** — follower/group relationships are reconciled when a leader dies (group disbands, follow retargeting rules applied).
 
 ### 🎒 Unified Item System
 - **Single `ItemState` model** — no split between "inventory items" and "equipment items." Every item carries an intrinsic `equippable` flag hydrated from gear templates.
@@ -167,28 +174,21 @@ mudproto/
 │   └── client_gui.py                # Optional GUI client
 │
 ├── mudproto-server/
-│   ├── server.py                    # Entry point, tick loops, room broadcasts
-│   ├── protocol.py                  # Envelope construction & validation
-│   ├── models.py                    # Core session, combat, item, and NPC dataclasses
-│   ├── settings.py                  # Typed config from settings.json
-│   ├── session_*.py                 # Session lifecycle, registry, timing, and bootstrap modules
-│   ├── commands.py                  # All player commands & auth flow
-│   ├── combat.py                    # Combat resolution and encounter flow
-│   ├── combat_text.py               # Damage severity and attack text
-│   ├── damage.py                    # Hit chance & damage math
-│   ├── death.py                     # Death and respawn handling
-│   ├── display.py                   # Display builders (room, prompt, etc.)
-│   ├── equipment.py                 # Equip / wear / unequip mechanics
-│   ├── experience.py                # XP awards and level progression
-│   ├── grammar.py                   # NLP transforms (articles, 3rd person)
-│   ├── inventory.py                 # Item selectors & template hydration
-│   ├── player_resources.py          # HP, mana, vigor, and cap helpers
-│   ├── attribute_config.py          # Attribute & rules config loaders
-│   ├── assets.py                    # Content asset loaders with cross-ref validation
-│   ├── player_state_db.py           # SQLite persistence layer
-│   ├── world.py                     # Room and zone models
-│   ├── battle_round_ticks.py        # Per-round support effect processing
-│   ├── game_hour_ticks.py           # Regen & timed support processing
+│   ├── core_logic/
+│   │   ├── server.py                # Entry point and websocket orchestration
+│   │   ├── server_loops.py          # Tick loops and combat round scheduling
+│   │   ├── protocol.py              # Envelope construction & validation
+│   │   ├── models.py                # Core session/combat/item/entity dataclasses
+│   │   ├── commands.py              # Message dispatch and command routing
+│   │   ├── command_handlers/        # Auth/world/social/combat command handlers
+│   │   ├── combat.py                # Combat round resolution
+│   │   ├── combat_player_abilities.py
+│   │   ├── combat_state.py
+│   │   ├── targeting_follow.py      # Follow/watch/group helpers
+│   │   ├── display_feedback.py      # Prompt/result feedback builders
+│   │   ├── assets.py                # Asset loaders + validation
+│   │   ├── player_state_db.py       # SQLite persistence layer
+│   │   └── ...
 │   └── configuration/
 │       ├── server/settings.json     # Network, timing, combat, gameplay
 │       ├── assets/                  # gear, items, npcs, rooms, zones, spells, skills

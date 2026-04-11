@@ -42,6 +42,10 @@ Responsibilities:
 - Command queues are FIFO per session.
 - The client sends generic input; the server sends structured display
   instructions.
+- Damage spell engagement is selective: casting on already-engaged targets can
+  apply damage without enrolling the caster in combat.
+- AoE damage spells only enroll the caster against affected non-engaged
+  targets; existing engagements remain with their current combatants.
 
 ---
 
@@ -147,14 +151,14 @@ Level gains: +10HP +5V +6M
 | `targeting_parsing.py` | Shared selector parsing and normalization helpers for commands and resolvers. |
 | `targeting_entities.py` | Entity/player/corpse lookup plus room target resolution helpers. |
 | `targeting_items.py` | Item and equipment selector resolution across inventory, corpses, and room ground items. |
-| `targeting_follow.py` | Follow/unfollow targeting helpers and social-follow resolution. |
+| `targeting_follow.py` | Follow/watch/group targeting helpers, recursive follow-chain group resolution, and death-time follow/group reconciliation. |
 | `item_logic.py` | Shared corpse/item display logic and misc item-use handling. |
 | `abilities.py` | Shared known spell/skill lookup and name-resolution helpers. |
 | `world_population.py` | NPC/entity template hydration, training dummy spawning, shared-world initialization, and zone repopulation/reinitialization. |
 | `combat_ability_effects.py` | Shared support-effect scaling, restore logic, cooldown bookkeeping, and timed/battle-round effect processing. |
-| `combat_player_abilities.py` | Player skill and spell execution, targeting, resource spend, reward hooks, and observer text setup. |
+| `combat_player_abilities.py` | Player skill/spell execution, targeting, resource spend, reward hooks, observer text setup, and selective engagement rules for damage spells/AoE. |
 | `combat_entity_abilities.py` | NPC/entity skill and spell usage against players, including self-buffs and restore effects. |
-| `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers. |
+| `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers (including optional auto-aggro chaining control when combat starts). |
 | `combat_rewards.py` | Shared contributor tracking and XP/reward distribution helpers. |
 | `combat_observer.py` | Combat observer-line templating, room-broadcast line shaping, and third-person text helpers. |
 | `command_handlers/` | Grouped player-facing handlers plus focused support modules like `parsing.py`, `types.py`, and `item_actions.py` for auth, character creation, world, observation, loot, equipment, commerce, spells, skills, movement, and social interactions. |
@@ -172,7 +176,7 @@ Level gains: +10HP +5V +6M
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
 | `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
 | `assets.py` | Content asset loaders for gear, items, rooms, zones, NPCs, spells, and skills with structural and cross-reference validation. |
-| `player_state_db.py` | SQLite persistence: character credentials, full session serialization/deserialization. |
+| `player_state_db.py` | SQLite persistence: character credentials, full session serialization/deserialization, including persisted game-hour skill cooldown state. |
 | `world.py` | `Room` and `Zone` dataclasses, including room zone membership, repopulation metadata, and configurable room keyword actions. |
 | `room_actions.py` | Configurable room keyword interaction handling, including exit reveal/hide actions and room-specific triggers. |
 | `battle_round_ticks.py` | Per-round support effect processing during combat. |
@@ -264,7 +268,7 @@ configuration/
     rooms.json             # world rooms (exits, zone_id, NPC spawns)
     zones.json             # zone membership and repop timing in game hours
     spells.json            # player spells (damage/support, mana cost)
-    skills.json            # player skills (vigor cost, scaling, cooldown)
+    skills.json            # player skills (vigor cost, scaling, round/hour cooldowns, support step scaling)
   attributes/
     character_attributes.json   # attribute definitions (STR, DEX, CON, INT, WIS)
     classes.json                # player classes, starting gear, spells, skills
@@ -713,11 +717,11 @@ mudproto/
       targeting_parsing.py       # selector parsing helpers
       targeting_entities.py      # entity/player/corpse resolvers
       targeting_items.py         # item selector resolvers
-      targeting_follow.py        # follow/unfollow targeting helpers
+      targeting_follow.py        # follow/watch/group targeting + membership reconciliation
       grammar.py                 # shared text and grammar transforms
       attribute_config.py        # attribute and rules config loaders
       assets.py                  # content asset loaders with validation
-      player_state_db.py         # SQLite persistence
+      player_state_db.py         # SQLite persistence (including game-hour skill cooldown state)
       world.py                   # Room and Zone dataclasses
       battle_round_ticks.py      # per-round support effect processing
       game_hour_ticks.py         # per-hour regen and timed support processing
