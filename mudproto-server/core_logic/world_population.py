@@ -1,6 +1,6 @@
 import uuid
 
-from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
+from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id, load_rooms
 from inventory import build_equippable_item_from_template, build_misc_item_from_template, tick_item_decay_list, tick_item_decay_map
 from models import ClientSession, EntityState, ItemState
 from player_state_db import clear_player_interaction_flags, save_player_state
@@ -138,6 +138,16 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
         for flag in template.get("set_player_flags_on_hostile_action", [])
         if str(flag).strip()
     ]
+    entity.set_player_flags_on_death = [
+        str(flag).strip().lower()
+        for flag in template.get("set_player_flags_on_death", [])
+        if str(flag).strip()
+    ]
+    entity.set_world_flags_on_death = [
+        str(flag).strip().lower()
+        for flag in template.get("set_world_flags_on_death", [])
+        if str(flag).strip()
+    ]
     entity.is_ally = bool(template.get("is_ally", False))
     entity.is_peaceful = bool(template.get("is_peaceful", False))
     entity.respawn = bool(template.get("respawn", True))
@@ -245,6 +255,35 @@ def _reset_zone_container_templates(zone) -> None:
             if template is None:
                 continue
             room_items[item_id] = build_misc_item_from_template(template, item_id=item_id)
+
+
+def _reset_zone_room_exit_states(zone) -> None:
+    zone_room_ids = {room_id for room_id in getattr(zone, "room_ids", []) if room_id in WORLD.rooms}
+    if not zone_room_ids:
+        return
+
+    load_rooms.cache_clear()
+    fresh_rooms_by_id = {
+        str(room_data.get("room_id", "")).strip(): room_data
+        for room_data in load_rooms()
+        if isinstance(room_data, dict)
+    }
+
+    linked_room_ids = set(zone_room_ids)
+    for room_id, room in WORLD.rooms.items():
+        for destination_room_id in getattr(room, "exits", {}).values():
+            if destination_room_id in zone_room_ids:
+                linked_room_ids.add(room_id)
+                break
+
+    for room_id in linked_room_ids:
+        room = WORLD.rooms.get(room_id)
+        fresh_room = fresh_rooms_by_id.get(room_id)
+        if room is None or fresh_room is None:
+            continue
+
+        room.exits = dict(fresh_room.get("exits", {}))
+        room.exit_details = [dict(exit_detail) for exit_detail in fresh_room.get("exit_details", [])]
 
 
 def process_world_item_game_hour_tick() -> None:
@@ -364,6 +403,7 @@ def reinitialize_zone(zone_id: str) -> int:
     _clear_zone_player_flags(zone)
     _clear_zone_world_flags(zone)
     _reset_zone_container_templates(zone)
+    _reset_zone_room_exit_states(zone)
 
     next_spawn_sequence = max((entity.spawn_sequence for entity in shared_world_entities.values()), default=0)
     spawned_count = 0

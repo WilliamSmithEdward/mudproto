@@ -1,7 +1,7 @@
 from assets import get_gear_template_by_id
-from combat_state import get_engaged_entity, get_entity_condition, get_health_condition
+from combat_state import get_engaged_entity, get_entity_condition, get_health_condition, is_entity_hostile_to_player
 from equipment_logic import list_worn_items
-from item_logic import _item_highlight_color
+from item_logic import _build_corpse_label, _item_highlight_color
 from models import ClientSession
 from player_resources import get_player_resource_caps
 from session_registry import list_authenticated_room_players
@@ -17,7 +17,17 @@ def _scan_visible_hostiles(session: ClientSession, room_id: str) -> list:
     visible = [
         entity
         for entity in list_room_entities(session, room_id)
-        if entity.is_alive and not bool(getattr(entity, "is_ally", False)) and not bool(getattr(entity, "is_peaceful", False))
+        if is_entity_hostile_to_player(session, entity)
+    ]
+    visible.sort(key=lambda entity: (entity.name.lower(), entity.spawn_sequence))
+    return visible
+
+
+def _scan_visible_unhostiles(session: ClientSession, room_id: str) -> list:
+    visible = [
+        entity
+        for entity in list_room_entities(session, room_id)
+        if entity.is_alive and not is_entity_hostile_to_player(session, entity)
     ]
     visible.sort(key=lambda entity: (entity.name.lower(), entity.spawn_sequence))
     return visible
@@ -29,7 +39,14 @@ def _scan_visible_players(session: ClientSession, room_id: str) -> list[ClientSe
     return visible
 
 
-def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: str = "Enemies: ") -> bool:
+def _append_scan_entity_summary(
+    parts: list[dict],
+    entities: list,
+    *,
+    prefix: str,
+    name_color: str,
+    count_color: str = "bright_cyan",
+) -> bool:
     if not entities:
         return False
 
@@ -53,12 +70,20 @@ def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: s
         if index > 0:
             parts.append(build_part(", ", "bright_white"))
 
-        parts.append(build_part(str(entry["name"]), "bright_red", True))
+        parts.append(build_part(str(entry["name"]), name_color, True))
         count = int(entry["count"])
         if count > 1:
-            parts.append(build_part(f" [{count}]", "bright_cyan", True))
+            parts.append(build_part(f" [{count}]", count_color, True))
 
     return True
+
+
+def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: str = "Enemies: ") -> bool:
+    return _append_scan_entity_summary(parts, entities, prefix=prefix, name_color="bright_red")
+
+
+def _append_scan_unhostile_summary(parts: list[dict], entities: list, *, prefix: str = "Unhostile: ") -> bool:
+    return _append_scan_entity_summary(parts, entities, prefix=prefix, name_color="bright_yellow")
 
 
 def _append_scan_player_summary(parts: list[dict], players: list[ClientSession], *, prefix: str = "Players: ") -> bool:
@@ -125,20 +150,26 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             ])
 
             nearby_hostiles = _scan_visible_hostiles(session, destination_room_id)
+            nearby_unhostiles = _scan_visible_unhostiles(session, destination_room_id)
             nearby_players = _scan_visible_players(session, destination_room_id)
-            if nearby_hostiles or nearby_players:
+            if nearby_hostiles or nearby_unhostiles or nearby_players:
                 parts.append(build_part("  -  ", "bright_black"))
                 appended_summary = False
                 if nearby_hostiles:
                     appended_summary = _append_scan_hostile_summary(parts, nearby_hostiles, prefix="Enemies: ")
+                if nearby_unhostiles:
+                    if appended_summary:
+                        parts.append(build_part("  |  ", "bright_black"))
+                    appended_summary = _append_scan_unhostile_summary(parts, nearby_unhostiles, prefix="Unhostile: ") or appended_summary
                 if nearby_players:
                     if appended_summary:
                         parts.append(build_part("  |  ", "bright_black"))
                     _append_scan_player_summary(parts, nearby_players, prefix="Players: ")
 
     visible_enemies = _scan_visible_hostiles(session, room.room_id)
+    visible_unhostiles = _scan_visible_unhostiles(session, room.room_id)
     visible_players = _scan_visible_players(session, room.room_id)
-    if visible_enemies or visible_players:
+    if visible_enemies or visible_unhostiles or visible_players:
         parts.extend([
             build_part("\n"),
             build_part(_panel_divider(), "bright_black"),
@@ -148,12 +179,16 @@ def display_exits(session: ClientSession, room: Room) -> dict:
         appended_summary = False
         if visible_enemies:
             appended_summary = _append_scan_hostile_summary(parts, visible_enemies, prefix="Enemies: ")
+        if visible_unhostiles:
+            if appended_summary:
+                parts.append(build_part("  |  ", "bright_black"))
+            appended_summary = _append_scan_unhostile_summary(parts, visible_unhostiles, prefix="Unhostile: ") or appended_summary
         if visible_players:
             if appended_summary:
                 parts.append(build_part("  |  ", "bright_black"))
             _append_scan_player_summary(parts, visible_players, prefix="Players: ")
 
-    return build_display(parts, blank_lines_before=0, prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display(parts, blank_lines_before=1, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def _summarize_entity_gear(entity) -> list[str]:
@@ -347,7 +382,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
-                build_part(f"{corpse.source_name} corpse", bold=True),
+                build_part(_build_corpse_label(corpse.source_name), bold=True),
             ])
 
     room_coin_amount = max(0, int(session.room_coin_piles.get(room.room_id, 0)))

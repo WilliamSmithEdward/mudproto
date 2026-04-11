@@ -7,6 +7,36 @@ from models import ClientSession, CorpseState, EntityState, ItemState
 from targeting_parsing import _selector_prefix_matches_keywords
 
 
+_GENERIC_CORPSE_NOUNS = {
+    "acolyte",
+    "asp",
+    "bandit",
+    "beast",
+    "cantor",
+    "captain",
+    "corpse",
+    "custodian",
+    "dummy",
+    "guardian",
+    "guard",
+    "heresiarch",
+    "keeper",
+    "knight",
+    "marshal",
+    "merchant",
+    "paladin",
+    "rat",
+    "scarab",
+    "scout",
+    "sentinel",
+    "soldier",
+    "spider",
+    "warden",
+    "wolf",
+    "zombie",
+}
+
+
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
     entities: list[EntityState] = []
 
@@ -31,6 +61,21 @@ def list_room_corpses(session: ClientSession, room_id: str) -> list[CorpseState]
 
 def _entity_name_keywords(name: str) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
+
+
+def _build_corpse_label(source_name: str) -> str:
+    cleaned_name = " ".join(str(source_name).split()).strip()
+    if not cleaned_name:
+        return "corpse"
+
+    parts = [part for part in cleaned_name.split(" ") if part]
+    final_word = parts[-1]
+    normalized_final = re.sub(r"[^a-z0-9-]", "", final_word.lower())
+    if normalized_final and normalized_final not in _GENERIC_CORPSE_NOUNS:
+        suffix = "'" if final_word.endswith(("s", "S")) else "'s"
+        return f"{final_word}{suffix} corpse"
+
+    return f"{cleaned_name} corpse"
 
 
 def _corpse_keywords(corpse: CorpseState) -> set[str]:
@@ -149,11 +194,14 @@ def resolve_room_corpse_selector(
         exact_match: CorpseState | None = None
         partial_match: CorpseState | None = None
         for corpse in room_corpses:
-            corpse_name = f"{corpse.source_name} corpse".lower()
-            if corpse_name == normalized:
+            corpse_names = {
+                _build_corpse_label(corpse.source_name).lower(),
+                f"{corpse.source_name} corpse".lower(),
+            }
+            if normalized in corpse_names:
                 exact_match = corpse
                 break
-            if normalized in corpse_name and partial_match is None:
+            if any(normalized in corpse_name for corpse_name in corpse_names) and partial_match is None:
                 partial_match = corpse
         if exact_match is not None:
             return exact_match, None

@@ -15,8 +15,49 @@ from session_timing import apply_lag
 from targeting_items import _resolve_misc_inventory_selector
 
 
+_GENERIC_CORPSE_NOUNS = {
+    "acolyte",
+    "asp",
+    "bandit",
+    "beast",
+    "cantor",
+    "captain",
+    "corpse",
+    "custodian",
+    "dummy",
+    "guardian",
+    "guard",
+    "heresiarch",
+    "keeper",
+    "knight",
+    "marshal",
+    "merchant",
+    "paladin",
+    "rat",
+    "scarab",
+    "scout",
+    "sentinel",
+    "soldier",
+    "spider",
+    "warden",
+    "wolf",
+    "zombie",
+}
+
+
 def _build_corpse_label(source_name: str) -> str:
-    return f"{source_name} corpse"
+    cleaned_name = " ".join(str(source_name).split()).strip()
+    if not cleaned_name:
+        return "corpse"
+
+    parts = [part for part in cleaned_name.split(" ") if part]
+    final_word = parts[-1]
+    normalized_final = re.sub(r"[^a-z0-9-]", "", final_word.lower())
+    if normalized_final and normalized_final not in _GENERIC_CORPSE_NOUNS:
+        suffix = "'" if final_word.endswith(("s", "S")) else "'s"
+        return f"{final_word}{suffix} corpse"
+
+    return f"{cleaned_name} corpse"
 
 
 def _item_highlight_color(item) -> str:

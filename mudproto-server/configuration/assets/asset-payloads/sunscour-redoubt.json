@@ -676,24 +676,276 @@
       ]
     },
     {
-      "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "name": "Buried Heresiarch",
-      "hit_points": 410,
-      "max_hit_points": 410,
-      "power_level": 8,
+      "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Prayer-Warden Samiel",
+      "hit_points": 330,
+      "max_hit_points": 330,
+      "power_level": 6,
       "attacks_per_round": 1,
-      "hit_roll_modifier": 4,
+      "hit_roll_modifier": 3,
       "armor_class": 13,
       "off_hand_attacks_per_round": 0,
       "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 0,
+      "experience_reward": 72,
+      "is_aggro": false,
+      "aggro_player_flags": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "set_player_flags_on_hostile_action": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "off_hand_weapon_template_id": "",
+      "vigor": 74,
+      "max_vigor": 74,
+      "mana": 90,
+      "max_mana": 90,
+      "skill_use_chance": 0.2,
+      "skill_ids": [
+        "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.2,
+      "spell_ids": [
+        "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel squares his shoulders. \"You have chosen treachery. Leave this walk or answer for it.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "message": "A veiled paladin hails you quietly. \"Traveller, the blasphemer to the south was once our chaplain. If you have the strength, put him down and return.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel bows his head. \"The vault has gone still. Kneel at the broken sun and speak absolution; the lower tomb should answer now. If you find the sepulcher key below, bring it to me.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel says, \"You have done this redoubt a grace I will remember.\""
+        }
+      ],
+      "keyword_actions": [
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel",
+            "ask samiel about south",
+            "ask samiel about vault",
+            "ask samiel about key"
+          ],
+          "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel keeps his sabre ready. \"No counsel remains for oathbreakers.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel",
+            "ask samiel about south",
+            "ask samiel about vault"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "message": "Samiel says, \"The thing to the south was once Brother Merovech, keeper of this vault. End him, and perhaps the old ways below will answer us again.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel",
+            "ask samiel about vault",
+            "ask samiel about key",
+            "ask samiel about sepulcher"
+          ],
+          "required_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel says, \"Return to the vault and kneel at the broken sun. Speak absolution, and the lower sepulcher should open. Bring me the sepulcher key if you survive what waits below.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "give sepulcher key samiel",
+            "give sepulcher key to samiel",
+            "deliver sepulcher key samiel",
+            "deliver sepulcher key to samiel",
+            "present sepulcher key samiel",
+            "present sepulcher key to samiel",
+            "give key samiel",
+            "give key to samiel",
+            "deliver key samiel",
+            "deliver key to samiel",
+            "present key samiel",
+            "present key to samiel"
+          ],
+          "required_item_template_ids": [
+            "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "set_player_flags": [
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel receives the sepulcher key with both hands and exhales at last. \"Then the lower dead may sleep again. You have my thanks, and the order's.\"\nYou gain 450 experience.",
+          "already_message": "Samiel says, \"The key is already where it belongs.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "remove_item",
+              "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "quantity": 1
+            },
+            {
+              "type": "award_experience",
+              "amount": 450
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "give sepulcher key samiel",
+            "give sepulcher key to samiel",
+            "deliver sepulcher key samiel",
+            "deliver sepulcher key to samiel",
+            "present sepulcher key samiel",
+            "present sepulcher key to samiel",
+            "give key samiel",
+            "give key to samiel",
+            "deliver key samiel",
+            "deliver key to samiel",
+            "present key samiel",
+            "present key to samiel"
+          ],
+          "required_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel shakes his head. \"What I need is the sepulcher key from the tomb below, nothing less.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel"
+          ],
+          "required_player_flags": [
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel says, \"You have done enough. Go with the sun's mercy.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Buried Heresiarch",
+      "hit_points": 1200,
+      "max_hit_points": 1200,
+      "power_level": 10,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 4,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 4,
       "coin_reward": 96,
       "experience_reward": 130,
       "is_aggro": true,
       "is_ally": false,
+      "set_world_flags_on_death": [
+        "npc.buried-heresiarch.defeated"
+      ],
       "respawn": true,
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "off_hand_weapon_template_id": "",
+      "off_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "vigor": 72,
       "max_vigor": 72,
       "mana": 170,
@@ -971,7 +1223,13 @@
         "east": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
         "west": "room.lamp-hall-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
         "south": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
-      }
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "count": 1
+        }
+      ]
     },
     {
       "room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -1031,6 +1289,61 @@
       "title": "Reliquary Vault",
       "description": "Broken reliquaries and scattered seals lie in disarray here, and a wrong heat pulses from the chamber's center.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "keyword_actions": [
+        {
+          "keywords": [
+            "speak absolution",
+            "pray absolution",
+            "kneel at sun",
+            "kneel at dais",
+            "kneel before dais",
+            "kneel before sun",
+            "touch sun disc",
+            "touch broken sun"
+          ],
+          "required_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "message": "As you speak the old absolution, the broken sun-dais yields and lowers you into a hidden sepulcher below.",
+          "refresh_view": "room",
+          "actions": [
+            {
+              "type": "teleport_player",
+              "destination_room_id": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "speak absolution",
+            "pray absolution",
+            "kneel at sun",
+            "kneel at dais",
+            "kneel before dais",
+            "kneel before sun",
+            "touch sun disc",
+            "touch broken sun"
+          ],
+          "excluded_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "message": "The rite dies in your throat. Whatever lies below will not answer while the Heresiarch still profanes this vault.",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        }
+      ],
+      "room_objects": [
+        {
+          "object_id": "broken-sun-dais",
+          "name": "broken sun-dais",
+          "keywords": ["dais", "sun", "sun dais", "broken sun", "sun disc", "disc"],
+          "description": "A cracked disc of pale stone is set into the floor here, its old sunburst motif split through the center. The worn surface suggests kneeling penitents once spoke rites over it."
+        }
+      ],
       "exits": {
         "north": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
       },
@@ -1082,10 +1395,12 @@
       "reset_player_flags": [
         "npc.sunmarshal-aurek.met",
         "npc.sunmarshal-aurek.rewarded",
+        "npc.prayer-warden-samiel.rewarded",
         "zone.sunscour-redoubt.paladins-hostile"
       ],
       "reset_world_flags": [
-        "npc.sunmarshal-aurek.key-claimed"
+        "npc.sunmarshal-aurek.key-claimed",
+        "npc.buried-heresiarch.defeated"
       ],
       "reset_container_template_ids": [
         "item.container.loft-chest"

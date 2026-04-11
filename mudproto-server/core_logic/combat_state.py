@@ -7,7 +7,7 @@ from assets import get_gear_template_by_id
 from combat_ability_effects import _process_entity_battle_round_support_effects
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
-from session_registry import active_character_sessions, connected_clients
+from session_registry import active_character_sessions, connected_clients, shared_world_flags
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
@@ -124,6 +124,18 @@ def _entity_should_auto_aggro(session: ClientSession, entity: EntityState) -> bo
     return bool(entity_flags & active_flags)
 
 
+def is_entity_hostile_to_player(session: ClientSession, entity: EntityState) -> bool:
+    if entity is None or not bool(getattr(entity, "is_alive", False)):
+        return False
+    if bool(getattr(entity, "is_ally", False)):
+        return False
+    if str(getattr(entity, "entity_id", "")).strip() in getattr(session.combat, "engaged_entity_ids", set()):
+        return True
+    if bool(getattr(entity, "is_peaceful", False)):
+        return False
+    return _entity_should_auto_aggro(session, entity)
+
+
 def _apply_player_hostile_action_flags(session: ClientSession, entity: EntityState) -> None:
     for raw_flag in getattr(entity, "set_player_flags_on_hostile_action", []):
         normalized_flag = " ".join(str(raw_flag).strip().lower().split())
@@ -161,6 +173,20 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
     if not session.combat.opening_attacker:
         session.combat.opening_attacker = opening_attacker
     return not already_engaged
+
+
+def apply_entity_defeat_flags(session: ClientSession, entity: EntityState) -> None:
+    interaction_flags = dict(getattr(session.player, "interaction_flags", {}) or {})
+    for raw_flag in getattr(entity, "set_player_flags_on_death", []):
+        normalized_flag = " ".join(str(raw_flag).strip().lower().split())
+        if normalized_flag:
+            interaction_flags[normalized_flag] = True
+    session.player.interaction_flags = interaction_flags
+
+    for raw_flag in getattr(entity, "set_world_flags_on_death", []):
+        normalized_flag = " ".join(str(raw_flag).strip().lower().split())
+        if normalized_flag:
+            shared_world_flags.add(normalized_flag)
 
 
 def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:

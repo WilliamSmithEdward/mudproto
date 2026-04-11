@@ -538,6 +538,19 @@ def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> 
             raw_keyword_action.get("clear_world_flags", []),
             context=f"{context} clear_world_flags",
         )
+        required_item_template_ids = [
+            str(template_id).strip()
+            for template_id in raw_keyword_action.get("required_item_template_ids", [])
+            if str(template_id).strip()
+        ]
+        excluded_item_template_ids = [
+            str(template_id).strip()
+            for template_id in raw_keyword_action.get("excluded_item_template_ids", [])
+            if str(template_id).strip()
+        ]
+        for template_id in required_item_template_ids + excluded_item_template_ids:
+            if get_gear_template_by_id(template_id) is None and get_item_template_by_id(template_id) is None:
+                raise ValueError(f"{context} references unknown item template_id '{template_id}'.")
 
         normalized_actions: list[dict] = []
         for raw_action in raw_actions:
@@ -588,6 +601,26 @@ def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> 
                 })
                 continue
 
+            if action_type in {"remove_item", "consume_item", "take_item"}:
+                template_id = str(raw_action.get("template_id", "")).strip()
+                if not template_id:
+                    raise ValueError(f"{context} {action_type} actions must include template_id.")
+                if get_gear_template_by_id(template_id) is None and get_item_template_by_id(template_id) is None:
+                    raise ValueError(f"{context} {action_type} references unknown template_id '{template_id}'.")
+                normalized_actions.append({
+                    "type": "remove_item",
+                    "template_id": template_id,
+                    "quantity": max(1, int(raw_action.get("quantity", 1))),
+                })
+                continue
+
+            if action_type in {"award_experience", "grant_experience"}:
+                normalized_actions.append({
+                    "type": "award_experience",
+                    "amount": max(0, int(raw_action.get("amount", raw_action.get("experience_amount", 0)))),
+                })
+                continue
+
             if action_type in _KEYWORD_NOOP_ACTIONS:
                 normalized_actions.append({"type": "noop"})
                 continue
@@ -607,6 +640,8 @@ def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> 
             "excluded_world_flags": excluded_world_flags,
             "set_world_flags": set_world_flags,
             "clear_world_flags": clear_world_flags,
+            "required_item_template_ids": required_item_template_ids,
+            "excluded_item_template_ids": excluded_item_template_ids,
             "actions": normalized_actions,
         })
 
@@ -1157,6 +1192,14 @@ def load_npc_templates() -> list[dict]:
             raw_npc.get("set_player_flags_on_hostile_action", raw_npc.get("hostile_action_player_flags", [])),
             context=f"NPC '{npc_id}' set_player_flags_on_hostile_action",
         )
+        set_player_flags_on_death = _normalize_flag_list(
+            raw_npc.get("set_player_flags_on_death", []),
+            context=f"NPC '{npc_id}' set_player_flags_on_death",
+        )
+        set_world_flags_on_death = _normalize_flag_list(
+            raw_npc.get("set_world_flags_on_death", []),
+            context=f"NPC '{npc_id}' set_world_flags_on_death",
+        )
 
         if normalized_npc_id not in normalized_npcs_by_id:
             ordered_npc_ids.append(normalized_npc_id)
@@ -1176,6 +1219,8 @@ def load_npc_templates() -> list[dict]:
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
             "aggro_player_flags": aggro_player_flags,
             "set_player_flags_on_hostile_action": set_player_flags_on_hostile_action,
+            "set_player_flags_on_death": set_player_flags_on_death,
+            "set_world_flags_on_death": set_world_flags_on_death,
             "is_ally": bool(raw_npc.get("is_ally", False)),
             "is_peaceful": bool(raw_npc.get("is_peaceful", False)),
             "respawn": bool(raw_npc.get("respawn", True)),

@@ -3,6 +3,7 @@
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
 from display_core import build_line, build_part
 from display_feedback import display_command_result, display_error
+from experience import award_experience
 from display_room import display_exits, display_room
 from inventory import build_equippable_item_from_template, build_misc_item_from_template
 from models import ClientSession
@@ -52,7 +53,12 @@ def _active_world_flags() -> set[str]:
     }
 
 
-def _entry_matches_player_flags(entry: dict, active_flags: set[str], active_world_flags: set[str] | None = None) -> bool:
+def _entry_matches_player_flags(
+    entry: dict,
+    active_flags: set[str],
+    active_world_flags: set[str] | None = None,
+    session: ClientSession | None = None,
+) -> bool:
     required_flags = {
         str(flag).strip().lower()
         for flag in entry.get("required_player_flags", [])
@@ -74,11 +80,30 @@ def _entry_matches_player_flags(entry: dict, active_flags: set[str], active_worl
         for flag in entry.get("excluded_world_flags", [])
         if str(flag).strip()
     }
+    required_item_template_ids = {
+        str(template_id).strip().lower()
+        for template_id in entry.get("required_item_template_ids", [])
+        if str(template_id).strip()
+    }
+    excluded_item_template_ids = {
+        str(template_id).strip().lower()
+        for template_id in entry.get("excluded_item_template_ids", [])
+        if str(template_id).strip()
+    }
+    session_item_template_ids: set[str] = set()
+    if session is not None:
+        session_item_template_ids = {
+            str(getattr(item, "template_id", "")).strip().lower()
+            for item in list(session.inventory_items.values()) + list(session.equipment.equipped_items.values())
+            if str(getattr(item, "template_id", "")).strip()
+        }
     return (
         required_flags.issubset(active_flags)
         and not bool(active_flags & excluded_flags)
         and required_world_flags.issubset(normalized_world_flags)
         and not bool(normalized_world_flags & excluded_world_flags)
+        and required_item_template_ids.issubset(session_item_template_ids)
+        and not bool(session_item_template_ids & excluded_item_template_ids)
     )
 
 
@@ -172,6 +197,40 @@ def _grant_template_item(session: ClientSession, template_id: str) -> bool:
     return True
 
 
+def _remove_template_item(session: ClientSession, template_id: str, quantity: int = 1) -> int:
+    normalized_template_id = str(template_id).strip().lower()
+    if not normalized_template_id:
+        return 0
+
+    removed_count = 0
+    for item_id, item in list(session.inventory_items.items()):
+        if str(getattr(item, "template_id", "")).strip().lower() != normalized_template_id:
+            continue
+        session.inventory_items.pop(item_id, None)
+        removed_count += 1
+        if removed_count >= max(1, quantity):
+            return removed_count
+
+    for item_id, item in list(session.equipment.equipped_items.items()):
+        if str(getattr(item, "template_id", "")).strip().lower() != normalized_template_id:
+            continue
+        session.equipment.equipped_items.pop(item_id, None)
+        if session.equipment.equipped_main_hand_id == item_id:
+            session.equipment.equipped_main_hand_id = None
+        if session.equipment.equipped_off_hand_id == item_id:
+            session.equipment.equipped_off_hand_id = None
+        session.equipment.worn_item_ids = {
+            slot: equipped_item_id
+            for slot, equipped_item_id in session.equipment.worn_item_ids.items()
+            if equipped_item_id != item_id
+        }
+        removed_count += 1
+        if removed_count >= max(1, quantity):
+            return removed_count
+
+    return removed_count
+
+
 def _apply_keyword_actions(room: Room | None, keyword_action: dict, *, session: ClientSession | None = None) -> bool:
     changed = False
     _apply_player_flag_updates(session, keyword_action)
@@ -192,6 +251,25 @@ def _apply_keyword_actions(room: Room | None, keyword_action: dict, *, session: 
             for _ in range(quantity):
                 granted_any = _grant_template_item(session, template_id) or granted_any
             changed = changed or granted_any
+            continue
+
+        if action_type == "remove_item":
+            if session is None:
+                continue
+
+            template_id = str(action.get("template_id", "")).strip()
+            quantity = max(1, int(action.get("quantity", 1)))
+            removed_count = _remove_template_item(session, template_id, quantity)
+            changed = changed or (removed_count > 0)
+            continue
+
+        if action_type == "award_experience":
+            if session is None:
+                continue
+
+            amount = max(0, int(action.get("amount", 0)))
+            gained, old_level, new_level, _ = award_experience(session, amount)
+            changed = changed or gained > 0 or new_level > old_level
             continue
 
         if action_type == "teleport_player":
@@ -288,7 +366,7 @@ def get_room_enter_communications(
             trigger = str(communication.get("trigger", "")).strip().lower()
             if trigger != "player_enter":
                 continue
-            if not _entry_matches_player_flags(communication, active_flags, active_world_flags):
+            if not _entry_matches_player_flags(communication, active_flags, active_world_flags, session):
                 continue
 
             message = _render_keyword_text(
@@ -372,7 +450,7 @@ def _match_keyword_action(keyword_actions: list[dict], normalized_command: str, 
         keywords = keyword_action.get("keywords", [])
         if not isinstance(keywords, list):
             continue
-        if not _entry_matches_player_flags(keyword_action, active_flags, active_world_flags):
+        if not _entry_matches_player_flags(keyword_action, active_flags, active_world_flags, session):
             continue
         if any(_normalize_keyword_text(keyword) == normalized_command for keyword in keywords):
             return keyword_action

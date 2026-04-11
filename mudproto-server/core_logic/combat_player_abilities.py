@@ -31,6 +31,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     from combat_rewards import _award_shared_entity_experience, _mark_entity_contributor
     from combat_state import (
         _engage_next_targeting_entity,
+        apply_entity_defeat_flags,
         clear_combat_if_invalid,
         get_engaged_entity,
         spawn_corpse_for_entity,
@@ -228,6 +229,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
         if entity.hit_points <= 0:
             entity.is_alive = False
+            apply_entity_defeat_flags(session, entity)
             spawn_corpse_for_entity(session, entity)
             _award_shared_entity_experience(session, entity, parts, build_part)
             destroyed_entity_names.append(entity.name)
@@ -303,6 +305,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     from combat_rewards import _award_shared_entity_experience, _mark_entity_contributor
     from combat_state import (
         _engage_next_targeting_entity,
+        apply_entity_defeat_flags,
         clear_combat_if_invalid,
         get_engaged_entity,
         spawn_corpse_for_entity,
@@ -642,6 +645,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
 
         if entity.hit_points <= 0:
             entity.is_alive = False
+            apply_entity_defeat_flags(session, entity)
             spawn_corpse_for_entity(session, entity)
             _award_shared_entity_experience(session, entity, parts, build_part)
             destroyed_entity_names.append(entity.name)

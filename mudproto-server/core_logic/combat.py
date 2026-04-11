@@ -11,6 +11,7 @@ from combat_state import (
     _engage_next_targeting_entity,
     _process_combat_round_timers,
     _schedule_next_combat_round,
+    apply_entity_defeat_flags,
     clear_combat_if_invalid,
     get_engaged_entities,
     spawn_corpse_for_entity,
@@ -101,6 +102,7 @@ def _resolve_entity_defeat(
         return False
 
     entity.is_alive = False
+    apply_entity_defeat_flags(session, entity)
     spawn_corpse_for_entity(session, entity)
     _award_shared_entity_experience(session, entity, parts, build_part)
 

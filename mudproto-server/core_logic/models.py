@@ -175,6 +175,8 @@ class EntityState:
     is_aggro: bool = False
     aggro_player_flags: list[str] = field(default_factory=list)
     set_player_flags_on_hostile_action: list[str] = field(default_factory=list)
+    set_player_flags_on_death: list[str] = field(default_factory=list)
+    set_world_flags_on_death: list[str] = field(default_factory=list)
     is_ally: bool = False
     is_peaceful: bool = False
     respawn: bool = False

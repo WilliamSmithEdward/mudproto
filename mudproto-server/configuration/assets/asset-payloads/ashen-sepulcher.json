@@ -1,0 +1,611 @@
+{
+  "payload_id": "ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+  "description": "Adds a hidden tomb beneath the Sunscour Redoubt vault, including a boss that drops the sepulcher key sought by the paladins.",
+  "gear": [
+    {
+      "template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Censer Chain",
+      "slot": "weapon",
+      "description": "A length of blackened links ending in a bronze censer heavy with bitter ash.",
+      "keywords": ["censer", "chain", "ash", "flail"],
+      "weapon_type": "mace",
+      "can_hold": true,
+      "weight": 5,
+      "coin_value": 64,
+      "damage_dice_count": 3,
+      "damage_dice_sides": 6,
+      "damage_roll_modifier": 2,
+      "hit_roll_modifier": 2,
+      "attack_damage_bonus": 0,
+      "attacks_per_round_bonus": 0
+    },
+    {
+      "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Sepulcher Maul",
+      "slot": "weapon",
+      "description": "A square-headed war maul stained with old soot and prayer-oil.",
+      "keywords": ["sepulcher", "maul", "warhammer", "hammer"],
+      "weapon_type": "club",
+      "can_hold": false,
+      "can_two_hand": true,
+      "weight": 9,
+      "coin_value": 91,
+      "damage_dice_count": 4,
+      "damage_dice_sides": 7,
+      "damage_roll_modifier": 3,
+      "hit_roll_modifier": 3,
+      "attack_damage_bonus": 1,
+      "attacks_per_round_bonus": 0
+    },
+    {
+      "template_id": "armor.funerary-plate-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Funerary Plate",
+      "slot": "armor",
+      "description": "Laminar plates lacquered in ash-black varnish and inscribed with dim protective verses.",
+      "keywords": ["funerary", "plate", "armor", "ash"],
+      "weight": 10,
+      "coin_value": 86,
+      "armor_class_bonus": 3,
+      "wear_slots": ["chest"]
+    }
+  ],
+  "items": [
+    {
+      "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Sepulcher Key",
+      "description": "A long blackened key engraved with a half-eclipsed sun. It feels heavier than iron should.",
+      "keywords": ["sepulcher", "key", "blackened", "sun", "reliquary"],
+      "item_type": "key",
+      "lock_ids": ["lock.sepulcher-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "coin_value": 0
+    }
+  ],
+  "spells": [
+    {
+      "spell_id": "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Graveflare",
+      "school": "Ash",
+      "description": "A burst of funeral fire and bitter cinders hurled into a single foe.",
+      "mana_cost": 15,
+      "spell_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 5,
+      "damage_dice_sides": 10,
+      "damage_modifier": 5,
+      "damage_scaling_attribute_id": "wis",
+      "damage_scaling_multiplier": 1.0,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] scorched by a hush of ash and funeral flame."
+    },
+    {
+      "spell_id": "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Martyr's Keeping",
+      "school": "Restoration",
+      "description": "An old tomb-rite that hardens the flesh and recalls a fragment of buried resolve.",
+      "mana_cost": 13,
+      "spell_type": "support",
+      "cast_type": "self",
+      "support_effect": "heal",
+      "support_amount": 18,
+      "support_mode": "instant",
+      "support_context": "Ash settles over the wounds and seals them with stern, uncanny calm.",
+      "observer_action": "[actor_name] raises a soot-marked hand and murmurs a martyr's keeping.",
+      "observer_context": "A stern pall of ash gathers over [actor_object] and some of the hurt closes."
+    }
+  ],
+  "skills": [
+    {
+      "skill_id": "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Bone Rake",
+      "description": "A brutal hooking strike meant to drag an opponent off balance.",
+      "skill_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 3,
+      "damage_dice_sides": 8,
+      "damage_modifier": 4,
+      "vigor_cost": 6,
+      "usable_out_of_combat": false,
+      "scaling_attribute_id": "str",
+      "scaling_multiplier": 1.5,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] hooked hard by a splintering rake of bone and iron.",
+      "observer_action": "[actor_name] lunges in with a jagged, dragging strike.",
+      "lag_rounds": 1,
+      "cooldown_rounds": 2
+    },
+    {
+      "skill_id": "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Censer Guard",
+      "description": "The wielder circles smoke and chain to draw breath and steady the body.",
+      "skill_type": "support",
+      "cast_type": "self",
+      "vigor_cost": 5,
+      "usable_out_of_combat": false,
+      "scaling_attribute_id": "con",
+      "scaling_multiplier": 1.0,
+      "level_scaling_multiplier": 1.0,
+      "support_effect": "heal",
+      "support_amount": 10,
+      "support_context": "A ring of bitter incense steadies the breath and closes the edge of pain.",
+      "observer_action": "[actor_name] swings a censer in a tight warding circle.",
+      "observer_context": "A faint ring of incense-smoke settles around [actor_name].",
+      "lag_rounds": 1,
+      "cooldown_rounds": 4
+    }
+  ],
+  "npcs": [
+    {
+      "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Ashen Acolyte",
+      "hit_points": 255,
+      "max_hit_points": 255,
+      "power_level": 5,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 11,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 20,
+      "experience_reward": 42,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "main_hand_weapon_template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "off_hand_weapon_template_id": "",
+      "vigor": 42,
+      "max_vigor": 42,
+      "mana": 30,
+      "max_mana": 30,
+      "skill_use_chance": 0.25,
+      "skill_ids": ["skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "spell_use_chance": 0.2,
+      "spell_ids": ["spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"]
+    },
+    {
+      "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Dustbound Cantor",
+      "hit_points": 235,
+      "max_hit_points": 235,
+      "power_level": 5,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 10,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 24,
+      "experience_reward": 45,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "main_hand_weapon_template_id": "",
+      "off_hand_weapon_template_id": "",
+      "vigor": 30,
+      "max_vigor": 30,
+      "mana": 95,
+      "max_mana": 95,
+      "skill_use_chance": 0.1,
+      "skill_ids": ["skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "spell_use_chance": 0.45,
+      "spell_ids": [
+        "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ]
+    },
+    {
+      "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Sepulcher Guardian",
+      "hit_points": 320,
+      "max_hit_points": 320,
+      "power_level": 6,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 12,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 30,
+      "experience_reward": 54,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "off_hand_weapon_template_id": "",
+      "vigor": 56,
+      "max_vigor": 56,
+      "skill_use_chance": 0.3,
+      "skill_ids": ["skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "spell_use_chance": 0.0,
+      "spell_ids": []
+    },
+    {
+      "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Lockward Sentinel",
+      "hit_points": 365,
+      "max_hit_points": 365,
+      "power_level": 7,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 3,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 38,
+      "experience_reward": 66,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "off_hand_weapon_template_id": "",
+      "vigor": 62,
+      "max_vigor": 62,
+      "mana": 45,
+      "max_mana": 45,
+      "skill_use_chance": 0.25,
+      "skill_ids": ["skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "spell_use_chance": 0.15,
+      "spell_ids": ["spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"]
+    },
+    {
+      "npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Penitent Custodian",
+      "hit_points": 485,
+      "max_hit_points": 485,
+      "power_level": 9,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 4,
+      "armor_class": 14,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 120,
+      "experience_reward": 180,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "off_hand_weapon_template_id": "",
+      "vigor": 84,
+      "max_vigor": 84,
+      "mana": 120,
+      "max_mana": 120,
+      "skill_use_chance": 0.35,
+      "skill_ids": [
+        "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "spell_use_chance": 0.35,
+      "spell_ids": [
+        "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "quantity": 1
+        }
+      ],
+      "loot_items": [
+        {
+          "name": "charred prayer beads",
+          "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
+          "keywords": ["charred", "prayer", "beads"]
+        }
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "room_id": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Sunken Oratory",
+      "description": "A hidden chamber of cracked icons and old bronze lamps lies beneath the vault, the air cool and powder-dry.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "up": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "west": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "exit_details": [
+        {
+          "direction": "up",
+          "exit_type": "hatch",
+          "name": "vault hatch",
+          "keywords": ["hatch", "vault hatch", "stone hatch", "shaft"],
+          "can_close": true,
+          "is_closed": true,
+          "open_message": "You push the vault hatch open and feel cooler air spill down from the reliquary above.",
+          "close_message": "You pull the vault hatch shut over the shaft.",
+          "closed_message": "The vault hatch above you is closed.",
+          "already_open_message": "The vault hatch is already open.",
+          "already_closed_message": "The vault hatch is already closed."
+        }
+      ],
+      "room_objects": [
+        {
+          "object_id": "entry-shaft",
+          "name": "broken shaft",
+          "keywords": ["shaft", "broken shaft", "opening"],
+          "description": "A narrow stone shaft rises back toward the reliquary vault above. Dust drifts slowly through the still air."
+        }
+      ]
+    },
+    {
+      "room_id": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Censer Stair",
+      "description": "Broad steps descend between rows of hanging censers gone cold but not entirely scentless.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Soot Cloister",
+      "description": "Ash lies in the corners like drifts of black snow beneath a ring of bent columns.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "east": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Bone Archive",
+      "description": "Long niches filled with tagged bones line the walls, catalogued in a hand now long returned to dust.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "east": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Mourner Crossing",
+      "description": "Four passages meet around a basin where the residue of old offerings has hardened into a dark crust.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Candle-Riven Crypt",
+      "description": "Stone biers crowd this chamber, each crowned with candles that have melted into pale wrecks.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "west": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Ossuary Run",
+      "description": "A long aisle of stacked skulls stretches ahead, the mortar between them darkened by age and smoke.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Silent Ambulatory",
+      "description": "A narrow walking path curves behind old shrine walls where every footfall seems too loud.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      }
+    },
+    {
+      "room_id": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Cracked Vestry",
+      "description": "Rotting vestments hang from iron hooks here, their hems fixed in place by old ash and wax.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "east": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Relic Sluice",
+      "description": "A stone channel once used to wash sacred objects now carries only ash-streaked trickles of stale water.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Dust Choir",
+      "description": "Tiered stone benches rise in a semicircle where singers once answered one another in funeral hymn.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "west": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Penitent Descent",
+      "description": "The stairs here narrow and steepen, forcing any traveler into a bowed and careful posture.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Black-Oil Nave",
+      "description": "A thick sheen of old lamp oil paints the floor here, reflecting a dim and wavering darkness.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Sarcophagus Turn",
+      "description": "Massive stone coffers hem the corridor so tightly that it twists between them in sharp angles.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Hollow Transept",
+      "description": "The chamber widens under a ribbed ceiling where every whisper climbs and returns thin and strange.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Weeping Apse",
+      "description": "Mineral tears crawl down the rear wall here and patter softly into shallow bowls of stone.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Keeper's Cells",
+      "description": "Small stone cells open off the passage here, each containing a stool, a lamp niche, and nothing else.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Cindered Bridge",
+      "description": "A narrow span of scorched stone crosses a drop filled with broken lamps and old incense braziers.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      }
+    },
+    {
+      "room_id": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Lock-Ward",
+      "description": "Bronze seals and ward-scripts cover the walls here, all bent toward a single deeper chamber.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "east": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Deep Crypt Approach",
+      "description": "The air grows colder here and the last of the old incense gives way to the mineral scent of sealed stone.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "west": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "south": "room.penitent-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    },
+    {
+      "room_id": "room.penitent-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "title": "Penitent Sepulcher",
+      "description": "A final chamber of kneeling effigies and sealed black stone lies here, watched over by the last custodian of the lower dead.",
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "exits": {
+        "north": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      },
+      "npcs": [
+        {"npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Ashen Sepulcher",
+      "repopulate_game_hours": 36,
+      "repopulation_blocking_item_template_ids": [
+        "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "repopulation_block_cooldown_game_hours": 6
+    }
+  ]
+}
