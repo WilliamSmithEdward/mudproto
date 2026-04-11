@@ -91,14 +91,25 @@ def clear_combat_if_invalid(session: ClientSession) -> None:
 
     session.combat.engaged_entity_ids -= invalid_entities
 
+    for entity_id in invalid_entities:
+        entity = session.entities.get(entity_id)
+        if entity is not None:
+            sync_entity_target_player(entity)
+
     if not session.combat.engaged_entity_ids:
         end_combat(session)
 
 
 def end_combat(session: ClientSession) -> None:
+    disengaged_entity_ids = list(session.combat.engaged_entity_ids)
     session.combat.engaged_entity_ids.clear()
     session.combat.next_round_monotonic = None
     session.combat.opening_attacker = None
+
+    for entity_id in disengaged_entity_ids:
+        entity = session.entities.get(entity_id)
+        if entity is not None:
+            sync_entity_target_player(entity)
 
 
 def _active_player_flags(session: ClientSession) -> set[str]:
@@ -144,6 +155,56 @@ def _apply_player_hostile_action_flags(session: ClientSession, entity: EntitySta
             session.player.interaction_flags[normalized_flag] = True
 
 
+def get_session_combatant_key(session: ClientSession | None) -> str:
+    if session is None:
+        return ""
+    player_state_key = str(getattr(session, "player_state_key", "")).strip().lower()
+    client_id = str(getattr(session, "client_id", "")).strip().lower()
+    return player_state_key or client_id
+
+
+def _get_entity_engaged_sessions(entity: EntityState) -> list[ClientSession]:
+    sessions_by_key: dict[str, ClientSession] = {}
+    for sess in list(connected_clients.values()) + list(active_character_sessions.values()):
+        session_key = get_session_combatant_key(sess)
+        if not session_key or session_key in sessions_by_key:
+            continue
+        if not sess.is_authenticated or not sess.is_connected or sess.disconnected_by_server:
+            continue
+        if sess.pending_death_logout or sess.status.hit_points <= 0:
+            continue
+        if sess.player.current_room_id != entity.room_id:
+            continue
+        if entity.entity_id not in sess.combat.engaged_entity_ids:
+            continue
+        sessions_by_key[session_key] = sess
+
+    return sorted(
+        sessions_by_key.values(),
+        key=lambda sess: ((sess.authenticated_character_name or "").lower(), sess.client_id),
+    )
+
+
+def sync_entity_target_player(entity: EntityState, preferred_session: ClientSession | None = None) -> str:
+    engaged_sessions = _get_entity_engaged_sessions(entity)
+    current_target_key = str(getattr(entity, "combat_target_player_key", "")).strip().lower()
+    if current_target_key and any(get_session_combatant_key(sess) == current_target_key for sess in engaged_sessions):
+        return current_target_key
+
+    preferred_target_key = get_session_combatant_key(preferred_session)
+    if preferred_target_key and any(get_session_combatant_key(sess) == preferred_target_key for sess in engaged_sessions):
+        entity.combat_target_player_key = preferred_target_key
+        return preferred_target_key
+
+    if engaged_sessions:
+        fallback_target_key = get_session_combatant_key(engaged_sessions[0])
+        entity.combat_target_player_key = fallback_target_key
+        return fallback_target_key
+
+    entity.combat_target_player_key = ""
+    return ""
+
+
 def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
     already_engaged = entity_id in session.combat.engaged_entity_ids
     was_in_combat = bool(session.combat.engaged_entity_ids)
@@ -157,6 +218,7 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
         return False
 
     session.combat.engaged_entity_ids.add(entity_id)
+    sync_entity_target_player(entity, preferred_session=session)
 
     if opening_attacker == "player":
         _apply_player_hostile_action_flags(session, entity)

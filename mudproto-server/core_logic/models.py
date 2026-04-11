@@ -181,6 +181,7 @@ class EntityState:
     corpse_label_style: str = "generic"
     is_ally: bool = False
     is_peaceful: bool = False
+    combat_target_player_key: str = ""
     respawn: bool = False
     is_merchant: bool = False
     merchant_inventory_template_ids: list[str] = field(default_factory=list)

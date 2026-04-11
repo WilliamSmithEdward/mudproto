@@ -144,6 +144,7 @@ def _resolve_entity_defeat(
         return False
 
     entity.is_alive = False
+    entity.combat_target_player_key = ""
     apply_entity_defeat_flags(session, entity)
     spawn_corpse_for_entity(session, entity)
     _award_shared_entity_experience(session, entity, parts, build_part)

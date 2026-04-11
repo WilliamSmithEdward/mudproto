@@ -5,7 +5,9 @@ from combat import resolve_combat_round
 from combat_ability_effects import process_entity_game_hour_tick
 from combat_state import (
     get_engaged_entities,
+    get_session_combatant_key,
     maybe_auto_engage_current_room,
+    sync_entity_target_player,
     tick_out_of_combat_cooldowns,
 )
 from command_handlers.registry import dispatch_command
@@ -182,8 +184,11 @@ async def combat_round_loop() -> None:
                     engaged_entities = get_engaged_entities(actor_session)
                     if not engaged_entities:
                         continue
+                    actor_target_key = get_session_combatant_key(actor_session)
                     for engaged_entity in engaged_entities:
-                        entity_active_target_session.setdefault(engaged_entity.entity_id, actor_session.client_id)
+                        target_key = sync_entity_target_player(engaged_entity)
+                        if target_key == actor_target_key:
+                            entity_active_target_session[engaged_entity.entity_id] = actor_session.client_id
 
                 for actor_session in room_sessions:
                     allowed_entity_retaliation_ids = {
