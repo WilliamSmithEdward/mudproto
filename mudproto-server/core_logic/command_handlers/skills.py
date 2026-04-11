@@ -14,7 +14,9 @@ from .types import OutboundResult
 HandledResult = OutboundResult | None
 
 
-_SKILL_VERBS = {"skill", "sk", "ski", "skil", "skl"}
+# Skill execution is name-driven via fallback (for example: `jab scout`).
+# Verb forms like `sk`, `ski`, `skil`, and `skill <name>` are intentionally invalid.
+_SKILL_VERBS: set[str] = set()
 
 
 def handle_skill_command(
@@ -23,7 +25,7 @@ def handle_skill_command(
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
-    if verb in {"skills", "sk", "ski", "skil", "skill"} and not args:
+    if verb == "skills" and not args:
         skills = _list_known_skills(session)
         if not skills:
             return display_command_result(session, [
@@ -83,7 +85,7 @@ def handle_skill_fallback_command(
     _command_text: str,
 ) -> HandledResult:
     known_skills = _list_known_skills(session)
-    if verb in _SKILL_VERBS | {"skills", "use"} or not known_skills:
+    if verb in {"skills", "use"} or not known_skills:
         return None
 
     for cut in range(len(args) + 1, 0, -1):
