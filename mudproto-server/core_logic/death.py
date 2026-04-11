@@ -13,6 +13,7 @@ def handle_player_death(session: ClientSession) -> None:
     from combat_state import end_combat
 
     end_combat(session)
+    session.active_support_effects.clear()
     session.status.hit_points = 1
     save_player_state(session)
     session.pending_death_logout = True
