@@ -1528,6 +1528,9 @@ def load_skills() -> list[dict]:
         observer_context = str(raw_skill.get("observer_context", "")).strip()
         lag_rounds = int(raw_skill.get("lag_rounds", 0))
         cooldown_rounds = int(raw_skill.get("cooldown_rounds", 0))
+        cooldown_hours = int(raw_skill.get("cooldown_hours", 0))
+        support_level_step = int(raw_skill.get("support_level_step", 0))
+        support_amount_per_level_step = int(raw_skill.get("support_amount_per_level_step", 0))
 
         if skill_type not in {"damage", "support"}:
             raise ValueError(f"Skill asset '{skill_id}' skill_type must be 'damage' or 'support'.")
@@ -1555,6 +1558,12 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' lag_rounds must be zero or greater.")
         if cooldown_rounds < 0:
             raise ValueError(f"Skill asset '{skill_id}' cooldown_rounds must be zero or greater.")
+        if cooldown_hours < 0:
+            raise ValueError(f"Skill asset '{skill_id}' cooldown_hours must be zero or greater.")
+        if support_level_step < 0:
+            raise ValueError(f"Skill asset '{skill_id}' support_level_step must be zero or greater.")
+        if support_amount_per_level_step < 0:
+            raise ValueError(f"Skill asset '{skill_id}' support_amount_per_level_step must be zero or greater.")
         if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
             raise ValueError(
                 f"Skill asset '{skill_id}' references unknown scaling_attribute_id '{scaling_attribute_id}'."
@@ -1569,9 +1578,9 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' restore_ratio is only supported on damage skills.")
 
         if skill_type == "support":
-            if support_effect not in {"heal", "vigor", "mana", "damage_reduction"}:
+            if support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
                 raise ValueError(
-                    f"Skill asset '{skill_id}' support_effect must be one of: heal, vigor, mana, damage_reduction."
+                    f"Skill asset '{skill_id}' support_effect must be one of: heal, vigor, mana, damage_reduction, extra_unarmed_hits."
                 )
             if support_mode not in {"instant", "timed", "battle_rounds"}:
                 raise ValueError(
@@ -1583,6 +1592,10 @@ def load_skills() -> list[dict]:
                 raise ValueError(f"Skill asset '{skill_id}' round-based support skills must define duration_rounds > 0.")
             if not support_context:
                 raise ValueError(f"Skill asset '{skill_id}' support skills must define support_context.")
+            if support_effect == "extra_unarmed_hits" and support_level_step <= 0:
+                raise ValueError(
+                    f"Skill asset '{skill_id}' extra_unarmed_hits support skills must define support_level_step > 0."
+                )
         else:
             if not damage_context:
                 raise ValueError(f"Skill asset '{skill_id}' damage skills must define damage_context.")
@@ -1616,6 +1629,9 @@ def load_skills() -> list[dict]:
             "observer_context": observer_context,
             "lag_rounds": lag_rounds,
             "cooldown_rounds": cooldown_rounds,
+            "cooldown_hours": cooldown_hours,
+            "support_level_step": support_level_step,
+            "support_amount_per_level_step": support_amount_per_level_step,
         }
 
     return [normalized_skills_by_id[skill_id] for skill_id in ordered_skill_ids]

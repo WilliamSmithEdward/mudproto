@@ -68,6 +68,13 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             session,
         ), False
 
+    if skill_id and session.combat.skill_hour_cooldowns.get(skill_id, 0) > 0:
+        remaining_hours = session.combat.skill_hour_cooldowns[skill_id]
+        return display_error(
+            f"{skill_name} is on cooldown for {remaining_hours} more game hour(s).",
+            session,
+        ), False
+
     if cast_type not in {"self", "target", "aoe"}:
         return display_error(f"Skill '{skill_name}' has unsupported cast_type '{cast_type}'.", session), False
     if skill_type not in {"damage", "support"}:
@@ -104,7 +111,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     if skill_type == "support":
         if cast_type != "self":
             return display_error(f"Support skill '{skill_name}' must be cast_type 'self'.", session), False
-        if support_effect not in {"heal", "vigor", "mana", "damage_reduction"}:
+        if support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
             return display_error(
                 f"Skill '{skill_name}' has unsupported support_effect '{support_effect}'.",
                 session,
@@ -133,6 +140,14 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         session.status.vigor -= vigor_cost
         caps = get_player_resource_caps(session)
         total_support_amount = max(0, support_amount + scaling_bonus)
+        if support_effect == "extra_unarmed_hits":
+            extra_step_levels = max(1, int(skill.get("support_level_step", 1)))
+            extra_per_step = max(
+                0,
+                int(skill.get("support_amount_per_level_step", 0)),
+            )
+            level_bonus = (max(1, int(session.player.level)) // extra_step_levels) * extra_per_step
+            total_support_amount = max(0, support_amount + level_bonus)
 
         if support_mode == "instant":
             if support_effect == "heal":
@@ -181,6 +196,9 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             ])
 
         _set_player_skill_cooldown(session, skill)
+        cooldown_hours = max(0, int(skill.get("cooldown_hours", 0)))
+        if cooldown_hours > 0 and skill_id:
+            session.combat.skill_hour_cooldowns[skill_id] = cooldown_hours
         _apply_player_skill_lag(session, skill)
         observer_lines = [
             _resolve_observer_action_line(

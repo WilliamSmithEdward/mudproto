@@ -95,4 +95,9 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
             session.active_support_effects.remove(effect)
             expired_spell_names.append(effect.spell_name)
 
+    for skill_id in list(session.combat.skill_hour_cooldowns):
+        session.combat.skill_hour_cooldowns[skill_id] -= 1
+        if session.combat.skill_hour_cooldowns[skill_id] <= 0:
+            del session.combat.skill_hour_cooldowns[skill_id]
+
     return expired_spell_names

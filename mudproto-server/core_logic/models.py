@@ -47,6 +47,7 @@ class CombatState:
     skip_melee_rounds: int = 0
     skill_cooldowns: dict[str, int] = field(default_factory=dict)
     item_cooldowns: dict[str, int] = field(default_factory=dict)
+    skill_hour_cooldowns: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass

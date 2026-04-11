@@ -329,6 +329,48 @@ def _apply_player_attacks(
         if entity.hit_points <= 0:
             break
 
+    # Extra unarmed hits from active Fist Flurry (or similar) effects.
+    extra_hits = sum(
+        max(0, int(effect.support_amount))
+        for effect in session.active_support_effects
+        if effect.support_effect == "extra_unarmed_hits"
+        and effect.support_mode == "battle_rounds"
+        and effect.remaining_rounds > 0
+    )
+    for _ in range(extra_hits):
+        if not entity.is_alive:
+            break
+        append_newline_if_needed(parts)
+        hit_modifier = get_player_hit_modifier(
+            None,
+            player_level=session.player.level,
+            unarmed_hit_bonus=unarmed_hit_bonus,
+        )
+        if not roll_hit(hit_modifier, entity.armor_class):
+            parts.extend(build_player_attack_parts(
+                entity_name=entity.name,
+                attack_verb="hit",
+                damage=0,
+                target_max_hp=entity.max_hit_points,
+            ))
+            continue
+        rolled_damage, _, attack_verb = roll_player_damage(
+            session.player_combat,
+            None,
+            player_level=session.player.level,
+            unarmed_damage_bonus=unarmed_damage_bonus,
+        )
+        _mark_entity_contributor(session, entity)
+        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
+        parts.extend(build_player_attack_parts(
+            entity_name=entity.name,
+            attack_verb=attack_verb,
+            damage=applied_damage,
+            target_max_hp=entity.max_hit_points,
+        ))
+        if entity.hit_points <= 0:
+            break
+
 
 def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
     status = session.status

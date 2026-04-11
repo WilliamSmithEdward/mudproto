@@ -95,5 +95,28 @@
     "observer_action": "[actor_name] pivots into a wide roundhouse kick.",
     "lag_rounds": 2,
     "cooldown_rounds": 4
+  },
+  {
+    "skill_id": "skill.fist-flurry",
+    "name": "Fist Flurry",
+    "description": "A disciplined burst of unarmed strikes that overwhelms your target.",
+    "skill_type": "support",
+    "cast_type": "self",
+    "vigor_cost": 10,
+    "usable_out_of_combat": false,
+    "scaling_attribute_id": "",
+    "scaling_multiplier": 0.0,
+    "level_scaling_multiplier": 0.0,
+    "support_effect": "extra_unarmed_hits",
+    "support_amount": 2,
+    "support_level_step": 5,
+    "support_amount_per_level_step": 1,
+    "support_mode": "battle_rounds",
+    "duration_rounds": 3,
+    "support_context": "Your fists blur into a relentless flurry.",
+    "observer_action": "[actor_name] erupts into a blinding flurry of strikes.",
+    "lag_rounds": 0,
+    "cooldown_rounds": 0,
+    "cooldown_hours": 5
   }
 ]
