@@ -315,3 +315,72 @@ def _list_group_member_sessions(session: ClientSession) -> tuple[ClientSession, 
     valid_member_sessions.sort(key=lambda s: (s.authenticated_character_name or "").lower())
     ordered_members.extend(valid_member_sessions)
     return leader_session, ordered_members
+
+
+def _handle_player_death_follow_and_group(session: ClientSession) -> None:
+    """Resolve follow/group state when a player dies.
+
+    Rules:
+    - Everyone directly following the dead player stops following.
+    - If the dead player led a group, direct followers of the leader are reassigned
+      to the next player in that group list when possible.
+    - Group membership is disbanded, but existing non-leader follow links are preserved.
+    """
+    deceased_key = _session_identity_key(session)
+    if not deceased_key:
+        return
+
+    successor_session: ClientSession | None = None
+    if session.group_member_keys:
+        _, group_members = _list_group_member_sessions(session)
+        eligible_successors = [
+            member
+            for member in group_members
+            if _session_identity_key(member) != deceased_key
+            and member.is_authenticated
+            and member.is_connected
+            and not member.disconnected_by_server
+            and not member.pending_death_logout
+        ]
+        if eligible_successors:
+            successor_session = eligible_successors[0]
+
+    successor_key = _session_identity_key(successor_session)
+    successor_name = (
+        (successor_session.authenticated_character_name or "").strip() if successor_session is not None else ""
+    )
+
+    for candidate in connected_clients.values():
+        if not candidate.is_authenticated or not candidate.is_connected or candidate.disconnected_by_server:
+            continue
+        if candidate.client_id == session.client_id:
+            continue
+
+        candidate_follow_key = (candidate.following_player_key or "").strip().lower()
+        if candidate_follow_key != deceased_key:
+            continue
+
+        if successor_session is not None and candidate.client_id != successor_session.client_id and successor_key:
+            candidate.following_player_key = successor_key
+            candidate.following_player_name = successor_name or "Unknown"
+        else:
+            _clear_follow_state(candidate)
+
+    # If the dead player was a member in another group, remove them from that roster.
+    former_leader_key = (session.group_leader_key or "").strip().lower()
+    if former_leader_key and former_leader_key != deceased_key:
+        former_leader = _find_session_by_identity_key(former_leader_key)
+        if former_leader is not None:
+            former_leader.group_member_keys.discard(deceased_key)
+
+    # Disband dead leader's group while preserving existing follow links for members.
+    leader_key = deceased_key
+    for member_key in list(session.group_member_keys):
+        member_session = _find_session_by_identity_key(member_key)
+        if member_session is None:
+            continue
+        if (member_session.group_leader_key or "").strip().lower() == leader_key:
+            member_session.group_leader_key = ""
+
+    session.group_member_keys.clear()
+    session.group_leader_key = ""
