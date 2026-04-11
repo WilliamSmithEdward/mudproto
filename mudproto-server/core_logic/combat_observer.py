@@ -2,15 +2,11 @@
 
 import re
 
-from grammar import resolve_player_pronouns
+from grammar import resolve_player_pronouns, third_personize_text
 from session_registry import active_character_sessions
 
 
-def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
-    payload = outbound.get("payload")
-    if not isinstance(payload, dict):
-        return outbound
-
+def _build_broadcast_lines(lines: list[str]) -> list[list[dict]]:
     broadcast_lines: list[list[dict]] = []
     for line in lines:
         cleaned = str(line).strip()
@@ -23,9 +19,34 @@ def _attach_room_broadcast_lines(outbound: dict, lines: list[str]) -> dict:
         broadcast_lines.append([
             {"text": cleaned, "fg": fg, "bold": bold}
         ])
+    return broadcast_lines
 
+
+def _attach_room_broadcast_lines(
+    outbound: dict,
+    lines: list[str],
+    recipient_lines_by_client_id: dict[str, list[str]] | None = None,
+) -> dict:
+    payload = outbound.get("payload")
+    if not isinstance(payload, dict):
+        return outbound
+
+    broadcast_lines = _build_broadcast_lines(lines)
     if broadcast_lines:
         payload["room_broadcast_lines"] = broadcast_lines
+
+    if isinstance(recipient_lines_by_client_id, dict) and recipient_lines_by_client_id:
+        personalized_lines: dict[str, list[list[dict]]] = {}
+        for client_id, recipient_lines in recipient_lines_by_client_id.items():
+            normalized_client_id = str(client_id).strip()
+            if not normalized_client_id:
+                continue
+            built_lines = _build_broadcast_lines(recipient_lines)
+            if built_lines:
+                personalized_lines[normalized_client_id] = built_lines
+        if personalized_lines:
+            payload["recipient_room_broadcast_lines"] = personalized_lines
+
     return outbound
 
 
@@ -51,13 +72,23 @@ def _render_observer_template(template_text: str, actor_name: str, actor_gender:
     )
 
 
-def _observer_context_from_player_context(context: str, target_text: str | None = None) -> str:
+def _observer_context_from_player_context(
+    context: str,
+    target_text: str | None = None,
+    *,
+    subject_name: str | None = None,
+    subject_gender: str | None = None,
+) -> str:
     if not context:
         return ""
 
-    resolved = context
+    resolved = str(context).strip()
     resolved = resolved.replace("[a/an]", target_text or "the target")
     resolved = resolved.replace("[verb]", "is")
+
+    if subject_name:
+        return third_personize_text(resolved, subject_name, subject_gender)
+
     resolved = resolved.replace(" your ", " their ")
     resolved = resolved.replace(" you ", " them ")
     resolved = resolved.replace(" yourself", " themselves")

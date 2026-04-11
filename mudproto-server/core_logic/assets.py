@@ -1149,6 +1149,14 @@ def load_npc_templates() -> list[dict]:
             normalized_skill_ids.append(skill_id)
 
         power_level = max(0, int(raw_npc.get("power_level", 1)))
+        aggro_player_flags = _normalize_flag_list(
+            raw_npc.get("aggro_player_flags", []),
+            context=f"NPC '{npc_id}' aggro_player_flags",
+        )
+        set_player_flags_on_hostile_action = _normalize_flag_list(
+            raw_npc.get("set_player_flags_on_hostile_action", raw_npc.get("hostile_action_player_flags", [])),
+            context=f"NPC '{npc_id}' set_player_flags_on_hostile_action",
+        )
 
         if normalized_npc_id not in normalized_npcs_by_id:
             ordered_npc_ids.append(normalized_npc_id)
@@ -1166,6 +1174,8 @@ def load_npc_templates() -> list[dict]:
             "coin_reward": max(0, int(raw_npc.get("coin_reward", 0))),
             "experience_reward": max(0, int(raw_npc.get("experience_reward", 0))),
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
+            "aggro_player_flags": aggro_player_flags,
+            "set_player_flags_on_hostile_action": set_player_flags_on_hostile_action,
             "is_ally": bool(raw_npc.get("is_ally", False)),
             "is_peaceful": bool(raw_npc.get("is_peaceful", False)),
             "respawn": bool(raw_npc.get("respawn", True)),

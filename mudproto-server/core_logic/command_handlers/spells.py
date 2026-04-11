@@ -53,6 +53,16 @@ def handle_spell_command(
         if not known_spells:
             return display_error("You do not know any spells.", session)
 
+        if target_name is None and len(args) > 1:
+            for cut in range(len(args), 0, -1):
+                candidate_spell_name = " ".join(args[:cut]).strip()
+                candidate_target_name = " ".join(args[cut:]).strip() or None
+                candidate_spell, _ = _resolve_spell_by_name(candidate_spell_name, known_spells)
+                if candidate_spell is not None:
+                    spell_name = candidate_spell_name
+                    target_name = candidate_target_name
+                    break
+
         spell, resolve_error = _resolve_spell_by_name(spell_name, known_spells)
         if spell is None:
             return display_error(resolve_error or f"You do not know spell: {spell_name}", session)

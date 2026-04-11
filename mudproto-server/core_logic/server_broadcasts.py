@@ -387,24 +387,33 @@ async def _send_room_broadcast(
     peers = _iter_room_peers(origin_session)
     for peer in peers:
         peer_messages = json.loads(json.dumps(broadcast_messages))
-        if prompt_observers:
-            for message in peer_messages:
-                if isinstance(message, dict) and message.get("type") == "display":
-                    payload = message.get("payload")
-                    if isinstance(payload, dict):
-                        _append_private_lines_to_payload(payload, peer)
-                        prompt_lines = [build_prompt_parts(peer)]
-                        existing_lines = payload.get("lines")
-                        if isinstance(existing_lines, list) and existing_lines:
-                            trailing_blank_line = False
-                            for existing_line in reversed(existing_lines):
-                                if not isinstance(existing_line, list):
-                                    continue
-                                trailing_blank_line = not existing_line
-                                break
-                            prompt_blank_count = 1 if trailing_blank_line else 2
-                            prompt_lines = ([[]] * prompt_blank_count) + prompt_lines
-                        payload["prompt_lines"] = prompt_lines
+        for message in peer_messages:
+            if not isinstance(message, dict) or message.get("type") != "display":
+                continue
+            payload = message.get("payload")
+            if not isinstance(payload, dict):
+                continue
+
+            recipient_room_broadcast_lines = payload.pop("recipient_room_broadcast_lines", None)
+            if isinstance(recipient_room_broadcast_lines, dict):
+                personalized_lines = recipient_room_broadcast_lines.get(peer.client_id)
+                if isinstance(personalized_lines, list) and personalized_lines:
+                    payload["lines"] = [line for line in personalized_lines if isinstance(line, list)]
+
+            if prompt_observers:
+                _append_private_lines_to_payload(payload, peer)
+                prompt_lines = [build_prompt_parts(peer)]
+                existing_lines = payload.get("lines")
+                if isinstance(existing_lines, list) and existing_lines:
+                    trailing_blank_line = False
+                    for existing_line in reversed(existing_lines):
+                        if not isinstance(existing_line, list):
+                            continue
+                        trailing_blank_line = not existing_line
+                        break
+                    prompt_blank_count = 1 if trailing_blank_line else 2
+                    prompt_lines = ([[]] * prompt_blank_count) + prompt_lines
+                payload["prompt_lines"] = prompt_lines
         await send_outbound_fn(peer.websocket, peer_messages)
 
 

@@ -173,6 +173,8 @@ class EntityState:
     is_alive: bool = True
     spawn_sequence: int = 0
     is_aggro: bool = False
+    aggro_player_flags: list[str] = field(default_factory=list)
+    set_player_flags_on_hostile_action: list[str] = field(default_factory=list)
     is_ally: bool = False
     is_peaceful: bool = False
     respawn: bool = False

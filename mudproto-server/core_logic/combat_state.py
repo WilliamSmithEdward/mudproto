@@ -100,9 +100,39 @@ def end_combat(session: ClientSession) -> None:
     session.combat.opening_attacker = None
 
 
-def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
-    if entity_id in session.combat.engaged_entity_ids:
+def _active_player_flags(session: ClientSession) -> set[str]:
+    return {
+        " ".join(str(flag).strip().lower().split())
+        for flag, enabled in getattr(session.player, "interaction_flags", {}).items()
+        if enabled and str(flag).strip()
+    }
+
+
+def _entity_should_auto_aggro(session: ClientSession, entity: EntityState) -> bool:
+    if bool(getattr(entity, "is_aggro", False)):
+        return True
+
+    active_flags = _active_player_flags(session)
+    if not active_flags:
         return False
+
+    entity_flags = {
+        " ".join(str(flag).strip().lower().split())
+        for flag in getattr(entity, "aggro_player_flags", [])
+        if str(flag).strip()
+    }
+    return bool(entity_flags & active_flags)
+
+
+def _apply_player_hostile_action_flags(session: ClientSession, entity: EntityState) -> None:
+    for raw_flag in getattr(entity, "set_player_flags_on_hostile_action", []):
+        normalized_flag = " ".join(str(raw_flag).strip().lower().split())
+        if normalized_flag:
+            session.player.interaction_flags[normalized_flag] = True
+
+
+def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
+    already_engaged = entity_id in session.combat.engaged_entity_ids
 
     entity = session.entities.get(entity_id)
     if entity is None or not entity.is_alive:
@@ -113,10 +143,24 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
         return False
 
     session.combat.engaged_entity_ids.add(entity_id)
+
+    if opening_attacker == "player":
+        _apply_player_hostile_action_flags(session, entity)
+        for candidate in list_room_entities(session, session.player.current_room_id):
+            if candidate.entity_id == entity_id or not candidate.is_alive:
+                continue
+            if bool(getattr(candidate, "is_peaceful", False)):
+                continue
+            if not _entity_should_auto_aggro(session, candidate):
+                continue
+            if _is_entity_engaged_by_other_player(candidate.entity_id, session):
+                continue
+            session.combat.engaged_entity_ids.add(candidate.entity_id)
+
     session.combat.next_round_monotonic = None
     if not session.combat.opening_attacker:
         session.combat.opening_attacker = opening_attacker
-    return True
+    return not already_engaged
 
 
 def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
@@ -268,7 +312,7 @@ def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:
     engaged_entities = []
     room_entities = list_room_entities(session, session.player.current_room_id)
     for entity in room_entities:
-        if entity.is_aggro and not _is_entity_engaged_by_other_player(entity.entity_id, session):
+        if _entity_should_auto_aggro(session, entity) and not _is_entity_engaged_by_other_player(entity.entity_id, session):
             started = start_combat(session, entity.entity_id, "entity")
             if started:
                 engaged_entities.append(entity)

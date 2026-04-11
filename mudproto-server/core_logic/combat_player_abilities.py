@@ -1,9 +1,10 @@
 """Player-facing skill and spell execution helpers."""
 
-from grammar import with_article
+from grammar import third_personize_text, with_article
 from models import ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 from targeting_entities import list_room_entities, resolve_room_entity_selector
+from targeting_follow import _resolve_room_player_selector
 from damage import roll_skill_damage, roll_spell_damage
 
 from combat_ability_effects import (
@@ -33,6 +34,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         clear_combat_if_invalid,
         get_engaged_entity,
         spawn_corpse_for_entity,
+        start_combat,
     )
     from display_core import build_part
     from display_feedback import display_command_result, display_error
@@ -202,6 +204,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
+            start_combat(session, entity.entity_id, "player")
             _mark_entity_contributor(session, entity)
             dealt = min(entity.hit_points, total_damage)
             entity.hit_points = max(0, entity.hit_points - total_damage)
@@ -303,6 +306,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         clear_combat_if_invalid,
         get_engaged_entity,
         spawn_corpse_for_entity,
+        start_combat,
     )
     from display_core import build_part
     from display_feedback import display_command_result, display_error
@@ -336,8 +340,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         return display_error(f"Spell '{spell_name}' has unsupported cast_type '{cast_type}'.", session), False
 
     if spell_type == "support":
-        if cast_type != "self":
-            return display_error(f"Support spell '{spell_name}' must be cast_type 'self'.", session), False
+        if cast_type not in {"self", "target"}:
+            return display_error(
+                f"Support spell '{spell_name}' must be cast_type 'self' or 'target'.",
+                session,
+            ), False
         if support_effect not in {"heal", "vigor", "mana"}:
             return display_error(
                 f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
@@ -369,42 +376,97 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 session,
             ), False
 
+        support_target_session = session
+        if target_name:
+            support_target_session, resolve_error = _resolve_room_player_selector(session, target_name)
+            if support_target_session is None:
+                return display_error(resolve_error or f"No player named '{target_name}' is here.", session), False
+
+        support_target_name = (support_target_session.authenticated_character_name or actor_name).strip() or actor_name
+        support_cast_type = "self" if support_target_session.client_id == session.client_id else "target"
+        support_target_label = None if support_cast_type == "self" else support_target_name
+        actor_target_text = " on yourself" if support_cast_type == "self" else f" on {support_target_name}"
+        rendered_support_context = support_context
+        if support_cast_type == "target":
+            rendered_support_context = third_personize_text(
+                support_context,
+                support_target_name,
+                support_target_session.player.gender,
+            )
+
         status.mana -= mana_cost
 
         if support_mode == "instant":
             parts = [
                 build_part("You cast "),
                 build_part(spell_name),
-                build_part("."),
+                build_part(actor_target_text + "."),
             ]
 
             rolled_support_amount, _, _, _, _ = _roll_player_support_amount(session, spell, support_effect)
-            caps = get_player_resource_caps(session)
+            target_caps = get_player_resource_caps(support_target_session)
             if support_effect == "heal":
-                status.hit_points = min(caps["hit_points"], status.hit_points + rolled_support_amount)
+                support_target_session.status.hit_points = min(
+                    target_caps["hit_points"],
+                    support_target_session.status.hit_points + rolled_support_amount,
+                )
             elif support_effect == "vigor":
-                status.vigor = min(caps["vigor"], status.vigor + rolled_support_amount)
+                support_target_session.status.vigor = min(
+                    target_caps["vigor"],
+                    support_target_session.status.vigor + rolled_support_amount,
+                )
             else:
-                status.mana = min(caps["mana"], status.mana + rolled_support_amount)
+                support_target_session.status.mana = min(
+                    target_caps["mana"],
+                    support_target_session.status.mana + rolled_support_amount,
+                )
             parts.extend([
                 build_part("\n"),
-                build_part(support_context),
+                build_part(rendered_support_context),
             ])
             observer_lines = [
                 _resolve_observer_action_line(
                     actor_name,
                     "casts",
                     spell_name,
-                    cast_type,
+                    support_cast_type,
+                    target_label=support_target_label,
                     observer_action=observer_action,
                 ),
             ]
-            support_observer_context = observer_context or _observer_context_from_player_context(support_context)
+            support_observer_context = observer_context or _observer_context_from_player_context(
+                support_context,
+                subject_name=support_target_name,
+                subject_gender=support_target_session.player.gender,
+            )
             if support_observer_context:
-                observer_lines.append(_render_observer_template(support_observer_context, actor_name))
+                observer_lines.append(_render_observer_template(
+                    support_observer_context,
+                    support_target_name,
+                    support_target_session.player.gender,
+                ))
+
+            recipient_observer_lines: dict[str, list[str]] = {}
+            if support_cast_type == "target":
+                personalized_context = _resolve_combat_context(support_context, target_text="you", verb="are") or support_context
+                recipient_observer_lines[support_target_session.client_id] = [
+                    _resolve_observer_action_line(
+                        actor_name,
+                        "casts",
+                        spell_name,
+                        "target",
+                        target_label="you",
+                        observer_action=observer_action,
+                    ),
+                    personalized_context,
+                ]
 
             result = display_command_result(session, parts, blank_lines_before=0)
-            return _attach_room_broadcast_lines(result, observer_lines), True
+            return _attach_room_broadcast_lines(
+                result,
+                observer_lines,
+                recipient_lines_by_client_id=recipient_observer_lines or None,
+            ), True
 
         _, dice_count, dice_sides, roll_modifier, scaling_bonus = _roll_player_support_amount(
             session,
@@ -413,7 +475,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         )
 
         refreshed = False
-        for active_effect in session.active_support_effects:
+        for active_effect in support_target_session.active_support_effects:
             if active_effect.spell_id != spell_id:
                 continue
             active_effect.support_mode = support_mode
@@ -429,7 +491,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             break
 
         if not refreshed:
-            session.active_support_effects.append(ActiveSupportEffectState(
+            support_target_session.active_support_effects.append(ActiveSupportEffectState(
                 spell_id=spell_id,
                 spell_name=spell_name,
                 support_mode=support_mode,
@@ -446,25 +508,53 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         parts = [
             build_part("You cast "),
             build_part(spell_name),
-            build_part("."),
+            build_part(actor_target_text + "."),
             build_part("\n"),
-            build_part(support_context),
+            build_part(rendered_support_context),
         ]
         observer_lines = [
             _resolve_observer_action_line(
                 actor_name,
                 "casts",
                 spell_name,
-                cast_type,
+                support_cast_type,
+                target_label=support_target_label,
                 observer_action=observer_action,
             ),
         ]
-        support_observer_context = observer_context or _observer_context_from_player_context(support_context)
+        support_observer_context = observer_context or _observer_context_from_player_context(
+            support_context,
+            subject_name=support_target_name,
+            subject_gender=support_target_session.player.gender,
+        )
         if support_observer_context:
-            observer_lines.append(_render_observer_template(support_observer_context, actor_name))
+            observer_lines.append(_render_observer_template(
+                support_observer_context,
+                support_target_name,
+                support_target_session.player.gender,
+            ))
+
+        recipient_observer_lines: dict[str, list[str]] = {}
+        if support_cast_type == "target":
+            personalized_context = _resolve_combat_context(support_context, target_text="you", verb="are") or support_context
+            recipient_observer_lines[support_target_session.client_id] = [
+                _resolve_observer_action_line(
+                    actor_name,
+                    "casts",
+                    spell_name,
+                    "target",
+                    target_label="you",
+                    observer_action=observer_action,
+                ),
+                personalized_context,
+            ]
 
         result = display_command_result(session, parts, blank_lines_before=0)
-        return _attach_room_broadcast_lines(result, observer_lines), True
+        return _attach_room_broadcast_lines(
+            result,
+            observer_lines,
+            recipient_lines_by_client_id=recipient_observer_lines or None,
+        ), True
 
     if spell_type != "damage":
         return display_error(f"Spell '{spell_name}' has unsupported spell_type '{spell_type}'.", session), False
@@ -528,6 +618,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
+            start_combat(session, entity.entity_id, "player")
             _mark_entity_contributor(session, entity)
             dealt = min(entity.hit_points, total_damage)
             entity.hit_points = max(0, entity.hit_points - total_damage)

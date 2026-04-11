@@ -128,6 +128,16 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.inventory_items = _build_inventory_items_from_template(template)
     entity.spawn_sequence = spawn_sequence
     entity.is_aggro = bool(template.get("is_aggro", False))
+    entity.aggro_player_flags = [
+        str(flag).strip().lower()
+        for flag in template.get("aggro_player_flags", [])
+        if str(flag).strip()
+    ]
+    entity.set_player_flags_on_hostile_action = [
+        str(flag).strip().lower()
+        for flag in template.get("set_player_flags_on_hostile_action", [])
+        if str(flag).strip()
+    ]
     entity.is_ally = bool(template.get("is_ally", False))
     entity.is_peaceful = bool(template.get("is_peaceful", False))
     entity.respawn = bool(template.get("respawn", True))

@@ -327,10 +327,16 @@
       "off_hand_attacks_per_round": 0,
       "off_hand_hit_roll_modifier": 0,
       "coin_reward": 0,
-      "experience_reward": 0,
+      "experience_reward": 60,
       "is_aggro": false,
-      "is_ally": true,
-      "is_peaceful": true,
+      "aggro_player_flags": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "set_player_flags_on_hostile_action": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "is_ally": false,
+      "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -362,9 +368,9 @@
       "coin_reward": 0,
       "experience_reward": 0,
       "is_aggro": false,
-      "is_ally": true,
-      "is_peaceful": true,
-      "respawn": false,
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
       "is_merchant": true,
       "merchant_inventory": [
         {
@@ -433,10 +439,16 @@
       "off_hand_attacks_per_round": 0,
       "off_hand_hit_roll_modifier": 0,
       "coin_reward": 0,
-      "experience_reward": 0,
+      "experience_reward": 95,
       "is_aggro": false,
-      "is_ally": true,
-      "is_peaceful": true,
+      "aggro_player_flags": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "set_player_flags_on_hostile_action": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "is_ally": false,
+      "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -1023,7 +1035,8 @@
       "repopulate_game_hours": 1,
       "reset_player_flags": [
         "npc.sunmarshal-aurek.met",
-        "npc.sunmarshal-aurek.rewarded"
+        "npc.sunmarshal-aurek.rewarded",
+        "zone.sunscour-redoubt.paladins-hostile"
       ],
       "reset_world_flags": [
         "npc.sunmarshal-aurek.key-claimed"
