@@ -68,33 +68,13 @@ def normalize_player_gender(value: str | None, *, allow_unspecified: bool = True
         return "unspecified"
     return None
 
-
-def _guess_player_pronouns(actor_name: str) -> tuple[str, str, str, str]:
-    normalized = re.sub(r"[^a-z]", "", actor_name.strip().lower())
-    if not normalized:
-        return "they", "them", "their", "themselves"
-
-    feminine_names = {
-        "lucia", "anna", "maria", "sophia", "olivia", "isabella", "eva", "elena", "luna", "clara",
-    }
-    masculine_names = {
-        "william", "liam", "noah", "james", "lucas", "henry", "oliver", "jack", "leo", "arthur",
-    }
-
-    if normalized in feminine_names or normalized.endswith(("a", "ia", "na", "la", "ra")):
-        return "she", "her", "her", "herself"
-    if normalized in masculine_names or normalized.endswith(("o", "os", "us", "er", "or")):
-        return "he", "him", "his", "himself"
-    return "they", "them", "their", "themselves"
-
-
 def resolve_player_pronouns(*, actor_name: str = "", actor_gender: str | None = None) -> tuple[str, str, str, str]:
     normalized_gender = normalize_player_gender(actor_gender)
     if normalized_gender == "female":
         return "she", "her", "her", "herself"
     if normalized_gender == "male":
         return "he", "him", "his", "himself"
-    return _guess_player_pronouns(actor_name)
+    return "they", "them", "their", "themselves"
 
 
 def third_personize_text(text: str, actor_name: str, actor_gender: str | None = None) -> str:
