@@ -266,6 +266,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(skill)
     total_damage_dealt = 0
     destroyed_entity_names: list[str] = []
+    damage_observer_lines: list[str] = []
 
     for entity in damage_targets:
         parts.append(build_part("\n"))
@@ -279,6 +280,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             total_damage_dealt += max(0, dealt)
             if resolved_context:
                 parts.append(build_part(resolved_context))
+                damage_observer_lines.append(resolved_context)
             else:
                 parts.extend([
                     build_part(named_target),
@@ -286,6 +288,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     build_part(skill_name),
                     build_part("."),
                 ])
+                damage_observer_lines.append(f"{named_target} is struck by {skill_name}.")
         else:
             parts.extend([
                 build_part(named_target),
@@ -293,6 +296,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 build_part(skill_name),
                 build_part("."),
             ])
+            damage_observer_lines.append(f"{named_target} avoids {skill_name}.")
 
         if entity.hit_points <= 0:
             entity.is_alive = False
@@ -346,9 +350,14 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             observer_action=observer_action,
         ),
     ]
-    damage_observer_context = observer_context or _observer_context_from_player_context(damage_context, target_label)
-    if damage_observer_context:
-        observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
+    if observer_context:
+        observer_lines.append(_render_observer_template(observer_context, actor_name))
+    elif damage_observer_lines:
+        observer_lines.extend(damage_observer_lines)
+    else:
+        damage_observer_context = _observer_context_from_player_context(damage_context, target_label)
+        if damage_observer_context:
+            observer_lines.append(_render_observer_template(damage_observer_context, actor_name))
     if restored_amount > 0:
         observer_lines.append(_render_observer_template(
             observer_restore_context or _observer_restore_fallback(restore_effect),
