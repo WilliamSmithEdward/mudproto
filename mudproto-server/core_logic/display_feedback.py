@@ -109,7 +109,11 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
     if not is_in_combat and session.watch_player_key.strip():
         watched_session = _find_session_by_identity_key(session.watch_player_key.strip())
-        if watched_session is not None and watched_session.is_authenticated:
+        if (
+            watched_session is not None
+            and watched_session.is_authenticated
+            and watched_session.player.current_room_id == session.player.current_room_id
+        ):
             watched_caps = get_player_resource_caps(watched_session)
             watched_condition, watched_condition_color = get_health_condition(
                 watched_session.status.hit_points, watched_caps["hit_points"]
