@@ -98,44 +98,51 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
             build_part("]", "bright_white"),
         ])
 
-    parts.extend([
-        build_part(" [Me:", "bright_white"),
-        build_part(me_condition.title(), me_condition_color, True),
-        build_part("]", "bright_white"),
-    ])
-
     engaged_entity = get_engaged_entity(session)
     is_in_combat = bool(session.combat.engaged_entity_ids)
 
+    # Resolve watch target upfront so we know whether watch mode is active.
+    watched_session: ClientSession | None = None
     if not is_in_combat and session.watch_player_key.strip():
-        watched_session = _find_session_by_identity_key(session.watch_player_key.strip())
+        _candidate = _find_session_by_identity_key(session.watch_player_key.strip())
         if (
-            watched_session is not None
-            and watched_session.is_authenticated
-            and watched_session.player.current_room_id == session.player.current_room_id
+            _candidate is not None
+            and _candidate.is_authenticated
+            and _candidate.player.current_room_id == session.player.current_room_id
         ):
-            watched_caps = get_player_resource_caps(watched_session)
-            watched_condition, watched_condition_color = get_health_condition(
-                watched_session.status.hit_points, watched_caps["hit_points"]
-            )
-            watched_name = (watched_session.authenticated_character_name or session.watch_player_name or "?").strip()
+            watched_session = _candidate
+
+    # [Me: ...] is hidden when watch mode is active; the watched player's block takes its place.
+    if watched_session is None:
+        parts.extend([
+            build_part(" [Me:", "bright_white"),
+            build_part(me_condition.title(), me_condition_color, True),
+            build_part("]", "bright_white"),
+        ])
+
+    if watched_session is not None:
+        watched_caps = get_player_resource_caps(watched_session)
+        watched_condition, watched_condition_color = get_health_condition(
+            watched_session.status.hit_points, watched_caps["hit_points"]
+        )
+        watched_name = (watched_session.authenticated_character_name or session.watch_player_name or "?").strip()
+        parts.extend([
+            build_part(" [", "bright_white"),
+            build_part(watched_name, "bright_cyan", True),
+            build_part(":", "bright_white"),
+            build_part(watched_condition.title(), watched_condition_color, True),
+            build_part("]", "bright_white"),
+        ])
+        watched_entity = get_engaged_entity(watched_session)
+        if watched_entity is not None:
+            watched_entity_condition, watched_entity_condition_color = get_entity_condition(watched_entity)
             parts.extend([
-                build_part(" [", "bright_white"),
-                build_part(watched_name, "bright_cyan", True),
+                build_part(" [vs ", "bright_white"),
+                build_part(watched_entity.name),
                 build_part(":", "bright_white"),
-                build_part(watched_condition.title(), watched_condition_color, True),
+                build_part(watched_entity_condition.title(), watched_entity_condition_color, True),
                 build_part("]", "bright_white"),
             ])
-            watched_entity = get_engaged_entity(watched_session)
-            if watched_entity is not None:
-                watched_entity_condition, watched_entity_condition_color = get_entity_condition(watched_entity)
-                parts.extend([
-                    build_part(" [vs ", "bright_white"),
-                    build_part(watched_entity.name),
-                    build_part(":", "bright_white"),
-                    build_part(watched_entity_condition.title(), watched_entity_condition_color, True),
-                    build_part("]", "bright_white"),
-                ])
 
     if engaged_entity is not None:
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
