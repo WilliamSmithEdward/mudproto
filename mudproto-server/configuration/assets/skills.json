@@ -117,6 +117,6 @@
     "observer_action": "[actor_name] erupts into a blinding flurry of strikes.",
     "lag_rounds": 0,
     "cooldown_rounds": 0,
-    "cooldown_hours": 5
+    "cooldown_hours": 2
   }
 ]

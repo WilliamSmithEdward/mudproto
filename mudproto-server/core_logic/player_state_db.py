@@ -465,6 +465,13 @@ def _serialize_session(session: ClientSession) -> dict:
         },
         "known_spell_ids": list(session.known_spell_ids),
         "known_skill_ids": list(session.known_skill_ids),
+        "combat": {
+            "skill_hour_cooldowns": {
+                str(skill_id).strip(): max(0, int(remaining_hours))
+                for skill_id, remaining_hours in dict(session.combat.skill_hour_cooldowns or {}).items()
+                if str(skill_id).strip() and int(remaining_hours) > 0
+            },
+        },
         "active_support_effects": [_serialize_support_effect(effect) for effect in session.active_support_effects],
     }
 
@@ -636,6 +643,16 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
     raw_known_skill_ids = raw_state.get("known_skill_ids", [])
     if isinstance(raw_known_skill_ids, list):
         session.known_skill_ids = [str(skill_id).strip() for skill_id in raw_known_skill_ids if str(skill_id).strip()]
+
+    raw_combat = raw_state.get("combat", {})
+    if isinstance(raw_combat, dict):
+        raw_skill_hour_cooldowns = raw_combat.get("skill_hour_cooldowns", {})
+        if isinstance(raw_skill_hour_cooldowns, dict):
+            session.combat.skill_hour_cooldowns = {
+                str(skill_id).strip(): max(0, int(remaining_hours))
+                for skill_id, remaining_hours in raw_skill_hour_cooldowns.items()
+                if str(skill_id).strip() and int(remaining_hours) > 0
+            }
 
     raw_support_effects = raw_state.get("active_support_effects", [])
     if isinstance(raw_support_effects, list):
