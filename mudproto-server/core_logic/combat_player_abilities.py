@@ -32,6 +32,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     from combat_rewards import _award_shared_entity_experience, _mark_entity_contributor
     from combat_state import (
         _engage_next_targeting_entity,
+        _is_entity_engaged_by_other_player,
         apply_entity_defeat_flags,
         clear_combat_if_invalid,
         get_engaged_entity,
@@ -279,7 +280,12 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
-            start_combat(session, entity.entity_id, "player")
+            should_start_combat = (
+                entity.entity_id not in session.combat.engaged_entity_ids
+                and not _is_entity_engaged_by_other_player(entity.entity_id, session)
+            )
+            if should_start_combat:
+                start_combat(session, entity.entity_id, "player")
             _mark_entity_contributor(session, entity)
             dealt = _apply_entity_damage_with_reduction(entity, total_damage)
             total_damage_dealt += max(0, dealt)
