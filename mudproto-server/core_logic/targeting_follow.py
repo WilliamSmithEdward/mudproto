@@ -151,19 +151,21 @@ def _is_following_leader(member_session: ClientSession, leader_session: ClientSe
     return bool(member_follow_key and leader_key and member_follow_key == leader_key)
 
 
-def _remove_session_from_group(session: ClientSession) -> None:
+def _remove_session_from_group(session: ClientSession, *, clear_follow: bool = True) -> None:
     member_key = _session_identity_key(session)
     leader_key = (session.group_leader_key or "").strip().lower()
     if not leader_key or not member_key or leader_key == member_key:
         session.group_leader_key = ""
-        _clear_follow_state(session)
+        if clear_follow:
+            _clear_follow_state(session)
         return
 
     leader_session = _find_session_by_identity_key(leader_key)
     if leader_session is not None:
         leader_session.group_member_keys.discard(member_key)
     session.group_leader_key = ""
-    _clear_follow_state(session)
+    if clear_follow:
+        _clear_follow_state(session)
 
 
 def _disband_group(leader_session: ClientSession) -> list[ClientSession]:
@@ -198,7 +200,7 @@ def _add_group_member(leader_session: ClientSession, member_session: ClientSessi
     if member_session.group_member_keys:
         _disband_group(member_session)
 
-    _remove_session_from_group(member_session)
+    _remove_session_from_group(member_session, clear_follow=False)
     leader_session.group_member_keys.add(member_key)
     member_session.group_leader_key = leader_key
     return True
