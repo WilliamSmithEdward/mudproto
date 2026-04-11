@@ -124,3 +124,146 @@ def _would_create_follow_loop(session: ClientSession, target_session: ClientSess
                 break
 
     return False
+
+
+def _session_identity_key(session: ClientSession | None) -> str:
+    if session is None:
+        return ""
+    return ((session.player_state_key or session.client_id) or "").strip().lower()
+
+
+def _find_session_by_identity_key(identity_key: str) -> ClientSession | None:
+    normalized_key = str(identity_key).strip().lower()
+    if not normalized_key:
+        return None
+
+    for candidate in connected_clients.values():
+        if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
+            continue
+        if _session_identity_key(candidate) == normalized_key:
+            return candidate
+    return None
+
+
+def _is_following_leader(member_session: ClientSession, leader_session: ClientSession) -> bool:
+    member_follow_key = (member_session.following_player_key or "").strip().lower()
+    leader_key = _session_identity_key(leader_session)
+    return bool(member_follow_key and leader_key and member_follow_key == leader_key)
+
+
+def _remove_session_from_group(session: ClientSession) -> None:
+    member_key = _session_identity_key(session)
+    leader_key = (session.group_leader_key or "").strip().lower()
+    if not leader_key or not member_key or leader_key == member_key:
+        session.group_leader_key = ""
+        return
+
+    leader_session = _find_session_by_identity_key(leader_key)
+    if leader_session is not None:
+        leader_session.group_member_keys.discard(member_key)
+    session.group_leader_key = ""
+
+
+def _disband_group(leader_session: ClientSession) -> list[ClientSession]:
+    removed_members: list[ClientSession] = []
+    leader_key = _session_identity_key(leader_session)
+    if not leader_key:
+        leader_session.group_member_keys.clear()
+        leader_session.group_leader_key = ""
+        return removed_members
+
+    for member_key in list(leader_session.group_member_keys):
+        member_session = _find_session_by_identity_key(member_key)
+        if member_session is not None and (member_session.group_leader_key or "").strip().lower() == leader_key:
+            member_session.group_leader_key = ""
+            removed_members.append(member_session)
+
+    leader_session.group_member_keys.clear()
+    leader_session.group_leader_key = ""
+    return removed_members
+
+
+def _add_group_member(leader_session: ClientSession, member_session: ClientSession) -> bool:
+    leader_key = _session_identity_key(leader_session)
+    member_key = _session_identity_key(member_session)
+    if not leader_key or not member_key or leader_key == member_key:
+        return False
+    if not _is_following_leader(member_session, leader_session):
+        return False
+
+    # If this member is currently leading another group, dissolve it first.
+    if member_session.group_member_keys:
+        _disband_group(member_session)
+
+    _remove_session_from_group(member_session)
+    leader_session.group_member_keys.add(member_key)
+    member_session.group_leader_key = leader_key
+    return True
+
+
+def _form_group_from_followers(leader_session: ClientSession) -> list[ClientSession]:
+    added_members: list[ClientSession] = []
+    leader_key = _session_identity_key(leader_session)
+    if not leader_key:
+        return added_members
+
+    for candidate in connected_clients.values():
+        if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
+            continue
+        if _session_identity_key(candidate) == leader_key:
+            continue
+        if not _is_following_leader(candidate, leader_session):
+            continue
+        if _add_group_member(leader_session, candidate):
+            added_members.append(candidate)
+
+    return added_members
+
+
+def _resolve_group_leader_session(session: ClientSession) -> ClientSession:
+    own_key = _session_identity_key(session)
+    leader_key = (session.group_leader_key or "").strip().lower()
+
+    if not leader_key or leader_key == own_key:
+        session.group_leader_key = ""
+        return session
+
+    leader_session = _find_session_by_identity_key(leader_key)
+    if leader_session is None:
+        session.group_leader_key = ""
+        return session
+
+    if own_key not in leader_session.group_member_keys:
+        session.group_leader_key = ""
+        return session
+
+    if not _is_following_leader(session, leader_session):
+        leader_session.group_member_keys.discard(own_key)
+        session.group_leader_key = ""
+        return session
+
+    return leader_session
+
+
+def _list_group_member_sessions(session: ClientSession) -> tuple[ClientSession, list[ClientSession]]:
+    leader_session = _resolve_group_leader_session(session)
+    leader_key = _session_identity_key(leader_session)
+    ordered_members: list[ClientSession] = [leader_session]
+
+    valid_member_sessions: list[ClientSession] = []
+    for member_key in list(leader_session.group_member_keys):
+        member_session = _find_session_by_identity_key(member_key)
+        if member_session is None:
+            leader_session.group_member_keys.discard(member_key)
+            continue
+        if not _is_following_leader(member_session, leader_session):
+            leader_session.group_member_keys.discard(member_key)
+            member_session.group_leader_key = ""
+            continue
+        if (member_session.group_leader_key or "").strip().lower() != leader_key:
+            member_session.group_leader_key = leader_key
+        valid_member_sessions.append(member_session)
+
+    valid_member_sessions.sort(key=lambda s: (s.authenticated_character_name or "").lower())
+    ordered_members.extend(valid_member_sessions)
+    return leader_session, ordered_members
