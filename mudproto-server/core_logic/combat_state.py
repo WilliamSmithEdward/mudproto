@@ -145,6 +145,7 @@ def _apply_player_hostile_action_flags(session: ClientSession, entity: EntitySta
 
 def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) -> bool:
     already_engaged = entity_id in session.combat.engaged_entity_ids
+    was_in_combat = bool(session.combat.engaged_entity_ids)
 
     entity = session.entities.get(entity_id)
     if entity is None or not entity.is_alive:
@@ -170,7 +171,7 @@ def start_combat(session: ClientSession, entity_id: str, opening_attacker: str) 
             session.combat.engaged_entity_ids.add(candidate.entity_id)
 
     session.combat.next_round_monotonic = None
-    if not session.combat.opening_attacker:
+    if not was_in_combat and not session.combat.opening_attacker:
         session.combat.opening_attacker = opening_attacker
     return not already_engaged
 

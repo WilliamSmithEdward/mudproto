@@ -268,6 +268,6 @@ def _set_entity_spell_cooldown(entity: EntityState, spell: dict) -> None:
 
 
 def _apply_entity_spell_lag(entity: EntityState, spell: dict) -> None:
-    lag_rounds = max(0, int(spell.get("lag_rounds", 0)))
-    if lag_rounds > 0:
-        entity.spell_lag_rounds_remaining = max(entity.spell_lag_rounds_remaining, lag_rounds)
+    # NPC spellcasting should not consume the next melee round.
+    # Only players use spell lag to skip melee via `session.combat.skip_melee_rounds`.
+    entity.spell_lag_rounds_remaining = 0
