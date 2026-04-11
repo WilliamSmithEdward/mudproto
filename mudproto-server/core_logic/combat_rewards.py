@@ -5,6 +5,7 @@ from experience import award_experience
 from models import ClientSession, EntityState
 from player_resources import roll_level_resource_gains
 from session_registry import active_character_sessions, connected_clients
+from targeting_follow import _list_group_member_sessions
 
 
 def _session_contributor_key(session: ClientSession) -> str:
@@ -83,6 +84,32 @@ def _iter_experience_contributor_sessions(contributor_keys: set[str], *, room_id
     return matched_sessions
 
 
+def _expand_party_keys_in_room(base_contributor_sessions: list[ClientSession], *, room_id: str) -> set[str]:
+    expanded_keys: set[str] = set()
+    normalized_room_id = str(room_id).strip()
+    if not normalized_room_id:
+        return expanded_keys
+
+    for contributor_session in base_contributor_sessions:
+        contributor_key = _session_contributor_key(contributor_session)
+        if contributor_key:
+            expanded_keys.add(contributor_key)
+
+        _, party_sessions = _list_group_member_sessions(contributor_session)
+        for party_session in party_sessions:
+            if not party_session.is_authenticated:
+                continue
+            if not party_session.is_connected or party_session.disconnected_by_server:
+                continue
+            if str(party_session.player.current_room_id).strip() != normalized_room_id:
+                continue
+            party_key = _session_contributor_key(party_session)
+            if party_key:
+                expanded_keys.add(party_key)
+
+    return expanded_keys
+
+
 def _queue_experience_gain_notification(session: ClientSession, gained: int, old_level: int, new_level: int) -> None:
     if gained <= 0:
         return
@@ -122,8 +149,11 @@ def _award_shared_entity_experience(session: ClientSession, entity: EntityState,
     if current_key:
         contributor_keys.add(current_key)
 
+    contributor_sessions = _iter_experience_contributor_sessions(contributor_keys, room_id=entity.room_id)
+    expanded_reward_keys = _expand_party_keys_in_room(contributor_sessions, room_id=entity.room_id)
+
     rewarded_keys: set[str] = set()
-    for contributor_session in _iter_experience_contributor_sessions(contributor_keys, room_id=entity.room_id):
+    for contributor_session in _iter_experience_contributor_sessions(expanded_reward_keys, room_id=entity.room_id):
         contributor_key = _session_contributor_key(contributor_session)
         if not contributor_key or contributor_key in rewarded_keys:
             continue
