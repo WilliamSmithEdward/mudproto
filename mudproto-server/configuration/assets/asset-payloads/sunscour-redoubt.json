@@ -470,11 +470,20 @@
         {
           "trigger": "player_enter",
           "audience": "private",
+          "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek's voice hardens. \"You have made yourself an enemy of this order. Come no closer unless you mean to die for it.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
           "required_world_flags": [
             "npc.sunmarshal-aurek.key-claimed"
           ],
           "excluded_player_flags": [
-            "npc.sunmarshal-aurek.rewarded"
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "message": "Aurek says, \"Well met, traveller. I have nothing more to offer just now.\""
         },
@@ -482,7 +491,8 @@
           "trigger": "player_enter",
           "audience": "private",
           "excluded_player_flags": [
-            "npc.sunmarshal-aurek.met"
+            "npc.sunmarshal-aurek.met",
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "excluded_world_flags": [
             "npc.sunmarshal-aurek.key-claimed"
@@ -499,7 +509,8 @@
             "npc.sunmarshal-aurek.met"
           ],
           "excluded_player_flags": [
-            "npc.sunmarshal-aurek.rewarded"
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "excluded_world_flags": [
             "npc.sunmarshal-aurek.key-claimed"
@@ -511,6 +522,9 @@
           "audience": "private",
           "required_player_flags": [
             "npc.sunmarshal-aurek.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "message": "Aurek says, \"Thank you for listening to an old man ramble.\""
         }
@@ -532,7 +546,36 @@
             "bow before aurek"
           ],
           "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek bares his teeth. \"There will be no parley now. Defend yourself.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen aurek",
+            "listen sunmarshal",
+            "listen sunmarshal aurek",
+            "listen to aurek",
+            "listen to sunmarshal",
+            "listen for aurek",
+            "bow aurek",
+            "bow sunmarshal",
+            "bow sunmarshal aurek",
+            "bow to aurek",
+            "bow to sunmarshal",
+            "bow before aurek"
+          ],
+          "required_player_flags": [
             "npc.sunmarshal-aurek.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "message": "Aurek says, \"Thank you for listening to an old man ramble.\"",
           "refresh_view": "none",
@@ -561,7 +604,8 @@
             "npc.sunmarshal-aurek.key-claimed"
           ],
           "excluded_player_flags": [
-            "npc.sunmarshal-aurek.rewarded"
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "message": "Aurek says, \"I have already entrusted my key to another. Return when the redoubt turns again.\"",
           "refresh_view": "none",
@@ -581,7 +625,8 @@
             "listen for aurek"
           ],
           "excluded_player_flags": [
-            "npc.sunmarshal-aurek.rewarded"
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "excluded_world_flags": [
             "npc.sunmarshal-aurek.key-claimed"
@@ -604,7 +649,8 @@
             "bow before aurek"
           ],
           "excluded_player_flags": [
-            "npc.sunmarshal-aurek.rewarded"
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
           ],
           "excluded_world_flags": [
             "npc.sunmarshal-aurek.key-claimed"
