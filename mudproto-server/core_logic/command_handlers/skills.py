@@ -15,8 +15,10 @@ HandledResult = OutboundResult | None
 
 
 # Skill execution is name-driven via fallback (for example: `jab scout`).
-# Verb forms like `sk`, `ski`, `skil`, and `skill <name>` are intentionally invalid.
+# Verb forms like `skill <name>` are intentionally invalid, but
+# `sk`/`ski`/`skil`/`skill` with no args show the skills menu.
 _SKILL_VERBS: set[str] = set()
+_SKILL_MENU_VERBS = {"skills", "sk", "ski", "skil", "skill"}
 
 
 def handle_skill_command(
@@ -25,7 +27,7 @@ def handle_skill_command(
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
-    if verb == "skills" and not args:
+    if verb in _SKILL_MENU_VERBS and not args:
         skills = _list_known_skills(session)
         if not skills:
             return display_command_result(session, [
