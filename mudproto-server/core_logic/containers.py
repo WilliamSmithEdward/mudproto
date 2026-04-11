@@ -34,7 +34,10 @@ def can_pick_up_item(item: ItemState) -> tuple[bool, str | None]:
 
 def _container_label(container: ContainerTarget) -> str:
     if isinstance(container, CorpseState):
-        return _build_corpse_label(container.source_name)
+        return _build_corpse_label(
+            container.source_name,
+            getattr(container, "corpse_label_style", "generic"),
+        )
     return str(getattr(container, "name", "container")).strip() or "container"
 
 

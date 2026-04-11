@@ -430,6 +430,7 @@
     {
       "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "name": "Sunmarshal Aurek",
+      "corpse_label_style": "possessive",
       "hit_points": 360,
       "max_hit_points": 360,
       "power_level": 7,
@@ -698,6 +699,7 @@
       "is_ally": false,
       "is_peaceful": false,
       "respawn": true,
+      "corpse_label_style": "possessive",
       "pronoun_possessive": "his",
       "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "off_hand_weapon_template_id": "",

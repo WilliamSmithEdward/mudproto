@@ -382,7 +382,13 @@ def display_room(session: ClientSession, room: Room) -> dict:
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
-                build_part(_build_corpse_label(corpse.source_name), bold=True),
+                build_part(
+                    _build_corpse_label(
+                        corpse.source_name,
+                        getattr(corpse, "corpse_label_style", "generic"),
+                    ),
+                    bold=True,
+                ),
             ])
 
     room_coin_amount = max(0, int(session.room_coin_piles.get(room.room_id, 0)))

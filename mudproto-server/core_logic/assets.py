@@ -1184,6 +1184,9 @@ def load_npc_templates() -> list[dict]:
             normalized_skill_ids.append(skill_id)
 
         power_level = max(0, int(raw_npc.get("power_level", 1)))
+        corpse_label_style = str(raw_npc.get("corpse_label_style", "generic")).strip().lower() or "generic"
+        if corpse_label_style not in {"generic", "possessive"}:
+            raise ValueError(f"NPC '{npc_id}' corpse_label_style must be 'generic' or 'possessive'.")
         aggro_player_flags = _normalize_flag_list(
             raw_npc.get("aggro_player_flags", []),
             context=f"NPC '{npc_id}' aggro_player_flags",
@@ -1218,6 +1221,7 @@ def load_npc_templates() -> list[dict]:
             "experience_reward": max(0, int(raw_npc.get("experience_reward", 0))),
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
             "aggro_player_flags": aggro_player_flags,
+            "corpse_label_style": corpse_label_style,
             "set_player_flags_on_hostile_action": set_player_flags_on_hostile_action,
             "set_player_flags_on_death": set_player_flags_on_death,
             "set_world_flags_on_death": set_world_flags_on_death,

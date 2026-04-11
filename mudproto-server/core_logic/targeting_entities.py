@@ -2,39 +2,10 @@
 
 import re
 
+from corpse_labels import build_corpse_label
 from models import ClientSession, CorpseState, EntityState, ItemState
 
 from targeting_parsing import _selector_prefix_matches_keywords
-
-
-_GENERIC_CORPSE_NOUNS = {
-    "acolyte",
-    "asp",
-    "bandit",
-    "beast",
-    "cantor",
-    "captain",
-    "corpse",
-    "custodian",
-    "dummy",
-    "guardian",
-    "guard",
-    "heresiarch",
-    "keeper",
-    "knight",
-    "marshal",
-    "merchant",
-    "paladin",
-    "rat",
-    "scarab",
-    "scout",
-    "sentinel",
-    "soldier",
-    "spider",
-    "warden",
-    "wolf",
-    "zombie",
-}
 
 
 def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState]:
@@ -63,19 +34,8 @@ def _entity_name_keywords(name: str) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
 
 
-def _build_corpse_label(source_name: str) -> str:
-    cleaned_name = " ".join(str(source_name).split()).strip()
-    if not cleaned_name:
-        return "corpse"
-
-    parts = [part for part in cleaned_name.split(" ") if part]
-    final_word = parts[-1]
-    normalized_final = re.sub(r"[^a-z0-9-]", "", final_word.lower())
-    if normalized_final and normalized_final not in _GENERIC_CORPSE_NOUNS:
-        suffix = "'" if final_word.endswith(("s", "S")) else "'s"
-        return f"{final_word}{suffix} corpse"
-
-    return f"{cleaned_name} corpse"
+def _build_corpse_label(source_name: str, corpse_label_style: str = "generic") -> str:
+    return build_corpse_label(source_name, corpse_label_style)
 
 
 def _corpse_keywords(corpse: CorpseState) -> set[str]:
@@ -195,7 +155,10 @@ def resolve_room_corpse_selector(
         partial_match: CorpseState | None = None
         for corpse in room_corpses:
             corpse_names = {
-                _build_corpse_label(corpse.source_name).lower(),
+                _build_corpse_label(
+                    corpse.source_name,
+                    getattr(corpse, "corpse_label_style", "generic"),
+                ).lower(),
                 f"{corpse.source_name} corpse".lower(),
             }
             if normalized in corpse_names:

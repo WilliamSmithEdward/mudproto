@@ -5,6 +5,7 @@ import re
 from attribute_config import load_item_usage_config
 from assets import get_item_template_by_id, load_item_templates
 from command_handlers.types import OutboundResult
+from corpse_labels import build_corpse_label
 from display_core import build_menu_table_parts, build_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from grammar import indefinite_article, resolve_player_pronouns, with_article
@@ -15,49 +16,9 @@ from session_timing import apply_lag
 from targeting_items import _resolve_misc_inventory_selector
 
 
-_GENERIC_CORPSE_NOUNS = {
-    "acolyte",
-    "asp",
-    "bandit",
-    "beast",
-    "cantor",
-    "captain",
-    "corpse",
-    "custodian",
-    "dummy",
-    "guardian",
-    "guard",
-    "heresiarch",
-    "keeper",
-    "knight",
-    "marshal",
-    "merchant",
-    "paladin",
-    "rat",
-    "scarab",
-    "scout",
-    "sentinel",
-    "soldier",
-    "spider",
-    "warden",
-    "wolf",
-    "zombie",
-}
 
-
-def _build_corpse_label(source_name: str) -> str:
-    cleaned_name = " ".join(str(source_name).split()).strip()
-    if not cleaned_name:
-        return "corpse"
-
-    parts = [part for part in cleaned_name.split(" ") if part]
-    final_word = parts[-1]
-    normalized_final = re.sub(r"[^a-z0-9-]", "", final_word.lower())
-    if normalized_final and normalized_final not in _GENERIC_CORPSE_NOUNS:
-        suffix = "'" if final_word.endswith(("s", "S")) else "'s"
-        return f"{final_word}{suffix} corpse"
-
-    return f"{cleaned_name} corpse"
+def _build_corpse_label(source_name: str, corpse_label_style: str = "generic") -> str:
+    return build_corpse_label(source_name, corpse_label_style)
 
 
 def _item_highlight_color(item) -> str:

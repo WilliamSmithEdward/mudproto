@@ -1,6 +1,7 @@
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id, load_rooms
+from corpse_labels import normalize_corpse_label_style
 from inventory import build_equippable_item_from_template, build_misc_item_from_template, tick_item_decay_list, tick_item_decay_map
 from models import ClientSession, EntityState, ItemState
 from player_state_db import clear_player_interaction_flags, save_player_state
@@ -148,6 +149,7 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
         for flag in template.get("set_world_flags_on_death", [])
         if str(flag).strip()
     ]
+    entity.corpse_label_style = normalize_corpse_label_style(template.get("corpse_label_style", "generic"))
     entity.is_ally = bool(template.get("is_ally", False))
     entity.is_peaceful = bool(template.get("is_peaceful", False))
     entity.respawn = bool(template.get("respawn", True))

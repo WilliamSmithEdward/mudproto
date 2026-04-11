@@ -145,6 +145,7 @@ class CorpseState:
     source_entity_id: str
     source_name: str
     room_id: str
+    corpse_label_style: str = "generic"
     coins: int = 0
     loot_items: dict[str, ItemState] = field(default_factory=dict)
     spawn_sequence: int = 0
@@ -177,6 +178,7 @@ class EntityState:
     set_player_flags_on_hostile_action: list[str] = field(default_factory=list)
     set_player_flags_on_death: list[str] = field(default_factory=list)
     set_world_flags_on_death: list[str] = field(default_factory=list)
+    corpse_label_style: str = "generic"
     is_ally: bool = False
     is_peaceful: bool = False
     respawn: bool = False
