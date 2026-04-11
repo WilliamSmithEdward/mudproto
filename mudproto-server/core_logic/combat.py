@@ -1,5 +1,6 @@
 from assets import get_gear_template_by_id
 from battle_round_ticks import process_battle_round_support_effects
+from combat_ability_effects import _apply_entity_damage_with_reduction, _apply_player_damage_with_reduction
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
 from combat_rewards import (
     _award_shared_entity_experience,
@@ -165,7 +166,7 @@ def _apply_weapon_room_damage_proc(
             continue
 
         _mark_entity_contributor(session, target)
-        target.hit_points = max(0, target.hit_points - proc_damage)
+        _apply_entity_damage_with_reduction(target, proc_damage)
 
         if target.entity_id != primary_target.entity_id and target.hit_points > 0:
             session.combat.engaged_entity_ids.add(target.entity_id)
@@ -203,7 +204,7 @@ def _apply_weapon_target_damage_proc(
     _queue_private_combat_message(session, player_message)
     _record_observer_broadcast_line(room_broadcast_lines, observer_message)
     _mark_entity_contributor(session, target)
-    target.hit_points = max(0, target.hit_points - proc_damage)
+    _apply_entity_damage_with_reduction(target, proc_damage)
 
 
 def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
@@ -267,11 +268,11 @@ def _apply_player_attacks(
             player_level=session.player.level,
         )
         _mark_entity_contributor(session, entity)
-        entity.hit_points = max(0, entity.hit_points - rolled_damage)
+        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
         parts.extend(build_player_attack_parts(
             entity_name=entity.name,
             attack_verb=attack_verb,
-            damage=rolled_damage,
+            damage=applied_damage,
             target_max_hp=entity.max_hit_points,
         ))
         _apply_weapon_room_damage_proc(session, weapon, entity, parts, room_broadcast_lines)
@@ -331,12 +332,12 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
             continue
 
         attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
-        status.hit_points = max(0, status.hit_points - attack_damage)
+        applied_damage = _apply_player_damage_with_reduction(session, attack_damage)
         parts.extend(build_entity_attack_parts(
             entity_name=entity.name,
             entity_pronoun_possessive=entity.pronoun_possessive,
             attack_verb=attack_verb,
-            damage=attack_damage,
+            damage=applied_damage,
         ))
         if status.hit_points <= 0:
             return
@@ -364,12 +365,12 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
                 continue
 
             off_hand_damage, off_attack_verb = roll_npc_weapon_damage(entity, off_hand_weapon)
-            status.hit_points = max(0, status.hit_points - off_hand_damage)
+            applied_damage = _apply_player_damage_with_reduction(session, off_hand_damage)
             parts.extend(build_entity_attack_parts(
                 entity_name=entity.name,
                 entity_pronoun_possessive=entity.pronoun_possessive,
                 attack_verb=off_attack_verb,
-                damage=off_hand_damage,
+                damage=applied_damage,
             ))
             if status.hit_points <= 0:
                 return

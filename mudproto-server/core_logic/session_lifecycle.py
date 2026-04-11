@@ -139,7 +139,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     if not resumed_from_active:
         loaded_state = load_player_state(session, player_key=character_key)
         if not loaded_state:
-            apply_player_class(session, class_id, initialize_progression=True)
+            apply_player_class(session, class_id, roll_attributes=True, initialize_progression=True)
         elif class_id:
             session.player.class_id = class_id
 

@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.7",
-  "generated_at_utc": "2026-04-11T19:41:46.597245+00:00",
+  "generated_at_utc": "2026-04-11T20:13:14.398216+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -1163,7 +1163,8 @@
           "allowed_values": [
             "heal",
             "vigor",
-            "mana"
+            "mana",
+            "damage_reduction"
           ]
         },
         "support_amount": {
@@ -1171,6 +1172,29 @@
           "required": false,
           "default": 0,
           "minimum": 0
+        },
+        "support_mode": {
+          "type": "string",
+          "required": false,
+          "default": "instant",
+          "allowed_values": [
+            "instant",
+            "timed",
+            "battle_rounds"
+          ]
+        },
+        "duration_hours": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0
+        },
+        "duration_rounds": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0,
+          "notes": "Use for round-based support skills such as temporary damage reduction stances."
         },
         "support_context": {
           "type": "string",
@@ -1485,7 +1509,7 @@
       "items": 6,
       "npcs": 5,
       "rooms": 8,
-      "skills": 3,
+      "skills": 5,
       "spells": 9,
       "zones": 3,
       "asset_payload_files": 3
@@ -2424,6 +2448,46 @@
           "observer_action": "[actor_name] slows [actor_possessive] breathing and settles into a guarded stance.",
           "observer_context": "Measured breaths steady [actor_possessive] posture and knit shallow wounds.",
           "lag_rounds": 1,
+          "cooldown_rounds": 4
+        },
+        {
+          "skill_id": "skill.centered-guard",
+          "name": "Centered Guard",
+          "description": "A rooted defensive form that lets you bleed force away before it lands.",
+          "skill_type": "support",
+          "cast_type": "self",
+          "vigor_cost": 8,
+          "usable_out_of_combat": false,
+          "scaling_attribute_id": "con",
+          "scaling_multiplier": 0.2,
+          "level_scaling_multiplier": 0.0,
+          "support_effect": "damage_reduction",
+          "support_amount": 2,
+          "support_mode": "battle_rounds",
+          "duration_rounds": 3,
+          "support_context": "You settle into a centered guard, turning the worst of each blow aside.",
+          "observer_action": "[actor_name] plants [actor_possessive] feet and draws a steady breath.",
+          "observer_context": "[actor_name] settles into a centered guard that blunts incoming strikes.",
+          "lag_rounds": 1,
+          "cooldown_rounds": 4
+        },
+        {
+          "skill_id": "skill.roundhouse-kick",
+          "name": "Roundhouse Kick",
+          "description": "A sweeping heel-strike that smashes every nearby foe.",
+          "skill_type": "damage",
+          "cast_type": "aoe",
+          "vigor_cost": 12,
+          "usable_out_of_combat": false,
+          "scaling_attribute_id": "dex",
+          "scaling_multiplier": 0.9,
+          "level_scaling_multiplier": 1.0,
+          "damage_dice_count": 2,
+          "damage_dice_sides": 6,
+          "damage_modifier": 4,
+          "damage_context": "[a/an] [verb] battered by a whirling roundhouse kick.",
+          "observer_action": "[actor_name] pivots into a wide roundhouse kick.",
+          "lag_rounds": 2,
           "cooldown_rounds": 4
         }
       ],

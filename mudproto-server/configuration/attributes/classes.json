@@ -61,5 +61,54 @@
       "skill.overhead-crack"
     ],
     "is_default": true
+  },
+  {
+    "class_id": "class.monk",
+    "name": "Monk",
+    "description": "A disciplined martial artist who turns breath, balance, and stamina into relentless close-quarters pressure.",
+    "uses_mana": false,
+    "attribute_ranges": {
+      "str": { "min": 11, "max": 17 },
+      "wis": { "min": 10, "max": 15 },
+      "int": { "min": 8, "max": 12 },
+      "dex": { "min": 12, "max": 18 },
+      "con": { "min": 12, "max": 18 }
+    },
+    "resource_progression": {
+      "hit_points": {
+        "base": 140,
+        "attribute_id": "con",
+        "attribute_multiplier": 5.0,
+        "per_level_min": 7,
+        "per_level_max": 13
+      },
+      "vigor": {
+        "base": 120,
+        "attribute_id": "dex",
+        "attribute_multiplier": 4.0,
+        "per_level_min": 5,
+        "per_level_max": 9
+      },
+      "mana": {
+        "base": 0,
+        "attribute_id": "wis",
+        "attribute_multiplier": 0.0,
+        "per_level_min": 0,
+        "per_level_max": 0
+      }
+    },
+    "starting_gear_template_ids": [],
+    "starting_equipped_gear_template_ids": [
+      "armor.arcanist-wraps"
+    ],
+    "starting_item_ids": [],
+    "starting_spell_ids": [],
+    "starting_skill_ids": [
+      "skill.jab",
+      "skill.guard-breath",
+      "skill.centered-guard",
+      "skill.roundhouse-kick"
+    ],
+    "is_default": false
   }
 ]

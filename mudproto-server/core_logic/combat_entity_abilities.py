@@ -12,6 +12,7 @@ from combat_ability_effects import (
     _apply_entity_secondary_restore,
     _apply_entity_skill_lag,
     _apply_entity_spell_lag,
+    _apply_player_damage_with_reduction,
     _observer_restore_fallback,
     _resolve_entity_damage_scaling_bonus,
     _resolve_entity_skill_scale_bonus,
@@ -82,15 +83,51 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     if skill_type == "support" and cast_type == "self":
         support_effect = str(skill.get("support_effect", "")).strip().lower()
         support_amount = max(0, int(skill.get("support_amount", 0)))
+        support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
+        duration_hours = max(0, int(skill.get("duration_hours", 0)))
+        duration_rounds = max(0, int(skill.get("duration_rounds", 0)))
         support_context = str(skill.get("support_context", "")).strip()
         total_support_amount = max(0, support_amount + scaling_bonus)
 
-        if support_effect == "heal":
-            entity.hit_points = min(entity.max_hit_points, entity.hit_points + total_support_amount)
-        elif support_effect == "vigor":
-            entity.vigor = min(entity.max_vigor, entity.vigor + total_support_amount)
-        elif support_effect == "mana":
-            entity.mana = min(entity.max_mana, entity.mana + total_support_amount)
+        if support_mode == "instant":
+            if support_effect == "heal":
+                entity.hit_points = min(entity.max_hit_points, entity.hit_points + total_support_amount)
+            elif support_effect == "vigor":
+                entity.vigor = min(entity.max_vigor, entity.vigor + total_support_amount)
+            elif support_effect == "mana":
+                entity.mana = min(entity.max_mana, entity.mana + total_support_amount)
+        elif support_mode in {"timed", "battle_rounds"}:
+            effect_id = str(skill.get("skill_id", skill_name)).strip() or skill_name
+            refreshed = False
+            for active_effect in entity.active_support_effects:
+                if active_effect.spell_id != effect_id:
+                    continue
+                active_effect.support_mode = support_mode
+                active_effect.support_effect = support_effect
+                active_effect.support_amount = total_support_amount
+                active_effect.support_dice_count = 0
+                active_effect.support_dice_sides = 0
+                active_effect.support_roll_modifier = 0
+                active_effect.support_scaling_bonus = 0
+                active_effect.remaining_hours = duration_hours
+                active_effect.remaining_rounds = duration_rounds
+                refreshed = True
+                break
+
+            if not refreshed:
+                entity.active_support_effects.append(ActiveSupportEffectState(
+                    spell_id=effect_id,
+                    spell_name=skill_name,
+                    support_mode=support_mode,
+                    support_effect=support_effect,
+                    support_amount=total_support_amount,
+                    remaining_hours=duration_hours,
+                    support_dice_count=0,
+                    support_dice_sides=0,
+                    support_roll_modifier=0,
+                    support_scaling_bonus=0,
+                    remaining_rounds=duration_rounds,
+                ))
         if support_context:
             rendered_support_context = observer_context or _observer_context_from_player_context(support_context)
             append_newline_if_needed(parts)
@@ -110,8 +147,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         damage_dealt = 0
 
         if total_damage > 0:
-            damage_dealt = min(session.status.hit_points, total_damage)
-            session.status.hit_points = max(0, session.status.hit_points - total_damage)
+            damage_dealt = _apply_player_damage_with_reduction(session, total_damage)
 
         restored_amount = 0
         if restore_ratio > 0.0 and damage_dealt > 0:
@@ -278,8 +314,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
         damage_dealt = 0
 
         if spell_damage > 0:
-            damage_dealt = min(session.status.hit_points, spell_damage)
-            session.status.hit_points = max(0, session.status.hit_points - spell_damage)
+            damage_dealt = _apply_player_damage_with_reduction(session, spell_damage)
 
         restored_amount = 0
         if restore_ratio > 0.0 and damage_dealt > 0:

@@ -181,6 +181,46 @@ def _roll_support_effect_amount(effect: ActiveSupportEffectState) -> int:
     return max(0, rolled_amount)
 
 
+def _resolve_active_damage_reduction(effects: list[ActiveSupportEffectState]) -> int:
+    strongest_reduction = 0
+    for effect in effects:
+        if str(getattr(effect, "support_effect", "")).strip().lower() != "damage_reduction":
+            continue
+
+        support_mode = str(getattr(effect, "support_mode", "instant")).strip().lower() or "instant"
+        if support_mode == "timed" and int(getattr(effect, "remaining_hours", 0)) <= 0:
+            continue
+        if support_mode == "battle_rounds" and int(getattr(effect, "remaining_rounds", 0)) <= 0:
+            continue
+
+        strongest_reduction = max(strongest_reduction, _roll_support_effect_amount(effect))
+
+    return max(0, strongest_reduction)
+
+
+def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> int:
+    incoming_damage = max(0, int(amount))
+    if incoming_damage <= 0:
+        return 0
+
+    reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(list(session.active_support_effects)))
+    damage_dealt = min(max(0, int(session.status.hit_points)), reduced_damage)
+    session.status.hit_points = max(0, int(session.status.hit_points) - reduced_damage)
+    return max(0, damage_dealt)
+
+
+def _apply_entity_damage_with_reduction(entity: EntityState, amount: int) -> int:
+    incoming_damage = max(0, int(amount))
+    if incoming_damage <= 0:
+        return 0
+
+    active_effects = list(getattr(entity, "active_support_effects", []))
+    reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(active_effects))
+    damage_dealt = min(max(0, int(entity.hit_points)), reduced_damage)
+    entity.hit_points = max(0, int(entity.hit_points) - reduced_damage)
+    return max(0, damage_dealt)
+
+
 def _process_entity_battle_round_support_effects(entity: EntityState) -> None:
     for effect in list(entity.active_support_effects):
         if effect.support_mode != "battle_rounds":

@@ -131,7 +131,8 @@
         "allowed_values": [
           "heal",
           "vigor",
-          "mana"
+          "mana",
+          "damage_reduction"
         ]
       },
       "support_amount": {
@@ -139,6 +140,29 @@
         "required": false,
         "default": 0,
         "minimum": 0
+      },
+      "support_mode": {
+        "type": "string",
+        "required": false,
+        "default": "instant",
+        "allowed_values": [
+          "instant",
+          "timed",
+          "battle_rounds"
+        ]
+      },
+      "duration_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0
+      },
+      "duration_rounds": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "Use for round-based support skills such as temporary damage reduction stances."
       },
       "support_context": {
         "type": "string",

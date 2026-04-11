@@ -8,6 +8,7 @@ from targeting_follow import _resolve_room_player_selector
 from damage import roll_skill_damage, roll_spell_damage
 
 from combat_ability_effects import (
+    _apply_entity_damage_with_reduction,
     _apply_player_secondary_restore,
     _apply_player_skill_lag,
     _observer_restore_fallback,
@@ -49,6 +50,9 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     damage_context = str(skill.get("damage_context", "")).strip()
     support_effect = str(skill.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(skill.get("support_amount", 0)))
+    support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
+    duration_hours = max(0, int(skill.get("duration_hours", 0)))
+    duration_rounds = max(0, int(skill.get("duration_rounds", 0)))
     support_context = str(skill.get("support_context", "")).strip()
     observer_action = str(skill.get("observer_action", "")).strip()
     observer_context = str(skill.get("observer_context", "")).strip()
@@ -100,11 +104,25 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     if skill_type == "support":
         if cast_type != "self":
             return display_error(f"Support skill '{skill_name}' must be cast_type 'self'.", session), False
-        if support_effect not in {"heal", "vigor", "mana"}:
+        if support_effect not in {"heal", "vigor", "mana", "damage_reduction"}:
             return display_error(
                 f"Skill '{skill_name}' has unsupported support_effect '{support_effect}'.",
                 session,
             ), False
+        if support_mode not in {"instant", "timed", "battle_rounds"}:
+            return display_error(
+                f"Skill '{skill_name}' has unsupported support_mode '{support_mode}'.",
+                session,
+            ), False
+        if support_effect == "damage_reduction" and support_mode == "instant":
+            return display_error(
+                f"Skill '{skill_name}' must use timed or battle_rounds mode for damage reduction.",
+                session,
+            ), False
+        if support_mode == "timed" and duration_hours <= 0:
+            return display_error(f"Skill '{skill_name}' must have duration_hours > 0.", session), False
+        if support_mode == "battle_rounds" and duration_rounds <= 0:
+            return display_error(f"Skill '{skill_name}' must have duration_rounds > 0.", session), False
 
         if session.status.vigor < vigor_cost:
             return display_error(
@@ -114,15 +132,47 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
         session.status.vigor -= vigor_cost
         caps = get_player_resource_caps(session)
-
         total_support_amount = max(0, support_amount + scaling_bonus)
 
-        if support_effect == "heal":
-            session.status.hit_points = min(caps["hit_points"], session.status.hit_points + total_support_amount)
-        elif support_effect == "vigor":
-            session.status.vigor = min(caps["vigor"], session.status.vigor + total_support_amount)
+        if support_mode == "instant":
+            if support_effect == "heal":
+                session.status.hit_points = min(caps["hit_points"], session.status.hit_points + total_support_amount)
+            elif support_effect == "vigor":
+                session.status.vigor = min(caps["vigor"], session.status.vigor + total_support_amount)
+            else:
+                session.status.mana = min(caps["mana"], session.status.mana + total_support_amount)
         else:
-            session.status.mana = min(caps["mana"], session.status.mana + total_support_amount)
+            effect_id = skill_id or skill_name
+            refreshed = False
+            for active_effect in session.active_support_effects:
+                if active_effect.spell_id != effect_id:
+                    continue
+                active_effect.support_mode = support_mode
+                active_effect.support_effect = support_effect
+                active_effect.support_amount = total_support_amount
+                active_effect.support_dice_count = 0
+                active_effect.support_dice_sides = 0
+                active_effect.support_roll_modifier = 0
+                active_effect.support_scaling_bonus = 0
+                active_effect.remaining_hours = duration_hours
+                active_effect.remaining_rounds = duration_rounds
+                refreshed = True
+                break
+
+            if not refreshed:
+                session.active_support_effects.append(ActiveSupportEffectState(
+                    spell_id=effect_id,
+                    spell_name=skill_name,
+                    support_mode=support_mode,
+                    support_effect=support_effect,
+                    support_amount=total_support_amount,
+                    remaining_hours=duration_hours,
+                    support_dice_count=0,
+                    support_dice_sides=0,
+                    support_roll_modifier=0,
+                    support_scaling_bonus=0,
+                    remaining_rounds=duration_rounds,
+                ))
 
         if support_context:
             parts.extend([
@@ -207,8 +257,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         if total_damage > 0:
             start_combat(session, entity.entity_id, "player")
             _mark_entity_contributor(session, entity)
-            dealt = min(entity.hit_points, total_damage)
-            entity.hit_points = max(0, entity.hit_points - total_damage)
+            dealt = _apply_entity_damage_with_reduction(entity, total_damage)
             total_damage_dealt += max(0, dealt)
             if resolved_context:
                 parts.append(build_part(resolved_context))
@@ -623,8 +672,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         if total_damage > 0:
             start_combat(session, entity.entity_id, "player")
             _mark_entity_contributor(session, entity)
-            dealt = min(entity.hit_points, total_damage)
-            entity.hit_points = max(0, entity.hit_points - total_damage)
+            dealt = _apply_entity_damage_with_reduction(entity, total_damage)
             total_damage_dealt += max(0, dealt)
             if resolved_context:
                 parts.append(build_part(resolved_context))
