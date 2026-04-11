@@ -306,6 +306,8 @@ def reset_session_to_login(session: ClientSession, *, purge_nonpersistent_items_
     session.pending_gender = ""
     session.following_player_key = ""
     session.following_player_name = ""
+    session.watch_player_key = ""
+    session.watch_player_name = ""
     session.group_leader_key = ""
     session.group_member_keys.clear()
     session.pending_private_lines = []

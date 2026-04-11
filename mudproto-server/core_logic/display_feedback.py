@@ -8,6 +8,7 @@ from models import ClientSession
 from player_resources import get_player_resource_caps
 from session_timing import is_session_lagged
 from targeting_entities import list_room_entities
+from targeting_follow import _find_session_by_identity_key
 
 from display_core import build_display, build_part, display_text
 from room_exits import format_prompt_exit_token
@@ -104,6 +105,34 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
     ])
 
     engaged_entity = get_engaged_entity(session)
+    is_in_combat = bool(session.combat.engaged_entity_ids)
+
+    if not is_in_combat and session.watch_player_key.strip():
+        watched_session = _find_session_by_identity_key(session.watch_player_key.strip())
+        if watched_session is not None and watched_session.is_authenticated:
+            watched_caps = get_player_resource_caps(watched_session)
+            watched_condition, watched_condition_color = get_health_condition(
+                watched_session.status.hit_points, watched_caps["hit_points"]
+            )
+            watched_name = (watched_session.authenticated_character_name or session.watch_player_name or "?").strip()
+            parts.extend([
+                build_part(" [", "bright_white"),
+                build_part(watched_name, "bright_cyan", True),
+                build_part(":", "bright_white"),
+                build_part(watched_condition.title(), watched_condition_color, True),
+                build_part("]", "bright_white"),
+            ])
+            watched_entity = get_engaged_entity(watched_session)
+            if watched_entity is not None:
+                watched_entity_condition, watched_entity_condition_color = get_entity_condition(watched_entity)
+                parts.extend([
+                    build_part(" [vs ", "bright_white"),
+                    build_part(watched_entity.name),
+                    build_part(":", "bright_white"),
+                    build_part(watched_entity_condition.title(), watched_entity_condition_color, True),
+                    build_part("]", "bright_white"),
+                ])
+
     if engaged_entity is not None:
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
         parts.extend([

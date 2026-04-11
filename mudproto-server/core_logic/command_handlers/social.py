@@ -51,7 +51,7 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
 
     return build_menu_table_parts(
         "Group Status",
-        ["Role", "Name", "HP", "VIG", "MANA", "State"],
+        ["Role", "Name", "HP", "Vigor", "Mana", "State"],
         rows,
         empty_message="You have no group members.",
     )
@@ -180,6 +180,52 @@ def handle_social_command(
             build_part("You add ", "bright_white"),
             build_part(_display_name(target_session), "bright_cyan", True),
             build_part(" to your group.", "bright_white"),
+        ])
+
+    if verb in {"watch", "unwatch"}:
+        selector_text = " ".join(args).strip()
+        if verb == "unwatch":
+            selector_text = "off"
+
+        if not selector_text:
+            if not session.watch_player_key.strip():
+                return display_error("Usage: watch <player> or watch off.", session)
+            watched_name = session.watch_player_name.strip() or "someone"
+            return display_command_result(session, [
+                build_part("You are watching ", "bright_white"),
+                build_part(watched_name, "bright_cyan", True),
+                build_part(".", "bright_white"),
+            ])
+
+        if selector_text.lower() in {"off", "stop", "none", "cancel", "clear", "me", "self", "myself"}:
+            if not session.watch_player_key.strip():
+                return display_error("You are not watching anyone.", session)
+            watched_name = session.watch_player_name.strip() or "them"
+            session.watch_player_key = ""
+            session.watch_player_name = ""
+            return display_command_result(session, [
+                build_part("You stop watching ", "bright_white"),
+                build_part(watched_name, "bright_cyan", True),
+                build_part(".", "bright_white"),
+            ])
+
+        target_session, target_error = _resolve_room_player_selector(session, selector_text)
+        if target_session is None:
+            return display_error(target_error or f"No player named '{selector_text}' is here.", session)
+        if target_session.client_id == session.client_id:
+            return display_error("You cannot watch yourself.", session)
+
+        target_key = (target_session.player_state_key or target_session.client_id).strip()
+        target_name = (target_session.authenticated_character_name or "").strip() or "Unknown"
+        if session.watch_player_key.strip().lower() == target_key.lower():
+            return display_error(f"You are already watching {target_name}.", session)
+
+        session.watch_player_key = target_key
+        session.watch_player_name = target_name
+        return display_command_result(session, [
+            build_part("You begin watching ", "bright_white"),
+            build_part(target_name, "bright_cyan", True),
+            build_part(".", "bright_white"),
         ])
 
     if verb in {"follow", "fol", "foll", "follo", "unfollow"}:

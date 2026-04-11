@@ -248,6 +248,8 @@ class ClientSession:
     pending_gender: str = ""
     following_player_key: str = ""
     following_player_name: str = ""
+    watch_player_key: str = ""
+    watch_player_name: str = ""
     group_leader_key: str = ""
     group_member_keys: set[str] = field(default_factory=set)
     login_room_id: str = "start"
