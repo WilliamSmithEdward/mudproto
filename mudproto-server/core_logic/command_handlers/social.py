@@ -15,7 +15,7 @@ from targeting_follow import (
     _resolve_room_player_selector,
     _resolve_group_leader_session,
     _session_identity_key,
-    _is_following_leader,
+    _is_following_leader_recursive,
     _would_create_follow_loop,
 )
 
@@ -163,7 +163,7 @@ def handle_social_command(
             return display_error(target_error or f"No player named '{selector_text}' is here.", session)
         if target_session.client_id == session.client_id:
             return display_error("You are already in your own group.", session)
-        if not _is_following_leader(target_session, session):
+        if not _is_following_leader_recursive(target_session, session):
             return display_error(
                 f"{_display_name(target_session)} must be following you before grouping.",
                 session,
@@ -242,7 +242,18 @@ def handle_social_command(
         if session.following_player_key.strip().lower() == target_key.lower():
             return display_error(f"You are already following {target_name}.", session)
 
-        _remove_session_from_group(session)
+        leader_session = _resolve_group_leader_session(session)
+        is_group_member = leader_session.client_id != session.client_id and bool(session.group_leader_key.strip())
+        if is_group_member:
+            _, group_sessions = _list_group_member_sessions(leader_session)
+            group_member_keys = {
+                _session_identity_key(group_session)
+                for group_session in group_sessions
+                if _session_identity_key(group_session)
+            }
+            if target_key.strip().lower() not in group_member_keys:
+                _remove_session_from_group(session)
+
         session.following_player_key = target_key
         session.following_player_name = target_name
         return display_command_result(session, [

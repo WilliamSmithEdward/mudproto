@@ -151,6 +151,49 @@ def _is_following_leader(member_session: ClientSession, leader_session: ClientSe
     return bool(member_follow_key and leader_key and member_follow_key == leader_key)
 
 
+def _is_following_leader_recursive(member_session: ClientSession, leader_session: ClientSession) -> bool:
+    leader_key = _session_identity_key(leader_session)
+    if not leader_key:
+        return False
+
+    member_key = _session_identity_key(member_session)
+    if not member_key or member_key == leader_key:
+        return False
+
+    seen_keys: set[str] = {member_key}
+    current_session: ClientSession | None = member_session
+
+    while current_session is not None:
+        next_key = (current_session.following_player_key or "").strip().lower()
+        if not next_key:
+            return False
+        if next_key == leader_key:
+            return True
+        if next_key in seen_keys:
+            return False
+
+        seen_keys.add(next_key)
+        current_session = _find_session_by_identity_key(next_key)
+
+    return False
+
+
+def _is_following_group_member(member_session: ClientSession, leader_session: ClientSession) -> bool:
+    member_follow_key = (member_session.following_player_key or "").strip().lower()
+    leader_key = _session_identity_key(leader_session)
+    if not member_follow_key or not leader_key:
+        return False
+
+    if member_follow_key == leader_key:
+        return True
+
+    return member_follow_key in {
+        str(member_key).strip().lower()
+        for member_key in getattr(leader_session, "group_member_keys", set())
+        if str(member_key).strip()
+    }
+
+
 def _remove_session_from_group(session: ClientSession, *, clear_follow: bool = True) -> None:
     member_key = _session_identity_key(session)
     leader_key = (session.group_leader_key or "").strip().lower()
@@ -193,7 +236,7 @@ def _add_group_member(leader_session: ClientSession, member_session: ClientSessi
     member_key = _session_identity_key(member_session)
     if not leader_key or not member_key or leader_key == member_key:
         return False
-    if not _is_following_leader(member_session, leader_session):
+    if not _is_following_leader_recursive(member_session, leader_session):
         return False
 
     # If this member is currently leading another group, dissolve it first.
@@ -217,7 +260,7 @@ def _form_group_from_followers(leader_session: ClientSession) -> list[ClientSess
             continue
         if _session_identity_key(candidate) == leader_key:
             continue
-        if not _is_following_leader(candidate, leader_session):
+        if not _is_following_leader_recursive(candidate, leader_session):
             continue
         if _add_group_member(leader_session, candidate):
             added_members.append(candidate)
@@ -242,7 +285,7 @@ def _resolve_group_leader_session(session: ClientSession) -> ClientSession:
         session.group_leader_key = ""
         return session
 
-    if not _is_following_leader(session, leader_session):
+    if not _is_following_group_member(session, leader_session):
         leader_session.group_member_keys.discard(own_key)
         session.group_leader_key = ""
         return session
@@ -261,7 +304,7 @@ def _list_group_member_sessions(session: ClientSession) -> tuple[ClientSession, 
         if member_session is None:
             leader_session.group_member_keys.discard(member_key)
             continue
-        if not _is_following_leader(member_session, leader_session):
+        if not _is_following_group_member(member_session, leader_session):
             leader_session.group_member_keys.discard(member_key)
             member_session.group_leader_key = ""
             continue
