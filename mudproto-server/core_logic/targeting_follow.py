@@ -156,12 +156,14 @@ def _remove_session_from_group(session: ClientSession) -> None:
     leader_key = (session.group_leader_key or "").strip().lower()
     if not leader_key or not member_key or leader_key == member_key:
         session.group_leader_key = ""
+        _clear_follow_state(session)
         return
 
     leader_session = _find_session_by_identity_key(leader_key)
     if leader_session is not None:
         leader_session.group_member_keys.discard(member_key)
     session.group_leader_key = ""
+    _clear_follow_state(session)
 
 
 def _disband_group(leader_session: ClientSession) -> list[ClientSession]:
@@ -176,6 +178,7 @@ def _disband_group(leader_session: ClientSession) -> list[ClientSession]:
         member_session = _find_session_by_identity_key(member_key)
         if member_session is not None and (member_session.group_leader_key or "").strip().lower() == leader_key:
             member_session.group_leader_key = ""
+            _clear_follow_state(member_session)
             removed_members.append(member_session)
 
     leader_session.group_member_keys.clear()

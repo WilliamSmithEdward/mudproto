@@ -105,8 +105,7 @@ def handle_social_command(
             if target_key not in session.group_member_keys or (target_session.group_leader_key or "").strip().lower() != leader_key:
                 return display_error(f"{_display_name(target_session)} is not in your group.", session)
 
-            session.group_member_keys.discard(target_key)
-            target_session.group_leader_key = ""
+            _remove_session_from_group(target_session)
             return display_command_result(session, [
                 build_part("You remove ", "bright_white"),
                 build_part(_display_name(target_session), "bright_cyan", True),
