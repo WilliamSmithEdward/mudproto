@@ -2,7 +2,7 @@
 
 import re
 
-from grammar import resolve_player_pronouns, third_personize_text
+from grammar import capitalize_after_newlines, resolve_player_pronouns, third_personize_text
 from session_registry import active_character_sessions
 
 
@@ -87,7 +87,7 @@ def _observer_context_from_player_context(
     resolved = resolved.replace("[verb]", "is")
 
     if subject_name:
-        return third_personize_text(resolved, subject_name, subject_gender)
+        return capitalize_after_newlines(third_personize_text(resolved, subject_name, subject_gender))
 
     resolved = resolved.replace(" your ", " their ")
     resolved = resolved.replace(" you ", " them ")
@@ -96,7 +96,7 @@ def _observer_context_from_player_context(
         resolved = f"Their {resolved[5:]}"
     if resolved.startswith("You "):
         resolved = f"{resolved[4:]}"
-    return resolved
+    return capitalize_after_newlines(resolved)
 
 
 def _resolve_combat_context(context: str, *, target_text: str, verb: str) -> str:
@@ -113,6 +113,7 @@ def _resolve_combat_context(context: str, *, target_text: str, verb: str) -> str
         if resolved.startswith("you "):
             resolved = f"You{resolved[3:]}"
 
+    resolved = capitalize_after_newlines(resolved)
     if resolved and not resolved.endswith("."):
         resolved += "."
     return resolved
