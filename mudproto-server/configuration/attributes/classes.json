@@ -3,6 +3,7 @@
     "class_id": "class.arcanist",
     "name": "Arcanist",
     "description": "A student of focused destructive and restorative magic.",
+    "uses_mana": true,
     "attribute_ranges": {
       "str": { "min": 14, "max": 16 },
       "wis": { "min": 11, "max": 18 },

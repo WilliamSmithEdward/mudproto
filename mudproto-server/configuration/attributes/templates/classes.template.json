@@ -18,6 +18,12 @@
       "required": false,
       "default": ""
     },
+    "uses_mana": {
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "notes": "Set to false for classes that should not have a mana resource or mana prompt display."
+    },
     "attribute_ranges": {
       "type": "object",
       "required": true,
@@ -26,7 +32,7 @@
     "resource_progression": {
       "type": "object",
       "required": true,
-      "rules": ["must include hit_points, vigor, and mana entries"]
+      "rules": ["must include hit_points and vigor entries; mana should be configured only when uses_mana is true"]
     },
     "starting_gear_template_ids": {
       "type": "array[string]",
@@ -71,6 +77,7 @@
       "class_id": "class.example",
       "name": "Example",
       "description": "A reference starter class.",
+      "uses_mana": true,
       "attribute_ranges": {
         "str": {"min": 8, "max": 14},
         "dex": {"min": 8, "max": 14},

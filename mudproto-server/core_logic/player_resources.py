@@ -36,6 +36,7 @@ def _resolve_class_resource_rules(session: ClientSession) -> dict[str, dict]:
     if player_class is None:
         player_class = get_default_player_class()
 
+    uses_mana = bool(player_class.get("uses_mana", True)) if isinstance(player_class, dict) else True
     raw_rules = player_class.get("resource_progression", {}) if isinstance(player_class, dict) else {}
     resolved: dict[str, dict] = {}
     for resource_key in _RESOURCE_KEYS:
@@ -44,15 +45,21 @@ def _resolve_class_resource_rules(session: ClientSession) -> dict[str, dict]:
         if not isinstance(raw_rule, dict):
             raw_rule = {}
 
+        is_enabled = resource_key != "mana" or uses_mana
+        minimum_base = 1 if is_enabled else 0
+        default_base = default_rule["base"] if is_enabled else 0
+        default_multiplier = default_rule["attribute_multiplier"] if is_enabled else 0.0
+
         resolved[resource_key] = {
-            "base": max(1, int(raw_rule.get("base", default_rule["base"]))),
+            "enabled": is_enabled,
+            "base": max(minimum_base, int(raw_rule.get("base", default_base))),
             "attribute_id": str(raw_rule.get("attribute_id", default_rule["attribute_id"]))
             .strip()
             .lower()
             or str(default_rule["attribute_id"]),
-            "attribute_multiplier": max(0.0, float(raw_rule.get("attribute_multiplier", default_rule["attribute_multiplier"]))),
-            "per_level_min": int(raw_rule.get("per_level_min", default_rule["per_level_min"])),
-            "per_level_max": int(raw_rule.get("per_level_max", default_rule["per_level_max"])),
+            "attribute_multiplier": max(0.0, float(raw_rule.get("attribute_multiplier", default_multiplier))),
+            "per_level_min": int(raw_rule.get("per_level_min", default_rule["per_level_min"] if is_enabled else 0)),
+            "per_level_max": int(raw_rule.get("per_level_max", default_rule["per_level_max"] if is_enabled else 0)),
         }
 
     return resolved
@@ -70,6 +77,10 @@ def get_player_resource_caps(session: ClientSession) -> dict[str, int]:
     caps: dict[str, int] = {}
     for resource_key in _RESOURCE_KEYS:
         rule = rules[resource_key]
+        if not bool(rule.get("enabled", True)):
+            caps[resource_key] = 0
+            continue
+
         base = int(rule["base"])
         attribute_bonus = int(_attribute_modifier(session, str(rule["attribute_id"])) * float(rule["attribute_multiplier"]))
         level_gain_total = int(gains.get(resource_key, 0))

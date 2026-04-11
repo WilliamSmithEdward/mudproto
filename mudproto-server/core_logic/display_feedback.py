@@ -1,6 +1,7 @@
 import asyncio
 import re
 
+from attribute_config import player_class_uses_mana
 from combat_state import get_engaged_entity, get_entity_condition, get_health_condition
 from experience import get_xp_to_next_level
 from models import ClientSession
@@ -73,11 +74,15 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
     status = session.status
     caps = get_player_resource_caps(session)
     me_condition, me_condition_color = get_health_condition(status.hit_points, caps["hit_points"])
+    show_mana = player_class_uses_mana(session.player.class_id) and int(caps.get("mana", 0)) > 0
 
     parts = [
         build_part(f"{status.hit_points}H", me_condition_color, True),
-        build_part(f" {status.vigor}V {status.mana}M {status.coins}C", "bright_white"),
+        build_part(f" {status.vigor}V", "bright_white"),
     ]
+    if show_mana:
+        parts.append(build_part(f" {status.mana}M", "bright_white"))
+    parts.append(build_part(f" {status.coins}C", "bright_white"))
 
     xp_to_next_level = get_xp_to_next_level(session.player.experience_points)
     parts.extend([

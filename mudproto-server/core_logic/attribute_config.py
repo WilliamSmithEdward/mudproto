@@ -475,6 +475,7 @@ def load_player_classes() -> list[dict]:
         raw_item_ids = raw_class.get("starting_item_ids", [])
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
         raw_resource_progression = raw_class.get("resource_progression", {})
+        uses_mana = bool(raw_class.get("uses_mana", True))
         if not isinstance(raw_gear_ids, list):
             raise ValueError(
                 f"Player class '{class_id}' starting_gear_template_ids must be a list."
@@ -534,15 +535,17 @@ def load_player_classes() -> list[dict]:
                     f"Player class '{class_id}' resource_progression['{resource_key}'] must be an object."
                 )
 
+            minimum_base = 0 if resource_key == "mana" and not uses_mana else 1
             base = int(raw_resource.get("base", 0))
             attribute_id = str(raw_resource.get("attribute_id", default_attribute)).strip().lower() or default_attribute
             attribute_multiplier = float(raw_resource.get("attribute_multiplier", 1.0))
             per_level_min = int(raw_resource.get("per_level_min", 0))
             per_level_max = int(raw_resource.get("per_level_max", 0))
 
-            if base <= 0:
+            if base < minimum_base:
+                comparator = ">= 0" if minimum_base == 0 else "> 0"
                 raise ValueError(
-                    f"Player class '{class_id}' resource_progression['{resource_key}'].base must be > 0."
+                    f"Player class '{class_id}' resource_progression['{resource_key}'].base must be {comparator}."
                 )
             if attribute_id not in configured_attribute_ids:
                 raise ValueError(
@@ -556,6 +559,12 @@ def load_player_classes() -> list[dict]:
                 raise ValueError(
                     f"Player class '{class_id}' resource_progression['{resource_key}'] per-level values must be >= 0."
                 )
+
+            if resource_key == "mana" and not uses_mana:
+                base = 0
+                attribute_multiplier = 0.0
+                per_level_min = 0
+                per_level_max = 0
 
             normalized_resource_progression[resource_key] = {
                 "base": base,
@@ -645,6 +654,7 @@ def load_player_classes() -> list[dict]:
             "class_id": class_id.strip(),
             "name": name.strip(),
             "description": str(raw_class.get("description", "")).strip(),
+            "uses_mana": uses_mana,
             "attribute_ranges": attribute_ranges,
             "starting_gear_template_ids": gear_ids,
             "starting_equipped_gear_template_ids": equipped_gear_ids,
@@ -673,6 +683,14 @@ def get_player_class_by_id(class_id: str) -> dict | None:
         if str(player_class.get("class_id", "")).strip().lower() == normalized:
             return player_class
     return None
+
+
+def player_class_uses_mana(class_id: str) -> bool:
+    normalized = str(class_id).strip()
+    player_class = get_player_class_by_id(normalized) if normalized else None
+    if player_class is None:
+        player_class = get_default_player_class()
+    return bool(player_class.get("uses_mana", True))
 
 
 def get_default_player_class() -> dict:

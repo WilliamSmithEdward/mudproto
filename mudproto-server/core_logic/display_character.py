@@ -1,4 +1,4 @@
-from attribute_config import get_player_class_by_id, load_attributes
+from attribute_config import get_player_class_by_id, load_attributes, player_class_uses_mana
 from equipment_logic import list_worn_items
 from experience import get_xp_to_next_level
 from item_logic import _item_highlight_color
@@ -67,14 +67,17 @@ def display_score(session: ClientSession) -> dict:
     vigor_now = max(0, int(session.status.vigor))
     vigor_cap = max(1, int(caps["vigor"]))
     mana_now = max(0, int(session.status.mana))
-    mana_cap = max(1, int(caps["mana"]))
+    mana_cap = max(0, int(caps["mana"]))
+    show_mana = player_class_uses_mana(session.player.class_id) and mana_cap > 0
 
     level_text = str(max(1, int(session.player.level)))
     coins_text = str(max(0, int(session.status.coins)))
 
     summary_line = f"Name: {character_name}   Class: {class_name}   Level: {level_text}"
     location_line = f"Location: {room_name}"
-    resources_line = f"Health: {hp_now}/{hp_cap}   Vigor: {vigor_now}/{vigor_cap}   Mana: {mana_now}/{mana_cap}"
+    resources_line = f"Health: {hp_now}/{hp_cap}   Vigor: {vigor_now}/{vigor_cap}"
+    if show_mana:
+        resources_line += f"   Mana: {mana_now}/{mana_cap}"
     coins_line = f"Coins: {coins_text}"
     xp_line = f"Experience: {xp_total}   To Next Level: {xp_to_next}"
 
@@ -138,8 +141,15 @@ def display_score(session: ClientSession) -> dict:
         build_part(f"{hp_now}/{hp_cap}", _resource_color(hp_now, hp_cap), True),
         build_part("   Vigor: ", "bright_white"),
         build_part(f"{vigor_now}/{vigor_cap}", _resource_color(vigor_now, vigor_cap), True),
-        build_part("   Mana: ", "bright_white"),
-        build_part(f"{mana_now}/{mana_cap}", _resource_color(mana_now, mana_cap), True),
+    ]
+
+    if show_mana:
+        parts.extend([
+            build_part("   Mana: ", "bright_white"),
+            build_part(f"{mana_now}/{mana_cap}", _resource_color(mana_now, mana_cap), True),
+        ])
+
+    parts.extend([
         build_part("\n"),
         build_part("Coins: ", "bright_white"),
         build_part(coins_text, "bright_cyan", True),
@@ -152,7 +162,7 @@ def display_score(session: ClientSession) -> dict:
         build_part(divider, "bright_black"),
         build_part("\n"),
         build_part("Attributes", "bright_white", True),
-    ]
+    ])
 
     for attribute in configured_attributes:
         attribute_id = str(attribute.get("attribute_id", "")).strip().lower()
