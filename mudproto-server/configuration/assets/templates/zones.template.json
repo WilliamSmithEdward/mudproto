@@ -23,12 +23,6 @@
         "default": 0,
         "minimum": 0
       },
-      "repopulate_each_game_hour": {
-        "type": "boolean",
-        "required": false,
-        "legacy_alias": true,
-        "notes": "Legacy compatibility flag; prefer repopulate_game_hours."
-      },
       "reset_player_flags": {
         "type": "array[string]",
         "required": false,

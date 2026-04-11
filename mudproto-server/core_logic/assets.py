@@ -395,11 +395,7 @@ def load_zones() -> list[dict]:
         if normalized_zone_id in normalized_zones_by_id and not is_payload_override:
             raise ValueError(f"Duplicate zone_id in zone assets: {zone_id}")
 
-        raw_repopulate_game_hours = raw_zone.get("repopulate_game_hours")
-        if raw_repopulate_game_hours is None:
-            raw_repopulate_game_hours = 1 if bool(raw_zone.get("repopulate_each_game_hour", False)) else 0
-
-        repopulate_game_hours = int(raw_repopulate_game_hours)
+        repopulate_game_hours = int(raw_zone.get("repopulate_game_hours", 0))
         if repopulate_game_hours < 0:
             raise ValueError(f"Zone asset '{zone_id}' repopulate_game_hours must be zero or greater.")
 

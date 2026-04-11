@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.8",
-  "generated_at_utc": "2026-04-10T19:00:49.000415+00:00",
+  "version": "2.7",
+  "generated_at_utc": "2026-04-11T19:41:46.597245+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -45,7 +45,6 @@
       "spells[].spell_id",
       "skills[].skill_id",
       "npcs[].npc_id",
-      "quests[].quest_id",
       "rooms[].room_id",
       "zones[].zone_id"
     ],
@@ -59,13 +58,12 @@
     "policy": "On asset ID conflict, the LLM payload should override the base-game definition.",
     "rule": "If the user wants to replace or modify an existing asset, reuse that asset's ID in the payload and provide the full replacement definition.",
     "room_merge_behavior": "If multiple asset payloads target the same room ID, merge the room exits across those payloads while keeping all other room fields from the last loaded room definition.",
-    "other_asset_behavior": "For gear, items, spells, skills, quests, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
+    "other_asset_behavior": "For gear, items, spells, skills, NPCs, and zones, keep the last loaded asset definition when multiple payloads reuse the same ID.",
     "scope": [
       "gear",
       "items",
       "spells",
       "skills",
-      "quests",
       "npcs",
       "rooms",
       "zones"
@@ -93,9 +91,6 @@
       },
       "skills": {
         "type": "array[skill]"
-      },
-      "quests": {
-        "type": "array[quest]"
       },
       "npcs": {
         "type": "array[npc]"
@@ -194,7 +189,8 @@
         "weapon_type": {
           "type": "string",
           "required": false,
-          "default": "unarmed"
+          "default": "unarmed",
+          "notes": "Weapon-only field. Allowed values come from `configuration/attributes/weapon_types.json`."
         },
         "can_hold": {
           "type": "boolean",
@@ -255,6 +251,78 @@
           "type": "integer",
           "required": false,
           "default": 0
+        },
+        "on_hit_room_damage_chance": {
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only field. Percent or fractional chance for an on-hit room-wide damage proc; `33` and `0.33` both mean 33%."
+        },
+        "on_hit_room_damage_dice_count": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only field. Damage dice count for the room proc."
+        },
+        "on_hit_room_damage_dice_sides": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only field. Damage dice sides for the room proc."
+        },
+        "on_hit_room_damage_roll_modifier": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only flat modifier added to the room proc damage roll."
+        },
+        "on_hit_room_damage_message": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Private message shown to the wielder when the proc fires. Supports `[weapon_name]`."
+        },
+        "on_hit_room_damage_observer_message": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Broadcast message shown to other players in the room when the proc fires. Supports `[actor_name]` and `[weapon_name]`."
+        },
+        "on_hit_target_damage_chance": {
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only field. Percent or fractional chance for an additional single-target on-hit damage proc against the engaged enemy; `33` and `0.33` both mean 33%."
+        },
+        "on_hit_target_damage_dice_count": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only field. Damage dice count for the single-target proc."
+        },
+        "on_hit_target_damage_dice_sides": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only field. Damage dice sides for the single-target proc."
+        },
+        "on_hit_target_damage_roll_modifier": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "notes": "Weapon-only flat modifier added to the single-target proc damage roll."
+        },
+        "on_hit_target_damage_message": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Private message shown to the wielder when the single-target proc fires. Supports `[weapon_name]`."
+        },
+        "on_hit_target_damage_observer_message": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Broadcast message shown to other players in the room when the single-target proc fires. Supports `[actor_name]` and `[weapon_name]`."
         },
         "armor_class_bonus": {
           "type": "integer",
@@ -349,6 +417,25 @@
           "default": true,
           "notes": "For container items, when false the container can exist in the room but cannot be picked up into inventory. The alias `carryable` is also accepted."
         },
+        "contents": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "notes": "For containers, default item contents that are spawned inside when the container is created or reset from its template.",
+          "entry_schema": {
+            "template_id": {
+              "type": "string",
+              "required": true,
+              "notes": "Must match an existing gear or item template id."
+            },
+            "quantity": {
+              "type": "integer",
+              "required": false,
+              "default": 1,
+              "minimum": 1
+            }
+          }
+        },
         "consume_on_use": {
           "type": "boolean",
           "required": false,
@@ -361,17 +448,18 @@
           "default": "",
           "notes": "Optional text shown when a consume_on_use item is spent."
         },
-        "set_player_flags_on_use": {
-          "type": "array[string]",
+        "decay_game_hours": {
+          "type": "integer",
           "required": false,
-          "default": [],
-          "notes": "Optional player flags to set after the item is successfully used, such as completing a quest stage when a special key is turned in a lock."
+          "default": 0,
+          "minimum": 0,
+          "notes": "When greater than zero, the item automatically decays after this many game hours whether carried, dropped, or stored in a container."
         },
-        "clear_player_flags_on_use": {
-          "type": "array[string]",
+        "decay_message": {
+          "type": "string",
           "required": false,
-          "default": [],
-          "notes": "Optional player flags to clear after the item is successfully used."
+          "default": "",
+          "notes": "Optional text for decay-driven expiry; currently most useful for carried items."
         },
         "can_close": {
           "type": "boolean",
@@ -728,6 +816,26 @@
               "required": false,
               "default": []
             },
+            "required_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "excluded_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "set_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "clear_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
             "message": {
               "type": "string",
               "required": true,
@@ -785,6 +893,26 @@
               "required": false,
               "default": []
             },
+            "required_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "excluded_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "set_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
+            "clear_world_flags": {
+              "type": "array[string]",
+              "required": false,
+              "default": []
+            },
             "actions": {
               "type": "array[object]",
               "required": true,
@@ -836,40 +964,6 @@
               "default": []
             }
           }
-        }
-      }
-    },
-    "quests": {
-      "file": "quests.json",
-      "top_level_type": "array",
-      "id_field": "quest_id",
-      "id_prefixes": [
-        "quest."
-      ],
-      "fields": {
-        "quest_id": {
-          "type": "string",
-          "required": true
-        },
-        "name": {
-          "type": "string",
-          "required": true
-        },
-        "description": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "flag_prefix": {
-          "type": "string",
-          "required": false,
-          "default": "",
-          "notes": "Optional prefix applied to stage flags that do not already contain a namespace separator such as ':'."
-        },
-        "stages": {
-          "type": "array[object]",
-          "required": true,
-          "notes": "Each stage entry should include `stage` (integer), `description` (string), and `flags` (array[string]) describing the player flags that mark that stage complete."
         }
       }
     },
@@ -1346,23 +1440,36 @@
           "default": 0,
           "minimum": 0
         },
-        "repopulate_each_game_hour": {
-          "type": "boolean",
-          "required": false,
-          "legacy_alias": true,
-          "notes": "Legacy compatibility flag; prefer repopulate_game_hours."
-        },
         "reset_player_flags": {
           "type": "array[string]",
           "required": false,
           "default": [],
-          "notes": "When the zone repopulates, these per-player flags are cleared for all active characters."
+          "notes": "When the zone repopulates, these per-player interaction flags are cleared for all active characters."
+        },
+        "reset_world_flags": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "When the zone repopulates, these shared world flags are cleared for the live world state."
         },
         "reset_container_template_ids": {
           "type": "array[string]",
           "required": false,
           "default": [],
           "notes": "When the zone repopulates, any room containers using these item template ids are reset to their configured default state and contents."
+        },
+        "repopulation_blocking_item_template_ids": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "If any of these item templates exist anywhere in the live world or a connected character inventory, the zone's repopulation remains blocked."
+        },
+        "repopulation_block_cooldown_game_hours": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0,
+          "notes": "After the blocking items disappear, the zone stays blocked for this many additional game hours before repopulation can resume."
         }
       }
     }
@@ -1374,15 +1481,14 @@
   ],
   "current_game_assets": {
     "counts": {
-      "gear": 14,
+      "gear": 16,
       "items": 6,
       "npcs": 5,
-      "quests": 0,
       "rooms": 8,
       "skills": 3,
       "spells": 9,
       "zones": 3,
-      "asset_payload_files": 2
+      "asset_payload_files": 3
     },
     "base_assets": {
       "gear": [
@@ -1512,6 +1618,63 @@
           "hit_roll_modifier": 3,
           "attack_damage_bonus": 1,
           "attacks_per_round_bonus": 0
+        },
+        {
+          "template_id": "weapon.sunscour",
+          "name": "Sunscour",
+          "slot": "weapon",
+          "description": "A radiant war axe of pale gold steel whose edge holds a captive dawn; every clean strike threatens to spill sunlight across the whole battlefield.",
+          "keywords": [
+            "sunscour",
+            "axe",
+            "war axe",
+            "sun"
+          ],
+          "weapon_type": "axe",
+          "can_hold": false,
+          "can_two_hand": true,
+          "weight": 11,
+          "coin_value": 250,
+          "damage_dice_count": 8,
+          "damage_dice_sides": 10,
+          "damage_roll_modifier": 6,
+          "hit_roll_modifier": 6,
+          "attack_damage_bonus": 4,
+          "attacks_per_round_bonus": 0,
+          "on_hit_room_damage_chance": 33,
+          "on_hit_room_damage_dice_count": 2,
+          "on_hit_room_damage_dice_sides": 6,
+          "on_hit_room_damage_roll_modifier": 0,
+          "on_hit_room_damage_message": "[weapon_name] erupts with sacred sunlight, scorching every enemy in the room!",
+          "on_hit_room_damage_observer_message": "[actor_name]'s [weapon_name] erupts with sacred sunlight, scorching every enemy in the room!"
+        },
+        {
+          "template_id": "weapon.daystar-club",
+          "name": "Daystar",
+          "slot": "weapon",
+          "description": "A dense offhand cudgel banded in sun-bright bronze; each sharp strike can flare into a focused burst of punishing light.",
+          "keywords": [
+            "daystar",
+            "club",
+            "cudgel",
+            "sun club"
+          ],
+          "weapon_type": "club",
+          "can_hold": true,
+          "weight": 4,
+          "coin_value": 175,
+          "damage_dice_count": 4,
+          "damage_dice_sides": 6,
+          "damage_roll_modifier": 2,
+          "hit_roll_modifier": 3,
+          "attack_damage_bonus": 1,
+          "attacks_per_round_bonus": 0,
+          "on_hit_target_damage_chance": 33,
+          "on_hit_target_damage_dice_count": 1,
+          "on_hit_target_damage_dice_sides": 8,
+          "on_hit_target_damage_roll_modifier": 0,
+          "on_hit_target_damage_message": "[weapon_name] cracks with focused sunlight and batters your foe again!",
+          "on_hit_target_damage_observer_message": "[actor_name]'s [weapon_name] cracks with focused sunlight and batters the target again!"
         },
         {
           "template_id": "armor.vanguard-jacket",
@@ -1724,9 +1887,8 @@
           ],
           "consume_on_use": true,
           "consume_message": "The Loft Chest Key crumbles to dust after turning in the lock.",
-          "set_player_flags_on_use": [
-            "sunscour:aurek:key_delivered"
-          ],
+          "decay_game_hours": 6,
+          "decay_message": "The Loft Chest Key crumbles to dust as Aurek's fading blessing leaves it.",
           "coin_value": 0
         },
         {
@@ -1747,6 +1909,16 @@
           "lock_id": "lock.prototype.loft-chest",
           "is_closed": true,
           "is_locked": true,
+          "contents": [
+            {
+              "template_id": "weapon.sunscour",
+              "quantity": 1
+            },
+            {
+              "template_id": "weapon.daystar-club",
+              "quantity": 1
+            }
+          ],
           "coin_value": 0
         }
       ],
@@ -1950,7 +2122,6 @@
           }
         ]
       },
-      "quests": [],
       "rooms": [
         {
           "room_id": "start",
@@ -2428,6 +2599,724 @@
       ]
     },
     "asset_payloads": [
+      {
+        "file_name": "ashen-sepulcher.json",
+        "content": {
+          "payload_id": "ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "description": "Adds a hidden tomb beneath the Sunscour Redoubt vault, including a boss that drops the sepulcher key sought by the paladins.",
+          "gear": [
+            {
+              "template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Censer Chain",
+              "slot": "weapon",
+              "description": "A length of blackened links ending in a bronze censer heavy with bitter ash.",
+              "keywords": [
+                "censer",
+                "chain",
+                "ash",
+                "flail"
+              ],
+              "weapon_type": "mace",
+              "can_hold": true,
+              "weight": 5,
+              "coin_value": 64,
+              "damage_dice_count": 3,
+              "damage_dice_sides": 6,
+              "damage_roll_modifier": 2,
+              "hit_roll_modifier": 2,
+              "attack_damage_bonus": 0,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Sepulcher Maul",
+              "slot": "weapon",
+              "description": "A square-headed war maul stained with old soot and prayer-oil.",
+              "keywords": [
+                "sepulcher",
+                "maul",
+                "warhammer",
+                "hammer"
+              ],
+              "weapon_type": "club",
+              "can_hold": false,
+              "can_two_hand": true,
+              "weight": 9,
+              "coin_value": 91,
+              "damage_dice_count": 4,
+              "damage_dice_sides": 7,
+              "damage_roll_modifier": 3,
+              "hit_roll_modifier": 3,
+              "attack_damage_bonus": 1,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "armor.funerary-plate-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Funerary Plate",
+              "slot": "armor",
+              "description": "Laminar plates lacquered in ash-black varnish and inscribed with dim protective verses.",
+              "keywords": [
+                "funerary",
+                "plate",
+                "armor",
+                "ash"
+              ],
+              "weight": 10,
+              "coin_value": 86,
+              "armor_class_bonus": 3,
+              "wear_slots": [
+                "chest"
+              ]
+            }
+          ],
+          "items": [
+            {
+              "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Sepulcher Key",
+              "description": "A long blackened key engraved with a half-eclipsed sun. It feels heavier than iron should.",
+              "keywords": [
+                "sepulcher",
+                "key",
+                "blackened",
+                "sun",
+                "reliquary"
+              ],
+              "item_type": "key",
+              "lock_ids": [
+                "lock.sepulcher-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "coin_value": 0
+            }
+          ],
+          "spells": [
+            {
+              "spell_id": "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Graveflare",
+              "school": "Ash",
+              "description": "A burst of funeral fire and bitter cinders hurled into a single foe.",
+              "mana_cost": 15,
+              "spell_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 5,
+              "damage_dice_sides": 10,
+              "damage_modifier": 5,
+              "damage_scaling_attribute_id": "wis",
+              "damage_scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "[a/an] [verb] scorched by a hush of ash and funeral flame."
+            },
+            {
+              "spell_id": "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Martyr's Keeping",
+              "school": "Restoration",
+              "description": "An old tomb-rite that hardens the flesh and recalls a fragment of buried resolve.",
+              "mana_cost": 13,
+              "spell_type": "support",
+              "cast_type": "self",
+              "support_effect": "heal",
+              "support_amount": 18,
+              "support_mode": "instant",
+              "support_context": "Ash settles over the wounds and seals them with stern, uncanny calm.",
+              "observer_action": "[actor_name] raises a soot-marked hand and murmurs a martyr's keeping.",
+              "observer_context": "A stern pall of ash gathers over [actor_object] and some of the hurt closes."
+            }
+          ],
+          "skills": [
+            {
+              "skill_id": "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Bone Rake",
+              "description": "A brutal hooking strike meant to drag an opponent off balance.",
+              "skill_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 3,
+              "damage_dice_sides": 8,
+              "damage_modifier": 4,
+              "vigor_cost": 6,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "str",
+              "scaling_multiplier": 1.5,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "[a/an] [verb] hooked hard by a splintering rake of bone and iron.",
+              "observer_action": "[actor_name] lunges in with a jagged, dragging strike.",
+              "lag_rounds": 1,
+              "cooldown_rounds": 2
+            },
+            {
+              "skill_id": "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Censer Guard",
+              "description": "The wielder circles smoke and chain to draw breath and steady the body.",
+              "skill_type": "support",
+              "cast_type": "self",
+              "vigor_cost": 5,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "con",
+              "scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "support_effect": "heal",
+              "support_amount": 10,
+              "support_context": "A ring of bitter incense steadies the breath and closes the edge of pain.",
+              "observer_action": "[actor_name] swings a censer in a tight warding circle.",
+              "observer_context": "A faint ring of incense-smoke settles around [actor_name].",
+              "lag_rounds": 1,
+              "cooldown_rounds": 4
+            }
+          ],
+          "npcs": [
+            {
+              "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Ashen Acolyte",
+              "hit_points": 255,
+              "max_hit_points": 255,
+              "power_level": 5,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 2,
+              "armor_class": 11,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 20,
+              "experience_reward": 42,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "off_hand_weapon_template_id": "",
+              "vigor": 42,
+              "max_vigor": 42,
+              "mana": 30,
+              "max_mana": 30,
+              "skill_use_chance": 0.25,
+              "skill_ids": [
+                "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "spell_use_chance": 0.2,
+              "spell_ids": [
+                "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ]
+            },
+            {
+              "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Dustbound Cantor",
+              "hit_points": 235,
+              "max_hit_points": 235,
+              "power_level": 5,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 2,
+              "armor_class": 10,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 24,
+              "experience_reward": 45,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "",
+              "off_hand_weapon_template_id": "",
+              "vigor": 30,
+              "max_vigor": 30,
+              "mana": 95,
+              "max_mana": 95,
+              "skill_use_chance": 0.1,
+              "skill_ids": [
+                "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "spell_use_chance": 0.45,
+              "spell_ids": [
+                "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ]
+            },
+            {
+              "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Sepulcher Guardian",
+              "hit_points": 320,
+              "max_hit_points": 320,
+              "power_level": 6,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 3,
+              "armor_class": 12,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 30,
+              "experience_reward": 54,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "its",
+              "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "off_hand_weapon_template_id": "",
+              "vigor": 56,
+              "max_vigor": 56,
+              "skill_use_chance": 0.3,
+              "skill_ids": [
+                "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": []
+            },
+            {
+              "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Lockward Sentinel",
+              "hit_points": 365,
+              "max_hit_points": 365,
+              "power_level": 7,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 3,
+              "armor_class": 13,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 38,
+              "experience_reward": 66,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "its",
+              "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "off_hand_weapon_template_id": "",
+              "vigor": 62,
+              "max_vigor": 62,
+              "mana": 45,
+              "max_mana": 45,
+              "skill_use_chance": 0.25,
+              "skill_ids": [
+                "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "spell_use_chance": 0.15,
+              "spell_ids": [
+                "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ]
+            },
+            {
+              "npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Penitent Custodian",
+              "hit_points": 485,
+              "max_hit_points": 485,
+              "power_level": 9,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 4,
+              "armor_class": 14,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 120,
+              "experience_reward": 180,
+              "is_aggro": true,
+              "is_ally": false,
+              "respawn": true,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "off_hand_weapon_template_id": "",
+              "vigor": 84,
+              "max_vigor": 84,
+              "mana": 120,
+              "max_mana": 120,
+              "skill_use_chance": 0.35,
+              "skill_ids": [
+                "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "spell_use_chance": 0.35,
+              "spell_ids": [
+                "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "quantity": 1
+                }
+              ],
+              "loot_items": [
+                {
+                  "name": "charred prayer beads",
+                  "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
+                  "keywords": [
+                    "charred",
+                    "prayer",
+                    "beads"
+                  ]
+                }
+              ]
+            }
+          ],
+          "rooms": [
+            {
+              "room_id": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Sunken Oratory",
+              "description": "A hidden chamber of cracked icons and old bronze lamps lies beneath the vault, the air cool and powder-dry.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "up": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "west": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "exit_details": [
+                {
+                  "direction": "up",
+                  "exit_type": "hatch",
+                  "name": "vault hatch",
+                  "keywords": [
+                    "hatch",
+                    "vault hatch",
+                    "stone hatch",
+                    "shaft"
+                  ],
+                  "can_close": true,
+                  "is_closed": true,
+                  "open_message": "You push the vault hatch open and feel cooler air spill down from the reliquary above.",
+                  "close_message": "You pull the vault hatch shut over the shaft.",
+                  "closed_message": "The vault hatch above you is closed.",
+                  "already_open_message": "The vault hatch is already open.",
+                  "already_closed_message": "The vault hatch is already closed."
+                }
+              ],
+              "room_objects": [
+                {
+                  "object_id": "entry-shaft",
+                  "name": "broken shaft",
+                  "keywords": [
+                    "shaft",
+                    "broken shaft",
+                    "opening"
+                  ],
+                  "description": "A narrow stone shaft rises back toward the reliquary vault above. Dust drifts slowly through the still air."
+                }
+              ]
+            },
+            {
+              "room_id": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Censer Stair",
+              "description": "Broad steps descend between rows of hanging censers gone cold but not entirely scentless.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Soot Cloister",
+              "description": "Ash lies in the corners like drifts of black snow beneath a ring of bent columns.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "east": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Bone Archive",
+              "description": "Long niches filled with tagged bones line the walls, catalogued in a hand now long returned to dust.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "east": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Mourner Crossing",
+              "description": "Four passages meet around a basin where the residue of old offerings has hardened into a dark crust.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Candle-Riven Crypt",
+              "description": "Stone biers crowd this chamber, each crowned with candles that have melted into pale wrecks.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "west": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Ossuary Run",
+              "description": "A long aisle of stacked skulls stretches ahead, the mortar between them darkened by age and smoke.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Silent Ambulatory",
+              "description": "A narrow walking path curves behind old shrine walls where every footfall seems too loud.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              }
+            },
+            {
+              "room_id": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Cracked Vestry",
+              "description": "Rotting vestments hang from iron hooks here, their hems fixed in place by old ash and wax.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "east": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Relic Sluice",
+              "description": "A stone channel once used to wash sacred objects now carries only ash-streaked trickles of stale water.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Dust Choir",
+              "description": "Tiered stone benches rise in a semicircle where singers once answered one another in funeral hymn.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "west": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Penitent Descent",
+              "description": "The stairs here narrow and steepen, forcing any traveler into a bowed and careful posture.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Black-Oil Nave",
+              "description": "A thick sheen of old lamp oil paints the floor here, reflecting a dim and wavering darkness.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Sarcophagus Turn",
+              "description": "Massive stone coffers hem the corridor so tightly that it twists between them in sharp angles.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Hollow Transept",
+              "description": "The chamber widens under a ribbed ceiling where every whisper climbs and returns thin and strange.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Weeping Apse",
+              "description": "Mineral tears crawl down the rear wall here and patter softly into shallow bowls of stone.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Keeper's Cells",
+              "description": "Small stone cells open off the passage here, each containing a stool, a lamp niche, and nothing else.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Cindered Bridge",
+              "description": "A narrow span of scorched stone crosses a drop filled with broken lamps and old incense braziers.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              }
+            },
+            {
+              "room_id": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Lock-Ward",
+              "description": "Bronze seals and ward-scripts cover the walls here, all bent toward a single deeper chamber.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "east": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Deep Crypt Approach",
+              "description": "The air grows colder here and the last of the old incense gives way to the mineral scent of sealed stone.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "west": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "south": "room.penitent-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "room_id": "room.penitent-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "title": "Penitent Sepulcher",
+              "description": "A final chamber of kneeling effigies and sealed black stone lies here, watched over by the last custodian of the lower dead.",
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "exits": {
+                "north": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "count": 1
+                }
+              ]
+            }
+          ],
+          "zones": [
+            {
+              "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "Ashen Sepulcher",
+              "repopulate_game_hours": 36,
+              "repopulation_blocking_item_template_ids": [
+                "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+              ],
+              "repopulation_block_cooldown_game_hours": 6
+            }
+          ]
+        }
+      },
       {
         "file_name": "dark-knight-outpost.json",
         "content": {
@@ -3294,36 +4183,6 @@
               "cooldown_rounds": 4
             }
           ],
-          "quests": [
-            {
-              "quest_id": "quest.aurek-loft-key",
-              "name": "Aurek's Request",
-              "flag_prefix": "sunscour:aurek",
-              "stages": [
-                {
-                  "stage": 0,
-                  "description": "Speak with Sunmarshal Aurek",
-                  "flags": [
-                    "met"
-                  ]
-                },
-                {
-                  "stage": 1,
-                  "description": "Bow to Aurek and receive the key",
-                  "flags": [
-                    "rewarded"
-                  ]
-                },
-                {
-                  "stage": 2,
-                  "description": "Place the bronze key in the Weathered Chest in the Hidden Loft",
-                  "flags": [
-                    "key_delivered"
-                  ]
-                }
-              ]
-            }
-          ],
           "npcs": [
             {
               "npc_id": "npc.dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -3435,10 +4294,16 @@
               "off_hand_attacks_per_round": 0,
               "off_hand_hit_roll_modifier": 0,
               "coin_reward": 0,
-              "experience_reward": 0,
+              "experience_reward": 60,
               "is_aggro": false,
-              "is_ally": true,
-              "is_peaceful": true,
+              "aggro_player_flags": [
+                "zone.sunscour-redoubt.paladins-hostile"
+              ],
+              "set_player_flags_on_hostile_action": [
+                "zone.sunscour-redoubt.paladins-hostile"
+              ],
+              "is_ally": false,
+              "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "his",
               "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -3470,9 +4335,9 @@
               "coin_reward": 0,
               "experience_reward": 0,
               "is_aggro": false,
-              "is_ally": true,
-              "is_peaceful": true,
-              "respawn": false,
+              "is_ally": false,
+              "is_peaceful": false,
+              "respawn": true,
               "is_merchant": true,
               "merchant_inventory": [
                 {
@@ -3532,6 +4397,7 @@
             {
               "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "name": "Sunmarshal Aurek",
+              "corpse_label_style": "possessive",
               "hit_points": 360,
               "max_hit_points": 360,
               "power_level": 7,
@@ -3541,10 +4407,16 @@
               "off_hand_attacks_per_round": 0,
               "off_hand_hit_roll_modifier": 0,
               "coin_reward": 0,
-              "experience_reward": 0,
+              "experience_reward": 95,
               "is_aggro": false,
-              "is_ally": true,
-              "is_peaceful": true,
+              "aggro_player_flags": [
+                "zone.sunscour-redoubt.paladins-hostile"
+              ],
+              "set_player_flags_on_hostile_action": [
+                "zone.sunscour-redoubt.paladins-hostile"
+              ],
+              "is_ally": false,
+              "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "his",
               "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -3566,11 +4438,35 @@
                 {
                   "trigger": "player_enter",
                   "audience": "private",
+                  "required_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Aurek's voice hardens. \"You have made yourself an enemy of this order. Come no closer unless you mean to die for it.\""
+                },
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "required_world_flags": [
+                    "npc.sunmarshal-aurek.key-claimed"
+                  ],
                   "excluded_player_flags": [
-                    "sunscour:aurek:met"
+                    "npc.sunmarshal-aurek.rewarded",
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Aurek says, \"Well met, traveller. I have nothing more to offer just now.\""
+                },
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "excluded_player_flags": [
+                    "npc.sunmarshal-aurek.met",
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "excluded_world_flags": [
+                    "npc.sunmarshal-aurek.key-claimed"
                   ],
                   "set_player_flags": [
-                    "sunscour:aurek:met"
+                    "npc.sunmarshal-aurek.met"
                   ],
                   "message": "Aurek says, \"Hail! Well met traveller. I may have something for you. Come, listen to an old man.\""
                 },
@@ -3578,10 +4474,14 @@
                   "trigger": "player_enter",
                   "audience": "private",
                   "required_player_flags": [
-                    "sunscour:aurek:met"
+                    "npc.sunmarshal-aurek.met"
                   ],
                   "excluded_player_flags": [
-                    "sunscour:aurek:rewarded"
+                    "npc.sunmarshal-aurek.rewarded",
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "excluded_world_flags": [
+                    "npc.sunmarshal-aurek.key-claimed"
                   ],
                   "message": "Aurek says, \"Welcome back. Are you ready to listen to my story?\""
                 },
@@ -3589,7 +4489,10 @@
                   "trigger": "player_enter",
                   "audience": "private",
                   "required_player_flags": [
-                    "sunscour:aurek:rewarded"
+                    "npc.sunmarshal-aurek.rewarded"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
                   ],
                   "message": "Aurek says, \"Thank you for listening to an old man ramble.\""
                 }
@@ -3611,9 +4514,68 @@
                     "bow before aurek"
                   ],
                   "required_player_flags": [
-                    "sunscour:aurek:rewarded"
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Aurek bares his teeth. \"There will be no parley now. Defend yourself.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "listen aurek",
+                    "listen sunmarshal",
+                    "listen sunmarshal aurek",
+                    "listen to aurek",
+                    "listen to sunmarshal",
+                    "listen for aurek",
+                    "bow aurek",
+                    "bow sunmarshal",
+                    "bow sunmarshal aurek",
+                    "bow to aurek",
+                    "bow to sunmarshal",
+                    "bow before aurek"
+                  ],
+                  "required_player_flags": [
+                    "npc.sunmarshal-aurek.rewarded"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
                   ],
                   "message": "Aurek says, \"Thank you for listening to an old man ramble.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "listen aurek",
+                    "listen sunmarshal",
+                    "listen sunmarshal aurek",
+                    "listen to aurek",
+                    "listen to sunmarshal",
+                    "listen for aurek",
+                    "bow aurek",
+                    "bow sunmarshal",
+                    "bow sunmarshal aurek",
+                    "bow to aurek",
+                    "bow to sunmarshal",
+                    "bow before aurek"
+                  ],
+                  "required_world_flags": [
+                    "npc.sunmarshal-aurek.key-claimed"
+                  ],
+                  "excluded_player_flags": [
+                    "npc.sunmarshal-aurek.rewarded",
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Aurek says, \"I have already entrusted my key to another. Return when the redoubt turns again.\"",
                   "refresh_view": "none",
                   "actions": [
                     {
@@ -3631,7 +4593,11 @@
                     "listen for aurek"
                   ],
                   "excluded_player_flags": [
-                    "sunscour:aurek:rewarded"
+                    "npc.sunmarshal-aurek.rewarded",
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "excluded_world_flags": [
+                    "npc.sunmarshal-aurek.key-claimed"
                   ],
                   "message": "Aurek says, \"Paladins of our order first bow with respect.\"",
                   "refresh_view": "none",
@@ -3651,11 +4617,18 @@
                     "bow before aurek"
                   ],
                   "excluded_player_flags": [
-                    "sunscour:aurek:rewarded"
+                    "npc.sunmarshal-aurek.rewarded",
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "excluded_world_flags": [
+                    "npc.sunmarshal-aurek.key-claimed"
                   ],
                   "set_player_flags": [
-                    "sunscour:aurek:met",
-                    "sunscour:aurek:rewarded"
+                    "npc.sunmarshal-aurek.met",
+                    "npc.sunmarshal-aurek.rewarded"
+                  ],
+                  "set_world_flags": [
+                    "npc.sunmarshal-aurek.key-claimed"
                   ],
                   "message": "Aurek bows in return and places a bronze key in your hand. \"Take this to the weathered chest in the loft above the starting chamber.\"",
                   "already_message": "Aurek says, \"I've already given you everything I can.\"",
@@ -3671,24 +4644,277 @@
               ]
             },
             {
-              "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "name": "Buried Heresiarch",
-              "hit_points": 410,
-              "max_hit_points": 410,
-              "power_level": 8,
+              "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Prayer-Warden Samiel",
+              "hit_points": 330,
+              "max_hit_points": 330,
+              "power_level": 6,
               "attacks_per_round": 1,
-              "hit_roll_modifier": 4,
+              "hit_roll_modifier": 3,
               "armor_class": 13,
               "off_hand_attacks_per_round": 0,
               "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 0,
+              "experience_reward": 72,
+              "is_aggro": false,
+              "aggro_player_flags": [
+                "zone.sunscour-redoubt.paladins-hostile"
+              ],
+              "set_player_flags_on_hostile_action": [
+                "zone.sunscour-redoubt.paladins-hostile"
+              ],
+              "is_ally": false,
+              "is_peaceful": false,
+              "respawn": true,
+              "corpse_label_style": "possessive",
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "off_hand_weapon_template_id": "",
+              "vigor": 74,
+              "max_vigor": 74,
+              "mana": 90,
+              "max_mana": 90,
+              "skill_use_chance": 0.2,
+              "skill_ids": [
+                "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "spell_use_chance": 0.2,
+              "spell_ids": [
+                "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+              ],
+              "room_communications": [
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "required_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Samiel squares his shoulders. \"You have chosen treachery. Leave this walk or answer for it.\""
+                },
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "excluded_world_flags": [
+                    "npc.buried-heresiarch.defeated"
+                  ],
+                  "message": "A veiled paladin hails you quietly. \"Traveller, the blasphemer to the south was once our chaplain. If you have the strength, put him down and return.\""
+                },
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "required_world_flags": [
+                    "npc.buried-heresiarch.defeated"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile",
+                    "npc.prayer-warden-samiel.rewarded"
+                  ],
+                  "message": "Samiel bows his head. \"The vault has gone still. Kneel at the broken sun and speak absolution; the lower tomb should answer now. If you find the sepulcher key below, bring it to me.\""
+                },
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "required_player_flags": [
+                    "npc.prayer-warden-samiel.rewarded"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Samiel says, \"You have done this redoubt a grace I will remember.\""
+                }
+              ],
+              "keyword_actions": [
+                {
+                  "keywords": [
+                    "listen samiel",
+                    "listen prayer warden",
+                    "listen prayer warden samiel",
+                    "hail samiel",
+                    "speak samiel",
+                    "ask samiel about south",
+                    "ask samiel about vault",
+                    "ask samiel about key"
+                  ],
+                  "required_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Samiel keeps his sabre ready. \"No counsel remains for oathbreakers.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "listen samiel",
+                    "listen prayer warden",
+                    "listen prayer warden samiel",
+                    "hail samiel",
+                    "speak samiel",
+                    "ask samiel about south",
+                    "ask samiel about vault"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "excluded_world_flags": [
+                    "npc.buried-heresiarch.defeated"
+                  ],
+                  "message": "Samiel says, \"The thing to the south was once Brother Merovech, keeper of this vault. End him, and perhaps the old ways below will answer us again.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "listen samiel",
+                    "listen prayer warden",
+                    "listen prayer warden samiel",
+                    "hail samiel",
+                    "speak samiel",
+                    "ask samiel about vault",
+                    "ask samiel about key",
+                    "ask samiel about sepulcher"
+                  ],
+                  "required_world_flags": [
+                    "npc.buried-heresiarch.defeated"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile",
+                    "npc.prayer-warden-samiel.rewarded"
+                  ],
+                  "message": "Samiel says, \"Return to the vault and kneel at the broken sun. Speak absolution, and the lower sepulcher should open. Bring me the sepulcher key if you survive what waits below.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "give sepulcher key samiel",
+                    "give sepulcher key to samiel",
+                    "deliver sepulcher key samiel",
+                    "deliver sepulcher key to samiel",
+                    "present sepulcher key samiel",
+                    "present sepulcher key to samiel",
+                    "give key samiel",
+                    "give key to samiel",
+                    "deliver key samiel",
+                    "deliver key to samiel",
+                    "present key samiel",
+                    "present key to samiel"
+                  ],
+                  "required_item_template_ids": [
+                    "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile",
+                    "npc.prayer-warden-samiel.rewarded"
+                  ],
+                  "set_player_flags": [
+                    "npc.prayer-warden-samiel.rewarded"
+                  ],
+                  "message": "Samiel receives the sepulcher key with both hands and exhales at last. \"Then the lower dead may sleep again. You have my thanks, and the order's.\"\nYou gain 450 experience.",
+                  "already_message": "Samiel says, \"The key is already where it belongs.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "remove_item",
+                      "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                      "quantity": 1
+                    },
+                    {
+                      "type": "award_experience",
+                      "amount": 450
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "give sepulcher key samiel",
+                    "give sepulcher key to samiel",
+                    "deliver sepulcher key samiel",
+                    "deliver sepulcher key to samiel",
+                    "present sepulcher key samiel",
+                    "present sepulcher key to samiel",
+                    "give key samiel",
+                    "give key to samiel",
+                    "deliver key samiel",
+                    "deliver key to samiel",
+                    "present key samiel",
+                    "present key to samiel"
+                  ],
+                  "required_world_flags": [
+                    "npc.buried-heresiarch.defeated"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile",
+                    "npc.prayer-warden-samiel.rewarded"
+                  ],
+                  "message": "Samiel shakes his head. \"What I need is the sepulcher key from the tomb below, nothing less.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "listen samiel",
+                    "listen prayer warden",
+                    "listen prayer warden samiel",
+                    "hail samiel",
+                    "speak samiel"
+                  ],
+                  "required_player_flags": [
+                    "npc.prayer-warden-samiel.rewarded"
+                  ],
+                  "excluded_player_flags": [
+                    "zone.sunscour-redoubt.paladins-hostile"
+                  ],
+                  "message": "Samiel says, \"You have done enough. Go with the sun's mercy.\"",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Buried Heresiarch",
+              "hit_points": 1200,
+              "max_hit_points": 1200,
+              "power_level": 10,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 4,
+              "armor_class": 13,
+              "off_hand_attacks_per_round": 1,
+              "off_hand_hit_roll_modifier": 4,
               "coin_reward": 96,
               "experience_reward": 130,
               "is_aggro": true,
               "is_ally": false,
+              "set_world_flags_on_death": [
+                "npc.buried-heresiarch.defeated"
+              ],
               "respawn": true,
               "pronoun_possessive": "his",
               "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "off_hand_weapon_template_id": "",
+              "off_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "vigor": 72,
               "max_vigor": 72,
               "mana": 170,
@@ -3966,13 +5192,50 @@
                 "east": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
                 "west": "room.lamp-hall-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
                 "south": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
-              }
+              },
+              "npcs": [
+                {
+                  "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "count": 1
+                }
+              ]
             },
             {
               "room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "title": "Training Yard",
               "description": "Sand has been swept into neat circles here for drills, and practice scars mark every shield post and standing stone.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "keyword_actions": [
+                {
+                  "keywords": [
+                    "stand circle",
+                    "stand in circle",
+                    "step circle",
+                    "step into circle"
+                  ],
+                  "message": "The magic circle glimmers underfoot and carries you back to the Prototype Chamber in a wash of pale light.",
+                  "refresh_view": "room",
+                  "actions": [
+                    {
+                      "type": "teleport_player",
+                      "destination_room_id": "start"
+                    }
+                  ]
+                }
+              ],
+              "room_objects": [
+                {
+                  "object_id": "return-circle",
+                  "name": "magic circle",
+                  "keywords": [
+                    "circle",
+                    "magic circle",
+                    "return circle",
+                    "rune circle"
+                  ],
+                  "description": "A pale chalk circle marked with returning runes has been drawn into the training sand. Its lines shimmer faintly, ready to carry a traveler home."
+                }
+              ],
               "exits": {
                 "north": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
                 "west": "room.commander-chamber-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
@@ -4005,6 +5268,68 @@
               "title": "Reliquary Vault",
               "description": "Broken reliquaries and scattered seals lie in disarray here, and a wrong heat pulses from the chamber's center.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "keyword_actions": [
+                {
+                  "keywords": [
+                    "speak absolution",
+                    "pray absolution",
+                    "kneel at sun",
+                    "kneel at dais",
+                    "kneel before dais",
+                    "kneel before sun",
+                    "touch sun disc",
+                    "touch broken sun"
+                  ],
+                  "required_world_flags": [
+                    "npc.buried-heresiarch.defeated"
+                  ],
+                  "message": "As you speak the old absolution, the broken sun-dais yields and lowers you into a hidden sepulcher below.",
+                  "refresh_view": "room",
+                  "actions": [
+                    {
+                      "type": "teleport_player",
+                      "destination_room_id": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "speak absolution",
+                    "pray absolution",
+                    "kneel at sun",
+                    "kneel at dais",
+                    "kneel before dais",
+                    "kneel before sun",
+                    "touch sun disc",
+                    "touch broken sun"
+                  ],
+                  "excluded_world_flags": [
+                    "npc.buried-heresiarch.defeated"
+                  ],
+                  "message": "The rite dies in your throat. Whatever lies below will not answer while the Heresiarch still profanes this vault.",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                }
+              ],
+              "room_objects": [
+                {
+                  "object_id": "broken-sun-dais",
+                  "name": "broken sun-dais",
+                  "keywords": [
+                    "dais",
+                    "sun",
+                    "sun dais",
+                    "broken sun",
+                    "sun disc",
+                    "disc"
+                  ],
+                  "description": "A cracked disc of pale stone is set into the floor here, its old sunburst motif split through the center. The worn surface suggests kneeling penitents once spoke rites over it."
+                }
+              ],
               "exits": {
                 "north": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
               },
@@ -4054,13 +5379,22 @@
               "name": "Sunscour Redoubt",
               "repopulate_game_hours": 1,
               "reset_player_flags": [
-                "sunscour:aurek:met",
-                "sunscour:aurek:rewarded",
-                "sunscour:aurek:key_delivered"
+                "npc.sunmarshal-aurek.met",
+                "npc.sunmarshal-aurek.rewarded",
+                "npc.prayer-warden-samiel.rewarded",
+                "zone.sunscour-redoubt.paladins-hostile"
+              ],
+              "reset_world_flags": [
+                "npc.sunmarshal-aurek.key-claimed",
+                "npc.buried-heresiarch.defeated"
               ],
               "reset_container_template_ids": [
                 "item.container.loft-chest"
-              ]
+              ],
+              "repopulation_blocking_item_template_ids": [
+                "item.key.loft-chest"
+              ],
+              "repopulation_block_cooldown_game_hours": 6
             }
           ]
         }
@@ -4074,7 +5408,6 @@
     "items": [],
     "spells": [],
     "skills": [],
-    "quests": [],
     "npcs": [],
     "rooms": [],
     "zones": []
