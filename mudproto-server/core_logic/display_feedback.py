@@ -137,7 +137,7 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
         if watched_entity is not None:
             watched_entity_condition, watched_entity_condition_color = get_entity_condition(watched_entity)
             parts.extend([
-                build_part(" [vs ", "bright_white"),
+                build_part(" [", "bright_white"),
                 build_part(watched_entity.name),
                 build_part(":", "bright_white"),
                 build_part(watched_entity_condition.title(), watched_entity_condition_color, True),

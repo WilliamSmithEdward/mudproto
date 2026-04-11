@@ -366,6 +366,19 @@ def _handle_player_death_follow_and_group(session: ClientSession) -> None:
         else:
             _clear_follow_state(candidate)
 
+        if (candidate.watch_player_key or "").strip().lower() == deceased_key:
+            candidate.watch_player_key = ""
+            candidate.watch_player_name = ""
+
+    # Clear watch state for anyone watching the dead player, even if they were not following.
+    for candidate in connected_clients.values():
+        if not candidate.is_authenticated or not candidate.is_connected or candidate.disconnected_by_server:
+            continue
+        if (candidate.watch_player_key or "").strip().lower() != deceased_key:
+            continue
+        candidate.watch_player_key = ""
+        candidate.watch_player_name = ""
+
     # If the dead player was a member in another group, remove them from that roster.
     former_leader_key = (session.group_leader_key or "").strip().lower()
     if former_leader_key and former_leader_key != deceased_key:
