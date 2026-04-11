@@ -71,6 +71,10 @@
     "unarmed_scaling_attribute_id": "dex",
     "unarmed_scaling_multiplier": 1.0,
     "unarmed_level_scaling_multiplier": 1.0,
+    "unarmed_hit_roll_bonus": 2,
+    "unarmed_hit_scaling_attribute_id": "dex",
+    "unarmed_hit_scaling_multiplier": 0.5,
+    "unarmed_hit_level_scaling_multiplier": 0.25,
     "dual_unarmed_attacks": true,
     "attribute_ranges": {
       "str": { "min": 11, "max": 17 },

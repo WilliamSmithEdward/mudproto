@@ -115,10 +115,15 @@ def roll_player_damage(
     return max(0, total_damage), weapon.name, resolve_weapon_verb(weapon.weapon_type)
 
 
-def get_player_hit_modifier(weapon: ItemState | None, *, player_level: int = 1) -> int:
+def get_player_hit_modifier(
+    weapon: ItemState | None,
+    *,
+    player_level: int = 1,
+    unarmed_hit_bonus: int = 0,
+) -> int:
     level_hit_bonus, _ = _resolve_player_melee_level_bonuses(player_level)
     if weapon is None:
-        return level_hit_bonus
+        return level_hit_bonus + max(0, int(unarmed_hit_bonus))
     return weapon.hit_roll_modifier + level_hit_bonus
 
 

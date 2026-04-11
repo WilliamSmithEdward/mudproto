@@ -52,6 +52,34 @@
       "minimum": 0.0,
       "notes": "Additional unarmed damage gained per level after level 1 for this class."
     },
+    "unarmed_hit_roll_bonus": {
+      "type": "integer",
+      "required": false,
+      "default": 0,
+      "minimum": 0,
+      "notes": "Flat hit-roll bonus applied while fully unarmed."
+    },
+    "unarmed_hit_scaling_attribute_id": {
+      "type": "string",
+      "required": false,
+      "default": "",
+      "allowed_values": ["", "str", "dex", "con", "int", "wis"],
+      "notes": "Optional attribute used to add hit-roll scaling while unarmed."
+    },
+    "unarmed_hit_scaling_multiplier": {
+      "type": "number",
+      "required": false,
+      "default": 0.0,
+      "minimum": 0.0,
+      "notes": "Multiplier applied to the chosen attribute's modifier for unarmed hit-roll bonuses."
+    },
+    "unarmed_hit_level_scaling_multiplier": {
+      "type": "number",
+      "required": false,
+      "default": 0.0,
+      "minimum": 0.0,
+      "notes": "Additional unarmed hit-roll bonus gained per level after level 1."
+    },
     "dual_unarmed_attacks": {
       "type": "boolean",
       "required": false,
@@ -116,6 +144,10 @@
       "unarmed_scaling_attribute_id": "",
       "unarmed_scaling_multiplier": 0.0,
       "unarmed_level_scaling_multiplier": 0.0,
+      "unarmed_hit_roll_bonus": 0,
+      "unarmed_hit_scaling_attribute_id": "",
+      "unarmed_hit_scaling_multiplier": 0.0,
+      "unarmed_hit_level_scaling_multiplier": 0.0,
       "dual_unarmed_attacks": false,
       "attribute_ranges": {
         "str": {"min": 8, "max": 14},

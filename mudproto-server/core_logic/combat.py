@@ -45,11 +45,13 @@ OPENING_ATTACKER_PLAYER = "player"
 OPENING_ATTACKER_ENTITY = "entity"
 
 
-def _get_player_unarmed_profile(session: ClientSession) -> tuple[int, bool]:
+def _get_player_unarmed_profile(session: ClientSession) -> tuple[int, int, bool]:
     class_id = str(session.player.class_id).strip()
     player_class = get_player_class_by_id(class_id) if class_id else None
     if player_class is None:
         player_class = get_default_player_class()
+
+    player_level = max(1, int(session.player.level))
 
     unarmed_damage_bonus = max(0, int(player_class.get("unarmed_damage_bonus", 0)))
     scaling_attribute_id = str(player_class.get("unarmed_scaling_attribute_id", "")).strip().lower()
@@ -60,18 +62,29 @@ def _get_player_unarmed_profile(session: ClientSession) -> tuple[int, bool]:
         unarmed_damage_bonus += max(0, int(attribute_modifier * scaling_multiplier))
 
     level_scaling_multiplier = max(0.0, float(player_class.get("unarmed_level_scaling_multiplier", 0.0)))
-    player_level = max(1, int(session.player.level))
     if level_scaling_multiplier > 0.0:
         unarmed_damage_bonus += max(0, int((player_level - 1) * level_scaling_multiplier))
 
+    unarmed_hit_bonus = max(0, int(player_class.get("unarmed_hit_roll_bonus", 0)))
+    hit_scaling_attribute_id = str(player_class.get("unarmed_hit_scaling_attribute_id", "")).strip().lower()
+    hit_scaling_multiplier = max(0.0, float(player_class.get("unarmed_hit_scaling_multiplier", 0.0)))
+    if hit_scaling_attribute_id and hit_scaling_multiplier > 0.0:
+        attribute_value = int(session.player.attributes.get(hit_scaling_attribute_id, 0))
+        attribute_modifier = (attribute_value - 10) // 2
+        unarmed_hit_bonus += max(0, int(attribute_modifier * hit_scaling_multiplier))
+
+    hit_level_scaling_multiplier = max(0.0, float(player_class.get("unarmed_hit_level_scaling_multiplier", 0.0)))
+    if hit_level_scaling_multiplier > 0.0:
+        unarmed_hit_bonus += max(0, int((player_level - 1) * hit_level_scaling_multiplier))
+
     dual_unarmed_attacks = bool(player_class.get("dual_unarmed_attacks", False))
-    return unarmed_damage_bonus, dual_unarmed_attacks
+    return unarmed_damage_bonus, unarmed_hit_bonus, dual_unarmed_attacks
 
 
 def _build_player_attack_sequence(session: ClientSession, allow_off_hand: bool) -> list[ItemState | None]:
     attack_sequence: list[ItemState | None] = []
 
-    _, dual_unarmed_attacks = _get_player_unarmed_profile(session)
+    _, _, dual_unarmed_attacks = _get_player_unarmed_profile(session)
 
     main_hand = get_equipped_main_hand(session)
     main_weapon = main_hand if main_hand is not None and main_hand.slot == "weapon" else None
@@ -272,7 +285,7 @@ def _apply_player_attacks(
     allow_off_hand: bool,
 ) -> None:
     attack_sequence = _build_player_attack_sequence(session, allow_off_hand)
-    unarmed_damage_bonus, _ = _get_player_unarmed_profile(session)
+    unarmed_damage_bonus, unarmed_hit_bonus, _ = _get_player_unarmed_profile(session)
 
     for weapon in attack_sequence:
         if not entity.is_alive:
@@ -280,7 +293,11 @@ def _apply_player_attacks(
 
         append_newline_if_needed(parts)
 
-        hit_modifier = get_player_hit_modifier(weapon, player_level=session.player.level)
+        hit_modifier = get_player_hit_modifier(
+            weapon,
+            player_level=session.player.level,
+            unarmed_hit_bonus=unarmed_hit_bonus,
+        )
         if not roll_hit(hit_modifier, entity.armor_class):
             miss_verb = resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
             parts.extend(build_player_attack_parts(
