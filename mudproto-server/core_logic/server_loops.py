@@ -51,6 +51,25 @@ next_combat_round_monotonic: float | None = None
 next_npc_wander_monotonic: float | None = None
 
 
+def _entity_is_engaged_by_any_player(entity_id: str) -> bool:
+    if not entity_id:
+        return False
+
+    seen_session_keys: set[str] = set()
+    for session in list(connected_clients.values()) + list(active_character_sessions.values()):
+        session_key = (session.player_state_key.strip().lower() or session.client_id)
+        if not session_key or session_key in seen_session_keys:
+            continue
+        seen_session_keys.add(session_key)
+
+        if not session.is_authenticated or session.disconnected_by_server:
+            continue
+        if entity_id in session.combat.engaged_entity_ids:
+            return True
+
+    return False
+
+
 def _npc_wander_display(parts: list[dict], session: ClientSession) -> dict:
     from display_feedback import build_prompt_parts
     return build_display(
@@ -74,11 +93,11 @@ def _find_exit_direction(from_room_id: str, to_room_id: str) -> str | None:
 
 async def _process_npc_wandering() -> None:
     from grammar import with_article
-    from server_movement import _format_arrival_origin
+    from server_movement import DIRECTION_OPPOSITES, _format_arrival_origin
     for entity in list(shared_world_entities.values()):
         if not getattr(entity, "is_alive", False):
             continue
-        if getattr(entity, "combat_target_player_key", ""):
+        if _entity_is_engaged_by_any_player(entity.entity_id):
             continue
         wander_chance = getattr(entity, "wander_chance", 0.0)
         if wander_chance <= 0.0:
@@ -95,13 +114,20 @@ async def _process_npc_wandering() -> None:
         if random.random() >= wander_chance:
             continue
 
+        # Re-check engagement immediately before relocating to avoid moving an
+        # NPC that got engaged earlier in this tick.
+        if _entity_is_engaged_by_any_player(entity.entity_id):
+            continue
+
         origin_room_id = entity.room_id
         dest_room_id = random.choice(candidates)
         entity.room_id = dest_room_id
 
         entity_label = with_article(entity.name, capitalize=True)
         leave_dir = _find_exit_direction(origin_room_id, dest_room_id)
-        arrive_dir = _find_exit_direction(dest_room_id, origin_room_id)
+        arrive_dir = DIRECTION_OPPOSITES.get(leave_dir, "") if leave_dir else ""
+        if not arrive_dir:
+            arrive_dir = _find_exit_direction(dest_room_id, origin_room_id)
 
         if leave_dir:
             leave_parts = [

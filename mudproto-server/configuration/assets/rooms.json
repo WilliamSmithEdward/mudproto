@@ -176,7 +176,7 @@
   {
     "room_id": "west-road-ford",
     "title": "West Road — Muddy Ford",
-    "description": "A shallow brook cuts straight across the road here, its stepping stones slick with algae and mud churned up by travellers. The road resumes on the far bank, bending northwest.",
+    "description": "A shallow brook cuts straight across the road here, its stepping stones slick with algae and mud churned up by travellers. The road resumes on the far bank, bending north.",
     "zone_id": "zone.west-road",
     "npcs": [
       {
@@ -187,7 +187,7 @@
     "items": [],
     "exits": {
       "east": "west-road-defile",
-      "northwest": "west-road-rise"
+      "north": "west-road-rise"
     }
   },
   {
@@ -203,7 +203,7 @@
     ],
     "items": [],
     "exits": {
-      "southeast": "west-road-ford",
+      "south": "west-road-ford",
       "west": "west-road-clearing"
     }
   },
