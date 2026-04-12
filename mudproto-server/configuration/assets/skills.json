@@ -88,7 +88,7 @@
     "scaling_attribute_id": "str",
     "scaling_multiplier": 3.0,
     "level_scaling_multiplier": 1.0,
-    "damage_dice_count": 2,
+    "damage_dice_count": 5,
     "damage_dice_sides": 10,
     "damage_modifier": 6,
     "damage_context": "[a/an] [verb] viciously slammed to the ground!",
