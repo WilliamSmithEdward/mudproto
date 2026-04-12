@@ -159,9 +159,6 @@ def _resolve_observer_action_line(
 
     lowered = rendered_custom.lower()
 
-    if cast_type == "self" and "on themselves" not in lowered:
-        return f"{rendered_custom.rstrip('.!?')} on themselves."
-
     if cast_type == "aoe" and "across the room" not in lowered:
         return f"{rendered_custom.rstrip('.!?')} across the room."
 
