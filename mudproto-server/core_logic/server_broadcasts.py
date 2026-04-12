@@ -106,8 +106,6 @@ def _strip_observer_proc_line_style(line: list[dict]) -> None:
             continue
         part["fg"] = "bright_white"
         part["bold"] = False
-        if "observer_plain" in part:
-            part.pop("observer_plain", None)
 
 
 def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict | list[dict]) -> list[dict]:
@@ -353,6 +351,8 @@ def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tupl
         for part in line_parts:
             if not isinstance(part, dict):
                 continue
+            if bool(part.get("observer_plain", False)):
+                return True
             if str(part.get("fg", "")).strip().lower() == "bright_yellow" and bool(part.get("bold", False)):
                 return True
         return False
@@ -443,7 +443,6 @@ async def _send_room_broadcast(
                 if isinstance(personalized_lines, list) and personalized_lines:
                     payload["lines"] = [line for line in personalized_lines if isinstance(line, list)]
 
-            if prompt_observers:
                 _append_private_lines_to_payload(payload, peer)
                 prompt_lines = [build_prompt_parts(peer)]
                 existing_lines = payload.get("lines")
