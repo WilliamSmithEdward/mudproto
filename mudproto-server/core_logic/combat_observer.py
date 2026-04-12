@@ -114,7 +114,7 @@ def _resolve_combat_context(context: str, *, target_text: str, verb: str) -> str
             resolved = f"You{resolved[3:]}"
 
     resolved = capitalize_after_newlines(resolved)
-    if resolved and not resolved.endswith("."):
+    if resolved and resolved[-1] not in ".!?":
         resolved += "."
     return resolved
 
