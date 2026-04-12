@@ -153,17 +153,17 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             nearby_unhostiles = _scan_visible_unhostiles(session, destination_room_id)
             nearby_players = _scan_visible_players(session, destination_room_id)
             if nearby_hostiles or nearby_unhostiles or nearby_players:
-                parts.append(build_part("  -  ", "bright_black"))
+                parts.append(build_part(" - ", "bright_black"))
                 appended_summary = False
                 if nearby_hostiles:
                     appended_summary = _append_scan_hostile_summary(parts, nearby_hostiles, prefix="Enemies: ")
                 if nearby_unhostiles:
                     if appended_summary:
-                        parts.append(build_part("  |  ", "bright_black"))
+                        parts.append(build_part(" | ", "bright_black"))
                     appended_summary = _append_scan_unhostile_summary(parts, nearby_unhostiles, prefix="Unhostile: ") or appended_summary
                 if nearby_players:
                     if appended_summary:
-                        parts.append(build_part("  |  ", "bright_black"))
+                        parts.append(build_part(" | ", "bright_black"))
                     _append_scan_player_summary(parts, nearby_players, prefix="Players: ")
 
     visible_enemies = _scan_visible_hostiles(session, room.room_id)
@@ -181,11 +181,11 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             appended_summary = _append_scan_hostile_summary(parts, visible_enemies, prefix="Enemies: ")
         if visible_unhostiles:
             if appended_summary:
-                parts.append(build_part("  |  ", "bright_black"))
+                parts.append(build_part(" | ", "bright_black"))
             appended_summary = _append_scan_unhostile_summary(parts, visible_unhostiles, prefix="Unhostile: ") or appended_summary
         if visible_players:
             if appended_summary:
-                parts.append(build_part("  |  ", "bright_black"))
+                parts.append(build_part(" | ", "bright_black"))
             _append_scan_player_summary(parts, visible_players, prefix="Players: ")
 
     return build_display(parts, blank_lines_before=1, prompt_after=prompt_after, prompt_parts=prompt_parts)
