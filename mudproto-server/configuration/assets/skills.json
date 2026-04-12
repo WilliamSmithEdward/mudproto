@@ -78,6 +78,26 @@
     "cooldown_rounds": 4
   },
   {
+    "skill_id": "skill.bash",
+    "name": "Bash",
+    "description": "Crashes into you with brutal force.",
+    "skill_type": "damage",
+    "cast_type": "target",
+    "vigor_cost": 10,
+    "usable_out_of_combat": false,
+    "scaling_attribute_id": "str",
+    "scaling_multiplier": 3.0,
+    "level_scaling_multiplier": 1.0,
+    "damage_dice_count": 2,
+    "damage_dice_sides": 10,
+    "damage_modifier": 6,
+    "damage_context": "[a/an] [verb] slammed backward by a thunderous bash.",
+    "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal shoulder bash.",
+    "lag_rounds": 1,
+    "cooldown_rounds": 3,
+    "target_lag_rounds": 2
+  },
+  {
     "skill_id": "skill.roundhouse-kick",
     "name": "Roundhouse Kick",
     "description": "A sweeping heel-strike that smashes every nearby foe.",

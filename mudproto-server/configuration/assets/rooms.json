@@ -107,8 +107,14 @@
     "room_id": "west-road",
     "title": "West Road",
     "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
-    "zone_id": "zone.prototype-core",
+    "zone_id": "zone.west-road",
     "items": [],
+    "npcs": [
+      {
+        "npc_id": "npc.wandering-mercenary",
+        "count": 1
+      }
+    ],
     "room_objects": [
       {
         "object_id": "east-gate",
@@ -129,7 +135,92 @@
       }
     ],
     "exits": {
-      "east": "start"
+      "east": "start",
+      "west": "west-road-curve"
+    }
+  },
+  {
+    "room_id": "west-road-curve",
+    "title": "West Road — Southward Bend",
+    "description": "The packed-earth road bends sharply south here where a mossy waystone heeled over long ago. Deep cart ruts cut through the verge on either side.",
+    "zone_id": "zone.west-road",
+    "npcs": [
+      {
+        "npc_id": "npc.wandering-mercenary",
+        "count": 1
+      }
+    ],
+    "items": [],
+    "exits": {
+      "north": "west-road",
+      "south": "west-road-defile"
+    }
+  },
+  {
+    "room_id": "west-road-defile",
+    "title": "West Road — Stone Defile",
+    "description": "The road squeezes through a narrow cut between two weathered stone banks, overhung by tangles of briar and twisted root. The footing is treacherous where loose scree has spilled across the path.",
+    "zone_id": "zone.west-road",
+    "npcs": [
+      {
+        "npc_id": "npc.wandering-mercenary",
+        "count": 1
+      }
+    ],
+    "items": [],
+    "exits": {
+      "north": "west-road-curve",
+      "west": "west-road-ford"
+    }
+  },
+  {
+    "room_id": "west-road-ford",
+    "title": "West Road — Muddy Ford",
+    "description": "A shallow brook cuts straight across the road here, its stepping stones slick with algae and mud churned up by travellers. The road resumes on the far bank, bending northwest.",
+    "zone_id": "zone.west-road",
+    "npcs": [
+      {
+        "npc_id": "npc.wandering-mercenary",
+        "count": 1
+      }
+    ],
+    "items": [],
+    "exits": {
+      "east": "west-road-defile",
+      "northwest": "west-road-rise"
+    }
+  },
+  {
+    "room_id": "west-road-rise",
+    "title": "West Road — Ridgeline Climb",
+    "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
+    "zone_id": "zone.west-road",
+    "npcs": [
+      {
+        "npc_id": "npc.wandering-mercenary",
+        "count": 1
+      }
+    ],
+    "items": [],
+    "exits": {
+      "southeast": "west-road-ford",
+      "west": "west-road-clearing"
+    }
+  },
+  {
+    "room_id": "west-road-clearing",
+    "title": "West Road — Old Clearing",
+    "description": "The road opens onto a wide, overgrown clearing where old milestone markers lean at angles in the weedy verge. A cold wind moves through the long grass and there is nothing but empty country beyond.",
+    "zone_id": "zone.west-road",
+    "npcs": [
+      {
+        "npc_id": "npc.wandering-mercenary",
+        "count": 2
+      }
+    ],
+    "items": [],
+    "exits": {
+      "east": "west-road-rise"
     }
   },
   {

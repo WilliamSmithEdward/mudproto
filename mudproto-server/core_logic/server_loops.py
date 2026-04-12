@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 from battle_round_ticks import process_non_combat_support_round
 from combat import resolve_combat_round
@@ -37,6 +38,7 @@ from session_registry import (
     shared_world_entities,
 )
 from session_timing import is_session_lagged
+from world import WORLD
 from world_population import process_world_item_game_hour_tick, repopulate_game_hour_zones
 
 
@@ -44,6 +46,24 @@ RoomRoundResult = tuple[ClientSession, dict]
 
 next_game_tick_monotonic: float | None = None
 next_combat_round_monotonic: float | None = None
+next_npc_wander_monotonic: float | None = None
+
+
+def _process_npc_wandering() -> None:
+    for entity in list(shared_world_entities.values()):
+        if not getattr(entity, "is_alive", False):
+            continue
+        if getattr(entity, "combat_target_player_key", ""):
+            continue
+        wander_chance = getattr(entity, "wander_chance", 0.0)
+        if wander_chance <= 0.0:
+            continue
+        wander_room_ids = getattr(entity, "wander_room_ids", [])
+        candidates = [rid for rid in wander_room_ids if rid != entity.room_id and rid in WORLD.rooms]
+        if not candidates:
+            continue
+        if random.random() < wander_chance:
+            entity.room_id = random.choice(candidates)
 
 
 def get_next_game_tick_monotonic() -> float | None:
@@ -124,11 +144,16 @@ async def game_tick_loop() -> None:
 
 
 async def combat_round_loop() -> None:
+    global next_npc_wander_monotonic
     try:
         while True:
             await asyncio.sleep(0.05)
             process_pending_auto_aggro()
             now = asyncio.get_running_loop().time()
+
+            if next_npc_wander_monotonic is None or now >= next_npc_wander_monotonic:
+                next_npc_wander_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+                _process_npc_wandering()
 
             combat_sessions: list[ClientSession] = []
             seen_sessions: set[str] = set()

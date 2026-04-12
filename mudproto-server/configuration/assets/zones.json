@@ -13,5 +13,10 @@
     "zone_id": "zone.whispering-sanctum",
     "name": "Whispering Sanctum",
     "repopulate_game_hours": 1
+  },
+  {
+    "zone_id": "zone.west-road",
+    "name": "West Road",
+    "repopulate_game_hours": 2
   }
 ]

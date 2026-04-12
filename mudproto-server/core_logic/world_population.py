@@ -181,6 +181,8 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.skill_ids = [str(skill_id).strip() for skill_id in template.get("skill_ids", []) if str(skill_id).strip()]
     entity.spell_use_chance = max(0.0, min(1.0, float(template.get("spell_use_chance", 0.25))))
     entity.spell_ids = [str(spell_id).strip() for spell_id in template.get("spell_ids", []) if str(spell_id).strip()]
+    entity.wander_chance = max(0.0, min(1.0, float(template.get("wander_chance", 0.0))))
+    entity.wander_room_ids = [str(rid).strip() for rid in template.get("wander_room_ids", []) if str(rid).strip()]
     return entity
 
 

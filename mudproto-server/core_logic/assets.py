@@ -1137,6 +1137,17 @@ def load_npc_templates() -> list[dict]:
         if spell_use_chance < 0.0 or spell_use_chance > 1.0:
             raise ValueError(f"NPC '{npc_id}' spell_use_chance must be between 0.0 and 1.0.")
 
+        wander_chance = float(raw_npc.get("wander_chance", 0.0))
+        if wander_chance < 0.0 or wander_chance > 1.0:
+            raise ValueError(f"NPC '{npc_id}' wander_chance must be between 0.0 and 1.0.")
+
+        raw_wander_room_ids = raw_npc.get("wander_room_ids", [])
+        if raw_wander_room_ids is None:
+            raw_wander_room_ids = []
+        if not isinstance(raw_wander_room_ids, list):
+            raise ValueError(f"NPC '{npc_id}' wander_room_ids must be a list.")
+        wander_room_ids = [str(rid).strip() for rid in raw_wander_room_ids if str(rid).strip()]
+
         max_vigor = max(0, int(raw_npc.get("max_vigor", 0)))
         vigor = int(raw_npc.get("vigor", max_vigor))
         if vigor < 0:
@@ -1244,6 +1255,8 @@ def load_npc_templates() -> list[dict]:
             "loot_items": normalized_loot_items,
             "keyword_actions": keyword_actions,
             "room_communications": room_communications,
+            "wander_chance": wander_chance,
+            "wander_room_ids": wander_room_ids,
         }
 
     return [normalized_npcs_by_id[npc_id] for npc_id in ordered_npc_ids]
@@ -1527,6 +1540,7 @@ def load_skills() -> list[dict]:
         observer_action = str(raw_skill.get("observer_action", "")).strip()
         observer_context = str(raw_skill.get("observer_context", "")).strip()
         lag_rounds = int(raw_skill.get("lag_rounds", 0))
+        target_lag_rounds = int(raw_skill.get("target_lag_rounds", 0))
         cooldown_rounds = int(raw_skill.get("cooldown_rounds", 0))
         cooldown_hours = int(raw_skill.get("cooldown_hours", 0))
         support_level_step = int(raw_skill.get("support_level_step", 0))
@@ -1556,6 +1570,8 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' duration_rounds must be zero or greater.")
         if lag_rounds < 0:
             raise ValueError(f"Skill asset '{skill_id}' lag_rounds must be zero or greater.")
+        if target_lag_rounds < 0:
+            raise ValueError(f"Skill asset '{skill_id}' target_lag_rounds must be zero or greater.")
         if cooldown_rounds < 0:
             raise ValueError(f"Skill asset '{skill_id}' cooldown_rounds must be zero or greater.")
         if cooldown_hours < 0:
@@ -1628,6 +1644,7 @@ def load_skills() -> list[dict]:
             "observer_action": observer_action,
             "observer_context": observer_context,
             "lag_rounds": lag_rounds,
+            "target_lag_rounds": target_lag_rounds,
             "cooldown_rounds": cooldown_rounds,
             "cooldown_hours": cooldown_hours,
             "support_level_step": support_level_step,

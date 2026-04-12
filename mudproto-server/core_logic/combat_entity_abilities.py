@@ -179,6 +179,10 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             )
             parts.append(build_part(rendered_restore_context))
 
+        target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
+        if target_lag_rounds > 0:
+            session.combat.skip_melee_rounds = max(session.combat.skip_melee_rounds, target_lag_rounds)
+
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)
         return True
