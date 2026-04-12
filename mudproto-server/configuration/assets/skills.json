@@ -92,7 +92,7 @@
     "damage_dice_sides": 10,
     "damage_modifier": 6,
     "damage_context": "[a/an] [verb] viciously slammed to the ground!",
-    "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal shoulder bash.",
+    "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal bash.",
     "lag_rounds": 1,
     "cooldown_rounds": 3,
     "target_lag_rounds": 2
