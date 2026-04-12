@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.7",
-  "generated_at_utc": "2026-04-11T20:13:14.398216+00:00",
+  "version": "2.8",
+  "generated_at_utc": "2026-04-12T15:35:52.458164+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -122,7 +122,12 @@
     "Preserve MudProto's existing fantasy tone and naming style.",
     "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
     "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
-    "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition."
+    "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition.",
+    "Room exits may only use the directions north, south, east, west, up, and down. Diagonal directions such as northeast, northwest, southeast, and southwest are not supported.",
+    "damage_context and support_context strings that end with '!' or '?' must not also include a trailing period. The server automatically handles terminal punctuation for '.', '!', and '?'.",
+    "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
+    "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
+    "NPCs that are currently engaged in combat with any player will not wander."
   ],
   "cross_reference_requirements": [
     "rooms[].zone_id must match a zone_id in the base assets or this payload.",
@@ -132,7 +137,8 @@
     "npcs[].inventory_items[].template_id and npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
     "npcs[].spell_ids[] must match spell_id values.",
     "npcs[].skill_ids[] must match skill_id values.",
-    "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis."
+    "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis.",
+    "npcs[].wander_room_ids[] must match valid room_id values in the base assets or this payload."
   ],
   "authoring_order": [
     "Create gear, items, spells, and skills first.",
@@ -964,6 +970,20 @@
               "default": []
             }
           }
+        },
+        "wander_chance": {
+          "type": "number",
+          "required": false,
+          "default": 0.0,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "notes": "Probability each tick that this NPC attempts to wander. 0.0 disables wandering. Typical range is 0.05-0.15."
+        },
+        "wander_room_ids": {
+          "type": "array[string]",
+          "required": false,
+          "default": [],
+          "notes": "Room IDs this NPC is allowed to wander between. The NPC will only move to rooms that are both in this list AND directly reachable via its current room's exits. All listed rooms should form a connected subgraph."
         }
       }
     },
@@ -990,7 +1010,16 @@
         },
         "exits": {
           "type": "object<string, room_id>",
-          "required": true
+          "required": true,
+          "allowed_directions": [
+            "north",
+            "south",
+            "east",
+            "west",
+            "up",
+            "down"
+          ],
+          "notes": "Only cardinal directions (north, south, east, west) and up/down are supported. Diagonal directions are not allowed."
         },
         "npcs": {
           "type": "array[object]",
@@ -1164,7 +1193,8 @@
             "heal",
             "vigor",
             "mana",
-            "damage_reduction"
+            "damage_reduction",
+            "extra_unarmed_hits"
           ]
         },
         "support_amount": {
@@ -1221,6 +1251,34 @@
           "required": false,
           "default": 0,
           "minimum": 0
+        },
+        "cooldown_hours": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0,
+          "notes": "Game-hour-based cooldown. When set, the skill cannot be used again until the specified number of in-game hours have passed."
+        },
+        "target_lag_rounds": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0,
+          "notes": "Number of combat rounds of command lag inflicted on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its own special abilities but not its melee attacks."
+        },
+        "support_level_step": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0,
+          "notes": "Every this many character levels, support_amount_per_level_step is added to the support effect. Only relevant for support skills."
+        },
+        "support_amount_per_level_step": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0,
+          "notes": "Bonus support amount granted per support_level_step interval of character levels."
         }
       }
     },
@@ -1505,13 +1563,13 @@
   ],
   "current_game_assets": {
     "counts": {
-      "gear": 16,
+      "gear": 17,
       "items": 6,
-      "npcs": 5,
-      "rooms": 8,
-      "skills": 5,
+      "npcs": 6,
+      "rooms": 13,
+      "skills": 7,
       "spells": 9,
-      "zones": 3,
+      "zones": 4,
       "asset_payload_files": 3
     },
     "base_assets": {
@@ -1823,6 +1881,29 @@
           ],
           "weight": 2,
           "armor_class_bonus": 0
+        },
+        {
+          "template_id": "weapon.mercenary-scimitar",
+          "name": "Wicked Curved Scimitar",
+          "slot": "weapon",
+          "description": "A wickedly curved scimitar, its edge notched from hard use on the road.",
+          "keywords": [
+            "scimitar",
+            "curved",
+            "wicked",
+            "mercenary"
+          ],
+          "weapon_type": "sword",
+          "can_hold": false,
+          "can_two_hand": false,
+          "weight": 7,
+          "coin_value": 95,
+          "damage_dice_count": 3,
+          "damage_dice_sides": 8,
+          "damage_roll_modifier": 5,
+          "hit_roll_modifier": 4,
+          "attack_damage_bonus": 0,
+          "attacks_per_round_bonus": 0
         }
       ],
       "items": [
@@ -2072,6 +2153,44 @@
             ]
           },
           {
+            "npc_id": "npc.wandering-mercenary",
+            "name": "Wandering Mercenary",
+            "hit_points": 650,
+            "max_hit_points": 650,
+            "power_level": 10,
+            "respawn": true,
+            "attacks_per_round": 3,
+            "hit_roll_modifier": 6,
+            "armor_class": 13,
+            "off_hand_attacks_per_round": 0,
+            "off_hand_hit_roll_modifier": 0,
+            "coin_reward": 65,
+            "experience_reward": 90,
+            "is_aggro": false,
+            "is_ally": false,
+            "is_peaceful": false,
+            "pronoun_possessive": "his",
+            "main_hand_weapon_template_id": "weapon.mercenary-scimitar",
+            "off_hand_weapon_template_id": "",
+            "vigor": 100,
+            "max_vigor": 100,
+            "skill_use_chance": 0.45,
+            "skill_ids": [
+              "skill.bash",
+              "skill.overhead-crack",
+              "skill.jab"
+            ],
+            "wander_chance": 0.1,
+            "wander_room_ids": [
+              "west-road",
+              "west-road-curve",
+              "west-road-defile",
+              "west-road-ford",
+              "west-road-rise",
+              "west-road-clearing"
+            ]
+          },
+          {
             "npc_id": "npc.south-market-merchant",
             "name": "Quartermaster Vessa",
             "hit_points": 180,
@@ -2197,6 +2316,22 @@
                   "destination_room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
                 }
               ]
+            },
+            {
+              "keywords": [
+                "press button",
+                "push button",
+                "press easy button",
+                "push easy button"
+              ],
+              "message": "You press the easy button. A cheerful chime rings out.\nYou gain 1000 experience.",
+              "refresh_view": "none",
+              "actions": [
+                {
+                  "type": "award_experience",
+                  "amount": 1000
+                }
+              ]
             }
           ],
           "room_objects": [
@@ -2230,6 +2365,15 @@
                 "rune circle"
               ],
               "description": "A faintly glowing circle of chalk and old runes is scribed into the stone floor. The lines pulse softly, as if waiting for someone to stand within them."
+            },
+            {
+              "object_id": "easy-button",
+              "name": "easy button",
+              "keywords": [
+                "button",
+                "easy button"
+              ],
+              "description": "A large candy-red button mounted on a squat pedestal. The word EASY is stamped across its face in cheerful white letters."
             }
           ],
           "items": [
@@ -2249,8 +2393,8 @@
                 "iron gate"
               ],
               "lock_id": "lock.prototype.start-west-gate",
-              "is_closed": true,
-              "is_locked": true
+              "is_closed": false,
+              "is_locked": false
             }
           ],
           "exits": {
@@ -2264,8 +2408,14 @@
           "room_id": "west-road",
           "title": "West Road",
           "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
-          "zone_id": "zone.prototype-core",
+          "zone_id": "zone.west-road",
           "items": [],
+          "npcs": [
+            {
+              "npc_id": "npc.wandering-mercenary",
+              "count": 1
+            }
+          ],
           "room_objects": [
             {
               "object_id": "east-gate",
@@ -2291,12 +2441,97 @@
                 "west gate"
               ],
               "lock_id": "lock.prototype.start-west-gate",
-              "is_closed": true,
-              "is_locked": true
+              "is_closed": false,
+              "is_locked": false
             }
           ],
           "exits": {
-            "east": "start"
+            "east": "start",
+            "west": "west-road-curve"
+          }
+        },
+        {
+          "room_id": "west-road-curve",
+          "title": "West Road \u2014 Southward Bend",
+          "description": "The packed-earth road bends sharply south here where a mossy waystone heeled over long ago. Deep cart ruts cut through the verge on either side.",
+          "zone_id": "zone.west-road",
+          "npcs": [
+            {
+              "npc_id": "npc.wandering-mercenary",
+              "count": 1
+            }
+          ],
+          "items": [],
+          "exits": {
+            "east": "west-road",
+            "south": "west-road-defile"
+          }
+        },
+        {
+          "room_id": "west-road-defile",
+          "title": "West Road \u2014 Stone Defile",
+          "description": "The road squeezes through a narrow cut between two weathered stone banks, overhung by tangles of briar and twisted root. The footing is treacherous where loose scree has spilled across the path.",
+          "zone_id": "zone.west-road",
+          "npcs": [
+            {
+              "npc_id": "npc.wandering-mercenary",
+              "count": 1
+            }
+          ],
+          "items": [],
+          "exits": {
+            "north": "west-road-curve",
+            "west": "west-road-ford"
+          }
+        },
+        {
+          "room_id": "west-road-ford",
+          "title": "West Road \u2014 Muddy Ford",
+          "description": "A shallow brook cuts straight across the road here, its stepping stones slick with algae and mud churned up by travellers. The road resumes on the far bank, bending north.",
+          "zone_id": "zone.west-road",
+          "npcs": [
+            {
+              "npc_id": "npc.wandering-mercenary",
+              "count": 1
+            }
+          ],
+          "items": [],
+          "exits": {
+            "east": "west-road-defile",
+            "north": "west-road-rise"
+          }
+        },
+        {
+          "room_id": "west-road-rise",
+          "title": "West Road \u2014 Ridgeline Climb",
+          "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
+          "zone_id": "zone.west-road",
+          "npcs": [
+            {
+              "npc_id": "npc.wandering-mercenary",
+              "count": 1
+            }
+          ],
+          "items": [],
+          "exits": {
+            "south": "west-road-ford",
+            "west": "west-road-clearing"
+          }
+        },
+        {
+          "room_id": "west-road-clearing",
+          "title": "West Road \u2014 Old Clearing",
+          "description": "The road opens onto a wide, overgrown clearing where old milestone markers lean at angles in the weedy verge. A cold wind moves through the long grass and there is nothing but empty country beyond.",
+          "zone_id": "zone.west-road",
+          "npcs": [
+            {
+              "npc_id": "npc.wandering-mercenary",
+              "count": 2
+            }
+          ],
+          "items": [],
+          "exits": {
+            "east": "west-road-rise"
           }
         },
         {
@@ -2440,7 +2675,7 @@
           "vigor_cost": 6,
           "usable_out_of_combat": false,
           "scaling_attribute_id": "con",
-          "scaling_multiplier": 1.5,
+          "scaling_multiplier": 3.0,
           "level_scaling_multiplier": 1.0,
           "support_effect": "heal",
           "support_amount": 10,
@@ -2459,8 +2694,8 @@
           "vigor_cost": 8,
           "usable_out_of_combat": false,
           "scaling_attribute_id": "con",
-          "scaling_multiplier": 0.2,
-          "level_scaling_multiplier": 0.0,
+          "scaling_multiplier": 0.5,
+          "level_scaling_multiplier": 0.5,
           "support_effect": "damage_reduction",
           "support_amount": 2,
           "support_mode": "battle_rounds",
@@ -2470,6 +2705,26 @@
           "observer_context": "[actor_name] settles into a centered guard that blunts incoming strikes.",
           "lag_rounds": 1,
           "cooldown_rounds": 4
+        },
+        {
+          "skill_id": "skill.bash",
+          "name": "Bash",
+          "description": "",
+          "skill_type": "damage",
+          "cast_type": "target",
+          "vigor_cost": 10,
+          "usable_out_of_combat": false,
+          "scaling_attribute_id": "str",
+          "scaling_multiplier": 3.0,
+          "level_scaling_multiplier": 1.0,
+          "damage_dice_count": 5,
+          "damage_dice_sides": 10,
+          "damage_modifier": 6,
+          "damage_context": "[a/an] [verb] viciously slammed to the ground!",
+          "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal shoulder bash.",
+          "lag_rounds": 1,
+          "cooldown_rounds": 3,
+          "target_lag_rounds": 2
         },
         {
           "skill_id": "skill.roundhouse-kick",
@@ -2482,13 +2737,36 @@
           "scaling_attribute_id": "dex",
           "scaling_multiplier": 0.9,
           "level_scaling_multiplier": 1.0,
-          "damage_dice_count": 2,
-          "damage_dice_sides": 6,
+          "damage_dice_count": 4,
+          "damage_dice_sides": 8,
           "damage_modifier": 4,
           "damage_context": "[a/an] [verb] battered by a whirling roundhouse kick.",
           "observer_action": "[actor_name] pivots into a wide roundhouse kick.",
           "lag_rounds": 2,
           "cooldown_rounds": 4
+        },
+        {
+          "skill_id": "skill.fist-flurry",
+          "name": "Fist Flurry",
+          "description": "A disciplined burst of unarmed strikes that overwhelms your target.",
+          "skill_type": "support",
+          "cast_type": "self",
+          "vigor_cost": 10,
+          "usable_out_of_combat": false,
+          "scaling_attribute_id": "",
+          "scaling_multiplier": 0.0,
+          "level_scaling_multiplier": 0.0,
+          "support_effect": "extra_unarmed_hits",
+          "support_amount": 2,
+          "support_level_step": 5,
+          "support_amount_per_level_step": 1,
+          "support_mode": "battle_rounds",
+          "duration_rounds": 3,
+          "support_context": "Your fists blur into a relentless flurry.",
+          "observer_action": "[actor_name] erupts into a blinding flurry of strikes.",
+          "lag_rounds": 0,
+          "cooldown_rounds": 0,
+          "cooldown_hours": 2
         }
       ],
       "spells": [
@@ -2659,6 +2937,11 @@
           "zone_id": "zone.whispering-sanctum",
           "name": "Whispering Sanctum",
           "repopulate_game_hours": 1
+        },
+        {
+          "zone_id": "zone.west-road",
+          "name": "West Road",
+          "repopulate_game_hours": 2
         }
       ]
     },

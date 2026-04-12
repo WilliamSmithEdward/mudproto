@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.7",
+        "version": "2.8",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
@@ -207,7 +207,12 @@ def build_instruction_payload() -> dict[str, object]:
             "Preserve MudProto's existing fantasy tone and naming style.",
             "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
             "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
-            "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition."
+            "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition.",
+            "Room exits may only use the directions north, south, east, west, up, and down. Diagonal directions such as northeast, northwest, southeast, and southwest are not supported.",
+            "damage_context and support_context strings that end with '!' or '?' must not also include a trailing period. The server automatically handles terminal punctuation for '.', '!', and '?'.",
+            "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
+            "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
+            "NPCs that are currently engaged in combat with any player will not wander."
         ],
         "cross_reference_requirements": [
             "rooms[].zone_id must match a zone_id in the base assets or this payload.",
@@ -217,7 +222,8 @@ def build_instruction_payload() -> dict[str, object]:
             "npcs[].inventory_items[].template_id and npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
             "npcs[].spell_ids[] must match spell_id values.",
             "npcs[].skill_ids[] must match skill_id values.",
-            "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis."
+            "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis.",
+            "npcs[].wander_room_ids[] must match valid room_id values in the base assets or this payload."
         ],
         "authoring_order": [
             "Create gear, items, spells, and skills first.",

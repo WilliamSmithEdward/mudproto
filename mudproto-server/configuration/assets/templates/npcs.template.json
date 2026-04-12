@@ -382,6 +382,20 @@
             "default": []
           }
         }
+      },
+      "wander_chance": {
+        "type": "number",
+        "required": false,
+        "default": 0.0,
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "notes": "Probability each tick that this NPC attempts to wander. 0.0 disables wandering. Typical range is 0.05-0.15."
+      },
+      "wander_room_ids": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "Room IDs this NPC is allowed to wander between. The NPC will only move to rooms that are both in this list AND directly reachable via its current room's exits. All listed rooms should form a connected subgraph."
       }
     }
   }

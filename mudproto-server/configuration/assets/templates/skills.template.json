@@ -132,7 +132,8 @@
           "heal",
           "vigor",
           "mana",
-          "damage_reduction"
+          "damage_reduction",
+          "extra_unarmed_hits"
         ]
       },
       "support_amount": {
@@ -189,6 +190,34 @@
         "required": false,
         "default": 0,
         "minimum": 0
+      },
+      "cooldown_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "Game-hour-based cooldown. When set, the skill cannot be used again until the specified number of in-game hours have passed."
+      },
+      "target_lag_rounds": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "Number of combat rounds of command lag inflicted on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its own special abilities but not its melee attacks."
+      },
+      "support_level_step": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "Every this many character levels, support_amount_per_level_step is added to the support effect. Only relevant for support skills."
+      },
+      "support_amount_per_level_step": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "Bonus support amount granted per support_level_step interval of character levels."
       }
     }
   }

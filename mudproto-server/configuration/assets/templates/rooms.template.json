@@ -24,7 +24,9 @@
       },
       "exits": {
         "type": "object<string, room_id>",
-        "required": true
+        "required": true,
+        "allowed_directions": ["north", "south", "east", "west", "up", "down"],
+        "notes": "Only cardinal directions (north, south, east, west) and up/down are supported. Diagonal directions are not allowed."
       },
       "npcs": {
         "type": "array[object]",
