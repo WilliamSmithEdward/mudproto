@@ -84,7 +84,12 @@ async def _process_npc_wandering() -> None:
         if wander_chance <= 0.0:
             continue
         wander_room_ids = getattr(entity, "wander_room_ids", [])
-        candidates = [rid for rid in wander_room_ids if rid != entity.room_id and rid in WORLD.rooms]
+        allowed = set(wander_room_ids)
+        current_room = WORLD.rooms.get(entity.room_id)
+        candidates = [
+            rid for rid in (current_room.exits.values() if current_room else [])
+            if rid in allowed and rid in WORLD.rooms
+        ]
         if not candidates:
             continue
         if random.random() >= wander_chance:
