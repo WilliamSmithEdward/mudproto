@@ -95,7 +95,14 @@ def _strip_observer_proc_line_style(line: list[dict]) -> None:
         return
 
     is_proc_line = any(
-        isinstance(part, dict) and bool(part.get("observer_plain", False))
+        isinstance(part, dict)
+        and (
+            bool(part.get("observer_plain", False))
+            or (
+                str(part.get("fg", "")).strip().lower() == "bright_yellow"
+                and bool(part.get("bold", False))
+            )
+        )
         for part in line
     )
     if not is_proc_line:
@@ -106,6 +113,43 @@ def _strip_observer_proc_line_style(line: list[dict]) -> None:
             continue
         part["fg"] = "bright_white"
         part["bold"] = False
+
+
+def _prefix_observer_proc_line_actor(line: list[dict], actor_name: str) -> None:
+    if not isinstance(line, list) or not line:
+        return
+
+    is_proc_line = any(
+        isinstance(part, dict)
+        and (
+            bool(part.get("observer_plain", False))
+            or (
+                str(part.get("fg", "")).strip().lower() == "bright_yellow"
+                and bool(part.get("bold", False))
+            )
+        )
+        for part in line
+    )
+    if not is_proc_line:
+        return
+
+    cleaned_actor = str(actor_name).strip() or "Someone"
+    line_text = _line_text(line).strip()
+    if not line_text:
+        return
+
+    lowered_line = line_text.lower()
+    lowered_actor = cleaned_actor.lower()
+    if lowered_line.startswith(f"{lowered_actor}'s ") or lowered_line.startswith(f"{lowered_actor} "):
+        return
+
+    prefixed_text = f"{cleaned_actor}'s {line_text}"
+    line[:] = [{
+        "text": prefixed_text,
+        "fg": "bright_white",
+        "bold": False,
+        "observer_plain": True,
+    }]
 
 
 def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict | list[dict]) -> list[dict]:
@@ -154,6 +198,7 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
                                 actor_name,
                                 origin_session.player.gender,
                             )
+                        _prefix_observer_proc_line_actor(line, actor_name)
                         _strip_observer_proc_line_style(line)
                         _fix_observer_line_grammar(line, actor_name)
                         _strip_observer_actor_line_style(line, actor_name)
@@ -348,6 +393,11 @@ def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tupl
     def _is_actor_auxiliary_line(line_parts: list[dict]) -> bool:
         if not isinstance(line_parts, list) or not line_parts:
             return False
+
+        line_text = _line_text(line_parts).strip().lower()
+        if line_text.endswith(" is dead!"):
+            return True
+
         for part in line_parts:
             if not isinstance(part, dict):
                 continue
@@ -443,6 +493,7 @@ async def _send_room_broadcast(
                 if isinstance(personalized_lines, list) and personalized_lines:
                     payload["lines"] = [line for line in personalized_lines if isinstance(line, list)]
 
+            if prompt_observers:
                 _append_private_lines_to_payload(payload, peer)
                 prompt_lines = [build_prompt_parts(peer)]
                 existing_lines = payload.get("lines")

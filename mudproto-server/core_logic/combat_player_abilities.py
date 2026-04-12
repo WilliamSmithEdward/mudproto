@@ -42,6 +42,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     from display_core import build_part
     from display_feedback import display_command_result, display_error
 
+    OPENING_ATTACKER_SKILL = "skill"
+
     skill_id = str(skill.get("skill_id", "")).strip()
     skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
     vigor_cost = max(0, int(skill.get("vigor_cost", 0)))
@@ -254,7 +256,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         # already fighting someone else. Existing target focus is preserved by
         # combat state sync logic.
         if not bool(getattr(entity, "is_peaceful", False)) and entity.entity_id not in session.combat.engaged_entity_ids:
-            start_combat(session, entity.entity_id, "player")
+            start_combat(session, entity.entity_id, OPENING_ATTACKER_SKILL)
 
         if bool(getattr(entity, "is_peaceful", False)):
             peaceful_targets_for_feedback.append(entity)
@@ -300,7 +302,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 and (cast_type == "target" or not _is_entity_engaged_by_other_player(entity.entity_id, session))
             )
             if should_start_combat:
-                start_combat(session, entity.entity_id, "player")
+                start_combat(session, entity.entity_id, OPENING_ATTACKER_SKILL)
             _mark_entity_contributor(session, entity)
             dealt = _apply_entity_damage_with_reduction(entity, total_damage)
             total_damage_dealt += max(0, dealt)

@@ -499,6 +499,8 @@ def resolve_combat_round(
 
     if opening_attacker == OPENING_ATTACKER_ENTITY:
         for retaliating_entity in retaliating_entities:
+            if not retaliating_entity.is_alive:
+                continue
             _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=False)
             if status.hit_points <= 0:
                 break
@@ -529,6 +531,8 @@ def resolve_combat_round(
             if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
         ]
         for retaliating_entity in current_retaliating_entities:
+            if not retaliating_entity.is_alive:
+                continue
             _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
             if status.hit_points <= 0:
                 break
@@ -563,9 +567,6 @@ def resolve_combat_round(
     payload = result.get("payload") if isinstance(result, dict) else None
     if isinstance(payload, dict) and room_broadcast_lines:
         payload["additional_room_broadcast_lines"] = room_broadcast_lines
-
-    if entity_died_this_round:
-        return result
 
     _schedule_next_combat_round(session)
     return result
