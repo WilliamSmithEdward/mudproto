@@ -2,4 +2,4 @@
 extraPaths = ["mudproto-server/core_logic"]
 
 [tool.pytest.ini_options]
-testpaths = ["mudproto-server/tests"]
+testpaths = ["mudproto-server/core_logic/tests"]
