@@ -86,6 +86,33 @@ def _append_scan_unhostile_summary(parts: list[dict], entities: list, *, prefix:
     return _append_scan_entity_summary(parts, entities, prefix=prefix, name_color="bright_yellow")
 
 
+def _append_scan_npc_summary(
+    parts: list[dict],
+    hostiles: list,
+    unhostiles: list,
+    *,
+    prefix: str = "NPCs: ",
+) -> bool:
+    if not hostiles and not unhostiles:
+        return False
+
+    if prefix:
+        parts.append(build_part(prefix, "bright_white", True))
+
+    appended = False
+    if hostiles:
+        _append_scan_entity_summary(parts, hostiles, prefix="", name_color="bright_red")
+        appended = True
+
+    if unhostiles:
+        if appended:
+            parts.append(build_part(", ", "bright_white"))
+        _append_scan_entity_summary(parts, unhostiles, prefix="", name_color="bright_yellow")
+        appended = True
+
+    return appended
+
+
 def _append_scan_player_summary(parts: list[dict], players: list[ClientSession], *, prefix: str = "Players: ") -> bool:
     if not players:
         return False
@@ -155,12 +182,8 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             if nearby_hostiles or nearby_unhostiles or nearby_players:
                 parts.append(build_part(" - ", "bright_black"))
                 appended_summary = False
-                if nearby_hostiles:
-                    appended_summary = _append_scan_hostile_summary(parts, nearby_hostiles, prefix="Enemies: ")
-                if nearby_unhostiles:
-                    if appended_summary:
-                        parts.append(build_part(" | ", "bright_black"))
-                    appended_summary = _append_scan_unhostile_summary(parts, nearby_unhostiles, prefix="Unhostile: ") or appended_summary
+                if nearby_hostiles or nearby_unhostiles:
+                    appended_summary = _append_scan_npc_summary(parts, nearby_hostiles, nearby_unhostiles, prefix="NPCs: ")
                 if nearby_players:
                     if appended_summary:
                         parts.append(build_part(" | ", "bright_black"))
@@ -177,12 +200,8 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             build_part("Here: ", "bright_white", True),
         ])
         appended_summary = False
-        if visible_enemies:
-            appended_summary = _append_scan_hostile_summary(parts, visible_enemies, prefix="Enemies: ")
-        if visible_unhostiles:
-            if appended_summary:
-                parts.append(build_part(" | ", "bright_black"))
-            appended_summary = _append_scan_unhostile_summary(parts, visible_unhostiles, prefix="Unhostile: ") or appended_summary
+        if visible_enemies or visible_unhostiles:
+            appended_summary = _append_scan_npc_summary(parts, visible_enemies, visible_unhostiles, prefix="NPCs: ")
         if visible_players:
             if appended_summary:
                 parts.append(build_part(" | ", "bright_black"))
