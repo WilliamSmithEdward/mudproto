@@ -79,11 +79,56 @@ def resolve_room_entity_selector(
             if entity.name.lower() == normalized:
                 exact_entity = entity
                 break
-        if exact_entity is None:
+        if exact_entity is not None:
+            if living_only and not exact_entity.is_alive:
+                return None, f"{exact_entity.name} is already dead."
+            return exact_entity, None
+
+        # Explicit targeting can also use exact whole keywords (for example:
+        # "sentry" or "2.scout"), but never prefix matching.
+        requested_index: int | None = None
+        selector_parts: list[str]
+        if "." in normalized:
+            selector_parts = [part for part in normalized.split(".") if part]
+            if selector_parts and selector_parts[0].isdigit():
+                requested_index = int(selector_parts[0])
+                selector_parts = selector_parts[1:]
+                if requested_index <= 0:
+                    return None, "Selector index must be 1 or greater."
+            if not selector_parts:
+                return None, "Provide at least one selector keyword after the index."
+        else:
+            selector_parts = [normalized]
+
+        all_token_matches: list[EntityState] = []
+        for entity in all_room_entities:
+            keywords = _entity_name_keywords(entity.name)
+            if all(part in keywords for part in selector_parts):
+                all_token_matches.append(entity)
+
+        token_matches: list[EntityState] = []
+        for entity in room_entities:
+            keywords = _entity_name_keywords(entity.name)
+            if all(part in keywords for part in selector_parts):
+                token_matches.append(entity)
+
+        if not token_matches:
+            if living_only and requested_index is not None and requested_index <= len(all_token_matches):
+                indexed_target = all_token_matches[requested_index - 1]
+                if not indexed_target.is_alive:
+                    return None, f"{indexed_target.name} is already dead."
             return None, f"No exact target named '{selector_text}' is here."
-        if living_only and not exact_entity.is_alive:
-            return None, f"{exact_entity.name} is already dead."
-        return exact_entity, None
+
+        if requested_index is not None:
+            if requested_index > len(token_matches):
+                return None, f"Only {len(token_matches)} exact match(es) found for '{selector_text}'."
+            return token_matches[requested_index - 1], None
+
+        if len(token_matches) == 1:
+            return token_matches[0], None
+
+        # On ambiguous exact-token matches, default to the first in spawn order.
+        return token_matches[0], None
 
     query_parts = [part for part in re.findall(r"[a-zA-Z0-9]+", normalized) if part]
 
