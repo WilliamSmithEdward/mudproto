@@ -1,15 +1,19 @@
 """Combat state, engagement, timer, and corpse lifecycle helpers."""
 
 import asyncio
+import random
 import uuid
 
 from assets import get_gear_template_by_id
 from combat_ability_effects import _process_entity_battle_round_support_effects
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
-from session_registry import active_character_sessions, connected_clients, shared_world_flags
+from session_registry import active_character_sessions, connected_clients, shared_world_entities, shared_world_flags
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from targeting_entities import list_room_entities, resolve_room_entity_selector
+
+
+_pending_auto_aggro_due_monotonic: dict[str, float] = {}
 
 
 def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str]:
@@ -401,17 +405,86 @@ def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSe
     return False
 
 
+def _list_valid_auto_aggro_targets_for_entity(entity: EntityState) -> list[ClientSession]:
+    room_id = str(getattr(entity, "room_id", "")).strip()
+    if not room_id:
+        return []
+
+    candidates_by_key: dict[str, ClientSession] = {}
+    for sess in list(connected_clients.values()) + list(active_character_sessions.values()):
+        session_key = get_session_combatant_key(sess)
+        if not session_key or session_key in candidates_by_key:
+            continue
+        if not sess.is_authenticated or not sess.is_connected or sess.disconnected_by_server:
+            continue
+        if sess.pending_death_logout or sess.status.hit_points <= 0:
+            continue
+        if sess.player.current_room_id != room_id:
+            continue
+        if not _entity_should_auto_aggro(sess, entity):
+            continue
+        candidates_by_key[session_key] = sess
+
+    return list(candidates_by_key.values())
+
+
+def process_pending_auto_aggro() -> None:
+    if not _pending_auto_aggro_due_monotonic:
+        return
+
+    try:
+        now = asyncio.get_running_loop().time()
+    except RuntimeError:
+        return
+
+    due_entity_ids = [
+        entity_id
+        for entity_id, due_at in list(_pending_auto_aggro_due_monotonic.items())
+        if now >= float(due_at)
+    ]
+    if not due_entity_ids:
+        return
+
+    for entity_id in due_entity_ids:
+        _pending_auto_aggro_due_monotonic.pop(entity_id, None)
+
+        entity = shared_world_entities.get(entity_id)
+        if entity is None or not getattr(entity, "is_alive", False):
+            continue
+        if _get_entity_engaged_sessions(entity):
+            continue
+
+        candidates = _list_valid_auto_aggro_targets_for_entity(entity)
+        if not candidates:
+            continue
+
+        chosen_session = random.choice(candidates)
+        start_combat(chosen_session, entity.entity_id, "entity")
+
+
 def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:
     clear_combat_if_invalid(session)
     if session.combat.engaged_entity_ids:
         return []
 
-    engaged_entities = []
+    engaged_entities: list[EntityState] = []
     room_entities = list_room_entities(session, session.player.current_room_id)
     for entity in room_entities:
-        if _entity_should_auto_aggro(session, entity) and not _is_entity_engaged_by_other_player(entity.entity_id, session):
-            started = start_combat(session, entity.entity_id, "entity")
-            if started:
-                engaged_entities.append(entity)
+        if _get_entity_engaged_sessions(entity):
+            continue
+        if entity.entity_id in _pending_auto_aggro_due_monotonic:
+            continue
+
+        candidates = _list_valid_auto_aggro_targets_for_entity(entity)
+        if not candidates:
+            continue
+
+        try:
+            now = asyncio.get_running_loop().time()
+        except RuntimeError:
+            continue
+
+        # Delay auto-aggro start and choose target when the delay expires.
+        _pending_auto_aggro_due_monotonic[entity.entity_id] = now + random.uniform(0.25, 0.75)
 
     return engaged_entities

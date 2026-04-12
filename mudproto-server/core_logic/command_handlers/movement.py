@@ -55,7 +55,8 @@ def _attach_movement_metadata(
     action: str,
     allow_followers: bool,
 ) -> OutboundResult:
-    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    message = outbound[0] if isinstance(outbound, list) and outbound else outbound
+    payload = message.get("payload") if isinstance(message, dict) else None
     if isinstance(payload, dict):
         payload["movement"] = {
             "from_room_id": str(from_room_id).strip(),

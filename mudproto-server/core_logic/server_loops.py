@@ -7,6 +7,7 @@ from combat_state import (
     get_engaged_entities,
     get_session_combatant_key,
     maybe_auto_engage_current_room,
+    process_pending_auto_aggro,
     sync_entity_target_player,
     tick_out_of_combat_cooldowns,
 )
@@ -123,15 +124,11 @@ async def game_tick_loop() -> None:
 
 
 async def combat_round_loop() -> None:
-    global next_combat_round_monotonic
-
     try:
-        next_combat_round_monotonic = asyncio.get_running_loop().time() + COMBAT_ROUND_INTERVAL_SECONDS
-
         while True:
-            sleep_seconds = max(0.0, next_combat_round_monotonic - asyncio.get_running_loop().time())
-            await asyncio.sleep(sleep_seconds)
-            next_combat_round_monotonic += COMBAT_ROUND_INTERVAL_SECONDS
+            await asyncio.sleep(0.05)
+            process_pending_auto_aggro()
+            now = asyncio.get_running_loop().time()
 
             combat_sessions: list[ClientSession] = []
             seen_sessions: set[str] = set()
@@ -167,6 +164,16 @@ async def combat_round_loop() -> None:
                     continue
                 combat_rooms.setdefault(room_id, []).append(session)
 
+            due_combat_rooms: dict[str, list[ClientSession]] = {}
+            for room_id, room_sessions in combat_rooms.items():
+                is_room_due = any(
+                    sess.combat.next_round_monotonic is None
+                    or now >= float(sess.combat.next_round_monotonic)
+                    for sess in room_sessions
+                )
+                if is_room_due:
+                    due_combat_rooms[room_id] = room_sessions
+
             combat_session_ids = {s.client_id for s in combat_sessions}
             for session in list(connected_clients.values()):
                 if session.client_id in combat_session_ids:
@@ -175,7 +182,7 @@ async def combat_round_loop() -> None:
                     continue
                 tick_out_of_combat_cooldowns(session)
 
-            for room_id, room_sessions in combat_rooms.items():
+            for room_id, room_sessions in due_combat_rooms.items():
                 round_results: list[RoomRoundResult] = []
                 room_sessions.sort(key=lambda s: (s.authenticated_character_name or "", s.client_id))
 

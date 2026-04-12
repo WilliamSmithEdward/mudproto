@@ -24,7 +24,12 @@ def _assist_on_entity(
     if target_entity is None or not getattr(target_entity, "is_alive", False):
         return display_error("That target is no longer a valid combat target.", session)
 
-    started = start_combat(session, target_entity.entity_id, "player")
+    started = start_combat(
+        session,
+        target_entity.entity_id,
+        "player",
+        trigger_player_auto_aggro=False,
+    )
     if not started:
         return display_error(f"You fail to assist {assisted_session.authenticated_character_name or 'them'}.", session)
 
