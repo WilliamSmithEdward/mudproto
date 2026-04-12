@@ -87,7 +87,7 @@
       "hit_points": {
         "base": 140,
         "attribute_id": "con",
-        "attribute_multiplier": 8.0,
+        "attribute_multiplier": 12.0,
         "per_level_min": 15,
         "per_level_max": 27
       },
