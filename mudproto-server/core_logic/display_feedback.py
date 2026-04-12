@@ -320,6 +320,10 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
         return [build_part("No foe presently presses you.", "bright_white", False)]
     if "already fighting" in lowered:
         return [build_part("You are already locked in battle.", "bright_white", False)]
+    if "no exact target named" in lowered:
+        return [build_part("Spell and skill targets must use the exact NPC name.", "bright_white", False)]
+    if "no exact player named" in lowered:
+        return [build_part("Spell and skill targets must use the exact player name.", "bright_white", False)]
     if "no target named" in lowered:
         direction_aliases = {
             "n": "north",

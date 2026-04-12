@@ -8,7 +8,12 @@ from session_registry import connected_clients, list_authenticated_room_players
 from targeting_parsing import _selector_prefix_matches_keywords
 
 
-def _resolve_room_player_selector(session: ClientSession, selector_text: str) -> tuple[ClientSession | None, str | None]:
+def _resolve_room_player_selector(
+    session: ClientSession,
+    selector_text: str,
+    *,
+    require_exact_name: bool = False,
+) -> tuple[ClientSession | None, str | None]:
     normalized = selector_text.strip().lower()
     if not normalized:
         return None, "Provide a target selector."
@@ -19,6 +24,13 @@ def _resolve_room_player_selector(session: ClientSession, selector_text: str) ->
     room_players = list_authenticated_room_players(session.player.current_room_id)
     if not room_players:
         return None, f"No player named '{selector_text}' is here."
+
+    if require_exact_name:
+        for player_session in room_players:
+            player_name = (player_session.authenticated_character_name or "").strip().lower()
+            if player_name and player_name == normalized:
+                return player_session, None
+        return None, f"No exact player named '{selector_text}' is here."
 
     query_parts = [part for part in re.findall(r"[a-zA-Z0-9]+", normalized) if part]
 

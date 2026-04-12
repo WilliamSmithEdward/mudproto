@@ -60,7 +60,13 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
     actor_name = session.authenticated_character_name or "Someone"
 
-    if get_engaged_entity(session) is None and not usable_out_of_combat:
+    has_explicit_target = bool(str(target_name or "").strip())
+    can_open_with_targeted_damage = (
+        skill_type == "damage"
+        and cast_type == "target"
+        and has_explicit_target
+    )
+    if get_engaged_entity(session) is None and not usable_out_of_combat and not can_open_with_targeted_damage:
         return display_error(f"{skill_name} can only be used while in combat.", session), False
 
     if skill_id and session.combat.skill_cooldowns.get(skill_id, 0) > 0:
@@ -90,6 +96,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             session.player.current_room_id,
             target_name,
             living_only=True,
+            require_exact_name=True,
         )
         if target_entity:
             target_text = f" on {with_article(target_entity.name)}"
@@ -234,6 +241,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 session.player.current_room_id,
                 target_name,
                 living_only=True,
+                require_exact_name=True,
             )
             if entity is None:
                 return display_error(resolve_error or f"No target named '{target_name}' is here.", session), False
@@ -241,6 +249,13 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             entity = get_engaged_entity(session)
             if entity is None:
                 return display_error("Target skill requires a target: skill <name> <target>", session), False
+
+        # Targeted skills explicitly engage the caster, even if the target is
+        # already fighting someone else. Existing target focus is preserved by
+        # combat state sync logic.
+        if not bool(getattr(entity, "is_peaceful", False)) and entity.entity_id not in session.combat.engaged_entity_ids:
+            start_combat(session, entity.entity_id, "player")
+
         if bool(getattr(entity, "is_peaceful", False)):
             peaceful_targets_for_feedback.append(entity)
         else:
@@ -282,7 +297,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         if total_damage > 0:
             should_start_combat = (
                 entity.entity_id not in session.combat.engaged_entity_ids
-                and not _is_entity_engaged_by_other_player(entity.entity_id, session)
+                and (cast_type == "target" or not _is_entity_engaged_by_other_player(entity.entity_id, session))
             )
             if should_start_combat:
                 start_combat(session, entity.entity_id, "player")
@@ -469,7 +484,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
 
         support_target_session = session
         if target_name:
-            support_target_session, resolve_error = _resolve_room_player_selector(session, target_name)
+            support_target_session, resolve_error = _resolve_room_player_selector(
+                session,
+                target_name,
+                require_exact_name=True,
+            )
             if support_target_session is None:
                 return display_error(resolve_error or f"No player named '{target_name}' is here.", session), False
 
@@ -662,6 +681,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 session.player.current_room_id,
                 target_name,
                 living_only=True,
+                require_exact_name=True,
             )
             if entity is None:
                 return display_error(resolve_error or f"No target named '{target_name}' is here.", session), False

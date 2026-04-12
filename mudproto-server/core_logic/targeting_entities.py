@@ -54,6 +54,7 @@ def resolve_room_entity_selector(
     selector_text: str,
     *,
     living_only: bool = False,
+    require_exact_name: bool = False,
 ) -> tuple[EntityState | None, str | None]:
     normalized = selector_text.strip().lower()
     if not normalized:
@@ -71,6 +72,18 @@ def resolve_room_entity_selector(
         for entity in all_room_entities
         if entity.is_alive or not living_only
     ]
+
+    if require_exact_name:
+        exact_entity: EntityState | None = None
+        for entity in all_room_entities:
+            if entity.name.lower() == normalized:
+                exact_entity = entity
+                break
+        if exact_entity is None:
+            return None, f"No exact target named '{selector_text}' is here."
+        if living_only and not exact_entity.is_alive:
+            return None, f"{exact_entity.name} is already dead."
+        return exact_entity, None
 
     query_parts = [part for part in re.findall(r"[a-zA-Z0-9]+", normalized) if part]
 
