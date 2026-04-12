@@ -118,11 +118,14 @@ def build_menu_table_parts(
 
 
 def _normalize_part(part: dict) -> dict:
-    return {
+    normalized = {
         "text": str(part.get("text", "")),
         "fg": part.get("fg", "bright_white"),
         "bold": part.get("bold", False),
     }
+    if bool(part.get("observer_plain", False)):
+        normalized["observer_plain"] = True
+    return normalized
 
 
 def _capitalize_parts(parts: list[dict]) -> list[dict]:
@@ -162,11 +165,14 @@ def parts_to_lines(parts: list[dict]) -> list[list[dict]]:
 
         for index, segment in enumerate(segments):
             if segment:
-                current_line.append({
+                line_part = {
                     "text": segment,
                     "fg": normalized_part["fg"],
                     "bold": normalized_part["bold"],
-                })
+                }
+                if bool(normalized_part.get("observer_plain", False)):
+                    line_part["observer_plain"] = True
+                current_line.append(line_part)
 
             if index < len(segments) - 1:
                 lines.append(current_line)

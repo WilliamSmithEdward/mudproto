@@ -90,6 +90,26 @@ def _strip_observer_actor_line_style(line: list[dict], actor_name: str) -> None:
         part["bold"] = False
 
 
+def _strip_observer_proc_line_style(line: list[dict]) -> None:
+    if not isinstance(line, list) or not line:
+        return
+
+    is_proc_line = any(
+        isinstance(part, dict) and bool(part.get("observer_plain", False))
+        for part in line
+    )
+    if not is_proc_line:
+        return
+
+    for part in line:
+        if not isinstance(part, dict):
+            continue
+        part["fg"] = "bright_white"
+        part["bold"] = False
+        if "observer_plain" in part:
+            part.pop("observer_plain", None)
+
+
 def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict | list[dict]) -> list[dict]:
     messages = outbound if isinstance(outbound, list) else [outbound]
     broadcast_messages: list[dict] = []
@@ -136,6 +156,7 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
                                 actor_name,
                                 origin_session.player.gender,
                             )
+                        _strip_observer_proc_line_style(line)
                         _fix_observer_line_grammar(line, actor_name)
                         _strip_observer_actor_line_style(line, actor_name)
                         filtered_lines.append(line)
@@ -174,6 +195,17 @@ def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | l
         payload = message.get("payload")
         if not isinstance(payload, dict):
             continue
+
+        # Opening combat rounds (including skill-name openers like "hack")
+        # should always be room-broadcast even when the command verb isn't in
+        # the legacy allow-list below.
+        if (
+            payload.get("starts_on_new_line") is True
+            and payload.get("prompt_after") is False
+            and int(payload.get("blank_lines_after", 0) or 0) >= 1
+        ):
+            return True
+
         lines = payload.get("lines")
         if not isinstance(lines, list):
             continue
@@ -184,6 +216,7 @@ def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | l
     verb, args = parse_command(command_text)
     if verb in {
         "attack", "ki", "kil", "kill", "flee",
+        "assist", "ass", "assi", "assis",
         "cast", "c", "ca", "cas", "use",
     }:
         return True
@@ -314,6 +347,16 @@ def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tupl
     in_retaliation = False
     normalized_prefix = actor_prefix.strip().lower()
 
+    def _is_actor_auxiliary_line(line_parts: list[dict]) -> bool:
+        if not isinstance(line_parts, list) or not line_parts:
+            return False
+        for part in line_parts:
+            if not isinstance(part, dict):
+                continue
+            if str(part.get("fg", "")).strip().lower() == "bright_yellow" and bool(part.get("bold", False)):
+                return True
+        return False
+
     for line in lines:
         line_text = _line_text(line)
         if not line_text.strip():
@@ -325,7 +368,7 @@ def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tupl
 
         normalized_line = line_text.strip().lower()
         is_actor_line = normalized_line.startswith(normalized_prefix)
-        if not in_retaliation and is_actor_line:
+        if not in_retaliation and (is_actor_line or _is_actor_auxiliary_line(line)):
             player_lines.append(line)
             continue
 

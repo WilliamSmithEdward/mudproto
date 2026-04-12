@@ -35,6 +35,7 @@ from damage import (
     roll_weapon_target_proc_damage,
 )
 from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
+from display_core import build_part
 from equipment_logic import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from grammar import with_article
 from models import ClientSession, EntityState, ItemState
@@ -121,6 +122,16 @@ def _queue_private_combat_message(session: ClientSession, message: str) -> None:
     ])
 
 
+def _append_inline_proc_message(parts: list[dict], message: str) -> None:
+    cleaned = str(message).strip()
+    if not cleaned:
+        return
+    append_newline_if_needed(parts)
+    proc_part = build_part(cleaned, "bright_yellow", True)
+    proc_part["observer_plain"] = True
+    parts.append(proc_part)
+
+
 def _record_observer_broadcast_line(room_broadcast_lines: list[list[dict]], message: str) -> None:
     cleaned = str(message).strip()
     if not cleaned:
@@ -192,14 +203,7 @@ def _apply_weapon_room_damage_proc(
         actor_name=actor_name,
         weapon_name=weapon_name,
     ) or f"{weapon_name} erupts with searing sunlight, scorching every enemy in the room!"
-    observer_message = _render_weapon_proc_message(
-        str(getattr(weapon, "on_hit_room_damage_observer_message", "")),
-        actor_name=actor_name,
-        weapon_name=weapon_name,
-    ) or f"{actor_name}'s {weapon_name} erupts with searing sunlight, scorching every enemy in the room!"
-
-    _queue_private_combat_message(session, player_message)
-    _record_observer_broadcast_line(room_broadcast_lines, observer_message)
+    _append_inline_proc_message(parts, player_message)
 
     for target in list_room_entities(session, session.player.current_room_id):
         if not getattr(target, "is_alive", False):
@@ -221,7 +225,7 @@ def _apply_weapon_target_damage_proc(
     session: ClientSession,
     weapon: ItemState | None,
     target: EntityState,
-    room_broadcast_lines: list[list[dict]],
+    parts: list[dict],
 ) -> None:
     if weapon is None or not getattr(target, "is_alive", False):
         return
@@ -237,14 +241,7 @@ def _apply_weapon_target_damage_proc(
         actor_name=actor_name,
         weapon_name=weapon_name,
     ) or f"{weapon_name} flashes with focused sunlight and strikes your foe again!"
-    observer_message = _render_weapon_proc_message(
-        str(getattr(weapon, "on_hit_target_damage_observer_message", "")),
-        actor_name=actor_name,
-        weapon_name=weapon_name,
-    ) or f"{actor_name}'s {weapon_name} flashes with focused sunlight and strikes the target again!"
-
-    _queue_private_combat_message(session, player_message)
-    _record_observer_broadcast_line(room_broadcast_lines, observer_message)
+    _append_inline_proc_message(parts, player_message)
     _mark_entity_contributor(session, target)
     _apply_entity_damage_with_reduction(target, proc_damage)
 
@@ -324,7 +321,7 @@ def _apply_player_attacks(
             target_max_hp=entity.max_hit_points,
         ))
         _apply_weapon_room_damage_proc(session, weapon, entity, parts, room_broadcast_lines)
-        _apply_weapon_target_damage_proc(session, weapon, entity, room_broadcast_lines)
+        _apply_weapon_target_damage_proc(session, weapon, entity, parts)
 
         if entity.hit_points <= 0:
             break
