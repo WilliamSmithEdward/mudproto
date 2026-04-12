@@ -142,7 +142,7 @@
       "max_vigor": 100,
       "skill_use_chance": 0.45,
       "skill_ids": ["skill.bash", "skill.overhead-crack", "skill.jab"],
-      "wander_chance": 0.15,
+      "wander_chance": 0.10,
       "wander_room_ids": [
         "west-road",
         "west-road-curve",

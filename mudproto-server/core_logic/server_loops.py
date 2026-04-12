@@ -73,6 +73,7 @@ def _find_exit_direction(from_room_id: str, to_room_id: str) -> str | None:
 
 
 async def _process_npc_wandering() -> None:
+    from grammar import with_article
     from server_movement import _format_arrival_origin
     for entity in list(shared_world_entities.values()):
         if not getattr(entity, "is_alive", False):
@@ -93,25 +94,26 @@ async def _process_npc_wandering() -> None:
         dest_room_id = random.choice(candidates)
         entity.room_id = dest_room_id
 
+        entity_label = with_article(entity.name, capitalize=True)
         leave_dir = _find_exit_direction(origin_room_id, dest_room_id)
         arrive_dir = _find_exit_direction(dest_room_id, origin_room_id)
 
         if leave_dir:
             leave_parts = [
-                build_part(entity.name, "bright_white"),
+                build_part(entity_label, "bright_white"),
                 build_part(f" leaves {leave_dir}.", "bright_white"),
             ]
         else:
-            leave_parts = [build_part(f"{entity.name} wanders off.", "bright_white")]
+            leave_parts = [build_part(f"{entity_label} wanders off.", "bright_white")]
 
         if arrive_dir:
             arrival_origin = _format_arrival_origin(arrive_dir)
             arrive_parts = [
-                build_part(entity.name, "bright_white"),
+                build_part(entity_label, "bright_white"),
                 build_part(f" arrives from {arrival_origin}.", "bright_white"),
             ]
         else:
-            arrive_parts = [build_part(f"{entity.name} wanders in.", "bright_white")]
+            arrive_parts = [build_part(f"{entity_label} wanders in.", "bright_white")]
 
         for peer in _iter_room_sessions(origin_room_id):
             await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))
