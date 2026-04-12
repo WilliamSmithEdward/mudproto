@@ -40,6 +40,17 @@
             "destination_room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
           }
         ]
+      },
+      {
+        "keywords": ["press button", "push button", "press easy button", "push easy button"],
+        "message": "You press the easy button. A cheerful chime rings out.\nYou gain 1000 experience.",
+        "refresh_view": "none",
+        "actions": [
+          {
+            "type": "award_experience",
+            "amount": 1000
+          }
+        ]
       }
     ],
     "room_objects": [
@@ -60,6 +71,12 @@
         "name": "magic circle",
         "keywords": ["circle", "magic circle", "teleport circle", "rune circle"],
         "description": "A faintly glowing circle of chalk and old runes is scribed into the stone floor. The lines pulse softly, as if waiting for someone to stand within them."
+      },
+      {
+        "object_id": "easy-button",
+        "name": "easy button",
+        "keywords": ["button", "easy button"],
+        "description": "A large candy-red button mounted on a squat pedestal. The word EASY is stamped across its face in cheerful white letters."
       }
     ],
     "items": [

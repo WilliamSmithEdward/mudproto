@@ -1,12 +1,13 @@
 """Configurable room and NPC keyword interactions plus action application."""
 
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
-from display_core import build_line, build_part
+from display_core import build_line, build_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from experience import award_experience
 from display_room import display_exits, display_room
 from inventory import build_equippable_item_from_template, build_misc_item_from_template
 from models import ClientSession
+from player_resources import roll_level_resource_gains
 from session_registry import shared_world_flags
 from targeting_entities import list_room_entities
 from world import Room, get_room
@@ -231,8 +232,33 @@ def _remove_template_item(session: ClientSession, template_id: str, quantity: in
     return removed_count
 
 
-def _apply_keyword_actions(room: Room | None, keyword_action: dict, *, session: ClientSession | None = None) -> bool:
+def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int) -> list[list[dict]]:
+    if new_level <= old_level:
+        return []
+    resource_gains = roll_level_resource_gains(session, old_level, new_level)
+    parts: list[dict] = []
+    parts.append(build_part("\n"))
+    parts.extend([
+        build_part("You advance to level ", "bright_green", True),
+        build_part(str(new_level), "bright_green", True),
+        build_part("!", "bright_green", True),
+    ])
+    parts.append(build_part("\n"))
+    parts.extend([
+        build_part("Level gains: ", "bright_white"),
+        build_part(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
+        build_part(" ", "bright_white"),
+        build_part(f"+{int(resource_gains.get('vigor', 0))}V", "bright_yellow", True),
+        build_part(" ", "bright_white"),
+        build_part(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
+    ])
+    parts.append(build_part("\n"))
+    return parts_to_lines(parts)
+
+
+def _apply_keyword_actions(room: Room | None, keyword_action: dict, *, session: ClientSession | None = None) -> tuple[bool, list[list[dict]]]:
     changed = False
+    level_up_lines: list[list[dict]] = []
     _apply_player_flag_updates(session, keyword_action)
 
     for action in keyword_action.get("actions", []):
@@ -270,6 +296,8 @@ def _apply_keyword_actions(room: Room | None, keyword_action: dict, *, session: 
             amount = max(0, int(action.get("amount", 0)))
             gained, old_level, new_level, _ = award_experience(session, amount)
             changed = changed or gained > 0 or new_level > old_level
+            if new_level > old_level:
+                level_up_lines.extend(_build_level_up_lines(session, old_level, new_level))
             continue
 
         if action_type == "teleport_player":
@@ -304,7 +332,17 @@ def _apply_keyword_actions(room: Room | None, keyword_action: dict, *, session: 
             room.exits.pop(direction, None)
             changed = True
 
-    return changed
+    return changed, level_up_lines
+
+
+def _append_lines_to_outbound(outbound: dict, extra_lines: list[list[dict]]) -> None:
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    if not isinstance(payload, dict) or not extra_lines:
+        return
+    existing = payload.get("lines", [])
+    if not isinstance(existing, list):
+        return
+    existing.extend(extra_lines)
 
 
 def _build_room_keyword_outbound(
@@ -468,9 +506,11 @@ def handle_room_keyword_action(session: ClientSession, command_text: str) -> dic
 
     keyword_action = _match_keyword_action(room.keyword_actions, normalized_command, session)
     if keyword_action is not None:
-        changed = _apply_keyword_actions(room, keyword_action, session=session)
+        changed, level_up_lines = _apply_keyword_actions(room, keyword_action, session=session)
         active_room = get_room(session.player.current_room_id) or room
         outbound = _build_room_keyword_outbound(session, active_room, keyword_action, changed=changed)
+        if level_up_lines:
+            _append_lines_to_outbound(outbound, level_up_lines)
         if active_room.room_id != room.room_id:
             prepend_room_enter_communications(outbound, session, active_room.room_id)
         return outbound
@@ -484,7 +524,7 @@ def handle_room_keyword_action(session: ClientSession, command_text: str) -> dic
         if keyword_action is None:
             continue
 
-        changed = _apply_keyword_actions(room, keyword_action, session=session)
+        changed, level_up_lines = _apply_keyword_actions(room, keyword_action, session=session)
         active_room = get_room(session.player.current_room_id) or room
         outbound = _build_room_keyword_outbound(
             session,
@@ -493,6 +533,8 @@ def handle_room_keyword_action(session: ClientSession, command_text: str) -> dic
             changed=changed,
             actor_name=str(getattr(entity, "name", "")).strip(),
         )
+        if level_up_lines:
+            _append_lines_to_outbound(outbound, level_up_lines)
         if active_room.room_id != room.room_id:
             prepend_room_enter_communications(outbound, session, active_room.room_id)
         return outbound
