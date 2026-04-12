@@ -27,6 +27,7 @@ class Zone:
     reset_container_template_ids: list[str] = field(default_factory=list)
     repopulation_blocking_item_template_ids: list[str] = field(default_factory=list)
     repopulation_block_cooldown_game_hours: int = 0
+    flag_spawns: list[dict] = field(default_factory=list)
     room_ids: list[str] = field(default_factory=list)
     pending_repopulation: bool = False
     game_hours_since_repopulation: int = 0
@@ -56,6 +57,7 @@ def build_default_world() -> WorldState:
                 if str(template_id).strip()
             ],
             repopulation_block_cooldown_game_hours=max(0, int(zone_data.get("repopulation_block_cooldown_game_hours", 0))),
+            flag_spawns=[dict(fs) for fs in zone_data.get("flag_spawns", [])],
         )
         world.zones[zone.zone_id] = zone
 
@@ -111,6 +113,19 @@ def build_default_world() -> WorldState:
                     raise ValueError(
                         f"Room '{room.room_id}' keyword action points to unknown room '{destination_room_id}'."
                     )
+
+    for zone in world.zones.values():
+        zone_room_id_set = set(zone.room_ids)
+        for flag_spawn in zone.flag_spawns:
+            fs_room_id = str(flag_spawn.get("room_id", "")).strip()
+            if fs_room_id not in world.rooms:
+                raise ValueError(
+                    f"Zone '{zone.zone_id}' flag_spawns entry references unknown room_id '{fs_room_id}'."
+                )
+            if fs_room_id not in zone_room_id_set:
+                raise ValueError(
+                    f"Zone '{zone.zone_id}' flag_spawns entry room_id '{fs_room_id}' does not belong to this zone."
+                )
 
     return world
 

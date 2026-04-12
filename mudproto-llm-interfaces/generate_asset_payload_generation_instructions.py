@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.8",
+        "version": "2.9",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
@@ -212,7 +212,9 @@ def build_instruction_payload() -> dict[str, object]:
             "damage_context and support_context strings that end with '!' or '?' must not also include a trailing period. The server automatically handles terminal punctuation for '.', '!', and '?'.",
             "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
             "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
-            "NPCs that are currently engaged in combat with any player will not wander."
+            "NPCs that are currently engaged in combat with any player will not wander.",
+            "Zones support a flag_spawns array for conditional NPC spawns triggered by world flag state. Each entry spawns an NPC into a specific room immediately after any NPC death that sets world flags, provided the NPC (by npc_id) is not already alive in the target room. Use this for scripted encounter progressions such as spawning a boss when a mini boss dies.",
+            "flag_spawns entries fire every time the flag conditions are met and no matching NPC is alive in the room. To ensure a boss spawns exactly once per cycle, use reset_world_flags on repopulation to clear the trigger flags, which prevents the boss from re-spawning until the zone resets."
         ],
         "cross_reference_requirements": [
             "rooms[].zone_id must match a zone_id in the base assets or this payload.",
@@ -223,7 +225,9 @@ def build_instruction_payload() -> dict[str, object]:
             "npcs[].spell_ids[] must match spell_id values.",
             "npcs[].skill_ids[] must match skill_id values.",
             "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis.",
-            "npcs[].wander_room_ids[] must match valid room_id values in the base assets or this payload."
+            "npcs[].wander_room_ids[] must match valid room_id values in the base assets or this payload.",
+            "zones[].flag_spawns[].npc_id must match an NPC template in the base assets or this payload.",
+            "zones[].flag_spawns[].room_id must match a room that belongs to this zone."
         ],
         "authoring_order": [
             "Create gear, items, spells, and skills first.",

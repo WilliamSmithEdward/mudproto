@@ -263,6 +263,11 @@ def apply_entity_defeat_flags(session: ClientSession, entity: EntityState) -> No
         if normalized_flag:
             shared_world_flags.add(normalized_flag)
 
+    world_flags_added = bool(getattr(entity, "set_world_flags_on_death", []))
+    if world_flags_added:
+        from world_population import process_zone_flag_spawns
+        process_zone_flag_spawns()
+
 
 def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
     from display_core import build_display, build_part

@@ -441,6 +441,66 @@ def reinitialize_zone(zone_id: str) -> int:
     return spawned_count
 
 
+def process_zone_flag_spawns() -> int:
+    """Spawn NPCs whose flag conditions are now satisfied.
+
+    Called immediately after an entity death that sets world flags.  For each
+    zone flag_spawn rule, if all required_world_flags are set and none of the
+    excluded_world_flags are set, and no matching NPC is already alive in the
+    target room, the NPC is spawned.
+    """
+    spawned_count = 0
+    next_spawn_sequence = max(
+        (entity.spawn_sequence for entity in shared_world_entities.values()), default=0
+    )
+
+    for zone in WORLD.zones.values():
+        flag_spawns: list[dict] = getattr(zone, "flag_spawns", [])
+        if not flag_spawns:
+            continue
+
+        for spawn_rule in flag_spawns:
+            required_flags: list[str] = spawn_rule.get("required_world_flags", [])
+            excluded_flags: list[str] = spawn_rule.get("excluded_world_flags", [])
+
+            if not all(flag in shared_world_flags for flag in required_flags):
+                continue
+            if any(flag in shared_world_flags for flag in excluded_flags):
+                continue
+
+            room_id: str = spawn_rule.get("room_id", "")
+            npc_id: str = spawn_rule.get("npc_id", "")
+            count: int = max(1, int(spawn_rule.get("count", 1)))
+
+            if room_id not in WORLD.rooms:
+                continue
+
+            already_alive = any(
+                getattr(entity, "npc_id", "") == npc_id
+                and entity.room_id == room_id
+                and getattr(entity, "is_alive", False)
+                for entity in shared_world_entities.values()
+            )
+            if already_alive:
+                continue
+
+            template = get_npc_template_by_id(npc_id)
+            if template is None:
+                continue
+
+            for _ in range(count):
+                next_spawn_sequence += 1
+                entity = _build_entity_from_template(template, room_id, next_spawn_sequence)
+                shared_world_entities[entity.entity_id] = entity
+                spawned_count += 1
+
+    if spawned_count > 0:
+        for session in list(connected_clients.values()) + list(active_character_sessions.values()):
+            session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
+
+    return spawned_count
+
+
 def _zone_has_active_players(zone_id: str) -> bool:
     zone = WORLD.zones.get(zone_id)
     if zone is None:

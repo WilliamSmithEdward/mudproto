@@ -421,6 +421,33 @@ def load_zones() -> list[dict]:
         if repopulation_block_cooldown_game_hours < 0:
             raise ValueError(f"Zone asset '{zone_id}' repopulation_block_cooldown_game_hours must be zero or greater.")
 
+        flag_spawns: list[dict] = []
+        for raw_flag_spawn in raw_zone.get("flag_spawns", []):
+            if not isinstance(raw_flag_spawn, dict):
+                raise ValueError(f"Zone '{zone_id}' flag_spawns entries must be objects.")
+            fs_npc_id = str(raw_flag_spawn.get("npc_id", "")).strip()
+            if not fs_npc_id:
+                raise ValueError(f"Zone '{zone_id}' flag_spawns entry must include npc_id.")
+            fs_room_id = str(raw_flag_spawn.get("room_id", "")).strip()
+            if not fs_room_id:
+                raise ValueError(f"Zone '{zone_id}' flag_spawns entry must include room_id.")
+            fs_count = max(1, int(raw_flag_spawn.get("count", 1)))
+            fs_required = _normalize_flag_list(
+                raw_flag_spawn.get("required_world_flags", []),
+                context=f"Zone '{zone_id}' flag_spawns required_world_flags",
+            )
+            fs_excluded = _normalize_flag_list(
+                raw_flag_spawn.get("excluded_world_flags", []),
+                context=f"Zone '{zone_id}' flag_spawns excluded_world_flags",
+            )
+            flag_spawns.append({
+                "npc_id": fs_npc_id,
+                "room_id": fs_room_id,
+                "count": fs_count,
+                "required_world_flags": fs_required,
+                "excluded_world_flags": fs_excluded,
+            })
+
         if normalized_zone_id not in normalized_zones_by_id:
             ordered_zone_ids.append(normalized_zone_id)
         normalized_zones_by_id[normalized_zone_id] = {
@@ -432,6 +459,7 @@ def load_zones() -> list[dict]:
             "reset_container_template_ids": reset_container_template_ids,
             "repopulation_blocking_item_template_ids": repopulation_blocking_item_template_ids,
             "repopulation_block_cooldown_game_hours": repopulation_block_cooldown_game_hours,
+            "flag_spawns": flag_spawns,
         }
 
     return [normalized_zones_by_id[zone_id] for zone_id in ordered_zone_ids]

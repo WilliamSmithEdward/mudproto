@@ -53,6 +53,43 @@
         "default": 0,
         "minimum": 0,
         "notes": "After the blocking items disappear, the zone stays blocked for this many additional game hours before repopulation can resume."
+      },
+      "flag_spawns": {
+        "type": "array[object]",
+        "required": false,
+        "default": [],
+        "notes": "Conditional NPC spawns triggered by world flag state. Each entry spawns NPCs into a room when the specified world flags are set (and excluded flags are absent) and no matching NPC is already alive there. Evaluated immediately after any NPC death that sets world flags.",
+        "entry_schema": {
+          "npc_id": {
+            "type": "string",
+            "required": true,
+            "notes": "The NPC template ID to spawn."
+          },
+          "room_id": {
+            "type": "string",
+            "required": true,
+            "notes": "The room to spawn the NPC into. Must be a room belonging to this zone."
+          },
+          "count": {
+            "type": "integer",
+            "required": false,
+            "default": 1,
+            "minimum": 1,
+            "notes": "How many instances of the NPC to spawn."
+          },
+          "required_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "All of these world flags must be set for the spawn to trigger."
+          },
+          "excluded_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "If any of these world flags are set, the spawn is suppressed."
+          }
+        }
       }
     }
   }
