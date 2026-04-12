@@ -130,8 +130,8 @@
         "name": "east gate",
         "keywords": ["gate", "east gate", "iron gate", "west gate"],
         "lock_id": "lock.prototype.start-west-gate",
-        "is_closed": true,
-        "is_locked": true
+        "is_closed": false,
+        "is_locked": false
       }
     ],
     "exits": {

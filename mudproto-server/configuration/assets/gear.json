@@ -234,5 +234,23 @@
     "keywords": ["practice", "cloak"],
     "weight": 2,
     "armor_class_bonus": 0
+  },
+  {
+    "template_id": "weapon.mercenary-scimitar",
+    "name": "Wicked Curved Scimitar",
+    "slot": "weapon",
+    "description": "A wickedly curved scimitar, its edge notched from hard use on the road.",
+    "keywords": ["scimitar", "curved", "wicked", "mercenary"],
+    "weapon_type": "sword",
+    "can_hold": false,
+    "can_two_hand": false,
+    "weight": 7,
+    "coin_value": 95,
+    "damage_dice_count": 3,
+    "damage_dice_sides": 8,
+    "damage_roll_modifier": 5,
+    "hit_roll_modifier": 4,
+    "attack_damage_bonus": 0,
+    "attacks_per_round_bonus": 0
   }
 ]
