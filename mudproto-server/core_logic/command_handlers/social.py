@@ -34,10 +34,12 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
     leader_key = _session_identity_key(leader_session)
 
     rows: list[list[str]] = []
+    row_cell_colors: list[list[str]] = []
     for member_session in member_sessions:
         caps = get_player_resource_caps(member_session)
-        condition, _ = get_health_condition(member_session.status.hit_points, caps["hit_points"])
+        condition, condition_color = get_health_condition(member_session.status.hit_points, caps["hit_points"])
         role = "Leader" if _session_identity_key(member_session) == leader_key else "Member"
+        role_color = "bright_yellow" if role == "Leader" else "bright_cyan"
         show_mana = player_class_uses_mana(member_session.player.class_id) and int(caps.get("mana", 0)) > 0
         mana_text = f"{member_session.status.mana}/{caps['mana']}" if show_mana else "-"
         rows.append([
@@ -48,11 +50,13 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
             mana_text,
             condition.title(),
         ])
+        row_cell_colors.append([role_color, "bright_white", "bright_cyan", "bright_cyan", "bright_cyan", condition_color])
 
     return build_menu_table_parts(
         "Group Status",
         ["Role", "Name", "HP", "Vigor", "Mana", "State"],
         rows,
+        row_cell_colors=row_cell_colors,
         empty_message="You have no group members.",
     )
 

@@ -341,10 +341,11 @@ def display_room(session: ClientSession, room: Room) -> dict:
         ])
 
         for entity in entities:
+            entity_name_color = "bright_red" if is_entity_hostile_to_player(session, entity) else "bright_yellow"
             parts.extend([
                 build_part("\n"),
                 build_part(" - ", "bright_white"),
-                build_part(entity.name, bold=True),
+                build_part(entity.name, entity_name_color, True),
             ])
             engagement_target = _resolve_entity_engagement_target_name(session, entity)
             _append_room_engagement_parts(
