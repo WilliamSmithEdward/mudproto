@@ -21,6 +21,8 @@ from combat_ability_effects import (
     _set_entity_skill_cooldown,
     _set_entity_spell_cooldown,
 )
+from session_timing import apply_lag
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
 
 
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
@@ -181,7 +183,8 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
         target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
         if target_lag_rounds > 0:
-            session.combat.skip_melee_rounds = max(session.combat.skip_melee_rounds, target_lag_rounds)
+            apply_lag(session, float(target_lag_rounds) * float(COMBAT_ROUND_INTERVAL_SECONDS))
+            entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
 
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)

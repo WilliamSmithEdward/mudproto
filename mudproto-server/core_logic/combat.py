@@ -8,7 +8,6 @@ from combat_rewards import (
     _mark_entity_contributor,
 )
 from combat_state import (
-    _consume_entity_action_lag,
     _display_peaceful_warning,
     _engage_next_targeting_entity,
     _process_combat_round_timers,
@@ -388,14 +387,20 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
     if not entity.is_alive:
         return
 
-    if _consume_entity_action_lag(entity):
-        return
+    can_use_special_action = True
+    if entity.skill_lag_rounds_remaining > 0:
+        entity.skill_lag_rounds_remaining -= 1
+        can_use_special_action = False
+    if entity.spell_lag_rounds_remaining > 0:
+        entity.spell_lag_rounds_remaining -= 1
+        can_use_special_action = False
 
     # Allow at most one special action (spell or skill) per round.
     # Keep existing priority: try spell first, then skill if no spell fired.
-    casted_spell = _entity_try_cast_spell(session, entity, parts)
-    if not casted_spell:
-        _entity_try_use_skill(session, entity, parts)
+    if can_use_special_action:
+        casted_spell = _entity_try_cast_spell(session, entity, parts)
+        if not casted_spell:
+            _entity_try_use_skill(session, entity, parts)
 
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
