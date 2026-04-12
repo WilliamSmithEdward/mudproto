@@ -1,5 +1,6 @@
 """Combat experience and reward distribution helpers."""
 
+from attribute_config import player_class_uses_mana
 from combat_text import append_newline_if_needed
 from experience import award_experience
 from models import ClientSession, EntityState
@@ -38,6 +39,7 @@ def _append_experience_gain_notification(
 
     if new_level > old_level:
         resource_gains = roll_level_resource_gains(session, old_level, new_level)
+        show_mana = player_class_uses_mana(session.player.class_id)
         append_newline_if_needed(parts)
         parts.append(build_part_fn("\n"))
         parts.extend([
@@ -51,9 +53,12 @@ def _append_experience_gain_notification(
             build_part_fn(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
             build_part_fn(" ", "bright_white"),
             build_part_fn(f"+{int(resource_gains.get('vigor', 0))}V", "bright_yellow", True),
-            build_part_fn(" ", "bright_white"),
-            build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
         ])
+        if show_mana:
+            parts.extend([
+                build_part_fn(" ", "bright_white"),
+                build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
+            ])
         parts.append(build_part_fn("\n"))
     else:
         parts.append(build_part_fn("\n"))

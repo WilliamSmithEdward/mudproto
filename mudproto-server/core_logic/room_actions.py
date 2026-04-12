@@ -1,5 +1,6 @@
 """Configurable room and NPC keyword interactions plus action application."""
 
+from attribute_config import player_class_uses_mana
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
 from display_core import build_line, build_part, parts_to_lines
 from display_feedback import display_command_result, display_error
@@ -236,6 +237,7 @@ def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int
     if new_level <= old_level:
         return []
     resource_gains = roll_level_resource_gains(session, old_level, new_level)
+    show_mana = player_class_uses_mana(session.player.class_id)
     parts: list[dict] = []
     parts.append(build_part("\n"))
     parts.extend([
@@ -249,9 +251,12 @@ def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int
         build_part(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
         build_part(" ", "bright_white"),
         build_part(f"+{int(resource_gains.get('vigor', 0))}V", "bright_yellow", True),
-        build_part(" ", "bright_white"),
-        build_part(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
     ])
+    if show_mana:
+        parts.extend([
+            build_part(" ", "bright_white"),
+            build_part(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
+        ])
     parts.append(build_part("\n"))
     return parts_to_lines(parts)
 
