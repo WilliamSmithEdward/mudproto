@@ -13,6 +13,7 @@ from inventory import hydrate_misc_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 from player_resources import get_player_resource_caps
 from session_timing import apply_lag
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from targeting_items import _resolve_misc_inventory_selector
 
 
@@ -185,12 +186,13 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
         return display_error(f"{misc_item.name} cannot be used.", session)
 
     is_potion = _is_potion_template(template)
-    potion_cooldown_key = "potion"
     if is_potion:
-        remaining_rounds = int(session.combat.item_cooldowns.get(potion_cooldown_key, 0))
-        if remaining_rounds > 0:
+        import time
+        remaining = session.combat.potion_cooldown_until - time.monotonic()
+        if remaining > 0:
+            remaining_seconds = int(remaining) + 1
             return display_error(
-                f"You must wait {remaining_rounds} more battle round(s) before using another potion.",
+                f"You must wait {remaining_seconds} more second(s) before using another potion.",
                 session,
             )
 
@@ -223,7 +225,8 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     if is_potion:
         cooldown_rounds = _get_potion_cooldown_rounds()
         if cooldown_rounds > 0:
-            session.combat.item_cooldowns[potion_cooldown_key] = cooldown_rounds
+            import time
+            session.combat.potion_cooldown_until = time.monotonic() + cooldown_rounds * COMBAT_ROUND_INTERVAL_SECONDS
 
     if use_lag_seconds > 0:
         try:

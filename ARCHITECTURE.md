@@ -511,8 +511,11 @@ When an entity dies:
 
 - Player skills: `combat.skill_cooldowns[skill_id]` decremented each combat
   round and also while out of combat via `tick_out_of_combat_cooldowns()`.
-- Player consumables: `combat.item_cooldowns["potion"]` enforces the global
-  potion reuse lockout, configured by `configuration/attributes/item_usage.json`.
+- Player consumables: `combat.potion_cooldown_until` is a `time.monotonic()`
+  timestamp that enforces the global potion reuse lockout.  Duration is
+  `cooldown_rounds × COMBAT_ROUND_INTERVAL_SECONDS`, configured by
+  `configuration/attributes/item_usage.json`.  Because the cooldown is
+  timestamp-based it applies identically in and out of combat.
 - NPC: `entity.skill_cooldowns` + `skill_lag_rounds_remaining`.
 
 ### Support Effects
