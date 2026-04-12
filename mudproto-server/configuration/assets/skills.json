@@ -80,7 +80,7 @@
   {
     "skill_id": "skill.bash",
     "name": "Bash",
-    "description": "Crashes into you with brutal force.",
+    "description": "",
     "skill_type": "damage",
     "cast_type": "target",
     "vigor_cost": 10,
@@ -91,7 +91,7 @@
     "damage_dice_count": 2,
     "damage_dice_sides": 10,
     "damage_modifier": 6,
-    "damage_context": "[a/an] [verb] slammed backward by a thunderous bash.",
+    "damage_context": "[a/an] [verb] viciously slammed to the ground!",
     "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal shoulder bash.",
     "lag_rounds": 1,
     "cooldown_rounds": 3,
