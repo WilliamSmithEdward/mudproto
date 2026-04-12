@@ -152,7 +152,7 @@
     ],
     "items": [],
     "exits": {
-      "north": "west-road",
+      "east": "west-road",
       "south": "west-road-defile"
     }
   },

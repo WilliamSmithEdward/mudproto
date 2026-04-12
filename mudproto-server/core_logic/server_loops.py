@@ -22,8 +22,10 @@ from server_broadcasts import (
     _build_unified_room_round_display,
     _broadcast_non_combat_outbound_to_room,
     _inject_private_lines_into_outbound,
+    _iter_room_sessions,
     _looks_like_skill_spell_or_item_action,
 )
+from display_core import build_display, build_part
 from server_movement import _handle_movement_side_effects
 from server_transport import send_json, send_outbound
 from settings import (
@@ -49,7 +51,29 @@ next_combat_round_monotonic: float | None = None
 next_npc_wander_monotonic: float | None = None
 
 
-def _process_npc_wandering() -> None:
+def _npc_wander_display(parts: list[dict], session: ClientSession) -> dict:
+    from display_feedback import build_prompt_parts
+    return build_display(
+        parts,
+        blank_lines_before=0,
+        blank_lines_after=0,
+        prompt_after=True,
+        prompt_parts=build_prompt_parts(session),
+    )
+
+
+def _find_exit_direction(from_room_id: str, to_room_id: str) -> str | None:
+    room = WORLD.rooms.get(from_room_id)
+    if room is None:
+        return None
+    for direction, dest in room.exits.items():
+        if dest == to_room_id:
+            return direction
+    return None
+
+
+async def _process_npc_wandering() -> None:
+    from server_movement import _format_arrival_origin
     for entity in list(shared_world_entities.values()):
         if not getattr(entity, "is_alive", False):
             continue
@@ -62,8 +86,37 @@ def _process_npc_wandering() -> None:
         candidates = [rid for rid in wander_room_ids if rid != entity.room_id and rid in WORLD.rooms]
         if not candidates:
             continue
-        if random.random() < wander_chance:
-            entity.room_id = random.choice(candidates)
+        if random.random() >= wander_chance:
+            continue
+
+        origin_room_id = entity.room_id
+        dest_room_id = random.choice(candidates)
+        entity.room_id = dest_room_id
+
+        leave_dir = _find_exit_direction(origin_room_id, dest_room_id)
+        arrive_dir = _find_exit_direction(dest_room_id, origin_room_id)
+
+        if leave_dir:
+            leave_parts = [
+                build_part(entity.name, "bright_white"),
+                build_part(f" leaves {leave_dir}.", "bright_white"),
+            ]
+        else:
+            leave_parts = [build_part(f"{entity.name} wanders off.", "bright_white")]
+
+        if arrive_dir:
+            arrival_origin = _format_arrival_origin(arrive_dir)
+            arrive_parts = [
+                build_part(entity.name, "bright_white"),
+                build_part(f" arrives from {arrival_origin}.", "bright_white"),
+            ]
+        else:
+            arrive_parts = [build_part(f"{entity.name} wanders in.", "bright_white")]
+
+        for peer in _iter_room_sessions(origin_room_id):
+            await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))
+        for peer in _iter_room_sessions(dest_room_id):
+            await send_outbound(peer.websocket, _npc_wander_display(arrive_parts, peer))
 
 
 def get_next_game_tick_monotonic() -> float | None:
@@ -151,9 +204,11 @@ async def combat_round_loop() -> None:
             process_pending_auto_aggro()
             now = asyncio.get_running_loop().time()
 
-            if next_npc_wander_monotonic is None or now >= next_npc_wander_monotonic:
+            if next_npc_wander_monotonic is None:
                 next_npc_wander_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
-                _process_npc_wandering()
+            elif now >= next_npc_wander_monotonic:
+                next_npc_wander_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+                await _process_npc_wandering()
 
             combat_sessions: list[ClientSession] = []
             seen_sessions: set[str] = set()
