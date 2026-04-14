@@ -219,9 +219,26 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> 
 
 
 def _apply_entity_damage_with_reduction(entity: EntityState, amount: int) -> int:
-    incoming_damage = max(0, int(amount))
+    incoming_damage, reduced_damage = _resolve_entity_damage_values(entity, amount)
     if incoming_damage <= 0:
         return 0
+
+    damage_dealt = min(max(0, int(entity.hit_points)), reduced_damage)
+    entity.hit_points = max(0, int(entity.hit_points) - reduced_damage)
+    return max(0, damage_dealt)
+
+
+def _preview_entity_damage_with_reduction(entity: EntityState, amount: int) -> int:
+    incoming_damage, reduced_damage = _resolve_entity_damage_values(entity, amount)
+    if incoming_damage <= 0:
+        return 0
+    return max(0, reduced_damage)
+
+
+def _resolve_entity_damage_values(entity: EntityState, amount: int) -> tuple[int, int]:
+    incoming_damage = max(0, int(amount))
+    if incoming_damage <= 0:
+        return 0, 0
 
     posture_damage_multiplier = 1.0
     if bool(getattr(entity, "is_resting", False)):
@@ -233,9 +250,7 @@ def _apply_entity_damage_with_reduction(entity: EntityState, amount: int) -> int
 
     active_effects = list(getattr(entity, "active_support_effects", []))
     reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(active_effects))
-    damage_dealt = min(max(0, int(entity.hit_points)), reduced_damage)
-    entity.hit_points = max(0, int(entity.hit_points) - reduced_damage)
-    return max(0, damage_dealt)
+    return incoming_damage, reduced_damage
 
 
 def _process_entity_battle_round_support_effects(entity: EntityState) -> None:

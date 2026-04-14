@@ -2,6 +2,7 @@ from abilities import _list_known_passives
 from assets import get_gear_template_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_ability_effects import _apply_entity_damage_with_reduction, _apply_player_damage_with_reduction
+from combat_ability_effects import _preview_entity_damage_with_reduction
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
 from combat_rewards import (
     _award_shared_entity_experience,
@@ -316,11 +317,12 @@ def _apply_player_attacks(
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
         _mark_entity_contributor(session, entity)
+        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
         applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
         parts.extend(build_player_attack_parts(
             entity_name=entity.name,
             attack_verb=attack_verb,
-            damage=applied_damage,
+            damage=preview_damage,
             target_max_hp=entity.max_hit_points,
         ))
         _apply_weapon_room_damage_proc(session, weapon, entity, parts, room_broadcast_lines)
@@ -361,11 +363,12 @@ def _apply_player_attacks(
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
         _mark_entity_contributor(session, entity)
+        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
         applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
         parts.extend(build_player_attack_parts(
             entity_name=entity.name,
             attack_verb=attack_verb,
-            damage=applied_damage,
+            damage=preview_damage,
             target_max_hp=entity.max_hit_points,
         ))
         if entity.hit_points <= 0:
