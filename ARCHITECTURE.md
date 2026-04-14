@@ -3,16 +3,16 @@
 ## Overview
 
 MudProto is an async WebSocket-based MUD (Multi-User Dungeon) server and
-generic terminal client, written in Python. The server is the sole owner of
-game meaning; the client is a dumb renderer.
+GUI client, written in Python. The server is the sole owner of game meaning;
+the client is a dumb renderer.
 
 ---
 
 ## 1. Client / Server Boundary
 
-### Clients (`mudproto_client/client.py`, `mudproto_client_gui/client_gui.py`)
+### Clients (`mudproto_client_gui/client_gui.py`)
 
-Both clients are **generic renderers** â€” they contain zero game-specific logic.
+The GUI client is a **generic renderer** â€” it contains zero game-specific logic.
 
 Responsibilities:
 - Open and maintain the WebSocket connection.
@@ -20,9 +20,11 @@ Responsibilities:
 - Render `display` messages and prompts.
 - Handle local-only client actions such as `/quit`.
 
-The terminal client renders ANSI output; the GUI client renders the same
-structured payload in a Tk-based interface. Neither client should know
-command semantics or gameplay rules.
+The GUI client renders structured payload in a Tk-based interface and should not
+know command semantics or gameplay rules.
+
+`mudproto_client/client.py` remains in the repository as a legacy reference and
+is no longer an actively supported client path.
 
 ### Server (`mudproto_server/core_logic/`)
 
@@ -684,9 +686,9 @@ mudproto/
   ARCHITECTURE.md                # this file (canonical architecture doc)
   README.md
   mudproto_client/
-    client.py                    # generic ANSI terminal client
+    client.py                    # legacy ANSI terminal client (unsupported path)
   mudproto_client_gui/
-    client_gui.py                # generic Tk GUI client
+    client_gui.py                # supported Tk GUI client
   mudproto_server/
     core_logic/
       server.py                  # thin async server entry point and startup orchestration

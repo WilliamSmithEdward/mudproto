@@ -111,7 +111,6 @@ class MudProtoGuiClient:
         self.wrap_column = OUTPUT_WRAP_COLUMN
         self._focus_restore_job: str | None = None
         self._window_is_active = True
-        self._pending_prompt_refresh_spacing = False
 
         self._build_widgets()
         self.root.bind_all("<FocusIn>", self._on_window_activated, add="+")
@@ -659,17 +658,8 @@ class MudProtoGuiClient:
         lines = _extract_lines(payload, "lines")
         prompt_lines = _extract_lines(payload, "prompt_lines")
 
-        if not lines and prompt_lines:
-            # Blank input can yield a prompt-only refresh; remember to preserve
-            # one extra spacer before the next real command output.
-            self._pending_prompt_refresh_spacing = True
-
         if lines:
-            lines_to_render = lines
-            if self._pending_prompt_refresh_spacing:
-                lines_to_render = [[]] + lines_to_render
-                self._pending_prompt_refresh_spacing = False
-            self._append_line_group(lines_to_render)
+            self._append_line_group(lines)
         if prompt_lines:
             self._append_line_group(prompt_lines)
 

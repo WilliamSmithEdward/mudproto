@@ -53,7 +53,6 @@ def _make_client(raw_text: str) -> client_gui.MudProtoGuiClient:
     client.network_loop = object()
     client.root = _FakeRoot()
     client._closing = False
-    client._pending_prompt_refresh_spacing = False
     return client
 
 
@@ -135,27 +134,8 @@ def test_on_submit_keeps_raw_text_but_normalizes_history(monkeypatch) -> None:
     assert client.command_history == ["say hello"]
 
 
-def test_render_display_prompt_only_sets_pending_spacing() -> None:
+def test_render_display_passes_lines_and_prompt_groups() -> None:
     client = _make_client("")
-    appended: list[list[list[dict]]] = []
-
-    client._append_line_group = lambda lines: appended.append(lines)  # type: ignore[method-assign]
-
-    client.render_display_message({
-        "type": "display",
-        "payload": {
-            "lines": [],
-            "prompt_lines": [[{"text": "prompt", "fg": "bright_white", "bold": False}]],
-        },
-    })
-
-    assert client._pending_prompt_refresh_spacing is True
-    assert len(appended) == 1
-
-
-def test_render_display_inserts_extra_blank_after_prompt_refresh() -> None:
-    client = _make_client("")
-    client._pending_prompt_refresh_spacing = True
     appended: list[list[list[dict]]] = []
 
     client._append_line_group = lambda lines: appended.append(lines)  # type: ignore[method-assign]
@@ -164,41 +144,11 @@ def test_render_display_inserts_extra_blank_after_prompt_refresh() -> None:
         "type": "display",
         "payload": {
             "lines": [[], [{"text": "Adventurer's Ledger", "fg": "bright_white", "bold": True}]],
-            "prompt_lines": [],
+            "prompt_lines": [[{"text": "prompt", "fg": "bright_white", "bold": False}]],
         },
     })
 
-    assert len(appended) == 1
+    assert len(appended) == 2
     assert appended[0][0] == []
-    assert appended[0][1] == []
-    assert client._pending_prompt_refresh_spacing is False
-
-
-def test_render_display_consumes_extra_spacing_once() -> None:
-    client = _make_client("")
-    client._pending_prompt_refresh_spacing = True
-    appended: list[list[list[dict]]] = []
-
-    client._append_line_group = lambda lines: appended.append(lines)  # type: ignore[method-assign]
-
-    first_message = {
-        "type": "display",
-        "payload": {
-            "lines": [[], [{"text": "First", "fg": "bright_white", "bold": False}]],
-            "prompt_lines": [],
-        },
-    }
-    second_message = {
-        "type": "display",
-        "payload": {
-            "lines": [[], [{"text": "Second", "fg": "bright_white", "bold": False}]],
-            "prompt_lines": [],
-        },
-    }
-
-    client.render_display_message(first_message)
-    client.render_display_message(second_message)
-
-    assert appended[0][0] == []
-    assert appended[0][1] == []
-    assert appended[1][0] == []
+    assert appended[0][1][0]["text"] == "Adventurer's Ledger"
+    assert appended[1][0][0]["text"] == "prompt"

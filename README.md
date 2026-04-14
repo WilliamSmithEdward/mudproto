@@ -32,14 +32,12 @@ pip install -r requirements.txt
 # Start server
 python mudproto_server/core_logic/server.py
 
-# Start terminal client (new terminal)
-cd mudproto_client
-python client.py
-
-# Or GUI client (new terminal)
-cd ..\mudproto_client_gui
+# Start GUI client (new terminal)
+cd mudproto_client_gui
 python client_gui.py
 ```
+
+Note: `mudproto_client/client.py` is now considered legacy and is no longer an actively supported client path.
 
 First commands to try:
 
@@ -119,7 +117,7 @@ mudproto/
 |- ASSET_GENERATION.md
 |- LLM_CONTENT_GENERATION.md
 |- mudproto_client/
-|  |- client.py
+|  |- client.py (legacy)
 |- mudproto_client_gui/
 |  |- client_gui.py
 |- mudproto_llm_interfaces/
