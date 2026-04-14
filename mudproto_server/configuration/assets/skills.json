@@ -185,12 +185,15 @@
     "support_amount": 0,
     "affect_ids": [
       {
-        "affect_id": "affect.extra-unarmed-hits",
+        "affect_id": "affect.extra-hits",
         "name": "Fist Flurry",
         "target": "self",
         "affect_mode": "battle_rounds",
-        "amount": 2,
-        "level_scaling_multiplier": 0.2,
+        "extra_main_hand_hits": 0,
+        "extra_off_hand_hits": 0,
+        "extra_unarmed_hits": 2,
+        "hits_per_level_step": 1,
+        "level_step": 5,
         "duration_rounds": 4
       }
     ],

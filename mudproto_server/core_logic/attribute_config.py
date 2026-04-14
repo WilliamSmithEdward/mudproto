@@ -340,9 +340,9 @@ def load_affect_templates() -> list[dict]:
             raise ValueError("Affect templates must include a non-empty affect_id.")
         if affect_id in seen_affect_ids:
             raise ValueError(f"Duplicate affect_id in affects config: {affect_id}")
-        if affect_type not in {"regeneration", "damage_received_multiplier", "extra_unarmed_hits", "damage_reduction"}:
+        if affect_type not in {"regeneration", "damage_received_multiplier", "extra_hits", "damage_reduction"}:
             raise ValueError(
-                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier, extra_unarmed_hits, damage_reduction."
+                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier, extra_hits, damage_reduction."
             )
         if damage_elements and affect_type != "damage_received_multiplier":
             raise ValueError(

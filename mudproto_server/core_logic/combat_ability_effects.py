@@ -9,13 +9,13 @@ from player_resources import get_player_resource_caps
 
 _AFFECT_TYPE_REGENERATION = "regeneration"
 _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER = "damage_received_multiplier"
-_AFFECT_TYPE_EXTRA_UNARMED_HITS = "extra_unarmed_hits"
+_AFFECT_TYPE_EXTRA_HITS = "extra_hits"
 _AFFECT_TYPE_DAMAGE_REDUCTION = "damage_reduction"
 _AFFECT_MODES = {"instant", "timed", "battle_rounds"}
 _AFFECT_TYPES = {
     _AFFECT_TYPE_REGENERATION,
     _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER,
-    _AFFECT_TYPE_EXTRA_UNARMED_HITS,
+    _AFFECT_TYPE_EXTRA_HITS,
     _AFFECT_TYPE_DAMAGE_REDUCTION,
 }
 
@@ -118,15 +118,32 @@ def _is_affect_active(effect: ActiveAffectState) -> bool:
     return True
 
 
-def _resolve_extra_unarmed_hits_from_affects(active_affects: list[ActiveAffectState]) -> int:
-    strongest_bonus = 0
+def _resolve_extra_hits_from_affects(
+    active_affects: list[ActiveAffectState],
+    player_level: int,
+) -> tuple[int, int, int]:
+    """Return (main_hand, off_hand, unarmed) extra hits from active extra_hits affects."""
+    best_main = 0
+    best_off = 0
+    best_unarmed = 0
     for effect in active_affects:
-        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_EXTRA_UNARMED_HITS:
+        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_EXTRA_HITS:
             continue
         if not _is_affect_active(effect):
             continue
-        strongest_bonus = max(strongest_bonus, int(_roll_affect_amount(effect)))
-    return max(0, strongest_bonus)
+        base_main = max(0, int(getattr(effect, "extra_main_hand_hits", 0)))
+        base_off = max(0, int(getattr(effect, "extra_off_hand_hits", 0)))
+        base_unarmed = max(0, int(getattr(effect, "extra_unarmed_hits", 0)))
+        hits_per_step = max(0, int(getattr(effect, "hits_per_level_step", 0)))
+        step = max(0, int(getattr(effect, "level_step", 0)))
+        level_bonus = (max(1, int(player_level)) // step) * hits_per_step if step > 0 and hits_per_step > 0 else 0
+        if base_main > 0:
+            best_main = max(best_main, base_main + level_bonus)
+        if base_off > 0:
+            best_off = max(best_off, base_off + level_bonus)
+        if base_unarmed > 0:
+            best_unarmed = max(best_unarmed, base_unarmed + level_bonus)
+    return best_main, best_off, best_unarmed
 
 
 def _resolve_damage_reduction_from_affects(active_affects: list[ActiveAffectState]) -> int:
@@ -210,6 +227,12 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
         remaining_hours = max(0, int(affect.get("duration_hours", 0)))
         remaining_rounds = max(0, int(affect.get("duration_rounds", 0)))
 
+        extra_main_hand_hits = max(0, int(affect.get("extra_main_hand_hits", 0)))
+        extra_off_hand_hits = max(0, int(affect.get("extra_off_hand_hits", 0)))
+        extra_unarmed_hits = max(0, int(affect.get("extra_unarmed_hits", 0)))
+        hits_per_level_step = max(0, int(affect.get("hits_per_level_step", 0)))
+        level_step = max(0, int(affect.get("level_step", 0)))
+
         if affect_mode == "instant":
             instant_effect = ActiveAffectState(
                 affect_id=affect_id,
@@ -223,6 +246,11 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_dice_sides=affect_dice_sides,
                 affect_roll_modifier=affect_roll_modifier,
                 affect_scaling_bonus=affect_scaling_bonus,
+                extra_main_hand_hits=extra_main_hand_hits,
+                extra_off_hand_hits=extra_off_hand_hits,
+                extra_unarmed_hits=extra_unarmed_hits,
+                hits_per_level_step=hits_per_level_step,
+                level_step=level_step,
             )
             _apply_regeneration_tick(target, instant_effect)
             applied = True
@@ -242,6 +270,11 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
             active_affect.affect_dice_sides = affect_dice_sides
             active_affect.affect_roll_modifier = affect_roll_modifier
             active_affect.affect_scaling_bonus = affect_scaling_bonus
+            active_affect.extra_main_hand_hits = extra_main_hand_hits
+            active_affect.extra_off_hand_hits = extra_off_hand_hits
+            active_affect.extra_unarmed_hits = extra_unarmed_hits
+            active_affect.hits_per_level_step = hits_per_level_step
+            active_affect.level_step = level_step
             active_affect.remaining_hours = remaining_hours
             active_affect.remaining_rounds = remaining_rounds
             refreshed = True
@@ -261,6 +294,11 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_dice_sides=affect_dice_sides,
                 affect_roll_modifier=affect_roll_modifier,
                 affect_scaling_bonus=affect_scaling_bonus,
+                extra_main_hand_hits=extra_main_hand_hits,
+                extra_off_hand_hits=extra_off_hand_hits,
+                extra_unarmed_hits=extra_unarmed_hits,
+                hits_per_level_step=hits_per_level_step,
+                level_step=level_step,
                 remaining_hours=remaining_hours,
                 remaining_rounds=remaining_rounds,
             ))

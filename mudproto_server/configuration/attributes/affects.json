@@ -8,8 +8,8 @@
     "affect_type": "regeneration"
   },
   {
-    "affect_id": "affect.extra-unarmed-hits",
-    "affect_type": "extra_unarmed_hits"
+    "affect_id": "affect.extra-hits",
+    "affect_type": "extra_hits"
   },
   {
     "affect_id": "affect.damage-reduction",

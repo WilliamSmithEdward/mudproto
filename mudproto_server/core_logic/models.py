@@ -79,6 +79,11 @@ class ActiveAffectState:
     affect_dice_sides: int = 0
     affect_roll_modifier: float = 0.0
     affect_scaling_bonus: float = 0.0
+    extra_main_hand_hits: int = 0
+    extra_off_hand_hits: int = 0
+    extra_unarmed_hits: int = 0
+    hits_per_level_step: int = 0
+    level_step: int = 0
     remaining_hours: int = 0
     remaining_rounds: int = 0
 

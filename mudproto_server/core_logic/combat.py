@@ -6,7 +6,7 @@ from combat_ability_effects import (
     _apply_player_damage_with_reduction,
     _apply_player_dealt_damage_multiplier,
     _preview_entity_damage_with_reduction,
-    _resolve_extra_unarmed_hits_from_affects,
+    _resolve_extra_hits_from_affects,
 )
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
 from combat_rewards import (
@@ -342,16 +342,101 @@ def _apply_player_attacks(
             break
 
     # Extra unarmed hits can come from legacy support effects or affect-based skills.
-    support_extra_hits = sum(
+    support_extra_unarmed = sum(
         max(0, int(effect.support_amount))
         for effect in session.active_support_effects
         if effect.support_effect == "extra_unarmed_hits"
         and effect.support_mode == "battle_rounds"
         and effect.remaining_rounds > 0
     )
-    affect_extra_hits = _resolve_extra_unarmed_hits_from_affects(list(session.active_affects))
-    extra_hits = max(support_extra_hits, affect_extra_hits)
-    for _ in range(extra_hits):
+    affect_extra_main, affect_extra_off, affect_extra_unarmed = _resolve_extra_hits_from_affects(
+        list(session.active_affects),
+        player_level=max(1, int(session.player.level)),
+    )
+    extra_unarmed = max(support_extra_unarmed, affect_extra_unarmed)
+
+    main_hand = get_equipped_main_hand(session)
+    main_weapon = main_hand if main_hand is not None and main_hand.slot == "weapon" else None
+    off_hand = get_equipped_off_hand(session)
+    off_weapon = off_hand if off_hand is not None and off_hand.slot == "weapon" else None
+    if main_weapon is not None and off_weapon is not None and off_weapon.item_id == main_weapon.item_id:
+        off_weapon = None
+
+    for _ in range(affect_extra_main):
+        if not entity.is_alive:
+            break
+        append_newline_if_needed(parts)
+        hit_modifier = get_player_hit_modifier(
+            main_weapon,
+            player_level=session.player.level,
+            unarmed_hit_bonus=unarmed_hit_bonus,
+        )
+        if not roll_hit(hit_modifier, entity.armor_class):
+            miss_verb = resolve_weapon_verb(main_weapon.weapon_type) if main_weapon is not None else "hit"
+            parts.extend(build_player_attack_parts(
+                entity_name=entity.name,
+                attack_verb=miss_verb,
+                damage=0,
+                target_max_hp=entity.max_hit_points,
+            ))
+            continue
+        rolled_damage, _, attack_verb = roll_player_damage(
+            session.player_combat,
+            main_weapon,
+            player_level=session.player.level,
+            unarmed_damage_bonus=unarmed_damage_bonus,
+        )
+        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
+        _mark_entity_contributor(session, entity)
+        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
+        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
+        parts.extend(build_player_attack_parts(
+            entity_name=entity.name,
+            attack_verb=attack_verb,
+            damage=preview_damage,
+            target_max_hp=entity.max_hit_points,
+        ))
+        if entity.hit_points <= 0:
+            break
+
+    for _ in range(affect_extra_off):
+        if not entity.is_alive:
+            break
+        append_newline_if_needed(parts)
+        hit_modifier = get_player_hit_modifier(
+            off_weapon,
+            player_level=session.player.level,
+            unarmed_hit_bonus=unarmed_hit_bonus,
+        )
+        if not roll_hit(hit_modifier, entity.armor_class):
+            miss_verb = resolve_weapon_verb(off_weapon.weapon_type) if off_weapon is not None else "hit"
+            parts.extend(build_player_attack_parts(
+                entity_name=entity.name,
+                attack_verb=miss_verb,
+                damage=0,
+                target_max_hp=entity.max_hit_points,
+            ))
+            continue
+        rolled_damage, _, attack_verb = roll_player_damage(
+            session.player_combat,
+            off_weapon,
+            player_level=session.player.level,
+            unarmed_damage_bonus=unarmed_damage_bonus,
+        )
+        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
+        _mark_entity_contributor(session, entity)
+        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
+        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
+        parts.extend(build_player_attack_parts(
+            entity_name=entity.name,
+            attack_verb=attack_verb,
+            damage=preview_damage,
+            target_max_hp=entity.max_hit_points,
+        ))
+        if entity.hit_points <= 0:
+            break
+
+    for _ in range(extra_unarmed):
         if not entity.is_alive:
             break
         append_newline_if_needed(parts)

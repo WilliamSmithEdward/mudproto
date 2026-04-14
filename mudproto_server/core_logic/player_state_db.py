@@ -426,6 +426,11 @@ def _serialize_affect(effect: ActiveAffectState) -> dict:
         "affect_dice_sides": int(effect.affect_dice_sides),
         "affect_roll_modifier": float(effect.affect_roll_modifier),
         "affect_scaling_bonus": float(effect.affect_scaling_bonus),
+        "extra_main_hand_hits": int(effect.extra_main_hand_hits),
+        "extra_off_hand_hits": int(effect.extra_off_hand_hits),
+        "extra_unarmed_hits": int(effect.extra_unarmed_hits),
+        "hits_per_level_step": int(effect.hits_per_level_step),
+        "level_step": int(effect.level_step),
         "remaining_hours": int(effect.remaining_hours),
         "remaining_rounds": int(effect.remaining_rounds),
     }
@@ -470,6 +475,11 @@ def _deserialize_affect(raw: dict) -> ActiveAffectState:
         affect_dice_sides=max(0, int(raw.get("affect_dice_sides", 0))),
         affect_roll_modifier=float(raw.get("affect_roll_modifier", 0.0)),
         affect_scaling_bonus=float(raw.get("affect_scaling_bonus", 0.0)),
+        extra_main_hand_hits=max(0, int(raw.get("extra_main_hand_hits", 0))),
+        extra_off_hand_hits=max(0, int(raw.get("extra_off_hand_hits", 0))),
+        extra_unarmed_hits=max(0, int(raw.get("extra_unarmed_hits", 0))),
+        hits_per_level_step=max(0, int(raw.get("hits_per_level_step", 0))),
+        level_step=max(0, int(raw.get("level_step", 0))),
         remaining_hours=max(0, int(raw.get("remaining_hours", 0))),
         remaining_rounds=max(0, int(raw.get("remaining_rounds", 0))),
     )

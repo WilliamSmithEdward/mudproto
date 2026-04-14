@@ -142,11 +142,17 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
     duration_hours = max(0, int(raw_affect.get("duration_hours", 0)))
     duration_rounds = max(0, int(raw_affect.get("duration_rounds", 0)))
 
+    extra_main_hand_hits = max(0, int(raw_affect.get("extra_main_hand_hits", 0)))
+    extra_off_hand_hits = max(0, int(raw_affect.get("extra_off_hand_hits", 0)))
+    extra_unarmed_hits = max(0, int(raw_affect.get("extra_unarmed_hits", 0)))
+    hits_per_level_step = max(0, int(raw_affect.get("hits_per_level_step", 0)))
+    level_step = max(0, int(raw_affect.get("level_step", 0)))
+
     if not affect_id:
         raise ValueError(f"{context} affects must define affect_id.")
-    if affect_type not in {"regeneration", "damage_received_multiplier", "extra_unarmed_hits", "damage_reduction"}:
+    if affect_type not in {"regeneration", "damage_received_multiplier", "extra_hits", "damage_reduction"}:
         raise ValueError(
-            f"{context} affect_type must be one of: regeneration, damage_received_multiplier, extra_unarmed_hits, damage_reduction."
+            f"{context} affect_type must be one of: regeneration, damage_received_multiplier, extra_hits, damage_reduction."
         )
     if affect_target not in {"self", "target"}:
         raise ValueError(f"{context} affect target must be one of: self, target.")
@@ -174,6 +180,11 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         raise ValueError(f"{context} timed affects must define duration_hours > 0.")
     if affect_mode == "battle_rounds" and duration_rounds <= 0:
         raise ValueError(f"{context} battle_rounds affects must define duration_rounds > 0.")
+    if affect_type == "extra_hits":
+        if extra_main_hand_hits <= 0 and extra_off_hand_hits <= 0 and extra_unarmed_hits <= 0:
+            raise ValueError(f"{context} extra_hits affects must define at least one hit type > 0.")
+        if hits_per_level_step > 0 and level_step <= 0:
+            raise ValueError(f"{context} extra_hits affects with hits_per_level_step must define level_step > 0.")
 
     return {
         "affect_id": affect_id,
@@ -193,6 +204,11 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         "power_scaling_multiplier": power_scaling_multiplier,
         "duration_hours": duration_hours,
         "duration_rounds": duration_rounds,
+        "extra_main_hand_hits": extra_main_hand_hits,
+        "extra_off_hand_hits": extra_off_hand_hits,
+        "extra_unarmed_hits": extra_unarmed_hits,
+        "hits_per_level_step": hits_per_level_step,
+        "level_step": level_step,
     }
 
 
@@ -219,6 +235,11 @@ def _resolve_affect_ids(raw_affect_ids: object, *, context: str, configured_attr
         "power_scaling_multiplier",
         "duration_hours",
         "duration_rounds",
+        "extra_main_hand_hits",
+        "extra_off_hand_hits",
+        "extra_unarmed_hits",
+        "hits_per_level_step",
+        "level_step",
     }
 
     resolved_affects: list[dict] = []
