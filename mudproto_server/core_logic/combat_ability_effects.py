@@ -20,6 +20,36 @@ def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, s
     return restore_effect, max(0.0, min(1.0, restore_ratio)), restore_context, observer_restore_context
 
 
+def _resolve_skill_target_posture(skill: dict) -> str:
+    posture = str(skill.get("target_posture", "")).strip().lower()
+    if posture not in {"standing", "sitting", "resting", "sleeping"}:
+        return ""
+    return posture
+
+
+def _apply_target_posture(target: object, posture: str) -> None:
+    normalized_posture = str(posture).strip().lower()
+    if normalized_posture == "standing":
+        setattr(target, "is_sitting", False)
+        setattr(target, "is_resting", False)
+        setattr(target, "is_sleeping", False)
+        return
+    if normalized_posture == "sitting":
+        setattr(target, "is_sitting", True)
+        setattr(target, "is_resting", False)
+        setattr(target, "is_sleeping", False)
+        return
+    if normalized_posture == "resting":
+        setattr(target, "is_sitting", False)
+        setattr(target, "is_resting", True)
+        setattr(target, "is_sleeping", False)
+        return
+    if normalized_posture == "sleeping":
+        setattr(target, "is_sitting", False)
+        setattr(target, "is_resting", False)
+        setattr(target, "is_sleeping", True)
+
+
 def _player_restore_fallback(effect: str) -> str:
     if effect == "mana":
         return "Arcane current rushes back into your spirit."

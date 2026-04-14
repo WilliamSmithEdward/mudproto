@@ -13,9 +13,11 @@ from combat_ability_effects import (
     _apply_entity_damage_with_reduction,
     _apply_player_secondary_restore,
     _apply_player_skill_lag,
+    _apply_target_posture,
     _observer_restore_fallback,
     _player_restore_fallback,
     _resolve_player_damage_scaling_bonus,
+    _resolve_skill_target_posture,
     _resolve_player_skill_scale_bonus,
     _resolve_secondary_restore_fields,
     _roll_player_support_amount,
@@ -62,6 +64,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     observer_action = str(skill.get("observer_action", "")).strip()
     observer_context = str(skill.get("observer_context", "")).strip()
     target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
+    target_posture = _resolve_skill_target_posture(skill)
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
     actor_name = session.authenticated_character_name or "Someone"
 
@@ -319,9 +322,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             total_damage_dealt += max(0, dealt)
             if dealt > 0 and target_lag_rounds > 0 and entity.is_alive:
                 entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
-                entity.is_sleeping = False
-                entity.is_resting = False
-                entity.is_sitting = True
+            if dealt > 0 and target_posture and entity.is_alive:
+                _apply_target_posture(entity, target_posture)
             if resolved_context:
                 parts.append(build_part(resolved_context))
                 damage_observer_lines.append(resolved_context)

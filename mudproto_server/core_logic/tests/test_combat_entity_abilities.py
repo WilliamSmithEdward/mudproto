@@ -119,6 +119,7 @@ def test_entity_target_lag_skill_sets_player_sitting(monkeypatch) -> None:
         "cast_type": "target",
         "vigor_cost": 10,
         "target_lag_rounds": 2,
+        "target_posture": "sitting",
         "damage_dice_count": 1,
         "damage_dice_sides": 1,
         "damage_modifier": 0,

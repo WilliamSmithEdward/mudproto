@@ -34,6 +34,7 @@ def test_bash_applies_target_lag_to_entity(monkeypatch) -> None:
         "usable_out_of_combat": False,
         "damage_context": "[a/an] [verb] slammed.",
         "target_lag_rounds": 2,
+        "target_posture": "sitting",
         "damage_dice_count": 1,
         "damage_dice_sides": 1,
         "damage_modifier": 0,

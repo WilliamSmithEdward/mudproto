@@ -95,7 +95,8 @@
     "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal bash.",
     "lag_rounds": 2,
     "cooldown_rounds": 5,
-    "target_lag_rounds": 2
+    "target_lag_rounds": 2,
+    "target_posture": "sitting"
   },
   {
     "skill_id": "skill.roundhouse-kick",

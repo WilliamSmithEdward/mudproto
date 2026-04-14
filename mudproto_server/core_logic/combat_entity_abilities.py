@@ -14,10 +14,12 @@ from combat_ability_effects import (
     _apply_entity_dealt_damage_multiplier,
     _apply_entity_skill_lag,
     _apply_entity_spell_lag,
+    _apply_target_posture,
     _apply_player_damage_with_reduction,
     _observer_restore_fallback,
     _resolve_entity_damage_scaling_bonus,
     _resolve_entity_skill_scale_bonus,
+    _resolve_skill_target_posture,
     _resolve_secondary_restore_fields,
     _roll_entity_support_amount,
     _set_entity_skill_cooldown,
@@ -220,12 +222,12 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             parts.append(build_part(rendered_restore_context))
 
         target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
+        target_posture = _resolve_skill_target_posture(skill)
         if target_lag_rounds > 0 and damage_dealt > 0:
             apply_lag(session, float(target_lag_rounds) * float(COMBAT_ROUND_INTERVAL_SECONDS))
-            session.is_sleeping = False
-            session.is_resting = False
-            session.is_sitting = True
             entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
+        if target_posture and damage_dealt > 0:
+            _apply_target_posture(session, target_posture)
 
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)

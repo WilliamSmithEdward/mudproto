@@ -1577,6 +1577,7 @@ def load_skills() -> list[dict]:
         observer_context = str(raw_skill.get("observer_context", "")).strip()
         lag_rounds = int(raw_skill.get("lag_rounds", 0))
         target_lag_rounds = int(raw_skill.get("target_lag_rounds", 0))
+        target_posture = str(raw_skill.get("target_posture", "")).strip().lower()
         cooldown_rounds = int(raw_skill.get("cooldown_rounds", 0))
         cooldown_hours = int(raw_skill.get("cooldown_hours", 0))
         support_level_step = int(raw_skill.get("support_level_step", 0))
@@ -1608,6 +1609,10 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' lag_rounds must be zero or greater.")
         if target_lag_rounds < 0:
             raise ValueError(f"Skill asset '{skill_id}' target_lag_rounds must be zero or greater.")
+        if target_posture not in {"", "standing", "sitting", "resting", "sleeping"}:
+            raise ValueError(
+                f"Skill asset '{skill_id}' target_posture must be one of: standing, sitting, resting, sleeping."
+            )
         if cooldown_rounds < 0:
             raise ValueError(f"Skill asset '{skill_id}' cooldown_rounds must be zero or greater.")
         if cooldown_hours < 0:
@@ -1681,6 +1686,7 @@ def load_skills() -> list[dict]:
             "observer_context": observer_context,
             "lag_rounds": lag_rounds,
             "target_lag_rounds": target_lag_rounds,
+            "target_posture": target_posture,
             "cooldown_rounds": cooldown_rounds,
             "cooldown_hours": cooldown_hours,
             "support_level_step": support_level_step,
