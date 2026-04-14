@@ -130,3 +130,59 @@ def test_entity_target_lag_skill_sets_player_sitting(monkeypatch) -> None:
     assert used is True
     assert session.is_sitting is True
     assert entity.skill_lag_rounds_remaining == 2
+
+
+def test_entity_sitting_does_not_use_skill(monkeypatch) -> None:
+    session = _make_session("client-player", "Lucia")
+    entity = _make_entity("entity-ogre", "Ogre")
+    entity.is_sitting = True
+    entity.skill_ids = ["skill.shield-bash"]
+    entity.skill_use_chance = 1.0
+    entity.vigor = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities, "get_skill_by_id", lambda _skill_id: {
+        "skill_id": "skill.shield-bash",
+        "name": "Shield Bash",
+        "skill_type": "damage",
+        "cast_type": "target",
+        "vigor_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    parts: list[dict] = []
+    used = entity_abilities._entity_try_use_skill(session, entity, parts)
+
+    assert used is False
+    assert entity.vigor == 100
+    assert parts == []
+
+
+def test_entity_resting_does_not_cast_spell(monkeypatch) -> None:
+    session = _make_session("client-player", "Lucia")
+    entity = _make_entity("entity-priest", "Priest")
+    entity.is_resting = True
+    entity.spell_ids = ["spell.arcane-bolt"]
+    entity.spell_use_chance = 1.0
+    entity.mana = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities, "get_spell_by_id", lambda _spell_id: {
+        "spell_id": "spell.arcane-bolt",
+        "name": "Arcane Bolt",
+        "spell_type": "damage",
+        "cast_type": "target",
+        "mana_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    parts: list[dict] = []
+    casted = entity_abilities._entity_try_cast_spell(session, entity, parts)
+
+    assert casted is False
+    assert entity.mana == 100
+    assert parts == []

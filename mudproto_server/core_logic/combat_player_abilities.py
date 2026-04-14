@@ -1,5 +1,6 @@
 """Player-facing skill and spell execution helpers."""
 
+from attribute_config import posture_prevents_skill_spell_use
 from grammar import third_personize_text, with_article
 from models import ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
@@ -8,6 +9,7 @@ from targeting_follow import _resolve_room_player_selector
 from damage import roll_skill_damage, roll_spell_damage
 
 from combat_ability_effects import (
+    _apply_player_dealt_damage_multiplier,
     _apply_entity_damage_with_reduction,
     _apply_player_secondary_restore,
     _apply_player_skill_lag,
@@ -62,6 +64,11 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
     actor_name = session.authenticated_character_name or "Someone"
+
+    if session.is_sitting and posture_prevents_skill_spell_use("sitting"):
+        return display_error("You are sitting and cannot use skills or spells. Stand first.", session), False
+    if session.is_resting and posture_prevents_skill_spell_use("resting"):
+        return display_error("You are resting and cannot use skills or spells. Stand first.", session), False
 
     has_explicit_target = bool(str(target_name or "").strip())
     can_open_with_targeted_damage = (
@@ -287,6 +294,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     session.status.vigor -= vigor_cost
 
     total_damage = roll_skill_damage(skill) + scaling_bonus
+    total_damage = _apply_player_dealt_damage_multiplier(session, total_damage)
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(skill)
     total_damage_dealt = 0
     destroyed_entity_names: list[str] = []
@@ -441,6 +449,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     observer_context = str(spell.get("observer_context", "")).strip()
     spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
     actor_name = session.authenticated_character_name or "Someone"
+
+    if session.is_sitting and posture_prevents_skill_spell_use("sitting"):
+        return display_error("You are sitting and cannot use skills or spells. Stand first.", session), False
+    if session.is_resting and posture_prevents_skill_spell_use("resting"):
+        return display_error("You are resting and cannot use skills or spells. Stand first.", session), False
 
     status = session.status
     if status.mana < mana_cost:
@@ -719,6 +732,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     status.mana -= mana_cost
 
     total_damage = roll_spell_damage(spell, _resolve_player_damage_scaling_bonus(session, spell))
+    total_damage = _apply_player_dealt_damage_multiplier(session, total_damage)
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(spell)
     total_damage_dealt = 0
     destroyed_entity_names: list[str] = []

@@ -1,12 +1,16 @@
 {
   "sitting": {
-    "damage_multiplier": 1.5,
+    "received_damage_multiplier": 1.5,
+    "dealt_damage_multiplier": 0.75,
     "prevents_movement": true,
+    "prevents_skill_spell_use": true,
     "regeneration_bonus_multiplier": 1.0
   },
   "resting": {
-    "damage_multiplier": 2.00,
+    "received_damage_multiplier": 2.0,
+    "dealt_damage_multiplier": 0.75,
     "prevents_movement": true,
+    "prevents_skill_spell_use": true,
     "regeneration_bonus_multiplier": 1.5
   }
 }

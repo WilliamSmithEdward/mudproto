@@ -1,8 +1,13 @@
 from abilities import _list_known_passives
 from assets import get_gear_template_by_id
 from battle_round_ticks import process_battle_round_support_effects
-from combat_ability_effects import _apply_entity_damage_with_reduction, _apply_player_damage_with_reduction
-from combat_ability_effects import _preview_entity_damage_with_reduction
+from combat_ability_effects import (
+    _apply_entity_damage_with_reduction,
+    _apply_entity_dealt_damage_multiplier,
+    _apply_player_damage_with_reduction,
+    _apply_player_dealt_damage_multiplier,
+    _preview_entity_damage_with_reduction,
+)
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
 from combat_rewards import (
     _award_shared_entity_experience,
@@ -200,6 +205,8 @@ def _apply_weapon_room_damage_proc(
     if not triggered or weapon is None:
         return
 
+    proc_damage = _apply_player_dealt_damage_multiplier(session, proc_damage)
+
     actor_name = session.authenticated_character_name or "Someone"
     weapon_name = weapon.name.strip() or "weapon"
     player_message = _render_weapon_proc_message(
@@ -237,6 +244,8 @@ def _apply_weapon_target_damage_proc(
     triggered, proc_damage = roll_weapon_target_proc_damage(weapon)
     if not triggered:
         return
+
+    proc_damage = _apply_player_dealt_damage_multiplier(session, proc_damage)
 
     actor_name = session.authenticated_character_name or "Someone"
     weapon_name = weapon.name.strip() or "weapon"
@@ -316,6 +325,7 @@ def _apply_player_attacks(
             player_level=session.player.level,
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
+        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
         _mark_entity_contributor(session, entity)
         preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
         applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
@@ -362,6 +372,7 @@ def _apply_player_attacks(
             player_level=session.player.level,
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
+        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
         _mark_entity_contributor(session, entity)
         preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
         applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
@@ -440,6 +451,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
             continue
 
         attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
+        attack_damage = _apply_entity_dealt_damage_multiplier(entity, attack_damage)
         applied_damage = _apply_player_damage_with_reduction(session, attack_damage)
         parts.extend(build_entity_attack_parts(
             entity_name=entity.name,
@@ -473,6 +485,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
                 continue
 
             off_hand_damage, off_attack_verb = roll_npc_weapon_damage(entity, off_hand_weapon)
+            off_hand_damage = _apply_entity_dealt_damage_multiplier(entity, off_hand_damage)
             applied_damage = _apply_player_damage_with_reduction(session, off_hand_damage)
             parts.extend(build_entity_attack_parts(
                 entity_name=entity.name,

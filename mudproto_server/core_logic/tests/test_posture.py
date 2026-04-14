@@ -90,7 +90,7 @@ def test_sitting_damage_multiplier_applies_to_player(monkeypatch) -> None:
 
     monkeypatch.setattr(
         effects,
-        "get_posture_damage_multiplier",
+        "get_posture_received_damage_multiplier",
         lambda posture_state: 1.5 if posture_state == "sitting" else 1.0,
     )
 
@@ -112,7 +112,7 @@ def test_sitting_damage_multiplier_applies_to_entity(monkeypatch) -> None:
 
     monkeypatch.setattr(
         effects,
-        "get_posture_damage_multiplier",
+        "get_posture_received_damage_multiplier",
         lambda posture_state: 1.5 if posture_state == "sitting" else 1.0,
     )
 
@@ -129,7 +129,7 @@ def test_resting_damage_multiplier_applies_to_player(monkeypatch) -> None:
 
     monkeypatch.setattr(
         effects,
-        "get_posture_damage_multiplier",
+        "get_posture_received_damage_multiplier",
         lambda posture_state: 1.25 if posture_state == "resting" else 1.0,
     )
 
@@ -137,6 +137,42 @@ def test_resting_damage_multiplier_applies_to_player(monkeypatch) -> None:
 
     assert dealt == 25
     assert session.status.hit_points == 75
+
+
+def test_sitting_dealt_damage_multiplier_applies_to_player(monkeypatch) -> None:
+    session = _make_session("client-rest-player", "Lucia")
+    session.is_sitting = True
+
+    monkeypatch.setattr(
+        effects,
+        "get_posture_dealt_damage_multiplier",
+        lambda posture_state: 0.75 if posture_state == "sitting" else 1.0,
+    )
+
+    dealt = effects._apply_player_dealt_damage_multiplier(session, 20)
+
+    assert dealt == 15
+
+
+def test_resting_dealt_damage_multiplier_applies_to_entity(monkeypatch) -> None:
+    entity = EntityState(
+        entity_id="entity-ogre",
+        name="Ogre",
+        room_id="start",
+        hit_points=100,
+        max_hit_points=100,
+    )
+    entity.is_resting = True
+
+    monkeypatch.setattr(
+        effects,
+        "get_posture_dealt_damage_multiplier",
+        lambda posture_state: 0.75 if posture_state == "resting" else 1.0,
+    )
+
+    dealt = effects._apply_entity_dealt_damage_multiplier(entity, 20)
+
+    assert dealt == 15
 
 
 def test_resting_regeneration_bonus_multiplier_applies(monkeypatch) -> None:

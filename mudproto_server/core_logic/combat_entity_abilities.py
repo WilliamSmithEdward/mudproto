@@ -2,6 +2,7 @@
 
 import random
 
+from attribute_config import posture_prevents_skill_spell_use
 from assets import get_skill_by_id, get_spell_by_id
 from combat_text import append_newline_if_needed
 from damage import roll_skill_damage, roll_spell_damage
@@ -10,6 +11,7 @@ from models import ActiveSupportEffectState, ClientSession, EntityState
 
 from combat_ability_effects import (
     _apply_entity_secondary_restore,
+    _apply_entity_dealt_damage_multiplier,
     _apply_entity_skill_lag,
     _apply_entity_spell_lag,
     _apply_player_damage_with_reduction,
@@ -49,6 +51,11 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     from display_core import build_part
 
     if not entity.skill_ids:
+        return False
+
+    if entity.is_sitting and posture_prevents_skill_spell_use("sitting"):
+        return False
+    if entity.is_resting and posture_prevents_skill_spell_use("resting"):
         return False
 
     chance = max(0.0, min(1.0, float(entity.skill_use_chance)))
@@ -172,6 +179,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
     if skill_type == "damage" and cast_type in {"target", "aoe"}:
         total_damage = roll_skill_damage(skill) + scaling_bonus
+        total_damage = _apply_entity_dealt_damage_multiplier(entity, total_damage)
         damage_context = str(skill.get("damage_context", "")).strip()
         restore_effect, restore_ratio, _, observer_restore_context = _resolve_secondary_restore_fields(skill)
         damage_dealt = 0
@@ -228,6 +236,11 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
     from display_core import build_part
 
     if not entity.spell_ids:
+        return False
+
+    if entity.is_sitting and posture_prevents_skill_spell_use("sitting"):
+        return False
+    if entity.is_resting and posture_prevents_skill_spell_use("resting"):
         return False
 
     chance = max(0.0, min(1.0, float(entity.spell_use_chance)))
@@ -354,6 +367,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
 
     if spell_type == "damage" and cast_type in {"target", "aoe"}:
         spell_damage = roll_spell_damage(spell, _resolve_entity_damage_scaling_bonus(entity, spell))
+        spell_damage = _apply_entity_dealt_damage_multiplier(entity, spell_damage)
         damage_context = str(spell.get("damage_context", "")).strip()
         restore_effect, restore_ratio, _, observer_restore_context = _resolve_secondary_restore_fields(spell)
         damage_dealt = 0

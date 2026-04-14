@@ -426,11 +426,20 @@ def load_posture_config() -> dict:
         if not isinstance(raw_state, dict):
             raise ValueError(f"Posture config '{posture_state}' must be an object.")
 
-        damage_multiplier = float(raw_state.get("damage_multiplier", 1.0))
-        if damage_multiplier < 1.0:
-            raise ValueError(f"Posture config '{posture_state}.damage_multiplier' must be >= 1.0.")
+        received_damage_multiplier = float(raw_state.get("received_damage_multiplier", 1.0))
+        if received_damage_multiplier < 1.0:
+            raise ValueError(
+                f"Posture config '{posture_state}.received_damage_multiplier' must be >= 1.0."
+            )
+
+        dealt_damage_multiplier = float(raw_state.get("dealt_damage_multiplier", 1.0))
+        if dealt_damage_multiplier <= 0.0:
+            raise ValueError(
+                f"Posture config '{posture_state}.dealt_damage_multiplier' must be > 0.0."
+            )
 
         prevents_movement = bool(raw_state.get("prevents_movement", False))
+        prevents_skill_spell_use = bool(raw_state.get("prevents_skill_spell_use", False))
         regeneration_bonus_multiplier = float(raw_state.get("regeneration_bonus_multiplier", 1.0))
         if regeneration_bonus_multiplier < 1.0:
             raise ValueError(
@@ -438,8 +447,10 @@ def load_posture_config() -> dict:
             )
 
         posture_states[posture_state] = {
-            "damage_multiplier": damage_multiplier,
+            "received_damage_multiplier": received_damage_multiplier,
+            "dealt_damage_multiplier": dealt_damage_multiplier,
             "prevents_movement": prevents_movement,
+            "prevents_skill_spell_use": prevents_skill_spell_use,
             "regeneration_bonus_multiplier": regeneration_bonus_multiplier,
         }
 
@@ -450,15 +461,28 @@ def load_posture_config() -> dict:
 
 
 def get_sitting_damage_multiplier() -> float:
-    return float(get_posture_damage_multiplier("sitting"))
+    return float(get_posture_received_damage_multiplier("sitting"))
 
 
 def get_posture_damage_multiplier(posture_state: str) -> float:
+    # Backward-compatible alias. New code should call get_posture_received_damage_multiplier.
+    return float(get_posture_received_damage_multiplier(posture_state))
+
+
+def get_posture_received_damage_multiplier(posture_state: str) -> float:
     normalized_state = str(posture_state).strip().lower()
     posture_config = load_posture_config().get(normalized_state, {})
     if not isinstance(posture_config, dict):
         return 1.0
-    return max(1.0, float(posture_config.get("damage_multiplier", 1.0)))
+    return max(1.0, float(posture_config.get("received_damage_multiplier", 1.0)))
+
+
+def get_posture_dealt_damage_multiplier(posture_state: str) -> float:
+    normalized_state = str(posture_state).strip().lower()
+    posture_config = load_posture_config().get(normalized_state, {})
+    if not isinstance(posture_config, dict):
+        return 1.0
+    return max(0.0, float(posture_config.get("dealt_damage_multiplier", 1.0)))
 
 
 def posture_prevents_movement(posture_state: str) -> bool:
@@ -467,6 +491,14 @@ def posture_prevents_movement(posture_state: str) -> bool:
     if not isinstance(posture_config, dict):
         return False
     return bool(posture_config.get("prevents_movement", False))
+
+
+def posture_prevents_skill_spell_use(posture_state: str) -> bool:
+    normalized_state = str(posture_state).strip().lower()
+    posture_config = load_posture_config().get(normalized_state, {})
+    if not isinstance(posture_config, dict):
+        return False
+    return bool(posture_config.get("prevents_skill_spell_use", False))
 
 
 def get_posture_regeneration_bonus_multiplier(posture_state: str) -> float:

@@ -2,7 +2,7 @@
 
 import random
 
-from attribute_config import get_posture_damage_multiplier
+from attribute_config import get_posture_dealt_damage_multiplier, get_posture_received_damage_multiplier
 from models import ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 
@@ -204,11 +204,10 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> 
     if incoming_damage <= 0:
         return 0
 
-    posture_damage_multiplier = 1.0
-    if bool(getattr(session, "is_resting", False)):
-        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("resting"))
-    if bool(getattr(session, "is_sitting", False)):
-        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("sitting"))
+    posture_damage_multiplier = _resolve_posture_received_damage_multiplier(
+        is_sitting=bool(getattr(session, "is_sitting", False)),
+        is_resting=bool(getattr(session, "is_resting", False)),
+    )
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
 
@@ -240,17 +239,70 @@ def _resolve_entity_damage_values(entity: EntityState, amount: int) -> tuple[int
     if incoming_damage <= 0:
         return 0, 0
 
-    posture_damage_multiplier = 1.0
-    if bool(getattr(entity, "is_resting", False)):
-        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("resting"))
-    if bool(getattr(entity, "is_sitting", False)):
-        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("sitting"))
+    posture_damage_multiplier = _resolve_posture_received_damage_multiplier(
+        is_sitting=bool(getattr(entity, "is_sitting", False)),
+        is_resting=bool(getattr(entity, "is_resting", False)),
+    )
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
 
     active_effects = list(getattr(entity, "active_support_effects", []))
     reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(active_effects))
     return incoming_damage, reduced_damage
+
+
+def _apply_player_dealt_damage_multiplier(session: ClientSession, amount: int) -> int:
+    outgoing_damage = max(0, int(amount))
+    if outgoing_damage <= 0:
+        return 0
+
+    posture_damage_multiplier = _resolve_posture_dealt_damage_multiplier(
+        is_sitting=bool(getattr(session, "is_sitting", False)),
+        is_resting=bool(getattr(session, "is_resting", False)),
+    )
+    return max(0, int(outgoing_damage * posture_damage_multiplier))
+
+
+def _apply_entity_dealt_damage_multiplier(entity: EntityState, amount: int) -> int:
+    outgoing_damage = max(0, int(amount))
+    if outgoing_damage <= 0:
+        return 0
+
+    posture_damage_multiplier = _resolve_posture_dealt_damage_multiplier(
+        is_sitting=bool(getattr(entity, "is_sitting", False)),
+        is_resting=bool(getattr(entity, "is_resting", False)),
+    )
+    return max(0, int(outgoing_damage * posture_damage_multiplier))
+
+
+def _resolve_posture_received_damage_multiplier(*, is_sitting: bool, is_resting: bool) -> float:
+    posture_damage_multiplier = 1.0
+    if is_resting:
+        posture_damage_multiplier = max(
+            posture_damage_multiplier,
+            get_posture_received_damage_multiplier("resting"),
+        )
+    if is_sitting:
+        posture_damage_multiplier = max(
+            posture_damage_multiplier,
+            get_posture_received_damage_multiplier("sitting"),
+        )
+    return max(1.0, posture_damage_multiplier)
+
+
+def _resolve_posture_dealt_damage_multiplier(*, is_sitting: bool, is_resting: bool) -> float:
+    posture_damage_multiplier = 1.0
+    if is_resting:
+        posture_damage_multiplier = min(
+            posture_damage_multiplier,
+            get_posture_dealt_damage_multiplier("resting"),
+        )
+    if is_sitting:
+        posture_damage_multiplier = min(
+            posture_damage_multiplier,
+            get_posture_dealt_damage_multiplier("sitting"),
+        )
+    return max(0.0, posture_damage_multiplier)
 
 
 def _process_entity_battle_round_support_effects(entity: EntityState) -> None:
