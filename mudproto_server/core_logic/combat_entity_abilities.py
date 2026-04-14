@@ -25,6 +25,25 @@ from session_timing import apply_lag
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 
 
+def _entity_has_active_ongoing_support_effect(entity: EntityState, effect_id: str) -> bool:
+    normalized_effect_id = str(effect_id).strip().lower()
+    if not normalized_effect_id:
+        return False
+
+    for active_effect in entity.active_support_effects:
+        active_effect_id = str(active_effect.spell_id).strip().lower()
+        if active_effect_id != normalized_effect_id:
+            continue
+
+        support_mode = str(active_effect.support_mode).strip().lower() or "timed"
+        if support_mode == "battle_rounds" and int(active_effect.remaining_rounds) > 0:
+            return True
+        if support_mode == "timed" and int(active_effect.remaining_hours) > 0:
+            return True
+
+    return False
+
+
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
     from combat_observer import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
     from display_core import build_part
@@ -47,6 +66,15 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         vigor_cost = max(0, int(skill.get("vigor_cost", 0)))
         if entity.vigor < vigor_cost:
             continue
+
+        skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
+        cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+        support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
+        if skill_type == "support" and cast_type == "self" and support_mode in {"timed", "battle_rounds"}:
+            effect_id = str(skill.get("skill_id", "")).strip() or str(skill.get("name", "")).strip()
+            if _entity_has_active_ongoing_support_effect(entity, effect_id):
+                continue
+
         available_skills.append(skill)
 
     if not available_skills:
@@ -216,6 +244,14 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
         mana_cost = max(0, int(spell.get("mana_cost", 0)))
         if entity.mana < mana_cost:
             continue
+
+        spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
+        cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
+        support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
+        if spell_type == "support" and cast_type == "self" and support_mode in {"timed", "battle_rounds"}:
+            effect_id = str(spell.get("spell_id", "")).strip() or str(spell.get("name", "")).strip()
+            if _entity_has_active_ongoing_support_effect(entity, effect_id):
+                continue
 
         available_spells.append(spell)
 
