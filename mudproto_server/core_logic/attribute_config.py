@@ -17,6 +17,7 @@ LEVEL_SCALING_FILE = ATTRIBUTE_CONFIG_ROOT / "level_scaling.json"
 EXPERIENCE_TABLE_FILE = ATTRIBUTE_CONFIG_ROOT / "experience.json"
 WEAPON_TYPES_FILE = ATTRIBUTE_CONFIG_ROOT / "weapon_types.json"
 POSTURE_FILE = ATTRIBUTE_CONFIG_ROOT / "posture.json"
+AFFECTS_FILE = ATTRIBUTE_CONFIG_ROOT / "affects.json"
 
 
 def _read_json_attribute_config(path: Path) -> object:
@@ -299,6 +300,49 @@ def load_regeneration_config() -> dict:
     return {
         "resources": normalized_resources,
     }
+
+
+@lru_cache(maxsize=1)
+def load_affect_templates() -> list[dict]:
+    raw_affects = _read_json_attribute_config(AFFECTS_FILE)
+    if not isinstance(raw_affects, list):
+        raise ValueError(f"Affect config file must contain a list: {AFFECTS_FILE}")
+
+    normalized_affects: list[dict] = []
+    seen_affect_ids: set[str] = set()
+    for raw_affect in raw_affects:
+        if not isinstance(raw_affect, dict):
+            raise ValueError("Affect templates must be objects.")
+
+        affect_id = str(raw_affect.get("affect_id", "")).strip().lower()
+        affect_type = str(raw_affect.get("affect_type", "")).strip().lower()
+
+        if not affect_id:
+            raise ValueError("Affect templates must include a non-empty affect_id.")
+        if affect_id in seen_affect_ids:
+            raise ValueError(f"Duplicate affect_id in affects config: {affect_id}")
+        if affect_type not in {"regeneration", "damage_received_multiplier"}:
+            raise ValueError(
+                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier."
+            )
+
+        seen_affect_ids.add(affect_id)
+        normalized_affects.append({
+            "affect_id": affect_id,
+            "affect_type": affect_type,
+        })
+
+    return normalized_affects
+
+
+def get_affect_template_by_id(affect_id: str) -> dict | None:
+    normalized_affect_id = str(affect_id).strip().lower()
+    if not normalized_affect_id:
+        return None
+    for affect in load_affect_templates():
+        if str(affect.get("affect_id", "")).strip().lower() == normalized_affect_id:
+            return affect
+    return None
 
 
 @lru_cache(maxsize=1)

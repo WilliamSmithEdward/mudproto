@@ -1,0 +1,10 @@
+[
+  {
+    "affect_id": "affect.increase-received-physical-damage",
+    "affect_type": "damage_received_multiplier"
+  },
+  {
+    "affect_id": "affect.health-regeneration",
+    "affect_type": "regeneration"
+  }
+]

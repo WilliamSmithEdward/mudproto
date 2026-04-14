@@ -99,6 +99,37 @@
     "target_posture": "sitting"
   },
   {
+    "skill_id": "skill.pressure-point",
+    "name": "Pressure Point",
+    "description": "A precise strike that leaves the target painfully vulnerable.",
+    "skill_type": "damage",
+    "cast_type": "target",
+    "vigor_cost": 8,
+    "usable_out_of_combat": false,
+    "scaling_attribute_id": "",
+    "scaling_multiplier": 0.0,
+    "level_scaling_multiplier": 0.0,
+    "damage_dice_count": 1,
+    "damage_dice_sides": 2,
+    "damage_modifier": 1,
+    "damage_context": "[a/an] [verb] jolted as a precise pressure point is struck.",
+    "observer_action": "[actor_name] snaps a precise strike at a vulnerable nerve cluster.",
+    "lag_rounds": 1,
+    "cooldown_rounds": 3,
+    "affect_ids": [
+      {
+        "affect_id": "affect.increase-received-physical-damage",
+        "name": "Pressure Point",
+        "target": "target",
+        "affect_mode": "battle_rounds",
+        "amount": 1.1,
+        "scaling_attribute_id": "dex",
+        "scaling_multiplier": 0.01,
+        "duration_rounds": 3
+      }
+    ]
+  },
+  {
     "skill_id": "skill.roundhouse-kick",
     "name": "Roundhouse Kick",
     "description": "A sweeping heel-strike that smashes every nearby foe.",

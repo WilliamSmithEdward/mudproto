@@ -1,6 +1,7 @@
 import asyncio
 import random
 
+from combat_ability_effects import _process_player_battle_round_affects
 from models import ClientSession
 from player_resources import get_player_resource_caps
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
@@ -53,6 +54,7 @@ def process_player_battle_round_tick(session: ClientSession, elapsed_rounds: int
     rounds = max(0, int(elapsed_rounds))
     for _ in range(rounds):
         process_battle_round_support_effects(session)
+        _process_player_battle_round_affects(session)
         _tick_player_skill_cooldowns(session)
 
 

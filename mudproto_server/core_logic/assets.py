@@ -2,7 +2,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from attribute_config import load_attributes, load_weapon_type_config
+from attribute_config import get_affect_template_by_id, load_attributes, load_weapon_type_config
 from settings import CONFIGURABLE_ASSET_ROOT, DEBUG_MODE
 
 
@@ -90,6 +90,145 @@ def _normalize_template_identity(raw_template: dict, *, context: str) -> tuple[s
         raise ValueError(f"{context} '{template_id}' must include a non-empty name.")
     keywords = _normalize_keywords(raw_template.get("keywords", []), context=f"{context} '{template_id}'")
     return template_id, name, keywords
+
+
+def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_attribute_ids: set[str]) -> dict:
+    affect_id = str(raw_affect.get("affect_id", "")).strip().lower()
+    affect_name = str(raw_affect.get("name", "")).strip()
+    affect_type = str(raw_affect.get("affect_type", "")).strip().lower()
+    affect_target = str(raw_affect.get("target", "self")).strip().lower() or "self"
+    affect_mode = str(raw_affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
+    target_resource = str(raw_affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
+
+    amount = float(raw_affect.get("amount", 0.0))
+    dice_count = max(0, int(raw_affect.get("dice_count", 0)))
+    dice_sides = max(0, int(raw_affect.get("dice_sides", 0)))
+    roll_modifier = float(raw_affect.get("roll_modifier", 0.0))
+    scaling_attribute_id = str(raw_affect.get("scaling_attribute_id", "")).strip().lower()
+    scaling_multiplier = float(raw_affect.get("scaling_multiplier", 0.0))
+    level_scaling_multiplier = float(raw_affect.get("level_scaling_multiplier", 0.0))
+    power_scaling_multiplier = float(raw_affect.get("power_scaling_multiplier", 0.0))
+    duration_hours = max(0, int(raw_affect.get("duration_hours", 0)))
+    duration_rounds = max(0, int(raw_affect.get("duration_rounds", 0)))
+
+    if not affect_id:
+        raise ValueError(f"{context} affects must define affect_id.")
+    if affect_type not in {"regeneration", "damage_received_multiplier"}:
+        raise ValueError(
+            f"{context} affect_type must be one of: regeneration, damage_received_multiplier."
+        )
+    if affect_target not in {"self", "target"}:
+        raise ValueError(f"{context} affect target must be one of: self, target.")
+    if affect_mode not in {"instant", "timed", "battle_rounds"}:
+        raise ValueError(f"{context} affect_mode must be one of: instant, timed, battle_rounds.")
+    if target_resource not in {"hit_points", "mana", "vigor"}:
+        raise ValueError(f"{context} target_resource must be one of: hit_points, mana, vigor.")
+    if amount < 0.0:
+        raise ValueError(f"{context} affect amount must be zero or greater.")
+    if dice_count > 0 and dice_sides <= 0:
+        raise ValueError(f"{context} affect dice_sides must be > 0 when dice_count is set.")
+    if scaling_multiplier < 0.0:
+        raise ValueError(f"{context} affect scaling_multiplier must be zero or greater.")
+    if level_scaling_multiplier < 0.0:
+        raise ValueError(f"{context} affect level_scaling_multiplier must be zero or greater.")
+    if power_scaling_multiplier < 0.0:
+        raise ValueError(f"{context} affect power_scaling_multiplier must be zero or greater.")
+    if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
+        raise ValueError(
+            f"{context} affect scaling_attribute_id '{scaling_attribute_id}' is unknown."
+        )
+    if affect_mode == "timed" and duration_hours <= 0:
+        raise ValueError(f"{context} timed affects must define duration_hours > 0.")
+    if affect_mode == "battle_rounds" and duration_rounds <= 0:
+        raise ValueError(f"{context} battle_rounds affects must define duration_rounds > 0.")
+
+    return {
+        "affect_id": affect_id,
+        "name": affect_name,
+        "affect_type": affect_type,
+        "target": affect_target,
+        "affect_mode": affect_mode,
+        "target_resource": target_resource,
+        "amount": amount,
+        "dice_count": dice_count,
+        "dice_sides": dice_sides,
+        "roll_modifier": roll_modifier,
+        "scaling_attribute_id": scaling_attribute_id,
+        "scaling_multiplier": scaling_multiplier,
+        "level_scaling_multiplier": level_scaling_multiplier,
+        "power_scaling_multiplier": power_scaling_multiplier,
+        "duration_hours": duration_hours,
+        "duration_rounds": duration_rounds,
+    }
+
+
+def _resolve_affect_ids(raw_affect_ids: object, *, context: str, configured_attribute_ids: set[str]) -> list[dict]:
+    if raw_affect_ids is None:
+        raw_affect_ids = []
+    if not isinstance(raw_affect_ids, list):
+        raise ValueError(f"{context} affect_ids must be a list.")
+
+    override_fields = {
+        "name",
+        "target",
+        "affect_mode",
+        "target_resource",
+        "amount",
+        "dice_count",
+        "dice_sides",
+        "roll_modifier",
+        "scaling_attribute_id",
+        "scaling_multiplier",
+        "level_scaling_multiplier",
+        "power_scaling_multiplier",
+        "duration_hours",
+        "duration_rounds",
+    }
+
+    resolved_affects: list[dict] = []
+    seen_affect_ids: set[str] = set()
+    for raw_affect_ref in raw_affect_ids:
+        if isinstance(raw_affect_ref, str):
+            affect_id = str(raw_affect_ref).strip().lower()
+            overrides: dict[str, object] = {}
+        elif isinstance(raw_affect_ref, dict):
+            affect_id = str(raw_affect_ref.get("affect_id", "")).strip().lower()
+            invalid_fields = set(raw_affect_ref.keys()) - ({"affect_id"} | override_fields)
+            if invalid_fields:
+                invalid_list = ", ".join(sorted(invalid_fields))
+                raise ValueError(f"{context} affect_ids entries contain unsupported fields: {invalid_list}.")
+            overrides = {field: raw_affect_ref[field] for field in override_fields if field in raw_affect_ref}
+        else:
+            raise ValueError(f"{context} affect_ids entries must be strings or objects.")
+
+        if not affect_id or affect_id in seen_affect_ids:
+            continue
+        affect_template = get_affect_template_by_id(affect_id)
+        if affect_template is None:
+            raise ValueError(f"{context} affect_ids references unknown affect_id '{affect_id}'.")
+
+        merged_affect = dict(affect_template)
+        merged_affect.update(overrides)
+        resolved_affects.append(_normalize_resolved_affect(
+            merged_affect,
+            context=context,
+            configured_attribute_ids=configured_attribute_ids,
+        ))
+        seen_affect_ids.add(affect_id)
+
+    return resolved_affects
+
+
+def _resolve_asset_affects(*, affect_ids: object, affects: object, context: str, configured_attribute_ids: set[str]) -> list[dict]:
+    if affects is None:
+        affects = []
+    if not isinstance(affects, list):
+        raise ValueError(f"{context} affects must be a list.")
+    if affects:
+        raise ValueError(
+            f"{context} inline affects are no longer supported. Define affect_ids and place affect definitions in configuration/attributes/affects.json."
+        )
+    return _resolve_affect_ids(affect_ids, context=context, configured_attribute_ids=configured_attribute_ids)
 
 
 @lru_cache(maxsize=1)
@@ -231,6 +370,11 @@ def load_item_templates() -> list[dict]:
     ordered_template_ids: list[str] = []
     allowed_effect_targets = {"hit_points", "mana", "vigor"}
     allowed_item_types = {"consumable", "key", "misc", "container"}
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
 
     for raw_template in raw_templates:
         if not isinstance(raw_template, dict):
@@ -291,6 +435,17 @@ def load_item_templates() -> list[dict]:
                 "quantity": max(1, int(raw_content.get("quantity", 1))),
             })
         lock_id = str(raw_template.get("lock_id", "")).strip().lower()
+        affects = _resolve_asset_affects(
+            affect_ids=raw_template.get("affect_ids", []),
+            affects=raw_template.get("affects", []),
+            context=f"Item asset '{template_id}'",
+            configured_attribute_ids=configured_attribute_ids,
+        )
+        affect_ids = [
+            str(affect.get("affect_id", "")).strip().lower()
+            for affect in affects
+            if str(affect.get("affect_id", "")).strip()
+        ]
         can_close = bool(raw_template.get("can_close", raw_item_type == "container"))
         can_lock = bool(raw_template.get("can_lock", bool(lock_id)))
         is_closed = bool(raw_template.get("is_closed", False))
@@ -299,13 +454,13 @@ def load_item_templates() -> list[dict]:
         if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate item template_id: {template_id}")
         if raw_item_type == "consumable":
-            if effect_type != "restore":
+            if effect_type != "restore" and not affects:
                 raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
-            if effect_target not in allowed_effect_targets:
+            if effect_type == "restore" and effect_target not in allowed_effect_targets:
                 raise ValueError(
                     f"Item asset '{template_id}' effect_target must be one of: hit_points, mana, vigor."
                 )
-            if effect_amount <= 0:
+            if effect_type == "restore" and effect_amount <= 0:
                 raise ValueError(f"Item asset '{template_id}' effect_amount must be greater than zero.")
         elif effect_type and effect_type != "restore":
             raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore' when provided.")
@@ -357,6 +512,8 @@ def load_item_templates() -> list[dict]:
             "use_lag_seconds": use_lag_seconds,
             "observer_action": str(raw_template.get("observer_action", "")).strip(),
             "observer_context": str(raw_template.get("observer_context", "")).strip(),
+            "affect_ids": affect_ids,
+            "affects": affects,
         }
 
     return [normalized_templates_by_id[template_id] for template_id in ordered_template_ids]
@@ -1385,6 +1542,17 @@ def load_spells() -> list[dict]:
         support_context = str(raw_spell.get("support_context", "")).strip()
         observer_action = str(raw_spell.get("observer_action", "")).strip()
         observer_context = str(raw_spell.get("observer_context", "")).strip()
+        affects = _resolve_asset_affects(
+            affect_ids=raw_spell.get("affect_ids", []),
+            affects=raw_spell.get("affects", []),
+            context=f"Spell asset '{spell_id}'",
+            configured_attribute_ids=configured_attribute_ids,
+        )
+        affect_ids = [
+            str(affect.get("affect_id", "")).strip().lower()
+            for affect in affects
+            if str(affect.get("affect_id", "")).strip()
+        ]
 
         if not cast_type:
             cast_type = "self" if spell_type == "support" else "target"
@@ -1490,6 +1658,8 @@ def load_spells() -> list[dict]:
             "support_context": support_context,
             "observer_action": observer_action,
             "observer_context": observer_context,
+            "affect_ids": affect_ids,
+            "affects": affects,
         }
 
     return [normalized_spells_by_id[spell_id] for spell_id in ordered_spell_ids]
@@ -1578,6 +1748,17 @@ def load_skills() -> list[dict]:
         lag_rounds = int(raw_skill.get("lag_rounds", 0))
         target_lag_rounds = int(raw_skill.get("target_lag_rounds", 0))
         target_posture = str(raw_skill.get("target_posture", "")).strip().lower()
+        affects = _resolve_asset_affects(
+            affect_ids=raw_skill.get("affect_ids", []),
+            affects=raw_skill.get("affects", []),
+            context=f"Skill asset '{skill_id}'",
+            configured_attribute_ids=configured_attribute_ids,
+        )
+        affect_ids = [
+            str(affect.get("affect_id", "")).strip().lower()
+            for affect in affects
+            if str(affect.get("affect_id", "")).strip()
+        ]
         cooldown_rounds = int(raw_skill.get("cooldown_rounds", 0))
         cooldown_hours = int(raw_skill.get("cooldown_hours", 0))
         support_level_step = int(raw_skill.get("support_level_step", 0))
@@ -1687,6 +1868,8 @@ def load_skills() -> list[dict]:
             "lag_rounds": lag_rounds,
             "target_lag_rounds": target_lag_rounds,
             "target_posture": target_posture,
+            "affect_ids": affect_ids,
+            "affects": affects,
             "cooldown_rounds": cooldown_rounds,
             "cooldown_hours": cooldown_hours,
             "support_level_step": support_level_step,

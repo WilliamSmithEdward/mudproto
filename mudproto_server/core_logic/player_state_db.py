@@ -5,7 +5,7 @@ import secrets
 from datetime import datetime, timezone
 
 from grammar import normalize_player_gender
-from models import ActiveSupportEffectState, ClientSession, ItemState
+from models import ActiveAffectState, ActiveSupportEffectState, ClientSession, ItemState
 from experience import get_level_for_experience
 from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH
 
@@ -409,6 +409,23 @@ def _serialize_support_effect(effect: ActiveSupportEffectState) -> dict:
     }
 
 
+def _serialize_affect(effect: ActiveAffectState) -> dict:
+    return {
+        "affect_id": effect.affect_id,
+        "affect_name": effect.affect_name,
+        "affect_mode": effect.affect_mode,
+        "affect_type": effect.affect_type,
+        "target_resource": effect.target_resource,
+        "affect_amount": float(effect.affect_amount),
+        "affect_dice_count": int(effect.affect_dice_count),
+        "affect_dice_sides": int(effect.affect_dice_sides),
+        "affect_roll_modifier": float(effect.affect_roll_modifier),
+        "affect_scaling_bonus": float(effect.affect_scaling_bonus),
+        "remaining_hours": int(effect.remaining_hours),
+        "remaining_rounds": int(effect.remaining_rounds),
+    }
+
+
 def _deserialize_support_effect(raw: dict) -> ActiveSupportEffectState:
     return ActiveSupportEffectState(
         spell_id=str(raw.get("spell_id", "")).strip(),
@@ -422,6 +439,23 @@ def _deserialize_support_effect(raw: dict) -> ActiveSupportEffectState:
         support_scaling_bonus=int(raw.get("support_scaling_bonus", 0)),
         remaining_hours=int(raw.get("remaining_hours", 0)),
         remaining_rounds=int(raw.get("remaining_rounds", 0)),
+    )
+
+
+def _deserialize_affect(raw: dict) -> ActiveAffectState:
+    return ActiveAffectState(
+        affect_id=str(raw.get("affect_id", "")).strip(),
+        affect_name=str(raw.get("affect_name", "")).strip(),
+        affect_mode=str(raw.get("affect_mode", "timed")).strip().lower() or "timed",
+        affect_type=str(raw.get("affect_type", "")).strip().lower(),
+        target_resource=str(raw.get("target_resource", "hit_points")).strip().lower() or "hit_points",
+        affect_amount=float(raw.get("affect_amount", 0.0)),
+        affect_dice_count=max(0, int(raw.get("affect_dice_count", 0))),
+        affect_dice_sides=max(0, int(raw.get("affect_dice_sides", 0))),
+        affect_roll_modifier=float(raw.get("affect_roll_modifier", 0.0)),
+        affect_scaling_bonus=float(raw.get("affect_scaling_bonus", 0.0)),
+        remaining_hours=max(0, int(raw.get("remaining_hours", 0))),
+        remaining_rounds=max(0, int(raw.get("remaining_rounds", 0))),
     )
 
 
@@ -477,6 +511,7 @@ def _serialize_session(session: ClientSession) -> dict:
             },
         },
         "active_support_effects": [_serialize_support_effect(effect) for effect in session.active_support_effects],
+        "active_affects": [_serialize_affect(effect) for effect in session.active_affects],
     }
 
 
@@ -675,6 +710,14 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
         session.active_support_effects = [
             _deserialize_support_effect(raw_effect)
             for raw_effect in raw_support_effects
+            if isinstance(raw_effect, dict)
+        ]
+
+    raw_affects = raw_state.get("active_affects", [])
+    if isinstance(raw_affects, list):
+        session.active_affects = [
+            _deserialize_affect(raw_effect)
+            for raw_effect in raw_affects
             if isinstance(raw_effect, dict)
         ]
 

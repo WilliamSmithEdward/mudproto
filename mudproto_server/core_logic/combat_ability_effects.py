@@ -3,8 +3,14 @@
 import random
 
 from attribute_config import get_posture_dealt_damage_multiplier, get_posture_received_damage_multiplier
-from models import ActiveSupportEffectState, ClientSession, EntityState
+from models import ActiveAffectState, ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
+
+
+_AFFECT_TYPE_REGENERATION = "regeneration"
+_AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER = "damage_received_multiplier"
+_AFFECT_MODES = {"instant", "timed", "battle_rounds"}
+_AFFECT_TYPES = {_AFFECT_TYPE_REGENERATION, _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER}
 
 
 def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, str]:
@@ -18,6 +24,189 @@ def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, s
         ability.get("observer_restore_context", ability.get("observer_life_steal_context", ""))
     ).strip()
     return restore_effect, max(0.0, min(1.0, restore_ratio)), restore_context, observer_restore_context
+
+
+def _resolve_ability_affects(ability: dict) -> list[dict]:
+    raw_affects = ability.get("affects", [])
+    if not isinstance(raw_affects, list):
+        return []
+    return [entry for entry in raw_affects if isinstance(entry, dict)]
+
+
+def _resolve_affect_scaling_bonus(actor: object, affect: dict) -> float:
+    scaling_attribute_id = str(affect.get("scaling_attribute_id", "")).strip().lower()
+    scaling_multiplier = float(affect.get("scaling_multiplier", 0.0))
+    level_scaling_multiplier = float(affect.get("level_scaling_multiplier", 0.0))
+    power_scaling_multiplier = float(affect.get("power_scaling_multiplier", 0.0))
+
+    scaling_bonus = 0.0
+    if scaling_attribute_id and scaling_multiplier > 0.0 and isinstance(actor, ClientSession):
+        attribute_value = int(actor.player.attributes.get(scaling_attribute_id, 0))
+        scaling_bonus += float(attribute_value) * scaling_multiplier
+
+    if level_scaling_multiplier > 0.0 and isinstance(actor, ClientSession):
+        scaling_bonus += float(max(1, int(actor.player.level))) * level_scaling_multiplier
+
+    if power_scaling_multiplier > 0.0 and isinstance(actor, EntityState):
+        scaling_bonus += float(max(0, int(actor.power_level))) * power_scaling_multiplier
+
+    return max(0.0, scaling_bonus)
+
+
+def _ensure_affect_list(target: object) -> list[ActiveAffectState] | None:
+    affects = getattr(target, "active_affects", None)
+    if isinstance(affects, list):
+        return affects
+    return None
+
+
+def _roll_affect_amount(effect: ActiveAffectState) -> float:
+    rolled_amount = float(effect.affect_amount)
+    rolled_amount += float(effect.affect_roll_modifier)
+    rolled_amount += float(effect.affect_scaling_bonus)
+
+    dice_count = max(0, int(effect.affect_dice_count))
+    dice_sides = max(0, int(effect.affect_dice_sides))
+    if dice_count > 0 and dice_sides > 0:
+        rolled_amount += sum(random.randint(1, dice_sides) for _ in range(dice_count))
+
+    return max(0.0, float(rolled_amount))
+
+
+def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState]) -> float:
+    strongest_multiplier = 1.0
+    for effect in active_affects:
+        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER:
+            continue
+
+        affect_mode = str(getattr(effect, "affect_mode", "instant")).strip().lower() or "instant"
+        if affect_mode == "timed" and int(getattr(effect, "remaining_hours", 0)) <= 0:
+            continue
+        if affect_mode == "battle_rounds" and int(getattr(effect, "remaining_rounds", 0)) <= 0:
+            continue
+
+        multiplier = _roll_affect_amount(effect)
+        if multiplier <= 1.0:
+            continue
+        strongest_multiplier = max(strongest_multiplier, multiplier)
+
+    return max(1.0, strongest_multiplier)
+
+
+def _apply_regeneration_tick(target: object, effect: ActiveAffectState) -> None:
+    if str(effect.affect_type).strip().lower() != _AFFECT_TYPE_REGENERATION:
+        return
+
+    amount = int(_roll_affect_amount(effect))
+    if amount <= 0:
+        return
+
+    resource = str(getattr(effect, "target_resource", "hit_points")).strip().lower() or "hit_points"
+    if isinstance(target, ClientSession):
+        caps = get_player_resource_caps(target)
+        if resource == "mana":
+            target.status.mana = min(caps["mana"], target.status.mana + amount)
+            return
+        if resource == "vigor":
+            target.status.vigor = min(caps["vigor"], target.status.vigor + amount)
+            return
+        target.status.hit_points = min(caps["hit_points"], target.status.hit_points + amount)
+        return
+
+    if isinstance(target, EntityState):
+        if resource == "mana":
+            target.mana = min(target.max_mana, target.mana + amount)
+            return
+        if resource == "vigor":
+            target.vigor = min(target.max_vigor, target.vigor + amount)
+            return
+        target.hit_points = min(target.max_hit_points, target.hit_points + amount)
+
+
+def _apply_ability_affects(*, actor: object, target: object, ability: dict, affect_target: str) -> bool:
+    active_affects = _ensure_affect_list(target)
+    if active_affects is None:
+        return False
+
+    applied = False
+    for affect in _resolve_ability_affects(ability):
+        target_scope = str(affect.get("target", "target")).strip().lower() or "target"
+        if target_scope != affect_target:
+            continue
+
+        affect_type = str(affect.get("affect_type", "")).strip().lower()
+        if affect_type not in _AFFECT_TYPES:
+            continue
+
+        affect_mode = str(affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
+        if affect_mode not in _AFFECT_MODES:
+            continue
+
+        affect_id = str(affect.get("affect_id", "")).strip() or affect_type
+        affect_name = str(affect.get("name", "")).strip() or affect_id
+        target_resource = str(affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
+        affect_amount = float(affect.get("amount", 0.0))
+        affect_dice_count = max(0, int(affect.get("dice_count", 0)))
+        affect_dice_sides = max(0, int(affect.get("dice_sides", 0)))
+        affect_roll_modifier = float(affect.get("roll_modifier", 0.0))
+        affect_scaling_bonus = _resolve_affect_scaling_bonus(actor, affect)
+        remaining_hours = max(0, int(affect.get("duration_hours", 0)))
+        remaining_rounds = max(0, int(affect.get("duration_rounds", 0)))
+
+        if affect_mode == "instant":
+            instant_effect = ActiveAffectState(
+                affect_id=affect_id,
+                affect_name=affect_name,
+                affect_mode=affect_mode,
+                affect_type=affect_type,
+                target_resource=target_resource,
+                affect_amount=affect_amount,
+                affect_dice_count=affect_dice_count,
+                affect_dice_sides=affect_dice_sides,
+                affect_roll_modifier=affect_roll_modifier,
+                affect_scaling_bonus=affect_scaling_bonus,
+            )
+            _apply_regeneration_tick(target, instant_effect)
+            applied = True
+            continue
+
+        refreshed = False
+        for active_affect in active_affects:
+            if active_affect.affect_id != affect_id:
+                continue
+            active_affect.affect_name = affect_name
+            active_affect.affect_mode = affect_mode
+            active_affect.affect_type = affect_type
+            active_affect.target_resource = target_resource
+            active_affect.affect_amount = affect_amount
+            active_affect.affect_dice_count = affect_dice_count
+            active_affect.affect_dice_sides = affect_dice_sides
+            active_affect.affect_roll_modifier = affect_roll_modifier
+            active_affect.affect_scaling_bonus = affect_scaling_bonus
+            active_affect.remaining_hours = remaining_hours
+            active_affect.remaining_rounds = remaining_rounds
+            refreshed = True
+            applied = True
+            break
+
+        if not refreshed:
+            active_affects.append(ActiveAffectState(
+                affect_id=affect_id,
+                affect_name=affect_name,
+                affect_mode=affect_mode,
+                affect_type=affect_type,
+                target_resource=target_resource,
+                affect_amount=affect_amount,
+                affect_dice_count=affect_dice_count,
+                affect_dice_sides=affect_dice_sides,
+                affect_roll_modifier=affect_roll_modifier,
+                affect_scaling_bonus=affect_scaling_bonus,
+                remaining_hours=remaining_hours,
+                remaining_rounds=remaining_rounds,
+            ))
+            applied = True
+
+    return applied
 
 
 def _resolve_skill_target_posture(skill: dict) -> str:
@@ -249,6 +438,8 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> 
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
 
+    incoming_damage = int(incoming_damage * _resolve_damage_received_multiplier(list(session.active_affects)))
+
     reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(list(session.active_support_effects)))
     damage_dealt = min(max(0, int(session.status.hit_points)), reduced_damage)
     session.status.hit_points = max(0, int(session.status.hit_points) - reduced_damage)
@@ -284,6 +475,8 @@ def _resolve_entity_damage_values(entity: EntityState, amount: int) -> tuple[int
     )
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
+
+    incoming_damage = int(incoming_damage * _resolve_damage_received_multiplier(list(entity.active_affects)))
 
     active_effects = list(getattr(entity, "active_support_effects", []))
     reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(active_effects))
@@ -369,10 +562,48 @@ def _process_entity_battle_round_support_effects(entity: EntityState) -> None:
             entity.active_support_effects.remove(effect)
 
 
+def _process_entity_battle_round_affects(entity: EntityState) -> None:
+    for affect in list(entity.active_affects):
+        if affect.affect_mode != "battle_rounds":
+            continue
+
+        _apply_regeneration_tick(entity, affect)
+        affect.remaining_rounds -= 1
+        if affect.remaining_rounds <= 0:
+            entity.active_affects.remove(affect)
+
+
+def _process_player_battle_round_affects(session: ClientSession) -> None:
+    for affect in list(session.active_affects):
+        if affect.affect_mode != "battle_rounds":
+            continue
+
+        _apply_regeneration_tick(session, affect)
+        affect.remaining_rounds -= 1
+        if affect.remaining_rounds <= 0:
+            session.active_affects.remove(affect)
+
+
+def _process_player_game_hour_affects(session: ClientSession) -> list[str]:
+    expired_affect_names: list[str] = []
+    for affect in list(session.active_affects):
+        if affect.affect_mode != "timed":
+            continue
+
+        _apply_regeneration_tick(session, affect)
+        affect.remaining_hours -= 1
+        if affect.remaining_hours <= 0:
+            session.active_affects.remove(affect)
+            if affect.affect_name:
+                expired_affect_names.append(affect.affect_name)
+    return expired_affect_names
+
+
 def process_entity_battle_round_tick(entity: EntityState, elapsed_rounds: int = 1) -> None:
     rounds = max(0, int(elapsed_rounds))
     for _ in range(rounds):
         _process_entity_battle_round_support_effects(entity)
+        _process_entity_battle_round_affects(entity)
         for cooldowns in (entity.skill_cooldowns, entity.spell_cooldowns):
             for key, remaining in list(cooldowns.items()):
                 if remaining <= 1:
@@ -392,6 +623,15 @@ def process_entity_game_hour_tick(entity: EntityState) -> None:
         effect.remaining_hours -= 1
         if effect.remaining_hours <= 0:
             entity.active_support_effects.remove(effect)
+
+    for affect in list(entity.active_affects):
+        if affect.affect_mode != "timed":
+            continue
+
+        _apply_regeneration_tick(entity, affect)
+        affect.remaining_hours -= 1
+        if affect.remaining_hours <= 0:
+            entity.active_affects.remove(affect)
 
 
 def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> int:

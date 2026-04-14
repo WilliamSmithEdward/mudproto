@@ -9,6 +9,7 @@ from targeting_follow import _resolve_room_player_selector
 from damage import roll_skill_damage, roll_spell_damage
 
 from combat_ability_effects import (
+    _apply_ability_affects,
     _apply_player_dealt_damage_multiplier,
     _apply_entity_damage_with_reduction,
     _apply_player_secondary_restore,
@@ -223,6 +224,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 build_part(support_context),
             ])
 
+        _apply_ability_affects(actor=session, target=session, ability=skill, affect_target="self")
+
         _set_player_skill_cooldown(session, skill)
         cooldown_hours = max(0, int(skill.get("cooldown_hours", 0)))
         if cooldown_hours > 0 and skill_id:
@@ -324,6 +327,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
             if dealt > 0 and target_posture and entity.is_alive:
                 _apply_target_posture(entity, target_posture)
+            if dealt > 0 and entity.is_alive:
+                _apply_ability_affects(actor=session, target=entity, ability=skill, affect_target="target")
             if resolved_context:
                 parts.append(build_part(resolved_context))
                 damage_observer_lines.append(resolved_context)
@@ -561,6 +566,12 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 newline_part(),
                 build_part(rendered_support_context),
             ])
+            _apply_ability_affects(
+                actor=session,
+                target=support_target_session,
+                ability=spell,
+                affect_target=support_cast_type,
+            )
             observer_lines = [
                 _resolve_observer_action_line(
                     actor_name,
@@ -649,6 +660,12 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             newline_part(),
             build_part(rendered_support_context),
         ]
+        _apply_ability_affects(
+            actor=session,
+            target=support_target_session,
+            ability=spell,
+            affect_target=support_cast_type,
+        )
         observer_lines = [
             _resolve_observer_action_line(
                 actor_name,
@@ -771,6 +788,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             _mark_entity_contributor(session, entity)
             dealt = _apply_entity_damage_with_reduction(entity, total_damage)
             total_damage_dealt += max(0, dealt)
+            if dealt > 0 and entity.is_alive:
+                _apply_ability_affects(actor=session, target=entity, ability=spell, affect_target="target")
             if resolved_context:
                 parts.append(build_part(resolved_context))
             else:

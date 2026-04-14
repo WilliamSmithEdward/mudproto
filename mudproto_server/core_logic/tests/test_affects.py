@@ -1,0 +1,207 @@
+import combat_player_abilities as player_abilities
+import combat_ability_effects
+import display_feedback
+import game_hour_ticks
+import item_logic
+import pytest
+from assets import _resolve_asset_affects, get_skill_by_id
+from combat_ability_effects import _preview_entity_damage_with_reduction
+from game_hour_ticks import process_game_hour_tick
+from models import ActiveAffectState, ClientSession, EntityState, ItemState
+
+
+def _make_session(client_id: str, name: str) -> ClientSession:
+    from protocol import utc_now_iso
+
+    session = ClientSession(client_id=client_id, websocket=object(), connected_at=utc_now_iso())  # type: ignore[arg-type]
+    session.is_authenticated = True
+    session.is_connected = True
+    session.authenticated_character_name = name
+    session.player_state_key = name.strip().lower()
+    session.player.current_room_id = "start"
+    return session
+
+
+def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
+    skill = get_skill_by_id("skill.pressure-point")
+
+    assert isinstance(skill, dict)
+    assert "affect.increase-received-physical-damage" in [
+        str(affect_id).strip().lower()
+        for affect_id in skill.get("affect_ids", [])
+        if str(affect_id).strip()
+    ]
+    affects = skill.get("affects", [])
+    assert isinstance(affects, list)
+    assert any(
+        isinstance(affect, dict)
+        and affect.get("affect_type") == "damage_received_multiplier"
+        and affect.get("target") == "target"
+        for affect in affects
+    )
+    pressure_point_affect = next(
+        affect
+        for affect in affects
+        if isinstance(affect, dict) and affect.get("affect_id") == "affect.increase-received-physical-damage"
+    )
+    assert pressure_point_affect.get("name") == "Pressure Point"
+    assert pressure_point_affect.get("duration_rounds") == 3
+
+
+def test_asset_loader_rejects_inline_affects_payloads() -> None:
+    with pytest.raises(ValueError, match="inline affects are no longer supported"):
+        _resolve_asset_affects(
+            affect_ids=["affect.increase-received-physical-damage"],
+            affects=[{"affect_id": "affect.legacy-inline"}],
+            context="Skill asset 'skill.test-inline'",
+            configured_attribute_ids={"dex", "wis", "int", "str", "con"},
+        )
+
+
+def test_asset_loader_allows_affect_override_objects() -> None:
+    affects = _resolve_asset_affects(
+        affect_ids=[
+            {
+                "affect_id": "affect.increase-received-physical-damage",
+                "name": "Pressure Point",
+                "target": "target",
+                "affect_mode": "battle_rounds",
+                "amount": 1.2,
+                "duration_rounds": 2,
+            }
+        ],
+        affects=[],
+        context="Skill asset 'skill.test-override'",
+        configured_attribute_ids={"dex", "wis", "int", "str", "con"},
+    )
+
+    assert len(affects) == 1
+    assert affects[0]["affect_id"] == "affect.increase-received-physical-damage"
+    assert affects[0]["affect_type"] == "damage_received_multiplier"
+    assert affects[0]["name"] == "Pressure Point"
+    assert affects[0]["amount"] == 1.2
+    assert affects[0]["duration_rounds"] == 2
+
+
+def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch) -> None:
+    session = _make_session("client-pressure", "Lucia")
+    target = EntityState(
+        entity_id="entity-goblin",
+        name="Goblin",
+        room_id="start",
+        hit_points=200,
+        max_hit_points=200,
+    )
+    session.entities[target.entity_id] = target
+
+    skill = {
+        "skill_id": "skill.pressure-point",
+        "name": "Pressure Point",
+        "skill_type": "damage",
+        "cast_type": "target",
+        "vigor_cost": 1,
+        "usable_out_of_combat": False,
+        "scaling_attribute_id": "",
+        "scaling_multiplier": 0.0,
+        "level_scaling_multiplier": 0.0,
+        "damage_context": "[a/an] [verb] struck.",
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+        "affects": [
+            {
+                "affect_id": "affect.pressure-point-vulnerability",
+                "affect_type": "damage_received_multiplier",
+                "target": "target",
+                "affect_mode": "battle_rounds",
+                "amount": 1.25,
+                "duration_rounds": 2,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(player_abilities, "roll_skill_damage", lambda _skill: 1)
+    monkeypatch.setattr(display_feedback, "display_command_result", lambda *_args, **_kwargs: {})
+
+    _, applied = player_abilities.use_skill(session, skill, "Goblin")
+
+    assert applied is True
+    assert len(target.active_affects) == 1
+    assert target.active_affects[0].affect_type == "damage_received_multiplier"
+
+    preview_damage = _preview_entity_damage_with_reduction(target, 10)
+    assert preview_damage == 12
+
+
+def test_item_affect_can_store_dice_payload(monkeypatch) -> None:
+    session = _make_session("client-affect-item", "Lucia")
+    item = ItemState(item_id="item-regen", name="Regeneration Tonic", equippable=False)
+
+    session.inventory_items[item.item_id] = item
+
+    template = {
+        "name": "Regeneration Tonic",
+        "effect_type": "",
+        "effect_target": "",
+        "effect_amount": 0,
+        "use_lag_seconds": 0,
+        "affects": [
+            {
+                "affect_id": "affect.regen-tonic",
+                "name": "Regeneration",
+                "affect_type": "regeneration",
+                "target": "self",
+                "affect_mode": "timed",
+                "amount": 0,
+                "dice_count": 1,
+                "dice_sides": 3,
+                "duration_hours": 2,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(item_logic, "_resolve_misc_inventory_selector", lambda _session, _selector: (item, None))
+    monkeypatch.setattr(item_logic, "_find_item_template_for_misc_item", lambda _item: template)
+    monkeypatch.setattr(item_logic, "display_command_result", lambda *_args, **_kwargs: {})
+
+    result = item_logic._use_misc_item(session, "regeneration tonic")
+
+    assert isinstance(result, dict)
+    assert len(session.active_affects) == 1
+    assert session.active_affects[0].affect_dice_count == 1
+    assert session.active_affects[0].affect_dice_sides == 3
+
+
+def test_timed_regeneration_affect_ticks_and_expires(monkeypatch) -> None:
+    session = _make_session("client-regen", "Lucia")
+    session.status.hit_points = 10
+    before_hit_points = session.status.hit_points
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.regen",
+        affect_name="Regeneration",
+        affect_mode="timed",
+        affect_type="regeneration",
+        target_resource="hit_points",
+        affect_amount=0,
+        affect_dice_count=1,
+        affect_dice_sides=1,
+        affect_roll_modifier=0,
+        affect_scaling_bonus=0,
+        remaining_hours=1,
+        remaining_rounds=0,
+    ))
+
+    monkeypatch.setattr(game_hour_ticks, "get_player_resource_caps", lambda _session: {
+        "hit_points": 100,
+        "mana": 100,
+        "vigor": 100,
+    })
+    monkeypatch.setattr(combat_ability_effects, "get_player_resource_caps", lambda _session: {
+        "hit_points": 100,
+        "mana": 100,
+        "vigor": 100,
+    })
+    process_game_hour_tick(session)
+
+    assert session.status.hit_points >= before_hit_points + 1
+    assert session.active_affects == []

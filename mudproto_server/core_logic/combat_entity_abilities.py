@@ -10,6 +10,7 @@ from grammar import with_article
 from models import ActiveSupportEffectState, ClientSession, EntityState
 
 from combat_ability_effects import (
+    _apply_ability_affects,
     _apply_entity_secondary_restore,
     _apply_entity_dealt_damage_multiplier,
     _apply_entity_skill_lag,
@@ -177,6 +178,8 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
                 with_article(entity.name, capitalize=True),
             )))
 
+        _apply_ability_affects(actor=entity, target=entity, ability=skill, affect_target="self")
+
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)
         return True
@@ -228,6 +231,8 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
         if target_posture and damage_dealt > 0:
             _apply_target_posture(session, target_posture)
+        if damage_dealt > 0:
+            _apply_ability_affects(actor=entity, target=session, ability=skill, affect_target="target")
 
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)
@@ -368,6 +373,8 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
                 with_article(entity.name, capitalize=True),
             )))
 
+        _apply_ability_affects(actor=entity, target=entity, ability=spell, affect_target="self")
+
         _set_entity_spell_cooldown(entity, spell)
         _apply_entity_spell_lag(entity, spell)
         return True
@@ -381,6 +388,8 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
 
         if spell_damage > 0:
             damage_dealt = _apply_player_damage_with_reduction(session, spell_damage)
+            if damage_dealt > 0:
+                _apply_ability_affects(actor=entity, target=session, ability=spell, affect_target="target")
 
         restored_amount = 0
         if restore_ratio > 0.0 and damage_dealt > 0:

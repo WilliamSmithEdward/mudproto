@@ -1,6 +1,7 @@
 import random
 
 from attribute_config import get_posture_regeneration_bonus_multiplier, load_regeneration_config
+from combat_ability_effects import _process_player_game_hour_affects
 from inventory import tick_item_decay_map
 from models import ClientSession
 from player_resources import get_player_resource_caps
@@ -98,6 +99,8 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
         if effect.remaining_hours <= 0:
             session.active_support_effects.remove(effect)
             expired_spell_names.append(effect.spell_name)
+
+    expired_spell_names.extend(_process_player_game_hour_affects(session))
 
     for skill_id in list(session.combat.skill_hour_cooldowns):
         session.combat.skill_hour_cooldowns[skill_id] -= 1

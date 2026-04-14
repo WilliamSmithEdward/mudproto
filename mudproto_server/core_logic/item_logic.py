@@ -4,6 +4,7 @@ import re
 
 from attribute_config import load_item_usage_config
 from assets import get_item_template_by_id, load_item_templates
+from combat_ability_effects import _apply_ability_affects
 from command_handlers.types import OutboundResult
 from corpse_labels import build_corpse_label
 from display_core import build_menu_table_parts, build_part, newline_part, parts_to_lines
@@ -180,9 +181,12 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     effect_type = str(template.get("effect_type", "restore")).strip().lower() or "restore"
     effect_target = str(template.get("effect_target", "")).strip().lower()
     effect_amount = max(0, int(template.get("effect_amount", 0)))
+    affects = template.get("affects", []) if isinstance(template.get("affects", []), list) else []
     use_lag_seconds = max(0.0, float(template.get("use_lag_seconds", 0.0)))
 
-    if effect_type != "restore" or effect_amount <= 0:
+    has_restore = effect_type == "restore" and effect_amount > 0
+    has_affects = bool(affects)
+    if not has_restore and not has_affects:
         return display_error(f"{misc_item.name} cannot be used.", session)
 
     is_potion = _is_potion_template(template)
@@ -196,30 +200,36 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
                 session,
             )
 
-    current_value = 0
-    max_value = 0
-    effect_label = ""
-    caps = get_player_resource_caps(session)
-    if effect_target == "hit_points":
-        current_value = session.status.hit_points
-        max_value = caps["hit_points"]
-        effect_label = "HP"
-    elif effect_target == "mana":
-        current_value = session.status.mana
-        max_value = caps["mana"]
-        effect_label = "Mana"
-    elif effect_target == "vigor":
-        current_value = session.status.vigor
-        max_value = caps["vigor"]
-        effect_label = "Vigor"
-    else:
-        return display_error(f"{misc_item.name} cannot be used.", session)
+    if has_restore:
+        current_value = 0
+        max_value = 0
+        effect_label = ""
+        caps = get_player_resource_caps(session)
+        if effect_target == "hit_points":
+            current_value = session.status.hit_points
+            max_value = caps["hit_points"]
+            effect_label = "HP"
+        elif effect_target == "mana":
+            current_value = session.status.mana
+            max_value = caps["mana"]
+            effect_label = "Mana"
+        elif effect_target == "vigor":
+            current_value = session.status.vigor
+            max_value = caps["vigor"]
+            effect_label = "Vigor"
+        else:
+            return display_error(f"{misc_item.name} cannot be used.", session)
 
-    if current_value >= max_value:
-        return display_error(f"Your {effect_label.lower()} is already full.", session)
+        if current_value >= max_value and not has_affects:
+            return display_error(f"Your {effect_label.lower()} is already full.", session)
 
-    restored_amount = min(effect_amount, max_value - current_value)
-    setattr(session.status, effect_target, current_value + restored_amount)
+        if current_value < max_value:
+            restored_amount = min(effect_amount, max_value - current_value)
+            setattr(session.status, effect_target, current_value + restored_amount)
+
+    if has_affects:
+        _apply_ability_affects(actor=session, target=session, ability=template, affect_target="self")
+
     session.inventory_items.pop(misc_item.item_id, None)
 
     if is_potion:
@@ -276,7 +286,7 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
         room_parts = [build_part(observer_action, "bright_white")]
         if observer_context:
             room_parts.extend([
-                newline_part(1, fg="bright_white"),
+                newline_part(1),
                 build_part(observer_context, "bright_white"),
             ])
         payload["room_broadcast_lines"] = parts_to_lines(room_parts)

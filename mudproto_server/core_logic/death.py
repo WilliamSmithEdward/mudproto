@@ -16,6 +16,7 @@ def handle_player_death(session: ClientSession) -> None:
     _handle_player_death_follow_and_group(session)
     end_combat(session)
     session.active_support_effects.clear()
+    session.active_affects.clear()
     session.status.hit_points = 1
     save_player_state(session)
     session.pending_death_logout = True

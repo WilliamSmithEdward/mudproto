@@ -50,7 +50,7 @@
     ],
     "starting_spell_ids": [
       "spell.spark",
-      "spell.mending-light",
+      "spell.arc-bolt",
       "spell.ember-lance",
       "spell.healing-light",
       "spell.regeneration-ward"
