@@ -34,7 +34,6 @@ COLOR_MAP = {
     "bright_white": "#f2f2f2",
 }
 
-OUTPUT_WRAP_COLUMN = 100
 RECONNECT_INTERVAL_MS = 5000
 
 
@@ -108,7 +107,6 @@ class MudProtoGuiClient:
         self.history_index: int | None = None
         self.history_stash = ""
         self.output_ends_with_newline = True
-        self.wrap_column = OUTPUT_WRAP_COLUMN
         self._focus_restore_job: str | None = None
         self._window_is_active = True
 
@@ -498,10 +496,15 @@ class MudProtoGuiClient:
                 self.x_scrollbar.pack(side="bottom", fill="x", before=self.y_scrollbar)
 
     def _set_prompt_text(self, text: str) -> None:
-        self.append_parts(
-            [{"text": text, "fg": "bright_cyan", "bold": False}],
-            prefix_newline_if_needed=True,
-        )
+        self._append_local_status_line(text, fg="bright_cyan")
+
+    def _append_local_status_line(self, text: str, *, fg: str = "bright_white") -> None:
+        lines: list[Line] = []
+        if not self.output_ends_with_newline:
+            lines.append([])
+        lines.append([{"text": str(text), "fg": fg, "bold": False}])
+        lines.append([])
+        self._append_line_group(lines)
 
     def _ensure_tag(self, widget: tk.Text, fg: str | None, bold: bool) -> str | None:
         if not fg and not bold:
@@ -518,80 +521,16 @@ class MudProtoGuiClient:
             )
         return tag_name
 
-    def _wrap_line_parts(self, parts: list[Part]) -> list[Line]:
-        if self.wrap_column <= 0:
-            return [parts]
+    def _append_line_group(self, lines: list[Line]) -> None:
+        if not lines:
+            return
 
-        wrapped_lines: list[Line] = []
-        current_line: Line = []
-        current_length = 0
-
-        def flush_line() -> None:
-            nonlocal current_line, current_length
-            wrapped_lines.append(current_line)
-            current_line = []
-            current_length = 0
-
-        def append_chunk(text: str, fg: str | None, bold: bool) -> None:
-            nonlocal current_length
-            if not text:
-                return
-            current_line.append({
-                "text": text,
-                "fg": fg or "bright_white",
-                "bold": bold,
-            })
-            current_length += len(text)
-
-        for part in parts:
-            if not isinstance(part, dict):
-                continue
-
-            remaining = str(part.get("text", ""))
-            fg = part.get("fg") if isinstance(part.get("fg"), str) else None
-            bold = bool(part.get("bold", False))
-
-            while remaining:
-                available = max(1, self.wrap_column - current_length)
-                if len(remaining) <= available:
-                    append_chunk(remaining, fg, bold)
-                    break
-
-                split_at = remaining.rfind(" ", 0, available + 1)
-                if split_at <= 0:
-                    split_at = available
-                    chunk = remaining[:split_at]
-                    remaining = remaining[split_at:]
-                else:
-                    chunk = remaining[:split_at]
-                    remaining = remaining[split_at + 1:]
-
-                append_chunk(chunk.rstrip(), fg, bold)
-                flush_line()
-                remaining = remaining.lstrip()
-
-        if current_line or not wrapped_lines:
-            wrapped_lines.append(current_line)
-
-        return wrapped_lines
-
-    def append_parts(
-        self,
-        parts: list[Part],
-        *,
-        add_newline: bool = True,
-        prefix_newline_if_needed: bool = False,
-    ) -> None:
         self.output_text.configure(state="normal")
-        if prefix_newline_if_needed and not self.output_ends_with_newline:
-            self.output_text.insert(tk.END, "\n")
-            self.output_ends_with_newline = True
 
-        wrapped_lines = self._wrap_line_parts(parts)
-        for line_index, wrapped_parts in enumerate(wrapped_lines):
+        for line_index, parts in enumerate(lines):
             if line_index > 0:
                 self.output_text.insert(tk.END, "\n")
-            for part in wrapped_parts:
+            for part in parts:
                 if not isinstance(part, dict):
                     continue
                 text = str(part.get("text", ""))
@@ -603,52 +542,12 @@ class MudProtoGuiClient:
                 else:
                     self.output_text.insert(tk.END, text)
 
-        if add_newline:
-            self.output_text.insert(tk.END, "\n")
-            self.output_ends_with_newline = True
-        else:
-            self.output_ends_with_newline = False
-
-        self.output_text.configure(state="disabled")
-        self.output_text.see(tk.END)
-
-    def _append_line_group(self, lines: list[Line]) -> None:
-        if not lines:
-            return
-
-        self.output_text.configure(state="normal")
-        if not self.output_ends_with_newline:
-            self.output_text.insert(tk.END, "\n")
-            self.output_ends_with_newline = True
-
-        wrote_any_line = False
-        for line_index, parts in enumerate(lines):
-            wrapped_lines = self._wrap_line_parts(parts)
-            for wrapped_index, wrapped_parts in enumerate(wrapped_lines):
-                if wrote_any_line or line_index > 0 or wrapped_index > 0:
-                    self.output_text.insert(tk.END, "\n")
-                wrote_any_line = True
-                for part in wrapped_parts:
-                    if not isinstance(part, dict):
-                        continue
-                    text = str(part.get("text", ""))
-                    fg = part.get("fg") if isinstance(part.get("fg"), str) else None
-                    bold = bool(part.get("bold", False))
-                    tag = self._ensure_tag(self.output_text, fg, bold)
-                    if tag is not None:
-                        self.output_text.insert(tk.END, text, tag)
-                    else:
-                        self.output_text.insert(tk.END, text)
-
         self.output_ends_with_newline = bool(lines and not lines[-1])
         self.output_text.configure(state="disabled")
         self.output_text.see(tk.END)
 
     def append_system_message(self, text: str, fg: str = "bright_white") -> None:
-        self.append_parts(
-            [{"text": text, "fg": fg, "bold": False}],
-            prefix_newline_if_needed=True,
-        )
+        self._append_local_status_line(text, fg=fg)
 
     def render_display_message(self, message: dict[str, Any]) -> None:
         payload = message.get("payload", {})

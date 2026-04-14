@@ -23,8 +23,8 @@ Responsibilities:
 The GUI client renders structured payload in a Tk-based interface and should not
 know command semantics or gameplay rules.
 
-`mudproto_client/client.py` remains in the repository as a legacy reference and
-is no longer an actively supported client path.
+The old terminal client path was intentionally removed and is no longer an
+actively supported client path.
 
 ### Server (`mudproto_server/core_logic/`)
 
@@ -58,7 +58,7 @@ Responsibilities:
 ```json
 {
   "type": "input",
-  "source": "mudproto_client",
+  "source": "mudproto_client_gui",
   "timestamp": "2026-03-28T12:34:56Z",
   "payload": { "text": "look" }
 }
@@ -83,15 +83,23 @@ Responsibilities:
     "prompt_lines": [
       [],
       [{ "text": "575H 119V 160M> " }]
-    ],
-    "starts_on_new_line": false,
-    "room_broadcast_lines": []
+    ]
   }
 }
 ```
 
 Every envelope has `type`, `source`, `timestamp`, `payload`. Validation
 lives in `protocol.py`.
+
+### Display Contract
+
+Display spacing is contract-driven by JSON only:
+
+- Clients render `payload.lines` and `payload.prompt_lines` literally.
+- Clients do not inject extra newline spacing between server display groups.
+- Server code must encode intentional blank lines explicitly by placing empty
+  line entries (`[]`) in the line arrays (or equivalent `"\n"` parts before
+  serialization).
 
 ### Display Spacing Aesthetics
 

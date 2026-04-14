@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any, cast
 
 import mudproto_client_gui.client_gui as client_gui
 
@@ -45,7 +46,8 @@ class _ImmediateThread:
 
 
 def _make_client(raw_text: str) -> client_gui.MudProtoGuiClient:
-    client = client_gui.MudProtoGuiClient.__new__(client_gui.MudProtoGuiClient)
+    raw_client = client_gui.MudProtoGuiClient.__new__(client_gui.MudProtoGuiClient)
+    client = cast(Any, raw_client)
     client.input_entry = _FakeEntry(raw_text)
     client.command_history = []
     client.history_index = None
@@ -53,7 +55,7 @@ def _make_client(raw_text: str) -> client_gui.MudProtoGuiClient:
     client.network_loop = object()
     client.root = _FakeRoot()
     client._closing = False
-    return client
+    return cast(client_gui.MudProtoGuiClient, client)
 
 
 def test_on_submit_sends_blank_spaces_to_server(monkeypatch) -> None:

@@ -1,6 +1,6 @@
 """Shared menu builders for spell and skill list displays."""
 
-from display_core import build_menu_table_parts, build_part
+from display_core import build_menu_table_parts, build_part, newline_part
 
 
 def build_cost_menu_parts(
@@ -12,7 +12,7 @@ def build_cost_menu_parts(
     if not entries:
         return [
             build_part(title, "bright_white", True),
-            build_part("\n"),
+            newline_part(),
             build_part("Nothing is known.", "bright_white"),
         ]
 

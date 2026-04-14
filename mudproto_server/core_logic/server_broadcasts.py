@@ -375,9 +375,8 @@ def _inject_private_lines_into_outbound(session: ClientSession, outbound: dict |
 
     notification_message = build_display_lines(
         pending_lines,
-        blank_lines_before=0,
         prompt_after=True,
-        prompt_parts=build_prompt_parts(session),
+        prompt_parts=[newline_part(2), *build_prompt_parts(session)],
     )
     if isinstance(outbound, list):
         return [notification_message, *outbound]
@@ -459,12 +458,11 @@ def _build_unified_room_round_display(
     if not merged_lines:
         return None
 
-    return build_display_lines(
-        merged_lines,
-        blank_lines_before=0,
-        blank_lines_after=1,
-        starts_on_new_line=True,
-    )
+    explicit_lines = [[]] + merged_lines
+    if explicit_lines and explicit_lines[-1]:
+        explicit_lines.append([])
+
+    return build_display_lines(explicit_lines)
 
 
 async def _send_room_broadcast(

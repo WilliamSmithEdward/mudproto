@@ -37,7 +37,7 @@ cd mudproto_client_gui
 python client_gui.py
 ```
 
-Note: `mudproto_client/client.py` is now considered legacy and is no longer an actively supported client path.
+Note: the old terminal client path was intentionally removed and should not be recreated.
 
 First commands to try:
 
@@ -116,8 +116,6 @@ mudproto/
 |- ARCHITECTURE.md
 |- ASSET_GENERATION.md
 |- LLM_CONTENT_GENERATION.md
-|- mudproto_client/
-|  |- client.py (legacy)
 |- mudproto_client_gui/
 |  |- client_gui.py
 |- mudproto_llm_interfaces/

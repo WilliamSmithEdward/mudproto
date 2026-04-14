@@ -1,7 +1,7 @@
 import re
 
 from containers import put_item_into_container, resolve_accessible_container, split_item_and_container_selectors
-from display_core import build_part
+from display_core import build_part, newline_part
 from display_feedback import display_command_result, display_error
 from item_logic import _build_item_reference_parts, _item_highlight_color, _use_misc_item
 from models import ClientSession
@@ -69,7 +69,7 @@ def handle_item_drop_command(
         ]
         for item in dropped_items:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(item.name, _item_highlight_color(item), True),
             ])
@@ -110,7 +110,7 @@ def handle_item_drop_command(
 
         return display_command_result(session, [
             build_part("You drop all carried items.", "bright_white"),
-            build_part("\n"),
+            newline_part(),
             build_part("Items dropped: ", "bright_white"),
             build_part(str(dropped_count), "bright_yellow", True),
         ])

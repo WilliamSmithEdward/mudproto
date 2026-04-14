@@ -12,8 +12,26 @@ def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
     }
 
 
+def newline_part(count: int = 1) -> dict:
+    if count <= 0:
+        return build_part("")
+    return build_part("\n" * count)
+
+
 def build_line(*parts: dict) -> list[dict]:
     return [part for part in parts if isinstance(part, dict)]
+
+
+def with_leading_blank_lines(parts: list[dict], count: int = 1) -> list[dict]:
+    if count <= 0:
+        return list(parts)
+    return [build_part("\n" * count), *list(parts)]
+
+
+def with_prompt_gap(prompt_parts: list[dict], gap_lines: int = 2) -> list[dict]:
+    if gap_lines <= 0:
+        return list(prompt_parts)
+    return [build_part("\n" * gap_lines), *list(prompt_parts)]
 
 
 def _panel_divider() -> str:
@@ -59,9 +77,9 @@ def build_menu_table_parts(
     if not normalized_rows:
         return [
             build_part(_panel_title_line(title), "bright_cyan", True),
-            build_part("\n"),
+            newline_part(),
             build_part(_panel_divider(), "bright_black"),
-            build_part("\n"),
+            newline_part(),
             build_part(empty_message, "bright_white"),
         ]
 
@@ -84,9 +102,9 @@ def build_menu_table_parts(
 
     parts: list[dict] = [
         build_part(str(title).strip().center(panel_width), "bright_cyan", True),
-        build_part("\n"),
+        newline_part(),
         build_part("-" * panel_width, "bright_black"),
-        build_part("\n"),
+        newline_part(),
     ]
 
     for col_index in range(column_count):
@@ -96,12 +114,12 @@ def build_menu_table_parts(
             parts.append(build_part(" " * gap, "bright_white"))
 
     parts.extend([
-        build_part("\n"),
+        newline_part(),
         build_part("-" * panel_width, "bright_black"),
     ])
 
     for row_index, row in enumerate(normalized_rows):
-        parts.append(build_part("\n"))
+        parts.append(newline_part())
         for col_index in range(column_count):
             cell_color = column_colors[col_index]
             if row_cell_colors is not None and row_index < len(row_cell_colors):
@@ -198,61 +216,21 @@ def _sanitize_lines(lines: list[list[dict]]) -> list[list[dict]]:
     return sanitized_lines
 
 
-def _trim_empty_edge_lines(lines: list[list[dict]]) -> tuple[int, list[list[dict]], int]:
-    trimmed_lines = list(lines)
-    blank_lines_before = 0
-    blank_lines_after = 0
-
-    while trimmed_lines and not trimmed_lines[0]:
-        blank_lines_before += 1
-        trimmed_lines.pop(0)
-
-    while trimmed_lines and not trimmed_lines[-1]:
-        blank_lines_after += 1
-        trimmed_lines.pop()
-
-    return blank_lines_before, trimmed_lines, blank_lines_after
-
-
-def _blank_lines(count: int) -> list[list[dict]]:
-    return [[] for _ in range(max(0, count))]
-
-
 def build_display(
     parts: list[dict],
     *,
-    blank_lines_before: int = 1,
-    blank_lines_after: int = 0,
     prompt_after: bool = False,
     prompt_parts: list[dict] | None = None,
-    starts_on_new_line: bool = False,
     is_error: bool = False,
 ) -> dict:
-    content_lines = parts_to_lines(_capitalize_parts(parts))
-    extra_blank_lines_before, content_lines, extra_blank_lines_after = _trim_empty_edge_lines(content_lines)
-
-    effective_blank_lines_before = blank_lines_before + extra_blank_lines_before
-    effective_blank_lines_after = blank_lines_after + extra_blank_lines_after
-
-    sanitized_content_lines = _sanitize_lines(content_lines)
+    sanitized_content_lines = _sanitize_lines(parts_to_lines(_capitalize_parts(parts)))
 
     prompt_lines: list[list[dict]] = []
     if prompt_after and prompt_parts:
         prompt_lines = _sanitize_lines(parts_to_lines(_capitalize_parts(prompt_parts)))
 
-    display_lines = _blank_lines(effective_blank_lines_before) + sanitized_content_lines
-
-    if prompt_lines:
-        prompt_prefix_blank_lines = 2 if sanitized_content_lines else effective_blank_lines_after
-        prompt_lines = _blank_lines(prompt_prefix_blank_lines) + prompt_lines
-    else:
-        display_lines.extend(_blank_lines(effective_blank_lines_after))
-
-    if starts_on_new_line:
-        display_lines = [[]] + display_lines
-
     return build_response("display", {
-        "lines": display_lines,
+        "lines": sanitized_content_lines,
         "prompt_lines": prompt_lines,
         "is_error": bool(is_error),
     })
@@ -261,28 +239,38 @@ def build_display(
 def build_display_lines(
     lines: list[list[dict]],
     *,
-    blank_lines_before: int = 1,
-    blank_lines_after: int = 0,
     prompt_after: bool = False,
     prompt_parts: list[dict] | None = None,
-    starts_on_new_line: bool = False,
 ) -> dict:
+    trailing_empty_count = 0
+    for line in reversed(lines):
+        if isinstance(line, list) and not line:
+            trailing_empty_count += 1
+            continue
+        break
+
     flattened_parts: list[dict] = []
     for index, line in enumerate(lines):
         if index > 0:
-            flattened_parts.append(build_part("\n"))
+            flattened_parts.append(newline_part())
         for part in line:
             if isinstance(part, dict):
                 flattened_parts.append(_normalize_part(part))
 
-    return build_display(
+    outbound = build_display(
         flattened_parts,
-        blank_lines_before=blank_lines_before,
-        blank_lines_after=blank_lines_after,
         prompt_after=prompt_after,
         prompt_parts=prompt_parts,
-        starts_on_new_line=starts_on_new_line,
     )
+
+    if trailing_empty_count > 0:
+        payload = outbound.get("payload") if isinstance(outbound, dict) else None
+        if isinstance(payload, dict):
+            existing_lines = payload.get("lines")
+            if isinstance(existing_lines, list):
+                existing_lines.extend([[] for _ in range(trailing_empty_count)])
+
+    return outbound
 
 
 def display_text(
@@ -290,15 +278,11 @@ def display_text(
     *,
     fg: str = "bright_white",
     bold: bool = False,
-    blank_lines_before: int = 1,
-    blank_lines_after: int = 0,
     prompt_after: bool = False,
     prompt_parts: list[dict] | None = None,
 ) -> dict:
     return build_display(
         [build_part(text, fg, bold)],
-        blank_lines_before=blank_lines_before,
-        blank_lines_after=blank_lines_after,
         prompt_after=prompt_after,
         prompt_parts=prompt_parts,
     )

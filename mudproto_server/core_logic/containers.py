@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-from display_core import build_menu_table_parts, build_part
+from display_core import build_menu_table_parts, build_part, newline_part
 from display_feedback import display_command_result, display_error
 from grammar import with_article
 from inventory import consume_item_on_use, get_item_keywords, hydrate_misc_item_from_template, item_unlocks_lock, parse_item_selector
@@ -339,9 +339,9 @@ def display_container_examination(
         description = str(getattr(container, "description", "")).strip()
         if description:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part("Description", "bright_white", True),
-                build_part("\n"),
+                newline_part(),
                 build_part(description, "bright_white"),
             ])
 
@@ -379,13 +379,13 @@ def take_all_from_container(session: ClientSession, container: ContainerTarget):
     ]
     if taken_coins > 0:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part("Coins +", "bright_white"),
             build_part(str(taken_coins), "bright_cyan", True),
         ])
     for item in taken_items:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part("You take ", "bright_white"),
             *_build_item_reference_parts(item),
             build_part(".", "bright_white"),
@@ -601,7 +601,7 @@ def handle_container_command(
         consume_message = consume_item_on_use(session, key_item)
         if consume_message:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(consume_message, "bright_white"),
             ])
         return display_command_result(session, parts)
@@ -633,7 +633,7 @@ def handle_container_command(
     consume_message = consume_item_on_use(session, key_item)
     if consume_message:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part(consume_message, "bright_white"),
         ])
     return display_command_result(session, parts)

@@ -5,7 +5,7 @@ import re
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id
-from display_core import build_menu_table_parts, build_part
+from display_core import build_menu_table_parts, build_part, newline_part
 from display_feedback import display_command_result
 from equipment_logic import unequip_item
 from inventory import build_equippable_item_from_template, is_item_equippable
@@ -395,7 +395,7 @@ def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage
         empty_message="Nothing is for sale right now.",
     )
     parts.extend([
-        build_part("\n"),
+        newline_part(),
         build_part("Commands: ", "bright_white"),
         build_part("buy <item>", "bright_yellow", True),
         build_part(", ", "bright_white"),

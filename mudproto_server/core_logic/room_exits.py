@@ -2,7 +2,7 @@
 
 import re
 
-from display_core import build_part
+from display_core import build_part, newline_part
 from inventory import consume_item_on_use, get_item_keywords, item_unlocks_lock
 from models import ClientSession
 from world import Room, get_room
@@ -378,7 +378,7 @@ def handle_room_exit_command(
         consume_message = consume_item_on_use(session, key_item)
         if consume_message:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(consume_message, "bright_white"),
             ])
         return display_command_result(session, parts)
@@ -411,7 +411,7 @@ def handle_room_exit_command(
     consume_message = consume_item_on_use(session, key_item)
     if consume_message:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part(consume_message, "bright_white"),
         ])
     return display_command_result(session, parts)

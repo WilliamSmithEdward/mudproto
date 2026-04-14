@@ -2,7 +2,7 @@
 
 from attribute_config import player_class_uses_mana
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
-from display_core import build_line, build_part, parts_to_lines
+from display_core import build_line, build_part, newline_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from experience import award_experience
 from display_room import display_exits, display_room
@@ -239,13 +239,13 @@ def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int
     resource_gains = roll_level_resource_gains(session, old_level, new_level)
     show_mana = player_class_uses_mana(session.player.class_id)
     parts: list[dict] = []
-    parts.append(build_part("\n"))
+    parts.append(newline_part())
     parts.extend([
         build_part("You advance to level ", "bright_green", True),
         build_part(str(new_level), "bright_green", True),
         build_part("!", "bright_green", True),
     ])
-    parts.append(build_part("\n"))
+    parts.append(newline_part())
     parts.extend([
         build_part("Level gains: ", "bright_white"),
         build_part(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
@@ -257,7 +257,7 @@ def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int
             build_part(" ", "bright_white"),
             build_part(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
         ])
-    parts.append(build_part("\n"))
+    parts.append(newline_part())
     return parts_to_lines(parts)
 
 

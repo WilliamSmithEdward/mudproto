@@ -1,7 +1,7 @@
 import re
 
 from display_character import display_equipment
-from display_core import build_part
+from display_core import build_part, newline_part
 from display_feedback import display_command_result, display_error
 from equipment_logic import (
     HAND_BOTH,
@@ -195,7 +195,7 @@ def handle_equipment_command(
             ]
             for item_name, slot_name in worn_results:
                 parts.extend([
-                    build_part("\n"),
+                    newline_part(),
                     build_part(" - ", "bright_white"),
                     build_part(item_name, "bright_cyan", True),
                     build_part(" on your ", "bright_white"),
@@ -230,7 +230,7 @@ def handle_equipment_command(
             ]
             for item_name, slot_name in worn_results:
                 parts.extend([
-                    build_part("\n"),
+                    newline_part(),
                     build_part(" - ", "bright_white"),
                     build_part(item_name, "bright_cyan", True),
                     build_part(" on your ", "bright_white"),
@@ -297,7 +297,7 @@ def handle_equipment_command(
             ]
             for item in removed_items:
                 parts.extend([
-                    build_part("\n"),
+                    newline_part(),
                     build_part(" - ", "bright_white"),
                     build_part(item.name, _item_highlight_color(item), True),
                 ])
@@ -325,7 +325,7 @@ def handle_equipment_command(
             ]
             for item in removed_items:
                 parts.extend([
-                    build_part("\n"),
+                    newline_part(),
                     build_part(" - ", "bright_white"),
                     build_part(item.name, _item_highlight_color(item), True),
                 ])

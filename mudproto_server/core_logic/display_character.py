@@ -6,7 +6,7 @@ from models import ClientSession
 from player_resources import get_player_resource_caps
 from world import get_room
 
-from display_core import build_display, build_menu_table_parts, build_part
+from display_core import build_display, build_menu_table_parts, build_part, newline_part, with_leading_blank_lines
 from display_feedback import resolve_prompt
 
 
@@ -63,7 +63,7 @@ def _format_effect_remaining_duration(effect) -> str:
 
 
 def display_score(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
     caps = get_player_resource_caps(session)
     xp_total = max(0, int(session.player.experience_points))
     xp_to_next = get_xp_to_next_level(xp_total)
@@ -135,24 +135,24 @@ def display_score(session: ClientSession) -> dict:
 
     parts: list[dict] = [
         build_part(title_line, "bright_cyan", True),
-        build_part("\n"),
+        newline_part(),
         build_part(divider, "bright_black"),
-        build_part("\n"),
+        newline_part(),
         build_part("Name: ", "bright_white"),
         build_part(character_name, "bright_yellow", True),
         build_part("   Class: ", "bright_white"),
         build_part(class_name, "bright_cyan", True),
         build_part("   Level: ", "bright_white"),
         build_part(level_text, "bright_green", True),
-        build_part("\n"),
+        newline_part(),
         build_part("Location: ", "bright_white"),
         build_part(room_name, "bright_magenta", True),
-        build_part("\n"),
+        newline_part(),
         build_part("Posture: ", "bright_white"),
         build_part(posture_label, "bright_cyan", True),
-        build_part("\n"),
+        newline_part(),
         build_part(divider, "bright_black"),
-        build_part("\n"),
+        newline_part(),
         build_part("Health: ", "bright_white"),
         build_part(f"{hp_now}/{hp_cap}", _resource_color(hp_now, hp_cap), True),
         build_part("   Vigor: ", "bright_white"),
@@ -166,17 +166,17 @@ def display_score(session: ClientSession) -> dict:
         ])
 
     parts.extend([
-        build_part("\n"),
+        newline_part(),
         build_part("Coins: ", "bright_white"),
         build_part(coins_text, "bright_cyan", True),
-        build_part("\n"),
+        newline_part(),
         build_part("Experience: ", "bright_white"),
         build_part(str(xp_total), "bright_cyan", True),
         build_part("   To Next Level: ", "bright_white"),
         build_part(str(xp_to_next), "bright_green", True),
-        build_part("\n"),
+        newline_part(),
         build_part(divider, "bright_black"),
-        build_part("\n"),
+        newline_part(),
         build_part("Attributes", "bright_white", True),
     ])
 
@@ -187,7 +187,7 @@ def display_score(session: ClientSession) -> dict:
         attribute_name = str(attribute.get("name", attribute_id)).strip() or attribute_id
         value = int(session.player.attributes.get(attribute_id, 0))
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part(" - ", "bright_white"),
             build_part(attribute_name, "bright_cyan", True),
             build_part(" (", "bright_white"),
@@ -197,15 +197,15 @@ def display_score(session: ClientSession) -> dict:
         ])
 
     parts.extend([
-        build_part("\n"),
+        newline_part(),
         build_part(divider, "bright_black"),
-        build_part("\n"),
+        newline_part(),
         build_part("Active Effects", "bright_white", True),
     ])
 
     if not active_effects:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part(" - None", "bright_black"),
         ])
     else:
@@ -213,7 +213,7 @@ def display_score(session: ClientSession) -> dict:
             effect_name = str(getattr(effect, "spell_name", "Effect")).strip() or "Effect"
             duration_text = _format_effect_remaining_duration(effect)
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(effect_name, "bright_magenta", True),
                 build_part(" (", "bright_white"),
@@ -221,11 +221,11 @@ def display_score(session: ClientSession) -> dict:
                 build_part(" remaining)", "bright_white"),
             ])
 
-    return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_equipment(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
     worn_items = list_worn_items(session)
     rows = [[str(wear_slot), str(item.name)] for wear_slot, item in worn_items]
     parts = build_menu_table_parts(
@@ -237,11 +237,13 @@ def display_equipment(session: ClientSession) -> dict:
         empty_message="Nothing is worn.",
     )
 
+    parts = with_leading_blank_lines(parts)
+
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_inventory(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
     inventory_items = list(session.inventory_items.values())
     inventory_items.sort(key=lambda item: item.name.lower())
 
@@ -277,5 +279,7 @@ def display_inventory(session: ClientSession) -> dict:
         column_alignments=["left", "right"],
         empty_message="Inventory is empty.",
     )
+
+    parts = with_leading_blank_lines(parts)
 
     return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)

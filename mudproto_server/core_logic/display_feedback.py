@@ -10,7 +10,7 @@ from session_timing import is_session_lagged
 from targeting_entities import list_room_entities
 from targeting_follow import _find_session_by_identity_key
 
-from display_core import build_display, build_part, display_text
+from display_core import build_display, build_display_lines, build_part, with_leading_blank_lines, with_prompt_gap
 from room_exits import format_prompt_exit_token
 
 
@@ -166,59 +166,70 @@ def mark_prompt_pending(session: ClientSession) -> None:
     session.prompt_pending_after_lag = True
 
 
-def resolve_prompt(session: ClientSession, prompt_after: bool) -> tuple[bool, list[dict] | None]:
+def resolve_prompt(
+    session: ClientSession,
+    prompt_after: bool,
+    *,
+    prompt_gap_lines: int = 0,
+) -> tuple[bool, list[dict] | None]:
     if not prompt_after:
         return False, None
 
     if should_show_prompt(session):
         session.prompt_pending_after_lag = False
-        return True, build_prompt_parts(session)
+        prompt_parts = with_prompt_gap(build_prompt_parts(session), prompt_gap_lines)
+        return True, prompt_parts
 
     mark_prompt_pending(session)
     return False, None
 
 
+def resolve_prompt_parts(
+    session: ClientSession,
+    prompt_after: bool,
+    *,
+    prompt_gap_lines: int = 0,
+) -> list[dict] | None:
+    _prompt_after, prompt_parts = resolve_prompt(session, prompt_after, prompt_gap_lines=prompt_gap_lines)
+    return prompt_parts if _prompt_after else None
+
+
 def display_prompt(session: ClientSession) -> dict:
     prompt_after, prompt_parts = resolve_prompt(session, True)
-    return build_display([], blank_lines_before=0, prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display([], prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_force_prompt(session: ClientSession) -> dict:
+    prompt_parts = with_prompt_gap(build_prompt_parts(session), 1)
     return build_display(
         [],
-        blank_lines_before=0,
-        blank_lines_after=1,
-        prompt_after=True,
-        prompt_parts=build_prompt_parts(session),
-    )
-
-
-def display_connected(session: ClientSession) -> dict:
-    return build_display([
-        build_part("Connection established.", "bright_green", True),
-    ])
-
-
-def display_hello(name: str, session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
-    return build_display([
-        build_part("Hello, ", "bright_green"),
-        build_part(str(name), "bright_white", True),
-    ], prompt_after=prompt_after, prompt_parts=prompt_parts)
-
-
-def display_pong(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
-    return display_text(
-        "Ping received.",
-        fg="bright_cyan",
-        prompt_after=prompt_after,
+        prompt_after=bool(prompt_parts),
         prompt_parts=prompt_parts,
     )
 
 
+def display_connected(session: ClientSession) -> dict:
+    parts = with_leading_blank_lines([build_part("Connection established.", "bright_green", True)])
+    return build_display(parts)
+
+
+def display_hello(name: str, session: ClientSession) -> dict:
+    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
+    return build_display(with_leading_blank_lines([
+        build_part("Hello, ", "bright_green"),
+        build_part(str(name), "bright_white", True),
+    ]), prompt_after=bool(prompt_parts), prompt_parts=prompt_parts)
+
+
+def display_pong(session: ClientSession) -> dict:
+    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
+    return build_display(with_leading_blank_lines([
+        build_part("Ping received.", "bright_cyan"),
+    ]), prompt_after=bool(prompt_parts), prompt_parts=prompt_parts)
+
+
 def display_whoami(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
+    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
     caps = get_player_resource_caps(session)
     me_condition, me_condition_color = get_health_condition(session.status.hit_points, caps["hit_points"])
     engaged_entity = get_engaged_entity(session)
@@ -258,7 +269,7 @@ def display_whoami(session: ClientSession) -> dict:
             build_part(").", "bright_white"),
         ])
 
-    return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display(with_leading_blank_lines(parts), prompt_after=bool(prompt_parts), prompt_parts=prompt_parts)
 
 
 def _find_room_merchant(session: ClientSession | None):
@@ -375,53 +386,54 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
 
 
 def display_error(message: str, session: ClientSession | None = None) -> dict:
-    prompt_after = False
     prompt_parts: list[dict] | None = None
 
     if session is not None:
-        prompt_after, prompt_parts = resolve_prompt(session, True)
+        prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
 
     return build_display(
-        _build_lore_error_parts(message, session),
-        prompt_after=prompt_after,
+        with_leading_blank_lines(_build_lore_error_parts(message, session)),
+        prompt_after=bool(prompt_parts),
         prompt_parts=prompt_parts,
         is_error=True,
     )
 
 
 def display_system(message: str) -> dict:
-    return display_text(message, fg="bright_cyan")
+    return build_display(with_leading_blank_lines([
+        build_part(message, "bright_cyan"),
+    ]))
 
 
 def display_queue_ack(session: ClientSession, command_text: str) -> dict:
     mark_prompt_pending(session)
-    return build_display([
+    return build_display(with_leading_blank_lines([
         build_part("Queued: ", "bright_yellow", True),
         build_part(f'"{command_text}"', "bright_white"),
-    ])
+    ]))
 
 
 def display_command_result(
     session: ClientSession,
     parts: list[dict],
     *,
-    blank_lines_before: int = 1,
+    compact: bool = False,
     prompt_after: bool = True,
 ) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, prompt_after)
+    prompt_parts = resolve_prompt_parts(session, prompt_after, prompt_gap_lines=2)
+    content_parts = list(parts)
+    if not compact:
+        content_parts = with_leading_blank_lines(content_parts)
+
     return build_display(
-        parts,
-        blank_lines_before=blank_lines_before,
-        prompt_after=prompt_after,
+        content_parts,
+        prompt_after=bool(prompt_parts),
         prompt_parts=prompt_parts,
     )
 
 
 def display_combat_round_result(session: ClientSession, parts: list[dict]) -> dict:
-    return build_display(
-        parts,
-        blank_lines_before=0,
-        blank_lines_after=1,
-        prompt_after=False,
-        starts_on_new_line=False,
-    )
+    return build_display_lines([
+        [part for part in parts if isinstance(part, dict)],
+        [],
+    ])

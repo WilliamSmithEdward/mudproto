@@ -1,6 +1,6 @@
 from attribute_config import load_attributes
 from display_character import display_equipment, display_inventory, display_score
-from display_core import build_part
+from display_core import build_part, newline_part
 from display_feedback import display_command_result
 from models import ClientSession
 
@@ -33,7 +33,7 @@ def handle_character_command(
             name = str(attribute.get("name", attribute_id)).strip() or attribute_id
             value = int(session.player.attributes.get(attribute_id, 0))
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(name, "bright_cyan", True),
                 build_part(" (", "bright_white"),

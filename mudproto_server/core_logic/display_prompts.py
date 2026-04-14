@@ -1,7 +1,7 @@
 """Prompt builders for auth and character-creation flows."""
 
 from attribute_config import load_player_classes
-from display_core import build_part
+from display_core import build_part, newline_part
 from display_feedback import display_command_result, display_prompt
 from models import ClientSession
 
@@ -54,7 +54,7 @@ def build_class_prompt(session: ClientSession) -> dict[str, object]:
     ]
     for player_class in classes:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part(" - ", "bright_white"),
             build_part(str(player_class.get("class_id", "")), "bright_cyan", True),
             build_part(" (", "bright_white"),

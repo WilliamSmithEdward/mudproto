@@ -8,7 +8,7 @@ from session_registry import list_authenticated_room_players
 from targeting_entities import list_room_corpses, list_room_entities
 from world import Room, get_room
 
-from display_core import _panel_divider, _panel_title_line, build_display, build_part
+from display_core import _panel_divider, _panel_title_line, build_display, build_part, newline_part, with_leading_blank_lines
 from display_feedback import _direction_short_label, _direction_sort_key, resolve_prompt
 from room_exits import describe_exit_status
 
@@ -166,18 +166,18 @@ def _append_scan_player_summary(parts: list[dict], players: list[ClientSession],
 
 
 def display_exits(session: ClientSession, room: Room) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
     exit_items = sorted(room.exits.items(), key=lambda item: _direction_sort_key(item[0]))
 
     parts: list[dict] = [
         build_part(_panel_title_line("Exits"), "bright_cyan", True),
-        build_part("\n"),
+        newline_part(),
         build_part(_panel_divider(), "bright_black"),
     ]
 
     if not exit_items:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part("No visible exits.", "bright_white"),
         ])
     else:
@@ -186,7 +186,7 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             destination_room = get_room(destination_room_id)
             destination_label = destination_room.title if destination_room is not None else str(destination_room_id)
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(f"[{_direction_short_label(direction)}]", "bright_yellow", True),
                 build_part(" ", "bright_white"),
                 build_part(str(direction).strip().title().ljust(direction_width), "bright_cyan", True),
@@ -213,9 +213,9 @@ def display_exits(session: ClientSession, room: Room) -> dict:
     visible_players = _scan_visible_players(session, room.room_id)
     if visible_enemies or visible_unhostiles or visible_players:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part(_panel_divider(), "bright_black"),
-            build_part("\n"),
+            newline_part(),
             build_part("Here: ", "bright_white", True),
         ])
         appended_summary = False
@@ -226,7 +226,7 @@ def display_exits(session: ClientSession, room: Room) -> dict:
                 parts.append(build_part(" | ", "bright_black"))
             _append_scan_player_summary(parts, visible_players, prefix="Players: ")
 
-    return build_display(parts, blank_lines_before=1, prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def _summarize_entity_gear(entity) -> list[str]:
@@ -260,32 +260,32 @@ def _display_look_summary(
     condition_color: str,
     gear_summary: list[str],
 ) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
     parts = [
         build_part(_panel_title_line(title), title_color, True),
-        build_part("\n"),
+        newline_part(),
         build_part(_panel_divider(), "bright_black"),
-        build_part("\n"),
+        newline_part(),
         build_part("Condition: ", "bright_white", True),
         build_part(condition_text.title(), condition_color, True),
-        build_part("\n"),
+        newline_part(),
         build_part("Gear:", "bright_white", True),
     ]
 
     if gear_summary:
         for gear_line in gear_summary:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(gear_line, "bright_magenta", True),
             ])
     else:
         parts.extend([
-            build_part("\n"),
+            newline_part(),
             build_part("No obvious gear.", "bright_white"),
         ])
 
-    return build_display(parts, blank_lines_before=1, prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_entity_summary(session: ClientSession, entity) -> dict:
@@ -362,26 +362,26 @@ def _append_room_engagement_parts(parts: list[dict], target_name: str | None, *,
 
 
 def display_room(session: ClientSession, room: Room) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
 
     parts = [
         build_part(room.title, "bright_green", True),
-        build_part("\n"),
+        newline_part(),
         build_part(room.description, "bright_white"),
     ]
 
     entities = list_room_entities(session, room.room_id)
     if entities:
         parts.extend([
-            build_part("\n"),
-            build_part("\n"),
+            newline_part(),
+            newline_part(),
             build_part("You see here:", "bright_white", True),
         ])
 
         for entity in entities:
             entity_name_color = "bright_red" if is_entity_hostile_to_player(session, entity) else "bright_yellow"
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(entity.name, entity_name_color, True),
             ])
@@ -401,15 +401,15 @@ def display_room(session: ClientSession, room: Room) -> dict:
     other_players = list_authenticated_room_players(room.room_id, exclude_client_id=session.client_id)
     if other_players:
         parts.extend([
-            build_part("\n"),
-            build_part("\n"),
+            newline_part(),
+            newline_part(),
             build_part("Players here:", "bright_white", True),
         ])
 
         for other_player in other_players:
             player_name = other_player.authenticated_character_name.strip() or "Unknown"
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(player_name, "bright_cyan", True),
             ])
@@ -424,14 +424,14 @@ def display_room(session: ClientSession, room: Room) -> dict:
     corpses = list_room_corpses(session, room.room_id)
     if corpses:
         parts.extend([
-            build_part("\n"),
-            build_part("\n"),
+            newline_part(),
+            newline_part(),
             build_part("Corpses:", "bright_white", True),
         ])
 
         for corpse in corpses:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(
                     _build_corpse_label(
@@ -445,10 +445,10 @@ def display_room(session: ClientSession, room: Room) -> dict:
     room_coin_amount = max(0, int(session.room_coin_piles.get(room.room_id, 0)))
     if room_coin_amount > 0:
         parts.extend([
-            build_part("\n"),
-            build_part("\n"),
+            newline_part(),
+            newline_part(),
             build_part("Coin pile:", "bright_white", True),
-            build_part("\n"),
+            newline_part(),
             build_part(" - ", "bright_white"),
             build_part(str(room_coin_amount), "bright_cyan", True),
             build_part(" coins", "bright_white"),
@@ -474,13 +474,13 @@ def display_room(session: ClientSession, room: Room) -> dict:
 
     if room_items:
         parts.extend([
-            build_part("\n"),
-            build_part("\n"),
+            newline_part(),
+            newline_part(),
             build_part("Items on ground:", "bright_white", True),
         ])
         for item_key in room_item_order:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part(" - ", "bright_white"),
                 build_part(room_item_names[item_key], room_item_colors[item_key], True),
             ])
@@ -491,4 +491,4 @@ def display_room(session: ClientSession, room: Room) -> dict:
                     build_part(f"[{count}]", "bright_cyan", True),
                 ])
 
-    return build_display(parts, prompt_after=prompt_after, prompt_parts=prompt_parts)
+    return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)

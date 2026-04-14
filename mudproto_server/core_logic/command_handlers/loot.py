@@ -5,7 +5,7 @@ from containers import (
     take_all_from_container,
     take_item_from_container,
 )
-from display_core import build_part
+from display_core import build_part, newline_part
 from display_feedback import display_command_result, display_error
 from item_logic import _build_item_reference_parts
 from models import ClientSession
@@ -101,7 +101,7 @@ def handle_loot_command(
             ]
             for item in portable_matches:
                 parts.extend([
-                    build_part("\n"),
+                    newline_part(),
                     build_part("You take ", "bright_white"),
                     *_build_item_reference_parts(item),
                     build_part(".", "bright_white"),
@@ -152,20 +152,20 @@ def handle_loot_command(
         ]
         if total_coins > 0:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part("Coins +", "bright_white"),
                 build_part(str(total_coins), "bright_cyan", True),
             ])
         for item in looted_items:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part("You take ", "bright_white"),
                 *_build_item_reference_parts(item),
                 build_part(".", "bright_white"),
             ])
         if blocked_errors:
             parts.extend([
-                build_part("\n"),
+                newline_part(),
                 build_part("Some larger containers remain where they are.", "bright_black"),
             ])
 

@@ -6,7 +6,7 @@ from attribute_config import load_item_usage_config
 from assets import get_item_template_by_id, load_item_templates
 from command_handlers.types import OutboundResult
 from corpse_labels import build_corpse_label
-from display_core import build_menu_table_parts, build_part, parts_to_lines
+from display_core import build_menu_table_parts, build_part, newline_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from grammar import indefinite_article, resolve_player_pronouns, with_article
 from inventory import hydrate_misc_item_from_template, is_item_equippable
@@ -113,9 +113,9 @@ def _display_item_examination(session: ClientSession, item: ItemState, *, defaul
 
     description = str(getattr(item, "description", "")).strip() or "No description is available for this item."
     parts.extend([
-        build_part("\n"),
+        newline_part(),
         build_part("Description", "bright_white", True),
-        build_part("\n"),
+        newline_part(),
         build_part(description, "bright_white"),
     ])
 
@@ -276,7 +276,7 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
         room_parts = [build_part(observer_action, "bright_white")]
         if observer_context:
             room_parts.extend([
-                build_part("\n", "bright_white"),
+                newline_part(1, fg="bright_white"),
                 build_part(observer_context, "bright_white"),
             ])
         payload["room_broadcast_lines"] = parts_to_lines(room_parts)
