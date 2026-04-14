@@ -35,10 +35,35 @@ DIRECTION_ALIASES = {
     "dow": "down",
 }
 
+ALONE_SUFFIXES = {"al", "alo", "alon", "alone"}
+
 
 def normalize_direction(direction: str) -> str:
     direction = direction.lower().strip()
     return DIRECTION_ALIASES.get(direction, direction)
+
+
+def _direction_move_is_alone(args: list[str]) -> bool:
+    if not args:
+        return False
+
+    first_arg = str(args[0]).strip().lower()
+    return first_arg in ALONE_SUFFIXES
+
+
+def _set_allow_followers(outbound: OutboundResult, allow_followers: bool) -> OutboundResult:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        movement = payload.get("movement")
+        if not isinstance(movement, dict):
+            continue
+        movement["allow_followers"] = bool(allow_followers)
+    return outbound
 
 
 def build_auto_aggro_outbound(session: ClientSession, room_display: OutboundMessage) -> OutboundResult:
@@ -161,10 +186,13 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
 def handle_movement_command(
     session: ClientSession,
     verb: str,
-    _args: list[str],
+    args: list[str],
     _command_text: str,
 ) -> HandledResult:
     if normalize_direction(verb) in {"north", "south", "east", "west", "up", "down"}:
-        return try_move(session, verb)
+        outbound = try_move(session, verb)
+        if _direction_move_is_alone(args):
+            return _set_allow_followers(outbound, False)
+        return outbound
 
     return None
