@@ -246,6 +246,37 @@ class MudProtoGuiClient:
                 pass
         self._schedule_input_focus_restore()
 
+    def _global_backspace(self) -> str:
+        insert_index = int(self.input_entry.index(tk.INSERT))
+        if insert_index > 0:
+            self.input_entry.delete(insert_index - 1)
+        return "break"
+
+    def _global_delete(self) -> str:
+        insert_index = int(self.input_entry.index(tk.INSERT))
+        current_text = self.input_entry.get()
+        if insert_index < len(current_text):
+            self.input_entry.delete(insert_index)
+        return "break"
+
+    def _global_left(self) -> str:
+        insert_index = max(0, int(self.input_entry.index(tk.INSERT)) - 1)
+        self.input_entry.icursor(insert_index)
+        return "break"
+
+    def _global_right(self) -> str:
+        insert_index = min(len(self.input_entry.get()), int(self.input_entry.index(tk.INSERT)) + 1)
+        self.input_entry.icursor(insert_index)
+        return "break"
+
+    def _global_home(self) -> str:
+        self.input_entry.icursor(0)
+        return "break"
+
+    def _global_end(self) -> str:
+        self.input_entry.icursor(tk.END)
+        return "break"
+
     def _on_global_key_press(self, event) -> str | None:
         if event is None:
             return None
@@ -269,37 +300,20 @@ class MudProtoGuiClient:
         except tk.TclError:
             return None
 
-        if keysym == "Return":
-            return self.on_submit()
-        if keysym == "BackSpace":
-            insert_index = int(self.input_entry.index(tk.INSERT))
-            if insert_index > 0:
-                self.input_entry.delete(insert_index - 1)
-            return "break"
-        if keysym == "Delete":
-            insert_index = int(self.input_entry.index(tk.INSERT))
-            current_text = self.input_entry.get()
-            if insert_index < len(current_text):
-                self.input_entry.delete(insert_index)
-            return "break"
-        if keysym == "Left":
-            insert_index = max(0, int(self.input_entry.index(tk.INSERT)) - 1)
-            self.input_entry.icursor(insert_index)
-            return "break"
-        if keysym == "Right":
-            insert_index = min(len(self.input_entry.get()), int(self.input_entry.index(tk.INSERT)) + 1)
-            self.input_entry.icursor(insert_index)
-            return "break"
-        if keysym == "Home":
-            self.input_entry.icursor(0)
-            return "break"
-        if keysym == "End":
-            self.input_entry.icursor(tk.END)
-            return "break"
-        if keysym == "Up":
-            return self.on_history_up()
-        if keysym == "Down":
-            return self.on_history_down()
+        key_handlers = {
+            "Return": self.on_submit,
+            "BackSpace": self._global_backspace,
+            "Delete": self._global_delete,
+            "Left": self._global_left,
+            "Right": self._global_right,
+            "Home": self._global_home,
+            "End": self._global_end,
+            "Up": self.on_history_up,
+            "Down": self.on_history_down,
+        }
+        handler = key_handlers.get(keysym)
+        if handler is not None:
+            return handler()
 
         if event_char and event_char.isprintable():
             self.input_entry.insert(tk.INSERT, event_char)

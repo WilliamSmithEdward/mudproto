@@ -1,6 +1,6 @@
 """Movement, room notices, and follow propagation helpers for `server.py`."""
 
-import json
+import copy
 
 from combat_state import maybe_auto_engage_current_room
 from display_core import build_display, build_line, build_part, newline_part
@@ -115,9 +115,9 @@ def _refresh_origin_room_display(origin_session: ClientSession, outbound: dict |
             continue
 
         if isinstance(refreshed_lines, list):
-            payload["lines"] = json.loads(json.dumps(refreshed_lines))
+            payload["lines"] = copy.deepcopy(refreshed_lines)
         if isinstance(refreshed_prompt_lines, list):
-            payload["prompt_lines"] = json.loads(json.dumps(refreshed_prompt_lines))
+            payload["prompt_lines"] = copy.deepcopy(refreshed_prompt_lines)
         break
 
 

@@ -6,6 +6,7 @@ import uuid
 
 from assets import get_gear_template_by_id
 from combat_ability_effects import _process_entity_battle_round_support_effects, process_entity_battle_round_tick
+from display_core import build_display, build_part, with_leading_blank_lines
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
 from session_registry import active_character_sessions, connected_clients, shared_world_entities, shared_world_flags
@@ -270,7 +271,6 @@ def apply_entity_defeat_flags(session: ClientSession, entity: EntityState) -> No
 
 
 def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
-    from display_core import build_display, build_part, with_leading_blank_lines
     from display_feedback import resolve_prompt_default
 
     prompt_after, prompt_parts = resolve_prompt_default(session, True)
