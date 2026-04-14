@@ -59,6 +59,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     support_context = str(skill.get("support_context", "")).strip()
     observer_action = str(skill.get("observer_action", "")).strip()
     observer_context = str(skill.get("observer_context", "")).strip()
+    target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
     scaling_bonus = _resolve_player_skill_scale_bonus(session, skill)
     actor_name = session.authenticated_character_name or "Someone"
 
@@ -306,6 +307,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             _mark_entity_contributor(session, entity)
             dealt = _apply_entity_damage_with_reduction(entity, total_damage)
             total_damage_dealt += max(0, dealt)
+            if dealt > 0 and target_lag_rounds > 0 and entity.is_alive:
+                entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
             if resolved_context:
                 parts.append(build_part(resolved_context))
                 damage_observer_lines.append(resolved_context)
