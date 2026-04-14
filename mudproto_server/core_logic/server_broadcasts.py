@@ -1,6 +1,6 @@
 """Room broadcast and outbound-normalization helpers for `server.py`."""
 
-import json
+import copy
 import re
 
 from command_handlers.parsing import parse_command
@@ -171,7 +171,7 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
         if not isinstance(lines, list) or not lines:
             continue
 
-        copied_message = json.loads(json.dumps(message))
+        copied_message = copy.deepcopy(message)
         copied_payload = copied_message.get("payload")
         if isinstance(copied_payload, dict):
             if bool(copied_payload.get("is_error", False)):
@@ -467,7 +467,7 @@ async def _send_room_broadcast(
 
     peers = _iter_room_peers(origin_session)
     for peer in peers:
-        peer_messages = json.loads(json.dumps(broadcast_messages))
+        peer_messages = copy.deepcopy(broadcast_messages)
         for message in peer_messages:
             if not isinstance(message, dict) or message.get("type") != "display":
                 continue

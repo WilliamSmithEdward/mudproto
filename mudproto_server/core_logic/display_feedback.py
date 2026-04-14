@@ -9,6 +9,7 @@ from player_resources import get_player_resource_caps
 from session_timing import is_session_lagged
 from targeting_entities import list_room_entities
 from targeting_follow import _find_session_by_identity_key
+from world import get_room
 
 from display_core import build_display, build_display_lines, build_part, with_leading_blank_lines, with_prompt_gap
 from room_exits import format_prompt_exit_token
@@ -59,9 +60,6 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
     if not session.is_authenticated:
         return [build_part("> ", "bright_white")]
 
-    import world as _world
-
-    get_room = getattr(_world, "get_room")
     room = get_room(session.player.current_room_id)
     exit_letters = ""
 
@@ -187,22 +185,8 @@ def resolve_prompt(
     return False, None
 
 
-def resolve_prompt_parts(
-    session: ClientSession,
-    prompt_after: bool,
-    *,
-    prompt_gap_lines: int = 0,
-) -> list[dict] | None:
-    _prompt_after, prompt_parts = resolve_prompt(session, prompt_after, prompt_gap_lines=prompt_gap_lines)
-    return prompt_parts if _prompt_after else None
-
-
 def resolve_prompt_default(session: ClientSession, prompt_after: bool) -> tuple[bool, list[dict] | None]:
     return resolve_prompt(session, prompt_after, prompt_gap_lines=PROMPT_GAP_LINES)
-
-
-def resolve_prompt_parts_default(session: ClientSession, prompt_after: bool) -> list[dict] | None:
-    return resolve_prompt_parts(session, prompt_after, prompt_gap_lines=PROMPT_GAP_LINES)
 
 
 def build_prompt_parts_default(session: ClientSession) -> list[dict]:
@@ -229,22 +213,22 @@ def display_connected(session: ClientSession) -> dict:
 
 
 def display_hello(name: str, session: ClientSession) -> dict:
-    prompt_parts = resolve_prompt_parts_default(session, True)
+    prompt_after, prompt_parts = resolve_prompt_default(session, True)
     return build_display(with_leading_blank_lines([
         build_part("Hello, ", "bright_green"),
         build_part(str(name), "bright_white", True),
-    ]), prompt_after=bool(prompt_parts), prompt_parts=prompt_parts)
+    ]), prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_pong(session: ClientSession) -> dict:
-    prompt_parts = resolve_prompt_parts_default(session, True)
+    prompt_after, prompt_parts = resolve_prompt_default(session, True)
     return build_display(with_leading_blank_lines([
         build_part("Ping received.", "bright_cyan"),
-    ]), prompt_after=bool(prompt_parts), prompt_parts=prompt_parts)
+    ]), prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def display_whoami(session: ClientSession) -> dict:
-    prompt_parts = resolve_prompt_parts_default(session, True)
+    prompt_after, prompt_parts = resolve_prompt_default(session, True)
     caps = get_player_resource_caps(session)
     me_condition, me_condition_color = get_health_condition(session.status.hit_points, caps["hit_points"])
     engaged_entity = get_engaged_entity(session)
@@ -284,7 +268,7 @@ def display_whoami(session: ClientSession) -> dict:
             build_part(").", "bright_white"),
         ])
 
-    return build_display(with_leading_blank_lines(parts), prompt_after=bool(prompt_parts), prompt_parts=prompt_parts)
+    return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
 
 
 def _find_room_merchant(session: ClientSession | None):
@@ -401,14 +385,15 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
 
 
 def display_error(message: str, session: ClientSession | None = None) -> dict:
+    prompt_after = False
     prompt_parts: list[dict] | None = None
 
     if session is not None:
-        prompt_parts = resolve_prompt_parts_default(session, True)
+        prompt_after, prompt_parts = resolve_prompt_default(session, True)
 
     return build_display(
         with_leading_blank_lines(_build_lore_error_parts(message, session)),
-        prompt_after=bool(prompt_parts),
+        prompt_after=prompt_after,
         prompt_parts=prompt_parts,
         is_error=True,
     )
@@ -435,14 +420,14 @@ def display_command_result(
     compact: bool = False,
     prompt_after: bool = True,
 ) -> dict:
-    prompt_parts = resolve_prompt_parts_default(session, prompt_after)
+    prompt_after, prompt_parts = resolve_prompt_default(session, prompt_after)
     content_parts = list(parts)
     if not compact:
         content_parts = with_leading_blank_lines(content_parts)
 
     return build_display(
         content_parts,
-        prompt_after=bool(prompt_parts),
+        prompt_after=prompt_after,
         prompt_parts=prompt_parts,
     )
 

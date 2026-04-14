@@ -57,7 +57,7 @@ def configure_windows_dpi_awareness() -> None:
         pass
 
     try:
-        # Legacy fallback
+        # Older Windows API fallback
         ctypes.windll.user32.SetProcessDPIAware()
     except Exception:
         pass
