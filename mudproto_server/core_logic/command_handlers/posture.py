@@ -35,7 +35,7 @@ def handle_posture_command(
         session.is_sitting = False
         session.is_resting = True
         return display_command_result(session, [
-            build_part("You rest.", "bright_white"),
+            build_part("You rest your tired bones.", "bright_white"),
         ])
 
     if verb in _STAND_VERBS:

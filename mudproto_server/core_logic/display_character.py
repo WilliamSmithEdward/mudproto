@@ -37,6 +37,14 @@ def _resource_color(current: int, maximum: int) -> str:
     return "bright_green"
 
 
+def _resolve_posture_label(session: ClientSession) -> str:
+    if bool(getattr(session, "is_resting", False)):
+        return "Resting"
+    if bool(getattr(session, "is_sitting", False)):
+        return "Sitting"
+    return "Standing"
+
+
 def _format_effect_remaining_duration(effect) -> str:
     support_mode = str(getattr(effect, "support_mode", "timed")).strip().lower() or "timed"
     if support_mode == "battle_rounds":
@@ -61,6 +69,7 @@ def display_score(session: ClientSession) -> dict:
     character_name = session.authenticated_character_name or "Unknown"
     room = get_room(session.player.current_room_id)
     room_name = room.title if room is not None else "Unknown"
+    posture_label = _resolve_posture_label(session)
 
     hp_now = max(0, int(session.status.hit_points))
     hp_cap = max(1, int(caps["hit_points"]))
@@ -75,6 +84,7 @@ def display_score(session: ClientSession) -> dict:
 
     summary_line = f"Name: {character_name}   Class: {class_name}   Level: {level_text}"
     location_line = f"Location: {room_name}"
+    posture_line = f"Posture: {posture_label}"
     resources_line = f"Health: {hp_now}/{hp_cap}   Vigor: {vigor_now}/{vigor_cap}"
     if show_mana:
         resources_line += f"   Mana: {mana_now}/{mana_cap}"
@@ -109,6 +119,7 @@ def display_score(session: ClientSession) -> dict:
         len("Adventurer's Ledger"),
         len(summary_line),
         len(location_line),
+        len(posture_line),
         len(resources_line),
         len(coins_line),
         len(xp_line),
@@ -134,6 +145,9 @@ def display_score(session: ClientSession) -> dict:
         build_part("\n"),
         build_part("Location: ", "bright_white"),
         build_part(room_name, "bright_magenta", True),
+        build_part("\n"),
+        build_part("Posture: ", "bright_white"),
+        build_part(posture_label, "bright_cyan", True),
         build_part("\n"),
         build_part(divider, "bright_black"),
         build_part("\n"),
