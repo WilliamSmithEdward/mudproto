@@ -363,15 +363,6 @@ def _engage_next_targeting_entity(
     return None
 
 
-def _decrement_cooldowns(cooldowns: dict[str, int]) -> None:
-    for key in list(cooldowns.keys()):
-        remaining = int(cooldowns.get(key, 0))
-        if remaining <= 1:
-            cooldowns.pop(key, None)
-        else:
-            cooldowns[key] = remaining - 1
-
-
 def _process_combat_round_timers(session: ClientSession, entities: list[EntityState]) -> None:
     from battle_round_ticks import process_player_battle_round_tick
 
@@ -388,13 +379,6 @@ def _consume_entity_action_lag(entity: EntityState) -> bool:
         return False
     entity.spell_lag_rounds_remaining -= 1
     return True
-
-
-def tick_out_of_combat_cooldowns(session: ClientSession) -> None:
-    """Compatibility wrapper for unified non-combat battleround mechanics."""
-    from battle_round_ticks import process_non_combat_support_round
-
-    process_non_combat_support_round(session)
 
 
 def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSession) -> bool:

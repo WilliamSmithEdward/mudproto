@@ -56,7 +56,19 @@ def process_player_battle_round_tick(session: ClientSession, elapsed_rounds: int
         _tick_player_skill_cooldowns(session)
 
 
-def process_non_combat_support_round(session: ClientSession) -> bool:
+def _compute_elapsed_rounds(now: float, due_at: float, interval_seconds: float, *, max_rounds: int | None = None) -> tuple[int, float]:
+    interval = max(0.001, float(interval_seconds))
+    elapsed_rounds = 0
+    next_due_at = float(due_at)
+    while now >= next_due_at:
+        elapsed_rounds += 1
+        next_due_at += interval
+        if max_rounds is not None and elapsed_rounds >= max_rounds:
+            break
+    return elapsed_rounds, next_due_at
+
+
+def process_non_combat_battleround_tick(session: ClientSession) -> bool:
     from combat_state import get_engaged_entity
 
     def _has_battle_round_activity() -> bool:
@@ -84,10 +96,11 @@ def process_non_combat_support_round(session: ClientSession) -> bool:
     if now < due_at:
         return False
 
-    elapsed_rounds = 0
-    while _has_battle_round_activity() and now >= due_at:
-        elapsed_rounds += 1
-        due_at += COMBAT_ROUND_INTERVAL_SECONDS
+    elapsed_rounds, due_at = _compute_elapsed_rounds(
+        now,
+        due_at,
+        COMBAT_ROUND_INTERVAL_SECONDS,
+    )
 
     if elapsed_rounds <= 0:
         return False

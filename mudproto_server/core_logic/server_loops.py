@@ -1,7 +1,7 @@
 import asyncio
 import random
 
-from battle_round_ticks import process_non_combat_support_round
+from battle_round_ticks import process_non_combat_battleround_tick
 from combat import resolve_combat_round
 from combat_ability_effects import process_entity_game_hour_tick
 from combat_state import (
@@ -182,7 +182,7 @@ async def command_scheduler_loop(session: ClientSession) -> None:
                     save_player_state(session)
                 session.next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
-            process_non_combat_support_round(session)
+            process_non_combat_battleround_tick(session)
 
             if session.is_authenticated and not session.combat.engaged_entity_ids:
                 maybe_auto_engage_current_room(session)

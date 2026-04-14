@@ -1,6 +1,6 @@
 import combat_state
 import battle_round_ticks
-from combat_state import _process_combat_round_timers, tick_out_of_combat_cooldowns
+from combat_state import _process_combat_round_timers
 from models import ActiveSupportEffectState, ClientSession
 
 
@@ -30,11 +30,12 @@ def test_out_of_combat_skill_cooldowns_tick_on_round_interval(monkeypatch) -> No
     fake_loop = _FakeLoop(100.0)
     monkeypatch.setattr(battle_round_ticks.asyncio, "get_running_loop", lambda: fake_loop)
 
-    tick_out_of_combat_cooldowns(session)
+    battle_round_ticks.process_non_combat_battleround_tick(session)
     assert session.combat.skill_cooldowns["skill.bash"] == 3
+    assert session.next_non_combat_battleround_tick_monotonic is not None
 
     fake_loop._now = 100.0 + combat_state.COMBAT_ROUND_INTERVAL_SECONDS
-    tick_out_of_combat_cooldowns(session)
+    battle_round_ticks.process_non_combat_battleround_tick(session)
 
     assert session.combat.skill_cooldowns["skill.bash"] == 2
 
@@ -53,11 +54,12 @@ def test_out_of_combat_skill_cooldowns_catch_up_multiple_rounds(monkeypatch) -> 
     fake_loop = _FakeLoop(200.0)
     monkeypatch.setattr(battle_round_ticks.asyncio, "get_running_loop", lambda: fake_loop)
 
-    tick_out_of_combat_cooldowns(session)
+    battle_round_ticks.process_non_combat_battleround_tick(session)
     fake_loop._now = 200.0 + (combat_state.COMBAT_ROUND_INTERVAL_SECONDS * 3.0)
-    tick_out_of_combat_cooldowns(session)
+    battle_round_ticks.process_non_combat_battleround_tick(session)
 
     assert "skill.bash" not in session.combat.skill_cooldowns
+    assert session.next_non_combat_battleround_tick_monotonic is None
 
 
 def test_in_combat_round_timers_tick_skill_cooldowns() -> None:
@@ -102,9 +104,9 @@ def test_combat_and_non_combat_battleround_parity(monkeypatch) -> None:
 
     # Non-combat path: advance time to trigger exactly n_rounds via non-combat scheduler.
     session_nc = _make_session_with_activity("client-parity-nc")
-    tick_out_of_combat_cooldowns(session_nc)   # sets due_at = 300 + interval
+    battle_round_ticks.process_non_combat_battleround_tick(session_nc)   # sets due_at = 300 + interval
     fake_loop._now = 300.0 + (interval * n_rounds)
-    tick_out_of_combat_cooldowns(session_nc)
+    battle_round_ticks.process_non_combat_battleround_tick(session_nc)
 
     # Combat path: call _process_combat_round_timers n_rounds times directly.
     session_c = _make_session_with_activity("client-parity-c")
@@ -115,3 +117,53 @@ def test_combat_and_non_combat_battleround_parity(monkeypatch) -> None:
     assert len(session_c.active_support_effects) == len(session_nc.active_support_effects)
     for ec, enc in zip(session_c.active_support_effects, session_nc.active_support_effects):
         assert ec.remaining_rounds == enc.remaining_rounds
+
+
+def test_non_combat_battleround_scheduler_advances_due_at_by_interval(monkeypatch) -> None:
+    session = _make_session("client-scheduler-advance", "Lucia")
+    session.combat.skill_cooldowns["skill.bash"] = 5
+
+    class _FakeLoop:
+        def __init__(self, now: float):
+            self._now = now
+
+        def time(self) -> float:
+            return self._now
+
+    fake_loop = _FakeLoop(400.0)
+    monkeypatch.setattr(battle_round_ticks.asyncio, "get_running_loop", lambda: fake_loop)
+
+    battle_round_ticks.process_non_combat_battleround_tick(session)
+    first_due_at = session.next_non_combat_battleround_tick_monotonic
+    assert first_due_at is not None
+
+    fake_loop._now = float(first_due_at)
+    battle_round_ticks.process_non_combat_battleround_tick(session)
+
+    second_due_at = session.next_non_combat_battleround_tick_monotonic
+    assert second_due_at is not None
+    assert second_due_at == first_due_at + combat_state.COMBAT_ROUND_INTERVAL_SECONDS
+
+
+def test_non_combat_battleround_scheduler_clears_when_no_activity(monkeypatch) -> None:
+    session = _make_session("client-scheduler-clear", "Lucia")
+    session.combat.skill_cooldowns["skill.bash"] = 1
+
+    class _FakeLoop:
+        def __init__(self, now: float):
+            self._now = now
+
+        def time(self) -> float:
+            return self._now
+
+    fake_loop = _FakeLoop(500.0)
+    monkeypatch.setattr(battle_round_ticks.asyncio, "get_running_loop", lambda: fake_loop)
+
+    battle_round_ticks.process_non_combat_battleround_tick(session)
+    due_at = session.next_non_combat_battleround_tick_monotonic
+    assert due_at is not None
+
+    fake_loop._now = float(due_at)
+    battle_round_ticks.process_non_combat_battleround_tick(session)
+
+    assert session.next_non_combat_battleround_tick_monotonic is None
