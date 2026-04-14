@@ -423,17 +423,18 @@ Optional life-steal style fields on damage spells:
 - `observer_restore_context`
 
 ### Support spell fields
-- `support_effect` â€” `heal`, `vigor`, or `mana`
+- `support_effect` — `heal`, `vigor`, `mana`, or `""` (empty for affect-only support spells)
 - `support_amount`
 - `support_dice_count`
 - `support_dice_sides`
 - `support_roll_modifier`
 - `support_scaling_attribute_id`
 - `support_scaling_multiplier`
-- `support_mode` â€” `instant`, `timed`, or `battle_rounds`
-- `duration_hours` â€” required when `support_mode` is `timed`
-- `duration_rounds` â€” required when `support_mode` is `battle_rounds`
-- `support_context` â€” **required for support spells**
+- `support_mode` — `instant`, `timed`, or `battle_rounds`
+- `duration_hours` — required when `support_mode` is `timed`
+- `duration_rounds` — required when `support_mode` is `battle_rounds`
+- `support_context` — **required for support spells**
+- `affect_ids` — optional array of affect overrides (see [Affects](#affects) below)
 
 Optional presentation fields:
 - `observer_action`
@@ -447,6 +448,7 @@ Optional presentation fields:
   "school": "Storm",
   "description": "A focused bolt of crackling force.",
   "spell_type": "damage",
+  "element": "storm",
   "cast_type": "target",
   "mana_cost": 12,
   "damage_dice_count": 10,
@@ -459,7 +461,7 @@ Optional presentation fields:
 }
 ```
 
-### Example support spell
+### Example support spell (with affect_ids)
 ```json
 {
   "spell_id": "spell.regeneration-ward",
@@ -467,20 +469,31 @@ Optional presentation fields:
   "school": "Restoration",
   "description": "A steady restorative ward that heals you each battle round, even outside combat.",
   "spell_type": "support",
+  "element": "restoration",
   "cast_type": "self",
   "mana_cost": 18,
   "support_effect": "heal",
-  "support_amount": 0,
-  "support_dice_count": 1,
-  "support_dice_sides": 21,
-  "support_roll_modifier": 39,
-  "support_scaling_attribute_id": "wis",
-  "support_scaling_multiplier": 1.0,
-  "support_mode": "battle_rounds",
-  "duration_rounds": 3,
+  "support_amount": 1,
+  "support_mode": "instant",
   "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
   "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
-  "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle."
+  "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle.",
+  "affect_ids": [
+    {
+      "affect_id": "affect.regeneration",
+      "name": "Regeneration Ward",
+      "target": "self",
+      "affect_mode": "battle_rounds",
+      "target_resource": "hit_points",
+      "amount": 0,
+      "dice_count": 1,
+      "dice_sides": 21,
+      "roll_modifier": 39,
+      "scaling_attribute_id": "wis",
+      "scaling_multiplier": 1.0,
+      "duration_rounds": 3
+    }
+  ]
 }
 ```
 
@@ -518,11 +531,12 @@ Optional on damage skills:
 - `observer_restore_context`
 
 ### Support skill fields
-- `support_effect` â€” `heal`, `vigor`, or `mana`
+- `support_effect` — `heal`, `vigor`, `mana`, `damage_reduction`, or `""` (empty for affect-only support skills)
 - `support_amount`
-- `support_context` â€” **required for support skills**
+- `support_context` — **required for support skills**
 - `observer_action`
 - `observer_context`
+- `affect_ids` — optional array of affect overrides (see [Affects](#affects) below)
 
 ### Example damage skill
 ```json
@@ -531,6 +545,7 @@ Optional on damage skills:
   "name": "Jab",
   "description": "A quick probing strike.",
   "skill_type": "damage",
+  "element": "physical",
   "cast_type": "target",
   "vigor_cost": 4,
   "usable_out_of_combat": false,
@@ -547,9 +562,71 @@ Optional on damage skills:
 }
 ```
 
+### Example affect-only support skill
+```json
+{
+  "skill_id": "skill.centered-guard",
+  "name": "Centered Guard",
+  "description": "A rooted defensive form that lets you bleed force away before it lands.",
+  "skill_type": "support",
+  "element": "physical",
+  "cast_type": "self",
+  "vigor_cost": 8,
+  "usable_out_of_combat": false,
+  "scaling_attribute_id": "con",
+  "scaling_multiplier": 0.5,
+  "level_scaling_multiplier": 0.5,
+  "support_effect": "",
+  "support_amount": 0,
+  "affect_ids": [
+    {
+      "affect_id": "affect.damage-reduction",
+      "name": "Centered Guard",
+      "target": "self",
+      "affect_mode": "battle_rounds",
+      "amount": 2,
+      "scaling_attribute_id": "con",
+      "scaling_multiplier": 0.5,
+      "level_scaling_multiplier": 0.5,
+      "duration_rounds": 3
+    }
+  ],
+  "support_mode": "battle_rounds",
+  "duration_rounds": 3,
+  "support_context": "You settle into a centered guard, turning the worst of each blow aside.",
+  "observer_action": "[actor_name] plants [actor_possessive] feet and draws a steady breath.",
+  "observer_context": "[actor_name] settles into a centered guard that blunts incoming strikes.",
+  "lag_rounds": 1,
+  "cooldown_rounds": 4
+}
+```
+
 ---
 
-## 6. Supported text placeholders
+## 6. Affects
+
+Skills and spells can reference affect templates defined in `configuration/attributes/affects.json` via the `affect_ids` array. Each entry overrides template defaults with skill/spell-specific values.
+
+### Available affect templates
+
+| Template ID | Type | Purpose |
+|---|---|---|
+| `affect.increase-received-damage` | `damage_received_multiplier` | Multiplies incoming damage on the target. `amount` is a multiplier (e.g. 1.1 = +10%). `damage_elements` restricts which elements are affected; empty = all. |
+| `affect.regeneration` | `regeneration` | Restores `target_resource` each tick. Supports `hit_points` (default), `mana`, or `vigor`. |
+| `affect.extra-hits` | `extra_hits` | Grants extra attacks per round. Specify base counts via `extra_main_hand_hits`, `extra_off_hand_hits`, `extra_unarmed_hits`. Level scaling adds bonus hits to types with base > 0 via `hits_per_level_step` / `level_step`. |
+| `affect.damage-reduction` | `damage_reduction` | Flat damage subtracted from each incoming hit. Strongest active reduction wins. |
+
+### Override fields
+
+Each `affect_ids` entry must include `affect_id` plus any of:
+
+`name`, `target` (self/target), `affect_mode` (instant/timed/battle_rounds), `amount`, `dice_count`, `dice_sides`, `roll_modifier`, `scaling_attribute_id`, `scaling_multiplier`, `level_scaling_multiplier`, `power_scaling_multiplier`, `duration_hours`, `duration_rounds`, `damage_elements`, `target_resource`, `extra_main_hand_hits`, `extra_off_hand_hits`, `extra_unarmed_hits`, `hits_per_level_step`, `level_step`.
+
+See `mudproto_server/documentation/affects.md` for full documentation and examples.
+
+---
+
+## 7. Supported text placeholders
 
 These are useful when writing flavor/context strings.
 
@@ -583,7 +660,7 @@ These are resolved in combat rendering code in `mudproto_server/combat.py`.
 
 ---
 
-## 7. Current attribute IDs for scaling
+## 8. Current attribute IDs for scaling
 
 When a spell or skill uses a scaling attribute, it must match one of the configured attributes in `configuration/attributes/character_attributes.json`.
 
@@ -596,7 +673,7 @@ Current valid ids:
 
 ---
 
-## 8. Common pitfalls to avoid
+## 9. Common pitfalls to avoid
 
 ### Donâ€™t do these
 - Put `wear_slots` on a weapon.
@@ -617,7 +694,7 @@ Current valid ids:
 
 ---
 
-## 9. Practical generation checklist for humans and LLMs
+## 10. Practical generation checklist for humans and LLMs
 
 Before saving a new asset, verify:
 
@@ -634,7 +711,7 @@ Before saving a new asset, verify:
 
 ---
 
-## 10. If you are adding a brand-new encounter
+## 11. If you are adding a brand-new encounter
 
 A reliable pattern is:
 
@@ -652,7 +729,7 @@ A reliable pattern is:
 
 ---
 
-## 11. Final guidance
+## 12. Final guidance
 
 If you are a human author or an AI coding agent, treat `mudproto_server/assets.py` as the source of truth for what is allowed. When in doubt:
 

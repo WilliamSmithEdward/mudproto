@@ -195,7 +195,8 @@ def build_instruction_payload() -> dict[str, object]:
                 "Damage abilities support secondary restore effects via restore_effect/restore_ratio/restore_context fields.",
                 "Skills support lag and cooldown controls including lag_rounds, cooldown_rounds, cooldown_hours, and target_lag_rounds.",
                 "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
-                "Support effects include heal, vigor, mana, damage_reduction, and extra_unarmed_hits (skills)."
+                "Support effects include heal, vigor, mana, and damage_reduction (skills). Skills and spells also support affect-based effects via affect_ids (regeneration, damage_received_multiplier, extra_hits, damage_reduction). See affect_ids in the skill/spell schemas for details.",
+                "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as damage_received_multiplier."
             ],
             "npc_behavior_and_content": [
                 "NPCs support aggro/ally/peaceful roles, merchant inventories and pricing, combat loadouts, and loot/inventory drops.",

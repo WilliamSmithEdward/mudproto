@@ -150,7 +150,7 @@ Level gains: +10HP +5V +6M
 | `server_broadcasts.py` | Observer-facing room broadcast generation, private-line injection, prompt spacing, and unified room-round display helpers. |
 | `server_movement.py` | Movement notices, follower propagation, arrival/departure messaging, and post-move room refresh handling. |
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
-| `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
+| `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `ActiveAffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
 | `settings.py` | Loads `configuration/server/settings.json` and exposes typed constants (timing, combat, gameplay, session, offline, database, assets). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
 | `session_registry.py` | Shared connected/authenticated session maps, shared world state attachment, and session/world lookup helpers. |
 | `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
@@ -165,7 +165,7 @@ Level gains: +10HP +5V +6M
 | `item_logic.py` | Shared corpse/item display logic and misc item-use handling. |
 | `abilities.py` | Shared known spell/skill lookup and name-resolution helpers. |
 | `world_population.py` | NPC/entity template hydration, training dummy spawning, shared-world initialization, and zone repopulation/reinitialization. |
-| `combat_ability_effects.py` | Shared support-effect scaling, restore logic, cooldown bookkeeping, and timed/battle-round effect processing. |
+| `combat_ability_effects.py` | Shared support-effect scaling, restore logic, cooldown bookkeeping, affect resolution, and timed/battle-round effect processing. |
 | `combat_player_abilities.py` | Player skill/spell execution, targeting, resource spend, reward hooks, observer text setup, and selective engagement rules for damage spells/AoE. |
 | `combat_entity_abilities.py` | NPC/entity skill and spell usage against players, including self-buffs and restore effects. |
 | `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers (including optional auto-aggro chaining control when combat starts). |
@@ -506,7 +506,7 @@ When an entity dies:
 
 - Cost mana. Defined in `spells.json`.
 - **Damage spells**: targeted or AoE. Roll dice, apply to engaged entities.
-- **Support spells**: heal/vigor/mana. Self-cast only.
+- **Support spells**: heal/vigor/mana or affect-based (via `affect_ids`). Self-cast only.
   Modes: `instant`, `timed` (hours), `battle_rounds`.
 - Cast via `cast <spell> [target]`.
 
@@ -535,6 +535,15 @@ When an entity dies:
   game hour.
 - **Battle-round** (`remaining_rounds`): processed by
   `battle_round_ticks.py` each combat round.
+
+### Affects
+
+- Defined in `configuration/attributes/affects.json`.
+- Skills and spells reference affect templates via `affect_ids` overrides.
+- `ActiveAffectState` tracked on the session alongside support effects.
+- Four affect types: `regeneration`, `damage_received_multiplier`,
+  `extra_hits`, `damage_reduction`.
+- Resolved at runtime by `combat_ability_effects.py`.
 
 ---
 

@@ -1,7 +1,7 @@
-﻿{
+{
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.12",
-  "generated_at_utc": "2026-04-14T13:52:25.756805+00:00",
+  "generated_at_utc": "2026-04-14T23:06:47.669545+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -110,7 +110,8 @@
       "Damage abilities support secondary restore effects via restore_effect/restore_ratio/restore_context fields.",
       "Skills support lag and cooldown controls including lag_rounds, cooldown_rounds, cooldown_hours, and target_lag_rounds.",
       "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
-      "Support effects include heal, vigor, mana, damage_reduction, and extra_unarmed_hits (skills)."
+      "Support effects include heal, vigor, mana, and damage_reduction (skills). Skills and spells also support affect-based effects via affect_ids (regeneration, damage_received_multiplier, extra_hits, damage_reduction). See affect_ids in the skill/spell schemas for details.",
+      "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as damage_received_multiplier."
     ],
     "npc_behavior_and_content": [
       "NPCs support aggro/ally/peaceful roles, merchant inventories and pricing, combat loadouts, and loot/inventory drops.",
@@ -1090,12 +1091,14 @@
         "keyword_actions": {
           "type": "array[object]",
           "required": false,
-          "default": []
+          "default": [],
+          "description": "Supports standard keyword action fields plus optional debug_only boolean to include an action only when gameplay.debug_mode is enabled in server settings."
         },
         "room_objects": {
           "type": "array[object]",
           "required": false,
-          "default": []
+          "default": [],
+          "description": "Supports optional debug_only boolean to include an object only when gameplay.debug_mode is enabled in server settings."
         },
         "exit_details": {
           "type": "array[object]",
@@ -1125,6 +1128,12 @@
           "type": "string",
           "required": false,
           "default": ""
+        },
+        "element": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Damage element for this skill (e.g. physical, storm, fire, restoration). Used by element-aware affects such as damage_received_multiplier."
         },
         "skill_type": {
           "type": "string",
@@ -1231,14 +1240,21 @@
         },
         "support_effect": {
           "type": "string",
-          "required": "for support skills",
+          "required": "for support skills (may be empty string for affect-only support skills)",
           "allowed_values": [
             "heal",
             "vigor",
             "mana",
             "damage_reduction",
-            "extra_unarmed_hits"
-          ]
+            ""
+          ],
+          "notes": "Use empty string when the skill is affect-only (all behavior defined by affect_ids)."
+        },
+        "affect_ids": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "notes": "Array of affect override objects. Each entry must include an affect_id matching a template in affects.json. Available templates: affect.increase-received-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction. Override fields per entry: name, target (self/target), affect_mode (instant/timed/battle_rounds), amount, dice_count, dice_sides, roll_modifier, scaling_attribute_id, scaling_multiplier, level_scaling_multiplier, power_scaling_multiplier, duration_hours, duration_rounds, damage_elements (array, for damage_received_multiplier only), target_resource (hit_points/mana/vigor, for regeneration only), extra_main_hand_hits, extra_off_hand_hits, extra_unarmed_hits, hits_per_level_step, level_step (for extra_hits only)."
         },
         "support_amount": {
           "type": "integer",
@@ -1349,6 +1365,12 @@
           "type": "string",
           "required": false,
           "default": ""
+        },
+        "element": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "notes": "Damage element for this spell (e.g. storm, fire, restoration, blood). Used by element-aware affects such as damage_received_multiplier."
         },
         "mana_cost": {
           "type": "integer",
@@ -1464,12 +1486,20 @@
         },
         "support_effect": {
           "type": "string",
-          "required": "for support spells",
+          "required": "for support spells (may be empty string for affect-only support spells)",
           "allowed_values": [
             "heal",
             "vigor",
-            "mana"
-          ]
+            "mana",
+            ""
+          ],
+          "notes": "Use empty string when the spell is affect-only (all behavior defined by affect_ids)."
+        },
+        "affect_ids": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "notes": "Array of affect override objects. Each entry must include an affect_id matching a template in affects.json. Available templates: affect.increase-received-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction. Override fields per entry: name, target (self/target), affect_mode (instant/timed/battle_rounds), amount, dice_count, dice_sides, roll_modifier, scaling_attribute_id, scaling_multiplier, level_scaling_multiplier, power_scaling_multiplier, duration_hours, duration_rounds, damage_elements (array, for damage_received_multiplier only), target_resource (hit_points/mana/vigor, for regeneration only), extra_main_hand_hits, extra_off_hand_hits, extra_unarmed_hits, hits_per_level_step, level_step (for extra_hits only)."
         },
         "support_amount": {
           "type": "integer",
@@ -1647,8 +1677,8 @@
       "items": 6,
       "npcs": 6,
       "rooms": 13,
-      "skills": 7,
-      "spells": 9,
+      "skills": 8,
+      "spells": 6,
       "zones": 4,
       "asset_payload_files": 4
     },
@@ -2388,6 +2418,7 @@
                 "step circle",
                 "step into circle"
               ],
+              "debug_only": true,
               "message": "The magic circle flares beneath your feet and whisks you away in a breath of pale light.",
               "refresh_view": "room",
               "actions": [
@@ -2404,6 +2435,7 @@
                 "press easy button",
                 "push easy button"
               ],
+              "debug_only": true,
               "message": "You press the easy button. A cheerful chime rings out.\nYou gain 1000 experience.",
               "refresh_view": "none",
               "actions": [
@@ -2437,6 +2469,7 @@
             },
             {
               "object_id": "magic-circle",
+              "debug_only": true,
               "name": "magic circle",
               "keywords": [
                 "circle",
@@ -2448,6 +2481,7 @@
             },
             {
               "object_id": "easy-button",
+              "debug_only": true,
               "name": "easy button",
               "keywords": [
                 "button",
@@ -2713,6 +2747,7 @@
           "name": "Jab",
           "description": "A quick probing strike.",
           "skill_type": "damage",
+          "element": "physical",
           "cast_type": "target",
           "vigor_cost": 4,
           "usable_out_of_combat": false,
@@ -2732,6 +2767,7 @@
           "name": "Overhead Crack",
           "description": "A heavy overhead blow that leaves the attacker open.",
           "skill_type": "damage",
+          "element": "physical",
           "cast_type": "target",
           "vigor_cost": 8,
           "usable_out_of_combat": false,
@@ -2751,6 +2787,7 @@
           "name": "Guard Breath",
           "description": "Measured breathing and a reset posture aid recovery.",
           "skill_type": "support",
+          "element": "physical",
           "cast_type": "self",
           "vigor_cost": 6,
           "usable_out_of_combat": false,
@@ -2770,14 +2807,28 @@
           "name": "Centered Guard",
           "description": "A rooted defensive form that lets you bleed force away before it lands.",
           "skill_type": "support",
+          "element": "physical",
           "cast_type": "self",
           "vigor_cost": 8,
           "usable_out_of_combat": false,
           "scaling_attribute_id": "con",
           "scaling_multiplier": 0.5,
           "level_scaling_multiplier": 0.5,
-          "support_effect": "damage_reduction",
-          "support_amount": 2,
+          "support_effect": "",
+          "support_amount": 0,
+          "affect_ids": [
+            {
+              "affect_id": "affect.damage-reduction",
+              "name": "Centered Guard",
+              "target": "self",
+              "affect_mode": "battle_rounds",
+              "amount": 2,
+              "scaling_attribute_id": "con",
+              "scaling_multiplier": 0.5,
+              "level_scaling_multiplier": 0.5,
+              "duration_rounds": 3
+            }
+          ],
           "support_mode": "battle_rounds",
           "duration_rounds": 3,
           "support_context": "You settle into a centered guard, turning the worst of each blow aside.",
@@ -2791,6 +2842,7 @@
           "name": "Bash",
           "description": "",
           "skill_type": "damage",
+          "element": "physical",
           "cast_type": "target",
           "vigor_cost": 10,
           "usable_out_of_combat": false,
@@ -2802,15 +2854,52 @@
           "damage_modifier": 6,
           "damage_context": "[a/an] [verb] viciously slammed to the ground!",
           "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal bash.",
+          "lag_rounds": 2,
+          "cooldown_rounds": 5,
+          "target_lag_rounds": 2,
+          "target_posture": "sitting"
+        },
+        {
+          "skill_id": "skill.pressure-point",
+          "name": "Pressure Point",
+          "description": "A precise strike that leaves the target painfully vulnerable.",
+          "skill_type": "damage",
+          "element": "physical",
+          "cast_type": "target",
+          "vigor_cost": 8,
+          "usable_out_of_combat": false,
+          "scaling_attribute_id": "",
+          "scaling_multiplier": 0.0,
+          "level_scaling_multiplier": 0.0,
+          "damage_dice_count": 1,
+          "damage_dice_sides": 2,
+          "damage_modifier": 1,
+          "damage_context": "[a/an] [verb] jolted as a precise pressure point is struck.",
+          "observer_action": "[actor_name] snaps a precise strike at a vulnerable nerve cluster.",
           "lag_rounds": 1,
           "cooldown_rounds": 3,
-          "target_lag_rounds": 2
+          "affect_ids": [
+            {
+              "affect_id": "affect.increase-received-damage",
+              "name": "Pressure Point",
+              "target": "target",
+              "affect_mode": "battle_rounds",
+              "damage_elements": [
+                "physical"
+              ],
+              "amount": 1.1,
+              "scaling_attribute_id": "dex",
+              "scaling_multiplier": 0.01,
+              "duration_rounds": 3
+            }
+          ]
         },
         {
           "skill_id": "skill.roundhouse-kick",
           "name": "Roundhouse Kick",
           "description": "A sweeping heel-strike that smashes every nearby foe.",
           "skill_type": "damage",
+          "element": "physical",
           "cast_type": "aoe",
           "vigor_cost": 12,
           "usable_out_of_combat": false,
@@ -2830,16 +2919,29 @@
           "name": "Fist Flurry",
           "description": "A disciplined burst of unarmed strikes that overwhelms your target.",
           "skill_type": "support",
+          "element": "physical",
           "cast_type": "self",
           "vigor_cost": 10,
           "usable_out_of_combat": false,
           "scaling_attribute_id": "",
           "scaling_multiplier": 0.0,
           "level_scaling_multiplier": 0.0,
-          "support_effect": "extra_unarmed_hits",
-          "support_amount": 2,
-          "support_level_step": 5,
-          "support_amount_per_level_step": 1,
+          "support_effect": "",
+          "support_amount": 0,
+          "affect_ids": [
+            {
+              "affect_id": "affect.extra-hits",
+              "name": "Fist Flurry",
+              "target": "self",
+              "affect_mode": "battle_rounds",
+              "extra_main_hand_hits": 0,
+              "extra_off_hand_hits": 0,
+              "extra_unarmed_hits": 2,
+              "hits_per_level_step": 1,
+              "level_step": 5,
+              "duration_rounds": 4
+            }
+          ],
           "support_mode": "battle_rounds",
           "duration_rounds": 3,
           "support_context": "Your fists blur into a relentless flurry.",
@@ -2856,6 +2958,7 @@
           "school": "Storm",
           "description": "A focused bolt of crackling force.",
           "spell_type": "damage",
+          "element": "storm",
           "cast_type": "target",
           "mana_cost": 12,
           "level_scaling_multiplier": 1.5,
@@ -2872,6 +2975,7 @@
           "school": "Pyre",
           "description": "A fan of burning embers that scorches nearby enemies.",
           "spell_type": "damage",
+          "element": "fire",
           "cast_type": "aoe",
           "mana_cost": 18,
           "level_scaling_multiplier": 1.0,
@@ -2883,53 +2987,12 @@
           "damage_context": "[a/an] is singed badly."
         },
         {
-          "spell_id": "spell.second-wind",
-          "name": "Second Wind",
-          "school": "Discipline",
-          "description": "Channel calm focus to recover vigor.",
-          "spell_type": "support",
-          "cast_type": "self",
-          "mana_cost": 10,
-          "level_scaling_multiplier": 1.0,
-          "support_effect": "vigor",
-          "support_amount": 8,
-          "duration_hours": 3,
-          "support_context": "Steady focus settles over you, sharpening your breath and resolve."
-        },
-        {
-          "spell_id": "spell.mending-light",
-          "name": "Mending Light",
-          "school": "Restoration",
-          "description": "Seal wounds with a gentle restorative pulse.",
-          "spell_type": "support",
-          "cast_type": "self",
-          "mana_cost": 16,
-          "level_scaling_multiplier": 1.0,
-          "support_effect": "heal",
-          "support_amount": 14,
-          "duration_hours": 3,
-          "support_context": "A gentle radiance surrounds you, easing pain and sealing your wounds."
-        },
-        {
-          "spell_id": "spell.clarity",
-          "name": "Clarity",
-          "school": "Aether",
-          "description": "Draw ambient ether to replenish mana reserves.",
-          "spell_type": "support",
-          "cast_type": "self",
-          "mana_cost": 6,
-          "level_scaling_multiplier": 1.0,
-          "support_effect": "mana",
-          "support_amount": 6,
-          "duration_hours": 4,
-          "support_context": "Ambient ether gathers around you, restoring your arcane focus."
-        },
-        {
           "spell_id": "spell.healing-light",
           "name": "Healing Light",
           "school": "Restoration",
           "description": "A sudden restorative pulse that immediately heals your wounds.",
           "spell_type": "support",
+          "element": "restoration",
           "cast_type": "self",
           "mana_cost": 14,
           "level_scaling_multiplier": 1.0,
@@ -2949,21 +3012,32 @@
           "school": "Restoration",
           "description": "A steady restorative ward that heals you each battle round, even outside combat.",
           "spell_type": "support",
+          "element": "restoration",
           "cast_type": "self",
           "mana_cost": 18,
           "level_scaling_multiplier": 1.0,
           "support_effect": "heal",
-          "support_amount": 0,
-          "support_dice_count": 1,
-          "support_dice_sides": 21,
-          "support_roll_modifier": 39,
-          "support_scaling_attribute_id": "wis",
-          "support_scaling_multiplier": 1.0,
-          "support_mode": "battle_rounds",
-          "duration_rounds": 3,
+          "support_amount": 1,
+          "support_mode": "instant",
           "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
           "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
-          "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle."
+          "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle.",
+          "affect_ids": [
+            {
+              "affect_id": "affect.regeneration",
+              "name": "Regeneration Ward",
+              "target": "self",
+              "affect_mode": "battle_rounds",
+              "target_resource": "hit_points",
+              "amount": 0,
+              "dice_count": 1,
+              "dice_sides": 21,
+              "roll_modifier": 39,
+              "scaling_attribute_id": "wis",
+              "scaling_multiplier": 1.0,
+              "duration_rounds": 3
+            }
+          ]
         },
         {
           "spell_id": "spell.arc-bolt",
@@ -2971,6 +3045,7 @@
           "school": "Storm",
           "description": "A rigid line of blue force cracks outward.",
           "spell_type": "damage",
+          "element": "storm",
           "cast_type": "target",
           "mana_cost": 14,
           "level_scaling_multiplier": 1.0,
@@ -2987,6 +3062,7 @@
           "school": "Blood",
           "description": "Threads of crimson light loop back to the caster.",
           "spell_type": "damage",
+          "element": "blood",
           "cast_type": "target",
           "mana_cost": 18,
           "level_scaling_multiplier": 1.0,
@@ -7176,4 +7252,3 @@
     "zones": []
   }
 }
-
