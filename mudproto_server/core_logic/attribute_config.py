@@ -316,20 +316,44 @@ def load_affect_templates() -> list[dict]:
 
         affect_id = str(raw_affect.get("affect_id", "")).strip().lower()
         affect_type = str(raw_affect.get("affect_type", "")).strip().lower()
+        raw_damage_elements = raw_affect.get("damage_elements", raw_affect.get("damage_element", []))
+        if isinstance(raw_damage_elements, str):
+            raw_damage_elements = [raw_damage_elements]
+        if not isinstance(raw_damage_elements, list):
+            raise ValueError(f"Affect '{affect_id}' damage element filter must be a string or list.")
+        damage_elements: list[str] = []
+        seen_damage_elements: set[str] = set()
+        for raw_damage_element in raw_damage_elements:
+            damage_element = str(raw_damage_element).strip().lower()
+            if not damage_element:
+                continue
+            if not damage_element.replace("-", "").replace("_", "").isalpha():
+                raise ValueError(
+                    f"Affect '{affect_id}' damage element values must contain only letters, '-' or '_'."
+                )
+            if damage_element in seen_damage_elements:
+                continue
+            seen_damage_elements.add(damage_element)
+            damage_elements.append(damage_element)
 
         if not affect_id:
             raise ValueError("Affect templates must include a non-empty affect_id.")
         if affect_id in seen_affect_ids:
             raise ValueError(f"Duplicate affect_id in affects config: {affect_id}")
-        if affect_type not in {"regeneration", "damage_received_multiplier"}:
+        if affect_type not in {"regeneration", "damage_received_multiplier", "extra_unarmed_hits", "damage_reduction"}:
             raise ValueError(
-                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier."
+                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier, extra_unarmed_hits, damage_reduction."
+            )
+        if damage_elements and affect_type != "damage_received_multiplier":
+            raise ValueError(
+                f"Affect '{affect_id}' damage element filters are only supported for damage_received_multiplier."
             )
 
         seen_affect_ids.add(affect_id)
         normalized_affects.append({
             "affect_id": affect_id,
             "affect_type": affect_type,
+            "damage_elements": damage_elements,
         })
 
     return normalized_affects

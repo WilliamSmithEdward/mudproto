@@ -9,8 +9,15 @@ from player_resources import get_player_resource_caps
 
 _AFFECT_TYPE_REGENERATION = "regeneration"
 _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER = "damage_received_multiplier"
+_AFFECT_TYPE_EXTRA_UNARMED_HITS = "extra_unarmed_hits"
+_AFFECT_TYPE_DAMAGE_REDUCTION = "damage_reduction"
 _AFFECT_MODES = {"instant", "timed", "battle_rounds"}
-_AFFECT_TYPES = {_AFFECT_TYPE_REGENERATION, _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER}
+_AFFECT_TYPES = {
+    _AFFECT_TYPE_REGENERATION,
+    _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER,
+    _AFFECT_TYPE_EXTRA_UNARMED_HITS,
+    _AFFECT_TYPE_DAMAGE_REDUCTION,
+}
 
 
 def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, str]:
@@ -73,10 +80,19 @@ def _roll_affect_amount(effect: ActiveAffectState) -> float:
     return max(0.0, float(rolled_amount))
 
 
-def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState]) -> float:
+def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState], *, damage_element: str) -> float:
+    normalized_damage_element = str(damage_element).strip().lower()
     strongest_multiplier = 1.0
     for effect in active_affects:
         if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER:
+            continue
+
+        effect_damage_elements = [
+            str(element).strip().lower()
+            for element in list(getattr(effect, "affect_damage_elements", []) or [])
+            if str(element).strip()
+        ]
+        if effect_damage_elements and normalized_damage_element not in effect_damage_elements:
             continue
 
         affect_mode = str(getattr(effect, "affect_mode", "instant")).strip().lower() or "instant"
@@ -91,6 +107,37 @@ def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState])
         strongest_multiplier = max(strongest_multiplier, multiplier)
 
     return max(1.0, strongest_multiplier)
+
+
+def _is_affect_active(effect: ActiveAffectState) -> bool:
+    affect_mode = str(getattr(effect, "affect_mode", "instant")).strip().lower() or "instant"
+    if affect_mode == "timed" and int(getattr(effect, "remaining_hours", 0)) <= 0:
+        return False
+    if affect_mode == "battle_rounds" and int(getattr(effect, "remaining_rounds", 0)) <= 0:
+        return False
+    return True
+
+
+def _resolve_extra_unarmed_hits_from_affects(active_affects: list[ActiveAffectState]) -> int:
+    strongest_bonus = 0
+    for effect in active_affects:
+        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_EXTRA_UNARMED_HITS:
+            continue
+        if not _is_affect_active(effect):
+            continue
+        strongest_bonus = max(strongest_bonus, int(_roll_affect_amount(effect)))
+    return max(0, strongest_bonus)
+
+
+def _resolve_damage_reduction_from_affects(active_affects: list[ActiveAffectState]) -> int:
+    strongest_reduction = 0
+    for effect in active_affects:
+        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_REDUCTION:
+            continue
+        if not _is_affect_active(effect):
+            continue
+        strongest_reduction = max(strongest_reduction, int(_roll_affect_amount(effect)))
+    return max(0, strongest_reduction)
 
 
 def _apply_regeneration_tick(target: object, effect: ActiveAffectState) -> None:
@@ -144,6 +191,16 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
 
         affect_id = str(affect.get("affect_id", "")).strip() or affect_type
         affect_name = str(affect.get("name", "")).strip() or affect_id
+        raw_damage_elements = affect.get("damage_elements", affect.get("damage_element", []))
+        if isinstance(raw_damage_elements, str):
+            raw_damage_elements = [raw_damage_elements]
+        if not isinstance(raw_damage_elements, list):
+            raw_damage_elements = []
+        affect_damage_elements = [
+            str(element).strip().lower()
+            for element in raw_damage_elements
+            if str(element).strip()
+        ]
         target_resource = str(affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
         affect_amount = float(affect.get("amount", 0.0))
         affect_dice_count = max(0, int(affect.get("dice_count", 0)))
@@ -159,6 +216,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_name=affect_name,
                 affect_mode=affect_mode,
                 affect_type=affect_type,
+                affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,
                 affect_amount=affect_amount,
                 affect_dice_count=affect_dice_count,
@@ -177,6 +235,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
             active_affect.affect_name = affect_name
             active_affect.affect_mode = affect_mode
             active_affect.affect_type = affect_type
+            active_affect.affect_damage_elements = affect_damage_elements
             active_affect.target_resource = target_resource
             active_affect.affect_amount = affect_amount
             active_affect.affect_dice_count = affect_dice_count
@@ -195,6 +254,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_name=affect_name,
                 affect_mode=affect_mode,
                 affect_type=affect_type,
+                affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,
                 affect_amount=affect_amount,
                 affect_dice_count=affect_dice_count,
@@ -418,7 +478,7 @@ def _resolve_active_damage_reduction(effects: list[ActiveSupportEffectState]) ->
     return max(0, strongest_reduction)
 
 
-def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> int:
+def _apply_player_damage_with_reduction(session: ClientSession, amount: int, *, damage_element: str = "physical") -> int:
     incoming_damage = max(0, int(amount))
     if incoming_damage <= 0:
         return 0
@@ -438,16 +498,22 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> 
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
 
-    incoming_damage = int(incoming_damage * _resolve_damage_received_multiplier(list(session.active_affects)))
+    incoming_damage = int(incoming_damage * _resolve_damage_received_multiplier(
+        list(session.active_affects),
+        damage_element=damage_element,
+    ))
 
-    reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(list(session.active_support_effects)))
+    support_reduction = _resolve_active_damage_reduction(list(session.active_support_effects))
+    affect_reduction = _resolve_damage_reduction_from_affects(list(session.active_affects))
+    total_reduction = max(support_reduction, affect_reduction)
+    reduced_damage = max(0, incoming_damage - total_reduction)
     damage_dealt = min(max(0, int(session.status.hit_points)), reduced_damage)
     session.status.hit_points = max(0, int(session.status.hit_points) - reduced_damage)
     return max(0, damage_dealt)
 
 
-def _apply_entity_damage_with_reduction(entity: EntityState, amount: int) -> int:
-    incoming_damage, reduced_damage = _resolve_entity_damage_values(entity, amount)
+def _apply_entity_damage_with_reduction(entity: EntityState, amount: int, *, damage_element: str = "physical") -> int:
+    incoming_damage, reduced_damage = _resolve_entity_damage_values(entity, amount, damage_element=damage_element)
     if incoming_damage <= 0:
         return 0
 
@@ -456,14 +522,14 @@ def _apply_entity_damage_with_reduction(entity: EntityState, amount: int) -> int
     return max(0, damage_dealt)
 
 
-def _preview_entity_damage_with_reduction(entity: EntityState, amount: int) -> int:
-    incoming_damage, reduced_damage = _resolve_entity_damage_values(entity, amount)
+def _preview_entity_damage_with_reduction(entity: EntityState, amount: int, *, damage_element: str = "physical") -> int:
+    incoming_damage, reduced_damage = _resolve_entity_damage_values(entity, amount, damage_element=damage_element)
     if incoming_damage <= 0:
         return 0
     return max(0, reduced_damage)
 
 
-def _resolve_entity_damage_values(entity: EntityState, amount: int) -> tuple[int, int]:
+def _resolve_entity_damage_values(entity: EntityState, amount: int, *, damage_element: str) -> tuple[int, int]:
     incoming_damage = max(0, int(amount))
     if incoming_damage <= 0:
         return 0, 0
@@ -476,10 +542,16 @@ def _resolve_entity_damage_values(entity: EntityState, amount: int) -> tuple[int
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
 
-    incoming_damage = int(incoming_damage * _resolve_damage_received_multiplier(list(entity.active_affects)))
+    incoming_damage = int(incoming_damage * _resolve_damage_received_multiplier(
+        list(entity.active_affects),
+        damage_element=damage_element,
+    ))
 
     active_effects = list(getattr(entity, "active_support_effects", []))
-    reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(active_effects))
+    support_reduction = _resolve_active_damage_reduction(active_effects)
+    affect_reduction = _resolve_damage_reduction_from_affects(list(entity.active_affects))
+    total_reduction = max(support_reduction, affect_reduction)
+    reduced_damage = max(0, incoming_damage - total_reduction)
     return incoming_damage, reduced_damage
 
 

@@ -55,6 +55,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     usable_out_of_combat = bool(skill.get("usable_out_of_combat", False))
     skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
     cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+    element = str(skill.get("element", "physical")).strip().lower() or "physical"
     damage_context = str(skill.get("damage_context", "")).strip()
     support_effect = str(skill.get("support_effect", "")).strip().lower()
     support_amount = max(0, int(skill.get("support_amount", 0)))
@@ -133,11 +134,17 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         ])
 
     if skill_type == "support":
+        has_affect_payload = bool(skill.get("affects", [])) if isinstance(skill.get("affects", []), list) else False
         if cast_type != "self":
             return display_error(f"Support skill '{skill_name}' must be cast_type 'self'.", session), False
-        if support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
+        if support_effect and support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
             return display_error(
                 f"Skill '{skill_name}' has unsupported support_effect '{support_effect}'.",
+                session,
+            ), False
+        if not support_effect and not has_affect_payload:
+            return display_error(
+                f"Support skill '{skill_name}' must define support_effect or affects.",
                 session,
             ), False
         if support_mode not in {"instant", "timed", "battle_rounds"}:
@@ -162,61 +169,62 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             ), False
 
         session.status.vigor -= vigor_cost
-        caps = get_player_resource_caps(session)
-        total_support_amount = max(0, support_amount + scaling_bonus)
-        effect_duration_rounds = duration_rounds
-        if support_effect == "extra_unarmed_hits":
-            extra_step_levels = max(1, int(skill.get("support_level_step", 1)))
-            extra_per_step = max(
-                0,
-                int(skill.get("support_amount_per_level_step", 0)),
-            )
-            level_bonus = (max(1, int(session.player.level)) // extra_step_levels) * extra_per_step
-            total_support_amount = max(0, support_amount + level_bonus)
-            # Battle-round effects decrement at round start; add one so this lasts
-            # for the next N full rounds after the cast turn.
-            if support_mode == "battle_rounds" and duration_rounds > 0:
-                effect_duration_rounds = duration_rounds + 1
+        if support_effect:
+            caps = get_player_resource_caps(session)
+            total_support_amount = max(0, support_amount + scaling_bonus)
+            effect_duration_rounds = duration_rounds
+            if support_effect == "extra_unarmed_hits":
+                extra_step_levels = max(1, int(skill.get("support_level_step", 1)))
+                extra_per_step = max(
+                    0,
+                    int(skill.get("support_amount_per_level_step", 0)),
+                )
+                level_bonus = (max(1, int(session.player.level)) // extra_step_levels) * extra_per_step
+                total_support_amount = max(0, support_amount + level_bonus)
+                # Battle-round effects decrement at round start; add one so this lasts
+                # for the next N full rounds after the cast turn.
+                if support_mode == "battle_rounds" and duration_rounds > 0:
+                    effect_duration_rounds = duration_rounds + 1
 
-        if support_mode == "instant":
-            if support_effect == "heal":
-                session.status.hit_points = min(caps["hit_points"], session.status.hit_points + total_support_amount)
-            elif support_effect == "vigor":
-                session.status.vigor = min(caps["vigor"], session.status.vigor + total_support_amount)
+            if support_mode == "instant":
+                if support_effect == "heal":
+                    session.status.hit_points = min(caps["hit_points"], session.status.hit_points + total_support_amount)
+                elif support_effect == "vigor":
+                    session.status.vigor = min(caps["vigor"], session.status.vigor + total_support_amount)
+                else:
+                    session.status.mana = min(caps["mana"], session.status.mana + total_support_amount)
             else:
-                session.status.mana = min(caps["mana"], session.status.mana + total_support_amount)
-        else:
-            effect_id = skill_id or skill_name
-            refreshed = False
-            for active_effect in session.active_support_effects:
-                if active_effect.spell_id != effect_id:
-                    continue
-                active_effect.support_mode = support_mode
-                active_effect.support_effect = support_effect
-                active_effect.support_amount = total_support_amount
-                active_effect.support_dice_count = 0
-                active_effect.support_dice_sides = 0
-                active_effect.support_roll_modifier = 0
-                active_effect.support_scaling_bonus = 0
-                active_effect.remaining_hours = duration_hours
-                active_effect.remaining_rounds = effect_duration_rounds
-                refreshed = True
-                break
+                effect_id = skill_id or skill_name
+                refreshed = False
+                for active_effect in session.active_support_effects:
+                    if active_effect.spell_id != effect_id:
+                        continue
+                    active_effect.support_mode = support_mode
+                    active_effect.support_effect = support_effect
+                    active_effect.support_amount = total_support_amount
+                    active_effect.support_dice_count = 0
+                    active_effect.support_dice_sides = 0
+                    active_effect.support_roll_modifier = 0
+                    active_effect.support_scaling_bonus = 0
+                    active_effect.remaining_hours = duration_hours
+                    active_effect.remaining_rounds = effect_duration_rounds
+                    refreshed = True
+                    break
 
-            if not refreshed:
-                session.active_support_effects.append(ActiveSupportEffectState(
-                    spell_id=effect_id,
-                    spell_name=skill_name,
-                    support_mode=support_mode,
-                    support_effect=support_effect,
-                    support_amount=total_support_amount,
-                    remaining_hours=duration_hours,
-                    support_dice_count=0,
-                    support_dice_sides=0,
-                    support_roll_modifier=0,
-                    support_scaling_bonus=0,
-                    remaining_rounds=effect_duration_rounds,
-                ))
+                if not refreshed:
+                    session.active_support_effects.append(ActiveSupportEffectState(
+                        spell_id=effect_id,
+                        spell_name=skill_name,
+                        support_mode=support_mode,
+                        support_effect=support_effect,
+                        support_amount=total_support_amount,
+                        remaining_hours=duration_hours,
+                        support_dice_count=0,
+                        support_dice_sides=0,
+                        support_roll_modifier=0,
+                        support_scaling_bonus=0,
+                        remaining_rounds=effect_duration_rounds,
+                    ))
 
         if support_context:
             parts.extend([
@@ -321,7 +329,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             if should_start_combat:
                 start_combat(session, entity.entity_id, OPENING_ATTACKER_SKILL)
             _mark_entity_contributor(session, entity)
-            dealt = _apply_entity_damage_with_reduction(entity, total_damage)
+            dealt = _apply_entity_damage_with_reduction(entity, total_damage, damage_element=element)
             total_damage_dealt += max(0, dealt)
             if dealt > 0 and target_lag_rounds > 0 and entity.is_alive:
                 entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
@@ -446,6 +454,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     mana_cost = max(0, int(spell.get("mana_cost", 0)))
     spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
     cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
+    element = str(spell.get("element", "arcane")).strip().lower() or "arcane"
 
     damage_context = str(spell.get("damage_context", "")).strip()
     support_effect = str(spell.get("support_effect", "")).strip().lower()
@@ -786,7 +795,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                     trigger_player_auto_aggro=(cast_type != "aoe"),
                 )
             _mark_entity_contributor(session, entity)
-            dealt = _apply_entity_damage_with_reduction(entity, total_damage)
+            dealt = _apply_entity_damage_with_reduction(entity, total_damage, damage_element=element)
             total_damage_dealt += max(0, dealt)
             if dealt > 0 and entity.is_alive:
                 _apply_ability_affects(actor=session, target=entity, ability=spell, affect_target="target")

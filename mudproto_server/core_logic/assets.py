@@ -18,6 +18,35 @@ ASSET_PAYLOADS_DIR = CONFIGURABLE_ASSET_ROOT / "asset_payloads"
 SUPPORTED_ASSET_PAYLOAD_SECTIONS = ("gear", "items", "zones", "rooms", "spells", "skills", "npcs")
 
 
+def _is_valid_element(value: str) -> bool:
+    return bool(value) and all(character.isalpha() or character in {"-", "_"} for character in value)
+
+
+def _normalize_element_filters(raw_value: object, *, context: str) -> list[str]:
+    if raw_value is None:
+        return []
+    if isinstance(raw_value, str):
+        raw_values = [raw_value]
+    elif isinstance(raw_value, list):
+        raw_values = raw_value
+    else:
+        raise ValueError(f"{context} damage element filter must be a string or list.")
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw_element in raw_values:
+        element = str(raw_element).strip().lower()
+        if not element:
+            continue
+        if not _is_valid_element(element):
+            raise ValueError(f"{context} damage element values must contain only letters, '-' or '_'.")
+        if element in seen:
+            continue
+        seen.add(element)
+        normalized.append(element)
+    return normalized
+
+
 def _read_json_asset(path: Path) -> object:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
@@ -98,6 +127,8 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
     affect_type = str(raw_affect.get("affect_type", "")).strip().lower()
     affect_target = str(raw_affect.get("target", "self")).strip().lower() or "self"
     affect_mode = str(raw_affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
+    raw_damage_filters = raw_affect.get("damage_elements", raw_affect.get("damage_element", []))
+    affect_damage_elements = _normalize_element_filters(raw_damage_filters, context=context)
     target_resource = str(raw_affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
 
     amount = float(raw_affect.get("amount", 0.0))
@@ -113,14 +144,16 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
 
     if not affect_id:
         raise ValueError(f"{context} affects must define affect_id.")
-    if affect_type not in {"regeneration", "damage_received_multiplier"}:
+    if affect_type not in {"regeneration", "damage_received_multiplier", "extra_unarmed_hits", "damage_reduction"}:
         raise ValueError(
-            f"{context} affect_type must be one of: regeneration, damage_received_multiplier."
+            f"{context} affect_type must be one of: regeneration, damage_received_multiplier, extra_unarmed_hits, damage_reduction."
         )
     if affect_target not in {"self", "target"}:
         raise ValueError(f"{context} affect target must be one of: self, target.")
     if affect_mode not in {"instant", "timed", "battle_rounds"}:
         raise ValueError(f"{context} affect_mode must be one of: instant, timed, battle_rounds.")
+    if affect_damage_elements and affect_type != "damage_received_multiplier":
+        raise ValueError(f"{context} damage element filters are only supported on damage_received_multiplier affects.")
     if target_resource not in {"hit_points", "mana", "vigor"}:
         raise ValueError(f"{context} target_resource must be one of: hit_points, mana, vigor.")
     if amount < 0.0:
@@ -148,6 +181,7 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         "affect_type": affect_type,
         "target": affect_target,
         "affect_mode": affect_mode,
+        "damage_elements": affect_damage_elements,
         "target_resource": target_resource,
         "amount": amount,
         "dice_count": dice_count,
@@ -172,6 +206,8 @@ def _resolve_affect_ids(raw_affect_ids: object, *, context: str, configured_attr
         "name",
         "target",
         "affect_mode",
+        "damage_element",
+        "damage_elements",
         "target_resource",
         "amount",
         "dice_count",
@@ -1513,6 +1549,13 @@ def load_spells() -> list[dict]:
 
         mana_cost = int(raw_spell.get("mana_cost", 0))
         spell_type = str(raw_spell.get("spell_type", "damage")).strip().lower() or "damage"
+        default_spell_element = {
+            "storm": "storm",
+            "pyre": "fire",
+            "restoration": "restoration",
+            "blood": "blood",
+        }.get(school.strip().lower(), "arcane")
+        element = str(raw_spell.get("element", default_spell_element)).strip().lower() or default_spell_element
         cast_type = str(raw_spell.get("cast_type", "")).strip().lower()
         dice_count = int(raw_spell.get("damage_dice_count", 0))
         dice_sides = int(raw_spell.get("damage_dice_sides", 0))
@@ -1565,6 +1608,8 @@ def load_spells() -> list[dict]:
             raise ValueError(f"Spell asset '{spell_id}' spell_type must be 'damage' or 'support'.")
         if cast_type not in {"self", "target", "aoe"}:
             raise ValueError(f"Spell asset '{spell_id}' cast_type must be one of: self, target, aoe.")
+        if not _is_valid_element(element):
+            raise ValueError(f"Spell asset '{spell_id}' element must contain only letters, '-' or '_'.")
         if dice_count < 0:
             raise ValueError(f"Spell asset '{spell_id}' damage_dice_count must be zero or greater.")
         if dice_sides < 0:
@@ -1630,6 +1675,7 @@ def load_spells() -> list[dict]:
             "description": str(raw_spell.get("description", "")).strip(),
             "mana_cost": mana_cost,
             "spell_type": spell_type,
+            "element": element,
             "cast_type": cast_type,
             "damage_dice_count": dice_count,
             "damage_dice_sides": dice_sides,
@@ -1720,6 +1766,7 @@ def load_skills() -> list[dict]:
         skill_name_to_id[normalized_name] = normalized_skill_id
 
         skill_type = str(raw_skill.get("skill_type", "damage")).strip().lower() or "damage"
+        element = str(raw_skill.get("element", "physical")).strip().lower() or "physical"
         cast_type = str(raw_skill.get("cast_type", "")).strip().lower()
         if not cast_type:
             cast_type = "self" if skill_type == "support" else "target"
@@ -1768,6 +1815,8 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' skill_type must be 'damage' or 'support'.")
         if cast_type not in {"self", "target", "aoe"}:
             raise ValueError(f"Skill asset '{skill_id}' cast_type must be one of: self, target, aoe.")
+        if not _is_valid_element(element):
+            raise ValueError(f"Skill asset '{skill_id}' element must contain only letters, '-' or '_'.")
         if dice_count < 0:
             raise ValueError(f"Skill asset '{skill_id}' damage_dice_count must be zero or greater.")
         if dice_sides < 0:
@@ -1816,9 +1865,14 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' restore_ratio is only supported on damage skills.")
 
         if skill_type == "support":
-            if support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
+            has_affect_payload = bool(affects)
+            if support_effect and support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
                 raise ValueError(
                     f"Skill asset '{skill_id}' support_effect must be one of: heal, vigor, mana, damage_reduction, extra_unarmed_hits."
+                )
+            if not support_effect and not has_affect_payload:
+                raise ValueError(
+                    f"Skill asset '{skill_id}' support skills must define support_effect or affects."
                 )
             if support_mode not in {"instant", "timed", "battle_rounds"}:
                 raise ValueError(
@@ -1843,6 +1897,7 @@ def load_skills() -> list[dict]:
             "name": name.strip(),
             "description": str(raw_skill.get("description", "")).strip(),
             "skill_type": skill_type,
+            "element": element,
             "cast_type": cast_type,
             "damage_dice_count": dice_count,
             "damage_dice_sides": dice_sides,

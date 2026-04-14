@@ -6,6 +6,7 @@ from combat_ability_effects import (
     _apply_player_damage_with_reduction,
     _apply_player_dealt_damage_multiplier,
     _preview_entity_damage_with_reduction,
+    _resolve_extra_unarmed_hits_from_affects,
 )
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
 from combat_rewards import (
@@ -340,14 +341,16 @@ def _apply_player_attacks(
         if entity.hit_points <= 0:
             break
 
-    # Extra unarmed hits from active Fist Flurry (or similar) effects.
-    extra_hits = sum(
+    # Extra unarmed hits can come from legacy support effects or affect-based skills.
+    support_extra_hits = sum(
         max(0, int(effect.support_amount))
         for effect in session.active_support_effects
         if effect.support_effect == "extra_unarmed_hits"
         and effect.support_mode == "battle_rounds"
         and effect.remaining_rounds > 0
     )
+    affect_extra_hits = _resolve_extra_unarmed_hits_from_affects(list(session.active_affects))
+    extra_hits = max(support_extra_hits, affect_extra_hits)
     for _ in range(extra_hits):
         if not entity.is_alive:
             break

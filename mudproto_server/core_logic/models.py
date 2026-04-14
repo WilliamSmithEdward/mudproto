@@ -72,6 +72,7 @@ class ActiveAffectState:
     affect_name: str
     affect_mode: str
     affect_type: str
+    affect_damage_elements: list[str] = field(default_factory=list)
     target_resource: str = "hit_points"
     affect_amount: float = 0.0
     affect_dice_count: int = 0

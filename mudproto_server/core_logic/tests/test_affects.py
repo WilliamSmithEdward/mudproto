@@ -26,7 +26,7 @@ def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
     skill = get_skill_by_id("skill.pressure-point")
 
     assert isinstance(skill, dict)
-    assert "affect.increase-received-physical-damage" in [
+    assert "affect.increase-received-damage" in [
         str(affect_id).strip().lower()
         for affect_id in skill.get("affect_ids", [])
         if str(affect_id).strip()
@@ -42,16 +42,17 @@ def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
     pressure_point_affect = next(
         affect
         for affect in affects
-        if isinstance(affect, dict) and affect.get("affect_id") == "affect.increase-received-physical-damage"
+        if isinstance(affect, dict) and affect.get("affect_id") == "affect.increase-received-damage"
     )
     assert pressure_point_affect.get("name") == "Pressure Point"
     assert pressure_point_affect.get("duration_rounds") == 3
+    assert pressure_point_affect.get("damage_elements") == ["physical"]
 
 
 def test_asset_loader_rejects_inline_affects_payloads() -> None:
     with pytest.raises(ValueError, match="inline affects are no longer supported"):
         _resolve_asset_affects(
-            affect_ids=["affect.increase-received-physical-damage"],
+            affect_ids=["affect.increase-received-damage"],
             affects=[{"affect_id": "affect.legacy-inline"}],
             context="Skill asset 'skill.test-inline'",
             configured_attribute_ids={"dex", "wis", "int", "str", "con"},
@@ -62,10 +63,11 @@ def test_asset_loader_allows_affect_override_objects() -> None:
     affects = _resolve_asset_affects(
         affect_ids=[
             {
-                "affect_id": "affect.increase-received-physical-damage",
+                "affect_id": "affect.increase-received-damage",
                 "name": "Pressure Point",
                 "target": "target",
                 "affect_mode": "battle_rounds",
+                "damage_elements": ["physical", "fire"],
                 "amount": 1.2,
                 "duration_rounds": 2,
             }
@@ -76,11 +78,56 @@ def test_asset_loader_allows_affect_override_objects() -> None:
     )
 
     assert len(affects) == 1
-    assert affects[0]["affect_id"] == "affect.increase-received-physical-damage"
+    assert affects[0]["affect_id"] == "affect.increase-received-damage"
     assert affects[0]["affect_type"] == "damage_received_multiplier"
     assert affects[0]["name"] == "Pressure Point"
+    assert affects[0]["damage_elements"] == ["physical", "fire"]
     assert affects[0]["amount"] == 1.2
     assert affects[0]["duration_rounds"] == 2
+
+
+def test_damage_received_multiplier_can_be_element_scoped() -> None:
+    target = EntityState(
+        entity_id="entity-goblin",
+        name="Goblin",
+        room_id="start",
+        hit_points=200,
+        max_hit_points=200,
+    )
+    target.active_affects.append(ActiveAffectState(
+        affect_id="affect.increase-received-damage",
+        affect_name="Pressure Point",
+        affect_mode="battle_rounds",
+        affect_type="damage_received_multiplier",
+        affect_damage_elements=["physical"],
+        affect_amount=1.2,
+        remaining_rounds=2,
+    ))
+
+    assert _preview_entity_damage_with_reduction(target, 10, damage_element="physical") == 12
+    assert _preview_entity_damage_with_reduction(target, 10, damage_element="storm") == 10
+
+
+def test_damage_received_multiplier_without_elements_affects_all_damage() -> None:
+    target = EntityState(
+        entity_id="entity-ogre",
+        name="Ogre",
+        room_id="start",
+        hit_points=200,
+        max_hit_points=200,
+    )
+    target.active_affects.append(ActiveAffectState(
+        affect_id="affect.increase-received-damage",
+        affect_name="Expose",
+        affect_mode="battle_rounds",
+        affect_type="damage_received_multiplier",
+        affect_damage_elements=[],
+        affect_amount=1.3,
+        remaining_rounds=2,
+    ))
+
+    assert _preview_entity_damage_with_reduction(target, 10, damage_element="physical") == 13
+    assert _preview_entity_damage_with_reduction(target, 10, damage_element="fire") == 13
 
 
 def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch) -> None:

@@ -415,6 +415,11 @@ def _serialize_affect(effect: ActiveAffectState) -> dict:
         "affect_name": effect.affect_name,
         "affect_mode": effect.affect_mode,
         "affect_type": effect.affect_type,
+        "affect_damage_elements": [
+            str(element).strip().lower()
+            for element in list(effect.affect_damage_elements or [])
+            if str(element).strip()
+        ],
         "target_resource": effect.target_resource,
         "affect_amount": float(effect.affect_amount),
         "affect_dice_count": int(effect.affect_dice_count),
@@ -443,11 +448,22 @@ def _deserialize_support_effect(raw: dict) -> ActiveSupportEffectState:
 
 
 def _deserialize_affect(raw: dict) -> ActiveAffectState:
+    raw_damage_elements = raw.get("affect_damage_elements", raw.get("affect_damage_element", []))
+    if isinstance(raw_damage_elements, str):
+        raw_damage_elements = [raw_damage_elements]
+    if not isinstance(raw_damage_elements, list):
+        raw_damage_elements = []
+
     return ActiveAffectState(
         affect_id=str(raw.get("affect_id", "")).strip(),
         affect_name=str(raw.get("affect_name", "")).strip(),
         affect_mode=str(raw.get("affect_mode", "timed")).strip().lower() or "timed",
         affect_type=str(raw.get("affect_type", "")).strip().lower(),
+        affect_damage_elements=[
+            str(element).strip().lower()
+            for element in raw_damage_elements
+            if str(element).strip()
+        ],
         target_resource=str(raw.get("target_resource", "hit_points")).strip().lower() or "hit_points",
         affect_amount=float(raw.get("affect_amount", 0.0)),
         affect_dice_count=max(0, int(raw.get("affect_dice_count", 0))),
