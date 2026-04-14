@@ -80,6 +80,8 @@ def test_acquire_grants_skill_spell_passive(monkeypatch) -> None:
             {"passive_id": "passive.monk-unarmed-mastery", "name": "Unarmed Mastery"},
         ],
     )
+    saved_calls: list[str] = []
+    monkeypatch.setattr(debug_acquire, "save_player_state", lambda session: saved_calls.append(session.player_state_key))
 
     session = _make_session("client-debug-grant", "Lucia")
 
@@ -103,6 +105,7 @@ def test_acquire_grants_skill_spell_passive(monkeypatch) -> None:
     assert "skill.jab" in [value.strip().lower() for value in session.known_skill_ids]
     assert "spell.spark" in [value.strip().lower() for value in session.known_spell_ids]
     assert "passive.monk-unarmed-mastery" in [value.strip().lower() for value in session.known_passive_ids]
+    assert saved_calls == ["lucia", "lucia", "lucia"]
 
 
 def test_acquire_spell_blocked_for_non_mana_class(monkeypatch) -> None:
@@ -129,6 +132,8 @@ def test_forget_aliases_remove_known_entries(monkeypatch) -> None:
         "load_passives",
         lambda: [{"passive_id": "passive.monk-unarmed-mastery", "name": "Unarmed Mastery"}],
     )
+    saved_calls: list[str] = []
+    monkeypatch.setattr(debug_acquire, "save_player_state", lambda session: saved_calls.append(session.player_state_key))
 
     session = _make_session("client-debug-forget", "Lucia")
     session.known_skill_ids = ["skill.jab"]
@@ -155,6 +160,7 @@ def test_forget_aliases_remove_known_entries(monkeypatch) -> None:
     assert session.known_skill_ids == []
     assert session.known_spell_ids == []
     assert session.known_passive_ids == []
+    assert saved_calls == ["lucia", "lucia", "lucia"]
 
 
 def test_debug_mode_off_rejects_commands(monkeypatch) -> None:

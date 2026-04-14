@@ -3,6 +3,7 @@ from assets import load_skills, load_spells
 from display_core import build_menu_table_parts, build_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession
+from player_state_db import save_player_state
 from settings import DEBUG_MODE
 
 from .types import OutboundResult
@@ -190,6 +191,9 @@ def _grant_entry(session: ClientSession, entry: dict) -> dict:
     else:
         return display_error("Unsupported acquire target.", session)
 
+    if session.player_state_key.strip():
+        save_player_state(session)
+
     return display_command_result(session, [
         build_part("Acquired ", "bright_white"),
         build_part(kind, "bright_magenta", True),
@@ -213,6 +217,9 @@ def _forget_entry(session: ClientSession, entry: dict) -> dict:
         session.known_passive_ids = [value for value in session.known_passive_ids if str(value).strip().lower() != normalized_id]
     else:
         return display_error("Unsupported forget target.", session)
+
+    if session.player_state_key.strip():
+        save_player_state(session)
 
     return display_command_result(session, [
         build_part("Forgot ", "bright_white"),
