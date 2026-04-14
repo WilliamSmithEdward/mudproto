@@ -693,8 +693,6 @@ Key behaviors:
 mudproto/
   ARCHITECTURE.md                # this file (canonical architecture doc)
   README.md
-  mudproto_client/
-    client.py                    # legacy ANSI terminal client (unsupported path)
   mudproto_client_gui/
     client_gui.py                # supported Tk GUI client
   mudproto_server/
