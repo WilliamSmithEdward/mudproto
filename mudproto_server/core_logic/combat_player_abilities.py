@@ -70,7 +70,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     if session.is_resting and posture_prevents_skill_spell_use("resting"):
         return display_error("You are resting and cannot use skills or spells. Stand first.", session), False
     if session.is_sleeping and posture_prevents_skill_spell_use("sleeping"):
-        return display_error("You are sleeping and cannot use skills or spells. Stand first.", session), False
+        return display_error("Shhh... You are asleep. Use wake first.", session), False
 
     has_explicit_target = bool(str(target_name or "").strip())
     can_open_with_targeted_damage = (
@@ -458,7 +458,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     if session.is_resting and posture_prevents_skill_spell_use("resting"):
         return display_error("You are resting and cannot use skills or spells. Stand first.", session), False
     if session.is_sleeping and posture_prevents_skill_spell_use("sleeping"):
-        return display_error("You are sleeping and cannot use skills or spells. Stand first.", session), False
+        return display_error("Shhh... You are asleep. Use wake first.", session), False
 
     status = session.status
     if status.mana < mana_cost:

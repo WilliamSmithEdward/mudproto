@@ -6,10 +6,12 @@ from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None
+_ASLEEP_FEEDBACK = "Shhh... You are asleep. Use wake first."
 
 _SIT_VERBS = {"si", "sit"}
 _REST_VERBS = {"r", "re", "res", "rest"}
 _SLEEP_VERBS = {"sl", "sle", "slee", "sleep"}
+_WAKE_VERBS = {"wa", "wak", "wake"}
 _STAND_VERBS = {"st", "sta", "stan", "stand"}
 
 
@@ -19,6 +21,20 @@ def handle_posture_command(
     _args: list[str],
     _command_text: str,
 ) -> HandledResult:
+    if verb in _WAKE_VERBS:
+        if not session.is_sleeping:
+            return display_error("You are already awake.", session)
+
+        session.is_sleeping = False
+        session.is_resting = False
+        session.is_sitting = False
+        return display_command_result(session, [
+            build_part("You wake up.", "bright_white"),
+        ])
+
+    if session.is_sleeping and verb in (_SIT_VERBS | _REST_VERBS | _STAND_VERBS):
+        return display_error(_ASLEEP_FEEDBACK, session)
+
     if verb in _SIT_VERBS:
         if session.is_sitting:
             return display_error("You are already sitting.", session)

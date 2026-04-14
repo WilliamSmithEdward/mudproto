@@ -95,7 +95,7 @@ def test_player_sleeping_cannot_use_skill() -> None:
     response, applied = player_abilities.use_skill(session, skill, "Goblin")
 
     assert applied is False
-    assert "cannot use skills or spells" in _extract_display_text(response)
+    assert "Shhh... You are asleep. Use wake first." in _extract_display_text(response)
 
 
 def test_player_sleeping_cannot_cast_spell() -> None:
@@ -116,4 +116,4 @@ def test_player_sleeping_cannot_cast_spell() -> None:
     response, applied = player_abilities.cast_spell(session, spell, "Goblin")
 
     assert applied is False
-    assert "cannot use skills or spells" in _extract_display_text(response)
+    assert "Shhh... You are asleep. Use wake first." in _extract_display_text(response)

@@ -68,7 +68,7 @@ def test_posture_command_aliases_work() -> None:
 
     for rest_alias in ["r", "re", "res", "rest"]:
         session.is_sitting = True
-        session.is_sleeping = True
+        session.is_sleeping = False
         session.is_resting = False
         outbound = handle_posture_command(session, rest_alias, [], rest_alias)
         assert session.is_resting is True
@@ -89,12 +89,38 @@ def test_posture_command_aliases_work() -> None:
     for stand_alias in ["st", "sta", "stan", "stand"]:
         session.is_sitting = False
         session.is_resting = False
-        session.is_sleeping = True
+        session.is_sleeping = False
         outbound = handle_posture_command(session, stand_alias, [], stand_alias)
         assert session.is_sitting is False
         assert session.is_resting is False
         assert session.is_sleeping is False
         assert isinstance(outbound, dict)
+
+    for wake_alias in ["wa", "wak", "wake"]:
+        session.is_sleeping = True
+        outbound = handle_posture_command(session, wake_alias, [], wake_alias)
+        assert session.is_sleeping is False
+        assert isinstance(outbound, dict)
+
+
+def test_sleeping_blocks_posture_changes_until_wake() -> None:
+    session = _make_session("client-sleep-posture", "Lucia")
+    session.is_sleeping = True
+
+    for blocked_verb in ("sit", "rest", "stand"):
+        outbound = handle_posture_command(session, blocked_verb, [], blocked_verb)
+        assert isinstance(outbound, dict)
+        assert "Shhh... You are asleep. Use wake first." in _extract_display_text(outbound)
+        assert session.is_sleeping is True
+
+    wake_outbound = handle_posture_command(session, "wake", [], "wake")
+    assert isinstance(wake_outbound, dict)
+    assert "You wake up." in _extract_display_text(wake_outbound)
+    assert session.is_sleeping is False
+
+    stand_outbound = handle_posture_command(session, "stand", [], "stand")
+    assert isinstance(stand_outbound, dict)
+    assert "already standing" in _extract_display_text(stand_outbound)
 
 
 def test_sitting_damage_multiplier_applies_to_player(monkeypatch) -> None:

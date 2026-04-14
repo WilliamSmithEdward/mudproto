@@ -48,7 +48,7 @@ def handle_observation_command(
     _command_text: str,
 ) -> HandledResult:
     if verb in _OBSERVATION_VERBS and session.is_sleeping and posture_prevents_observation_commands("sleeping"):
-        return display_error("Shhh... You are asleep.", session)
+        return display_error("Shhh... You are asleep. Use wake first.", session)
 
     if verb in {"look", "lo", "loo"}:
         room = get_room(session.player.current_room_id)

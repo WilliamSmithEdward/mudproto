@@ -40,7 +40,7 @@ def test_sleeping_blocks_look_scan_and_examine() -> None:
     for verb, args in (("look", []), ("scan", []), ("examine", ["sword"])):
         outbound = handle_observation_command(session, verb, list(args), f"{verb} {' '.join(args)}".strip())
         assert isinstance(outbound, dict)
-        assert "Shhh... You are asleep." in _extract_display_text(outbound)
+        assert "Shhh... You are asleep. Use wake first." in _extract_display_text(outbound)
 
 
 def test_sleeping_does_not_block_non_observation_verbs() -> None:

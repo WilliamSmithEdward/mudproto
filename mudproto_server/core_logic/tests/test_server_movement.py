@@ -158,4 +158,4 @@ def test_try_move_blocked_while_sleeping() -> None:
     outbound = movement.try_move(session, "north")
 
     assert isinstance(outbound, dict)
-    assert "You are sleeping. Use stand before moving." in _extract_display_text(outbound)
+    assert "Shhh... You are asleep. Use wake first." in _extract_display_text(outbound)

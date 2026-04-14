@@ -155,7 +155,7 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
     if session.is_resting and posture_prevents_movement("resting"):
         return display_error("You are resting. Use stand before moving.", session)
     if session.is_sleeping and posture_prevents_movement("sleeping"):
-        return display_error("You are sleeping. Use stand before moving.", session)
+        return display_error("Shhh... You are asleep. Use wake first.", session)
 
     if session.combat.engaged_entity_ids:
         return display_error("You cannot move while engaged in combat. Try flee.", session)
