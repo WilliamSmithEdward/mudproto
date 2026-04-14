@@ -372,8 +372,21 @@ def _decrement_cooldowns(cooldowns: dict[str, int]) -> None:
             cooldowns[key] = remaining - 1
 
 
+def _tick_player_skill_cooldowns(session: ClientSession, elapsed_rounds: int = 1) -> None:
+    rounds = max(0, int(elapsed_rounds))
+    if rounds <= 0:
+        return
+
+    for _ in range(rounds):
+        if not session.combat.skill_cooldowns:
+            break
+        _decrement_cooldowns(session.combat.skill_cooldowns)
+
+
 def _process_combat_round_timers(session: ClientSession, entities: list[EntityState]) -> None:
-    _decrement_cooldowns(session.combat.skill_cooldowns)
+    from battle_round_ticks import process_player_battle_round_tick
+
+    process_player_battle_round_tick(session)
 
     for entity in entities:
         _process_entity_battle_round_support_effects(entity)
@@ -391,12 +404,10 @@ def _consume_entity_action_lag(entity: EntityState) -> bool:
 
 
 def tick_out_of_combat_cooldowns(session: ClientSession) -> None:
-    """No-op: player round cooldowns only tick during active combat rounds.
+    """Compatibility wrapper for unified non-combat battleround mechanics."""
+    from battle_round_ticks import process_non_combat_support_round
 
-    This keeps round-based skill cooldowns from draining in real time while a
-    player is out of combat (for example, after fleeing and immediately re-engaging).
-    """
-    _ = session
+    process_non_combat_support_round(session)
 
 
 def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSession) -> bool:

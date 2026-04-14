@@ -1,6 +1,5 @@
 from abilities import _list_known_passives
 from assets import get_gear_template_by_id
-from battle_round_ticks import process_battle_round_support_effects
 from combat_ability_effects import (
     _apply_entity_damage_with_reduction,
     _apply_entity_dealt_damage_multiplier,
@@ -515,8 +514,6 @@ def resolve_combat_round(
     if entity is None or not entity.is_alive or entity.room_id != session.player.current_room_id:
         clear_combat_if_invalid(session)
         return None
-
-    process_battle_round_support_effects(session)
 
     parts: list[dict] = []
     room_broadcast_lines: list[list[dict]] = []

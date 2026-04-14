@@ -10,7 +10,6 @@ from combat_state import (
     maybe_auto_engage_current_room,
     process_pending_auto_aggro,
     sync_entity_target_player,
-    tick_out_of_combat_cooldowns,
 )
 from command_handlers.registry import dispatch_command
 from display_feedback import display_error, display_force_prompt, display_prompt
@@ -305,7 +304,6 @@ async def combat_round_loop() -> None:
                     continue
                 if not session.is_authenticated or session.disconnected_by_server:
                     continue
-                tick_out_of_combat_cooldowns(session)
 
             for room_id, room_sessions in due_combat_rooms.items():
                 round_results: list[RoomRoundResult] = []

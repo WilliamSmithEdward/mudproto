@@ -40,11 +40,23 @@ def process_battle_round_support_effects(session: ClientSession) -> None:
             session.active_support_effects.remove(effect)
 
 
+def process_player_battle_round_tick(session: ClientSession, elapsed_rounds: int = 1) -> None:
+    from combat_state import _tick_player_skill_cooldowns
+
+    rounds = max(0, int(elapsed_rounds))
+    for _ in range(rounds):
+        process_battle_round_support_effects(session)
+        _tick_player_skill_cooldowns(session)
+
+
 def process_non_combat_support_round(session: ClientSession) -> bool:
     from combat_state import get_engaged_entity
 
-    has_battle_round_effect = any(effect.support_mode == "battle_rounds" for effect in session.active_support_effects)
-    if not has_battle_round_effect:
+    def _has_battle_round_activity() -> bool:
+        has_battle_round_effect = any(effect.support_mode == "battle_rounds" for effect in session.active_support_effects)
+        return has_battle_round_effect or bool(session.combat.skill_cooldowns)
+
+    if not _has_battle_round_activity():
         session.next_non_combat_support_round_monotonic = None
         return False
 
@@ -65,11 +77,18 @@ def process_non_combat_support_round(session: ClientSession) -> bool:
     if now < due_at:
         return False
 
-    process_battle_round_support_effects(session)
+    elapsed_rounds = 0
+    while _has_battle_round_activity() and now >= due_at:
+        elapsed_rounds += 1
+        due_at += COMBAT_ROUND_INTERVAL_SECONDS
 
-    has_remaining_battle_round = any(effect.support_mode == "battle_rounds" for effect in session.active_support_effects)
-    if has_remaining_battle_round:
-        session.next_non_combat_support_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+    if elapsed_rounds <= 0:
+        return False
+
+    process_player_battle_round_tick(session, elapsed_rounds)
+
+    if _has_battle_round_activity():
+        session.next_non_combat_support_round_monotonic = due_at
     else:
         session.next_non_combat_support_round_monotonic = None
 
