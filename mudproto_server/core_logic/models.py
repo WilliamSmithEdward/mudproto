@@ -208,6 +208,7 @@ class EntityState:
     spell_lag_rounds_remaining: int = 0
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     is_sitting: bool = False
+    is_resting: bool = False
     wander_chance: float = 0.0
     wander_room_ids: list[str] = field(default_factory=list)
 

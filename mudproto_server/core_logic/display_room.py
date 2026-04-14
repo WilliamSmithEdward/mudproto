@@ -13,6 +13,23 @@ from display_feedback import _direction_short_label, _direction_sort_key, resolv
 from room_exits import describe_exit_status
 
 
+def _resolve_posture_label(*, is_sitting: bool, is_resting: bool) -> str:
+    if is_resting:
+        return "resting"
+    if is_sitting:
+        return "sitting"
+    return "standing"
+
+
+def _append_posture_parts(parts: list[dict], *, is_sitting: bool, is_resting: bool) -> None:
+    posture_label = _resolve_posture_label(is_sitting=is_sitting, is_resting=is_resting)
+    parts.extend([
+        build_part(" (", "bright_white"),
+        build_part(posture_label, "bright_white"),
+        build_part(")", "bright_white"),
+    ])
+
+
 def _scan_visible_hostiles(session: ClientSession, room_id: str) -> list:
     visible = [
         entity
@@ -366,6 +383,11 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(" - ", "bright_white"),
                 build_part(entity.name, entity_name_color, True),
             ])
+            _append_posture_parts(
+                parts,
+                is_sitting=bool(getattr(entity, "is_sitting", False)),
+                is_resting=bool(getattr(entity, "is_resting", False)),
+            )
             engagement_target = _resolve_entity_engagement_target_name(session, entity)
             _append_room_engagement_parts(
                 parts,
@@ -388,6 +410,11 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 build_part(" - ", "bright_white"),
                 build_part(player_name, "bright_cyan", True),
             ])
+            _append_posture_parts(
+                parts,
+                is_sitting=bool(getattr(other_player, "is_sitting", False)),
+                is_resting=bool(getattr(other_player, "is_resting", False)),
+            )
             _append_room_engagement_parts(parts, _resolve_player_engagement_target_name(other_player))
 
     corpses = list_room_corpses(session, room.room_id)
