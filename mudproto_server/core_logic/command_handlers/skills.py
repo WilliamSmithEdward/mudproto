@@ -68,7 +68,7 @@ def handle_skill_command(
             return display_error(resolve_error or f"Unknown skill: {skill_name}", session)
 
         response, skill_applied = use_skill(session, skill, target_name)
-        if skill_applied and session.combat.engaged_entity_ids:
+        if skill_applied:
             lag_rounds = max(0, int(skill.get("lag_rounds", 0)))
             if lag_rounds > 0:
                 try:
@@ -99,7 +99,7 @@ def handle_skill_fallback_command(
             continue
 
         response, skill_applied = use_skill(session, candidate_skill, candidate_target_name)
-        if skill_applied and session.combat.engaged_entity_ids:
+        if skill_applied:
             lag_rounds = max(0, int(candidate_skill.get("lag_rounds", 0)))
             if lag_rounds > 0:
                 try:
