@@ -3,6 +3,7 @@ from models import ClientSession
 
 from .character import handle_character_command
 from .commerce import handle_commerce_command
+from .debug_acquire import handle_debug_acquire_command
 from .equipment import handle_equipment_command
 from .item_actions import handle_item_drop_command, handle_item_use_command
 from .loot import handle_loot_command
@@ -32,6 +33,7 @@ def dispatch_command(session: ClientSession, command_text: str) -> OutboundResul
         handle_loot_command,
         handle_character_command,
         handle_commerce_command,
+        handle_debug_acquire_command,
         handle_spell_command,
         handle_passive_command,
         handle_skill_command,
