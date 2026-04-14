@@ -249,7 +249,7 @@ def test_swap_rejected_for_non_leader_member() -> None:
 
     response = social.handle_social_command(second, "swap", ["Ragnar", "Beatrix"], "swap Ragnar Beatrix")
     assert isinstance(response, dict)
-    assert "Only the party leader can use swap." in _extract_display_text(response)
+    assert "Only the group leader can use swap." in _extract_display_text(response)
 
     # Ensure failed command does not mutate chain.
     assert second.group_leader_key == leader_key
@@ -290,7 +290,7 @@ def test_swap_self_unknown_member_errors_cleanly() -> None:
 
     response = social.handle_social_command(leader, "swap", ["self", "Nobody"], "swap self Nobody")
     assert isinstance(response, dict)
-    assert "That party member was not found." in _extract_display_text(response)
+    assert "That group member was not found." in _extract_display_text(response)
 
     _clear_session_registries()
 
@@ -312,7 +312,7 @@ def test_swap_rejects_same_member_targets() -> None:
 
     response = social.handle_social_command(leader, "swap", ["Orlandu", "Orlandu"], "swap Orlandu Orlandu")
     assert isinstance(response, dict)
-    assert "You must choose two different party members." in _extract_display_text(response)
+    assert "You must choose two different group members." in _extract_display_text(response)
 
     _clear_session_registries()
 
@@ -336,7 +336,7 @@ def test_swap_rejects_non_party_target_even_if_present_in_room() -> None:
 
     response = social.handle_social_command(leader, "swap", ["Orlandu", "Cecil"], "swap Orlandu Cecil")
     assert isinstance(response, dict)
-    assert "The second swap target is not in your party order." in _extract_display_text(response)
+    assert "The second swap target is not in your group order." in _extract_display_text(response)
 
     _clear_session_registries()
 
@@ -361,5 +361,46 @@ def test_swap_self_with_direct_follower_outside_party() -> None:
     assert follower.following_player_name == ""
     assert leader.following_player_key == follower.player_state_key
     assert leader.following_player_name == follower.authenticated_character_name
+
+    _clear_session_registries()
+
+
+def test_swap_member_me_alias_works_for_direct_follower_outside_party() -> None:
+    _clear_session_registries()
+
+    follower = _make_session("client-follower", "Orlandu")
+    leader = _make_session("client-leader", "Ragnar")
+
+    connected_clients[follower.client_id] = follower
+    connected_clients[leader.client_id] = leader
+
+    follower.following_player_key = leader.player_state_key
+    follower.following_player_name = leader.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["Orlandu", "me"], "swap Orlandu me")
+    assert isinstance(response, dict)
+    assert "You swap positions with Orlandu." in _extract_display_text(response)
+
+    assert follower.following_player_key == ""
+    assert follower.following_player_name == ""
+    assert leader.following_player_key == follower.player_state_key
+    assert leader.following_player_name == follower.authenticated_character_name
+
+    _clear_session_registries()
+
+
+def test_swap_two_targets_outside_party_shows_non_party_guidance() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    first = _make_session("client-first", "Orlandu")
+    second = _make_session("client-second", "Beatrix")
+
+    for session in [leader, first, second]:
+        connected_clients[session.client_id] = session
+
+    response = social.handle_social_command(leader, "swap", ["Orlandu", "Beatrix"], "swap Orlandu Beatrix")
+    assert isinstance(response, dict)
+    assert "You are not in a group. Use swap self <player> for direct follower swaps." in _extract_display_text(response)
 
     _clear_session_registries()

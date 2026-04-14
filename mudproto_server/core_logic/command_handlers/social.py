@@ -56,7 +56,7 @@ def _swap_self_with_direct_follower(session: ClientSession, target_session: Clie
 
     target_following_key = (target_session.following_player_key or "").strip().lower()
     if target_following_key != session_key:
-        return False, "That player must be directly following you to swap outside a party."
+        return False, "That player must be directly following you to swap outside a group."
 
     target_key_raw = (target_session.player_state_key or target_session.client_id).strip()
     target_name = (target_session.authenticated_character_name or "").strip() or "Unknown"
@@ -233,7 +233,7 @@ def handle_social_command(
 
         leader_session = _resolve_group_leader_session(session)
         if leader_session.client_id != session.client_id:
-            return display_error("Only the party leader can use swap.", session)
+            return display_error("Only the group leader can use swap.", session)
 
         normalized_args = [arg.strip().lower() for arg in args if arg.strip()]
         if not normalized_args:
@@ -251,7 +251,7 @@ def handle_social_command(
             if target_session is None:
                 target_session, _target_error = _resolve_room_player_selector(session, target_selector)
             if target_session is None:
-                return display_error("That party member was not found.", session)
+                return display_error("That group member was not found.", session)
             if target_session.client_id == session.client_id:
                 return display_error("You cannot swap yourself with yourself.", session)
 
@@ -259,7 +259,7 @@ def handle_social_command(
             if not success:
                 fallback_success, fallback_reason = _swap_self_with_direct_follower(session, target_session)
                 if not fallback_success:
-                    return display_error(reason or fallback_reason or "Could not swap party positions.", session)
+                    return display_error(fallback_reason or reason or "Could not swap group positions.", session)
 
             target_name = _display_name(target_session)
             return display_command_result(session, [
@@ -281,6 +281,35 @@ def handle_social_command(
         if not left_selector or not right_selector:
             return display_error("Usage: swap <member1> with <member2>", session)
 
+        if right_selector.strip().lower() in {"self", "me", "myself"}:
+            target_session = _resolve_group_member_by_name(session, left_selector)
+            if target_session is None:
+                target_session, _target_error = _resolve_room_player_selector(session, left_selector)
+            if target_session is None:
+                return display_error("That group member was not found.", session)
+            if target_session.client_id == session.client_id:
+                return display_error("You cannot swap yourself with yourself.", session)
+
+            success, reason = _swap_party_positions(session, session, target_session)
+            if not success:
+                fallback_success, fallback_reason = _swap_self_with_direct_follower(session, target_session)
+                if not fallback_success:
+                    return display_error(fallback_reason or reason or "Could not swap group positions.", session)
+
+            target_name = _display_name(target_session)
+            return display_command_result(session, [
+                build_part("You swap positions with ", "bright_white"),
+                build_part(target_name, "bright_cyan", True),
+                build_part(".", "bright_white"),
+            ])
+
+        _leader, party_sessions = _list_group_member_sessions(session)
+        if len(party_sessions) <= 1:
+            return display_error(
+                "You are not in a group. Use swap self <player> for direct follower swaps.",
+                session,
+            )
+
         first_session = _resolve_group_member_by_name(session, left_selector)
         if first_session is None:
             first_session, _first_error = _resolve_room_player_selector(session, left_selector)
@@ -290,14 +319,14 @@ def handle_social_command(
             second_session, _second_error = _resolve_room_player_selector(session, right_selector)
 
         if first_session is None or second_session is None:
-            return display_error("One or both party members were not found.", session)
+            return display_error("One or both group members were not found.", session)
 
         if first_session.client_id == second_session.client_id:
-            return display_error("You must choose two different party members.", session)
+            return display_error("You must choose two different group members.", session)
 
         success, reason = _swap_party_positions(session, first_session, second_session)
         if not success:
-            return display_error(reason or "Could not swap party positions.", session)
+            return display_error(reason or "Could not swap group positions.", session)
 
         first_name = _display_name(first_session)
         second_name = _display_name(second_session)

@@ -408,27 +408,27 @@ def _swap_party_positions(
 ) -> tuple[bool, str]:
     resolved_leader, party_order = _list_group_member_sessions(leader_session)
     if resolved_leader.client_id != leader_session.client_id:
-        return False, "Only the group leader can swap party positions."
+        return False, "Only the group leader can swap group positions."
 
     if first_session.client_id == second_session.client_id:
-        return False, "You must choose two different party members to swap."
+        return False, "You must choose two different group members to swap."
 
     index_by_client_id = {party_session.client_id: index for index, party_session in enumerate(party_order)}
     if first_session.client_id not in index_by_client_id:
-        return False, "The first swap target is not in your party order."
+        return False, "The first swap target is not in your group order."
     if second_session.client_id not in index_by_client_id:
-        return False, "The second swap target is not in your party order."
+        return False, "The second swap target is not in your group order."
 
     first_index = index_by_client_id[first_session.client_id]
     second_index = index_by_client_id[second_session.client_id]
     if first_index == second_index:
-        return False, "You must choose two different party members to swap."
+        return False, "You must choose two different group members to swap."
 
     new_order = list(party_order)
     new_order[first_index], new_order[second_index] = new_order[second_index], new_order[first_index]
 
     if not _apply_party_order(new_order):
-        return False, "Could not apply the new party order."
+        return False, "Could not apply the new group order."
 
     return True, ""
 
