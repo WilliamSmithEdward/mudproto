@@ -314,6 +314,9 @@ def load_affect_templates() -> list[dict]:
         if not isinstance(raw_affect, dict):
             raise ValueError("Affect templates must be objects.")
 
+        if "_documentation" in raw_affect:
+            continue
+
         affect_id = str(raw_affect.get("affect_id", "")).strip().lower()
         affect_type = str(raw_affect.get("affect_type", "")).strip().lower()
         raw_damage_elements = raw_affect.get("damage_elements", raw_affect.get("damage_element", []))

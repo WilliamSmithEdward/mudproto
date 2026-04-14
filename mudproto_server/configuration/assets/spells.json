@@ -71,7 +71,7 @@
     "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle.",
     "affect_ids": [
       {
-        "affect_id": "affect.health-regeneration",
+        "affect_id": "affect.regeneration",
         "name": "Regeneration Ward",
         "target": "self",
         "affect_mode": "battle_rounds",
