@@ -1,0 +1,2 @@
+# Runtime dependencies for MudProto
+websockets>=12,<16
