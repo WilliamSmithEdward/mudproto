@@ -18,6 +18,11 @@ get_room = getattr(_world, "get_room")
 
 
 HandledResult = OutboundResult | None
+_OBSERVATION_VERBS = {
+    "look", "lo", "loo",
+    "sc", "sca", "scan",
+    "ex", "exa", "exam", "exami", "examin", "examine",
+}
 
 
 def _resolve_directional_room_look(room, selector_text: str):
@@ -42,7 +47,7 @@ def handle_observation_command(
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
-    if session.is_sleeping and posture_prevents_observation_commands("sleeping"):
+    if verb in _OBSERVATION_VERBS and session.is_sleeping and posture_prevents_observation_commands("sleeping"):
         return display_error("Shhh... You are asleep.", session)
 
     if verb in {"look", "lo", "loo"}:

@@ -41,3 +41,12 @@ def test_sleeping_blocks_look_scan_and_examine() -> None:
         outbound = handle_observation_command(session, verb, list(args), f"{verb} {' '.join(args)}".strip())
         assert isinstance(outbound, dict)
         assert "Shhh... You are asleep." in _extract_display_text(outbound)
+
+
+def test_sleeping_does_not_block_non_observation_verbs() -> None:
+    session = _make_session("client-observe-metadata", "Lucia")
+    session.is_sleeping = True
+
+    for verb in ("score", "eq", "inv", "sk"):
+        outbound = handle_observation_command(session, verb, [], verb)
+        assert outbound is None
