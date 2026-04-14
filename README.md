@@ -167,3 +167,9 @@ python -m pytest
 ```
 
 MudProto is designed to be practical to run, straightforward to read, and easy to extend.
+
+<div align="center">
+
+*Roll for initiative.* 🎲
+
+</div>
