@@ -527,6 +527,9 @@ class MudProtoGuiClient:
 
         self.output_text.configure(state="normal")
 
+        if not self.output_ends_with_newline:
+            self.output_text.insert(tk.END, "\n")
+
         for line_index, parts in enumerate(lines):
             if line_index > 0:
                 self.output_text.insert(tk.END, "\n")

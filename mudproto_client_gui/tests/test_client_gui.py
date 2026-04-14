@@ -45,6 +45,30 @@ class _ImmediateThread:
             self._target()
 
 
+class _FakeTextWidget:
+    def __init__(self, content: str = "") -> None:
+        self.content = content
+        self._tags: set[str] = set()
+
+    def configure(self, **_kwargs) -> None:
+        return None
+
+    def insert(self, _index, text: str, _tag=None) -> None:
+        self.content += text
+
+    def see(self, _index) -> None:
+        return None
+
+    def tag_names(self):
+        return tuple(self._tags)
+
+    def tag_configure(self, tag_name: str, **_kwargs) -> None:
+        self._tags.add(tag_name)
+
+    def __str__(self) -> str:
+        return "fake-output"
+
+
 def _make_client(raw_text: str) -> client_gui.MudProtoGuiClient:
     raw_client = client_gui.MudProtoGuiClient.__new__(client_gui.MudProtoGuiClient)
     client = cast(Any, raw_client)
@@ -154,3 +178,19 @@ def test_render_display_passes_lines_and_prompt_groups() -> None:
     assert appended[0][0] == []
     assert appended[0][1][0]["text"] == "Adventurer's Ledger"
     assert appended[1][0][0]["text"] == "prompt"
+
+
+def test_append_line_group_preserves_leading_blank_after_prompt_line() -> None:
+    client = _make_client("")
+    fake_output = _FakeTextWidget(">")
+    client.output_text = fake_output  # type: ignore[assignment]
+    client.base_font = ("Consolas", 11)
+    client.bold_font = ("Consolas", 11, "bold")
+    client.output_ends_with_newline = False
+
+    client._append_line_group([
+        [],
+        [{"text": "Character found. Enter your password.", "fg": "bright_white", "bold": False}],
+    ])
+
+    assert fake_output.content == ">\n\nCharacter found. Enter your password."

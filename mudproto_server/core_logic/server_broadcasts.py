@@ -239,16 +239,6 @@ def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | l
         if not isinstance(payload, dict):
             continue
 
-        # Opening combat rounds (including skill-name openers like "hack")
-        # should always be room-broadcast even when the command verb isn't in
-        # the legacy allow-list below.
-        if (
-            payload.get("starts_on_new_line") is True
-            and payload.get("prompt_after") is False
-            and int(payload.get("blank_lines_after", 0) or 0) >= 1
-        ):
-            return True
-
         lines = payload.get("lines")
         if not isinstance(lines, list):
             continue
