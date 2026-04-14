@@ -1,4 +1,6 @@
-﻿# MudProto
+﻿<div align="center">
+
+# MudProto
 
 A server-authoritative multiplayer MUD built in Python.
 
@@ -8,6 +10,8 @@ Async WebSocket server, terminal and GUI clients, tabletop-inspired fantasy syst
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![WebSockets](https://img.shields.io/badge/WebSockets-async-4B8BBE)](https://websockets.readthedocs.io)
 [![SQLite](https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
+
+</div>
 
 ![MudProto gameplay screenshot](/images/mudproto_01.png)
 
