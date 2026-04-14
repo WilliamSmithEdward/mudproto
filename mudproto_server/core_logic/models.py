@@ -240,6 +240,7 @@ class ClientSession:
     inventory_items: dict[str, InventoryItemState] = field(default_factory=dict)
     known_spell_ids: list[str] = field(default_factory=list)
     known_skill_ids: list[str] = field(default_factory=list)
+    known_passive_ids: list[str] = field(default_factory=list)
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     next_game_tick_monotonic: Optional[float] = None
     next_non_combat_support_round_monotonic: Optional[float] = None

@@ -465,6 +465,7 @@ def _serialize_session(session: ClientSession) -> dict:
         },
         "known_spell_ids": list(session.known_spell_ids),
         "known_skill_ids": list(session.known_skill_ids),
+        "known_passive_ids": list(session.known_passive_ids),
         "combat": {
             "skill_hour_cooldowns": {
                 str(skill_id).strip(): max(0, int(remaining_hours))
@@ -643,6 +644,14 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
     raw_known_skill_ids = raw_state.get("known_skill_ids", [])
     if isinstance(raw_known_skill_ids, list):
         session.known_skill_ids = [str(skill_id).strip() for skill_id in raw_known_skill_ids if str(skill_id).strip()]
+
+    raw_known_passive_ids = raw_state.get("known_passive_ids", [])
+    if isinstance(raw_known_passive_ids, list):
+        session.known_passive_ids = [
+            str(passive_id).strip()
+            for passive_id in raw_known_passive_ids
+            if str(passive_id).strip()
+        ]
 
     raw_combat = raw_state.get("combat", {})
     if isinstance(raw_combat, dict):

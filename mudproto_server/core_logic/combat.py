@@ -1,4 +1,4 @@
-from attribute_config import get_default_player_class, get_player_class_by_id
+from abilities import _list_known_passives
 from assets import get_gear_template_by_id
 from battle_round_ticks import process_battle_round_support_effects
 from combat_ability_effects import _apply_entity_damage_with_reduction, _apply_player_damage_with_reduction
@@ -46,38 +46,42 @@ OPENING_ATTACKER_ENTITY = "entity"
 
 
 def _get_player_unarmed_profile(session: ClientSession) -> tuple[int, int, bool]:
-    class_id = str(session.player.class_id).strip()
-    player_class = get_player_class_by_id(class_id) if class_id else None
-    if player_class is None:
-        player_class = get_default_player_class()
-
     player_level = max(1, int(session.player.level))
 
-    unarmed_damage_bonus = max(0, int(player_class.get("unarmed_damage_bonus", 0)))
-    scaling_attribute_id = str(player_class.get("unarmed_scaling_attribute_id", "")).strip().lower()
-    scaling_multiplier = max(0.0, float(player_class.get("unarmed_scaling_multiplier", 0.0)))
-    if scaling_attribute_id and scaling_multiplier > 0.0:
-        attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
-        attribute_modifier = (attribute_value - 10) // 2
-        unarmed_damage_bonus += max(0, int(attribute_modifier * scaling_multiplier))
+    unarmed_damage_bonus = 0
+    unarmed_hit_bonus = 0
+    dual_unarmed_attacks = False
 
-    level_scaling_multiplier = max(0.0, float(player_class.get("unarmed_level_scaling_multiplier", 0.0)))
-    if level_scaling_multiplier > 0.0:
-        unarmed_damage_bonus += max(0, int((player_level - 1) * level_scaling_multiplier))
+    for passive in _list_known_passives(session):
+        passive_damage_bonus = max(0, int(passive.get("unarmed_damage_bonus", 0)))
+        scaling_attribute_id = str(passive.get("unarmed_scaling_attribute_id", "")).strip().lower()
+        scaling_multiplier = max(0.0, float(passive.get("unarmed_scaling_multiplier", 0.0)))
+        if scaling_attribute_id and scaling_multiplier > 0.0:
+            attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
+            attribute_modifier = (attribute_value - 10) // 2
+            passive_damage_bonus += max(0, int(attribute_modifier * scaling_multiplier))
 
-    unarmed_hit_bonus = max(0, int(player_class.get("unarmed_hit_roll_bonus", 0)))
-    hit_scaling_attribute_id = str(player_class.get("unarmed_hit_scaling_attribute_id", "")).strip().lower()
-    hit_scaling_multiplier = max(0.0, float(player_class.get("unarmed_hit_scaling_multiplier", 0.0)))
-    if hit_scaling_attribute_id and hit_scaling_multiplier > 0.0:
-        attribute_value = int(session.player.attributes.get(hit_scaling_attribute_id, 0))
-        attribute_modifier = (attribute_value - 10) // 2
-        unarmed_hit_bonus += max(0, int(attribute_modifier * hit_scaling_multiplier))
+        level_scaling_multiplier = max(0.0, float(passive.get("unarmed_level_scaling_multiplier", 0.0)))
+        if level_scaling_multiplier > 0.0:
+            passive_damage_bonus += max(0, int((player_level - 1) * level_scaling_multiplier))
 
-    hit_level_scaling_multiplier = max(0.0, float(player_class.get("unarmed_hit_level_scaling_multiplier", 0.0)))
-    if hit_level_scaling_multiplier > 0.0:
-        unarmed_hit_bonus += max(0, int((player_level - 1) * hit_level_scaling_multiplier))
+        passive_hit_bonus = max(0, int(passive.get("unarmed_hit_roll_bonus", 0)))
+        hit_scaling_attribute_id = str(passive.get("unarmed_hit_scaling_attribute_id", "")).strip().lower()
+        hit_scaling_multiplier = max(0.0, float(passive.get("unarmed_hit_scaling_multiplier", 0.0)))
+        if hit_scaling_attribute_id and hit_scaling_multiplier > 0.0:
+            attribute_value = int(session.player.attributes.get(hit_scaling_attribute_id, 0))
+            attribute_modifier = (attribute_value - 10) // 2
+            passive_hit_bonus += max(0, int(attribute_modifier * hit_scaling_multiplier))
 
-    dual_unarmed_attacks = bool(player_class.get("dual_unarmed_attacks", False))
+        hit_level_scaling_multiplier = max(0.0, float(passive.get("unarmed_hit_level_scaling_multiplier", 0.0)))
+        if hit_level_scaling_multiplier > 0.0:
+            passive_hit_bonus += max(0, int((player_level - 1) * hit_level_scaling_multiplier))
+
+        unarmed_damage_bonus += passive_damage_bonus
+        unarmed_hit_bonus += passive_hit_bonus
+        if bool(passive.get("dual_unarmed_attacks", False)):
+            dual_unarmed_attacks = True
+
     return unarmed_damage_bonus, unarmed_hit_bonus, dual_unarmed_attacks
 
 

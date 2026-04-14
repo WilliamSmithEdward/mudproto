@@ -1,6 +1,7 @@
 """Spell and skill knowledge lookup helpers."""
 
 from assets import load_skills, load_spells
+from attribute_config import load_passives
 from models import ClientSession
 
 
@@ -135,3 +136,17 @@ def _resolve_skill_by_name(skill_name: str, skills: list[dict] | None = None) ->
         return None, f"Multiple skill matches found. Be more specific: {names}"
 
     return None, f"Unknown skill: {skill_name}"
+
+
+def _list_known_passives(session: ClientSession) -> list[dict]:
+    known_ids = {passive_id.strip().lower() for passive_id in session.known_passive_ids if passive_id.strip()}
+    if not known_ids:
+        return []
+
+    known_passives = [
+        passive
+        for passive in load_passives()
+        if str(passive.get("passive_id", "")).strip().lower() in known_ids
+    ]
+    known_passives.sort(key=lambda passive: str(passive.get("name", "")).strip().lower())
+    return known_passives

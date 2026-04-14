@@ -1,0 +1,16 @@
+[ 
+  {
+    "passive_id": "passive.monk-unarmed-mastery",
+    "name": "Unarmed Mastery",
+    "description": "Your body is a practiced weapon. Unarmed strikes gain bonus hit and damage from Dexterity and level, and you can make an additional off-hand unarmed strike when not wielding weapons.",
+    "unarmed_damage_bonus": 6,
+    "unarmed_scaling_attribute_id": "dex",
+    "unarmed_scaling_multiplier": 1.0,
+    "unarmed_level_scaling_multiplier": 1.0,
+    "unarmed_hit_roll_bonus": 2,
+    "unarmed_hit_scaling_attribute_id": "dex",
+    "unarmed_hit_scaling_multiplier": 0.5,
+    "unarmed_hit_level_scaling_multiplier": 0.25,
+    "dual_unarmed_attacks": true
+  }
+]

@@ -176,6 +176,14 @@ def apply_player_class(
         session.known_skill_ids.append(str(skill_id).strip())
         known_skill_ids.add(normalized_skill_id)
 
+    known_passive_ids = {passive_id.strip().lower() for passive_id in session.known_passive_ids if passive_id.strip()}
+    for passive_id in player_class.get("starting_passive_ids", []):
+        normalized_passive_id = str(passive_id).strip().lower()
+        if not normalized_passive_id or normalized_passive_id in known_passive_ids:
+            continue
+        session.known_passive_ids.append(str(passive_id).strip())
+        known_passive_ids.add(normalized_passive_id)
+
     if initialize_progression:
         initialize_player_progression(session)
     else:

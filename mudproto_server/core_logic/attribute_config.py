@@ -8,6 +8,7 @@ ATTRIBUTE_CONFIG_ROOT = SERVER_ROOT / "configuration" / "attributes"
 WEAR_SLOTS_FILE = ATTRIBUTE_CONFIG_ROOT / "wear_slots.json"
 ATTRIBUTES_FILE = ATTRIBUTE_CONFIG_ROOT / "character_attributes.json"
 PLAYER_CLASSES_FILE = ATTRIBUTE_CONFIG_ROOT / "classes.json"
+PASSIVES_FILE = ATTRIBUTE_CONFIG_ROOT / "passives.json"
 REGENERATION_FILE = ATTRIBUTE_CONFIG_ROOT / "regeneration.json"
 HAND_WEIGHT_FILE = ATTRIBUTE_CONFIG_ROOT / "hand_weight.json"
 COMBAT_SEVERITY_FILE = ATTRIBUTE_CONFIG_ROOT / "combat_severity.json"
@@ -154,6 +155,72 @@ def load_attributes() -> list[dict]:
         raise ValueError("At least one attribute must be configured.")
 
     return normalized_attributes
+
+
+@lru_cache(maxsize=1)
+def load_passives() -> list[dict]:
+    raw_passives = _read_json_attribute_config(PASSIVES_FILE)
+    if not isinstance(raw_passives, list):
+        raise ValueError(f"Passive asset file must contain a list: {PASSIVES_FILE}")
+
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
+
+    normalized_passives: list[dict] = []
+    seen_ids: set[str] = set()
+    for raw_passive in raw_passives:
+        if not isinstance(raw_passive, dict):
+            raise ValueError("Passive entries must be objects.")
+
+        passive_id = str(raw_passive.get("passive_id", "")).strip().lower()
+        name = str(raw_passive.get("name", "")).strip()
+        description = str(raw_passive.get("description", "")).strip()
+        if not passive_id:
+            raise ValueError("Passive entries must include non-empty passive_id.")
+        if passive_id in seen_ids:
+            raise ValueError(f"Duplicate passive_id in passives asset: {passive_id}")
+        if not name:
+            raise ValueError(f"Passive '{passive_id}' must include non-empty name.")
+
+        unarmed_damage_bonus = max(0, int(raw_passive.get("unarmed_damage_bonus", 0)))
+        unarmed_scaling_attribute_id = str(raw_passive.get("unarmed_scaling_attribute_id", "")).strip().lower()
+        unarmed_scaling_multiplier = max(0.0, float(raw_passive.get("unarmed_scaling_multiplier", 0.0)))
+        unarmed_level_scaling_multiplier = max(0.0, float(raw_passive.get("unarmed_level_scaling_multiplier", 0.0)))
+        unarmed_hit_roll_bonus = max(0, int(raw_passive.get("unarmed_hit_roll_bonus", 0)))
+        unarmed_hit_scaling_attribute_id = str(raw_passive.get("unarmed_hit_scaling_attribute_id", "")).strip().lower()
+        unarmed_hit_scaling_multiplier = max(0.0, float(raw_passive.get("unarmed_hit_scaling_multiplier", 0.0)))
+        unarmed_hit_level_scaling_multiplier = max(0.0, float(raw_passive.get("unarmed_hit_level_scaling_multiplier", 0.0)))
+        dual_unarmed_attacks = bool(raw_passive.get("dual_unarmed_attacks", False))
+
+        if unarmed_scaling_attribute_id and unarmed_scaling_attribute_id not in configured_attribute_ids:
+            raise ValueError(
+                f"Passive '{passive_id}' unarmed_scaling_attribute_id references unknown attribute '{unarmed_scaling_attribute_id}'."
+            )
+        if unarmed_hit_scaling_attribute_id and unarmed_hit_scaling_attribute_id not in configured_attribute_ids:
+            raise ValueError(
+                f"Passive '{passive_id}' unarmed_hit_scaling_attribute_id references unknown attribute '{unarmed_hit_scaling_attribute_id}'."
+            )
+
+        seen_ids.add(passive_id)
+        normalized_passives.append({
+            "passive_id": passive_id,
+            "name": name,
+            "description": description,
+            "unarmed_damage_bonus": unarmed_damage_bonus,
+            "unarmed_scaling_attribute_id": unarmed_scaling_attribute_id,
+            "unarmed_scaling_multiplier": unarmed_scaling_multiplier,
+            "unarmed_level_scaling_multiplier": unarmed_level_scaling_multiplier,
+            "unarmed_hit_roll_bonus": unarmed_hit_roll_bonus,
+            "unarmed_hit_scaling_attribute_id": unarmed_hit_scaling_attribute_id,
+            "unarmed_hit_scaling_multiplier": unarmed_hit_scaling_multiplier,
+            "unarmed_hit_level_scaling_multiplier": unarmed_hit_level_scaling_multiplier,
+            "dual_unarmed_attacks": dual_unarmed_attacks,
+        })
+
+    return normalized_passives
 
 
 @lru_cache(maxsize=1)
@@ -471,6 +538,7 @@ def load_player_classes() -> list[dict]:
         raw_gear_ids = raw_class.get("starting_gear_template_ids", [])
         raw_spell_ids = raw_class.get("starting_spell_ids", [])
         raw_skill_ids = raw_class.get("starting_skill_ids", [])
+        raw_passive_ids = raw_class.get("starting_passive_ids", [])
         raw_equipped_gear_ids = raw_class.get("starting_equipped_gear_template_ids", [])
         raw_item_ids = raw_class.get("starting_item_ids", [])
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
@@ -493,6 +561,8 @@ def load_player_classes() -> list[dict]:
             raise ValueError(f"Player class '{class_id}' starting_spell_ids must be a list.")
         if not isinstance(raw_skill_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_skill_ids must be a list.")
+        if not isinstance(raw_passive_ids, list):
+            raise ValueError(f"Player class '{class_id}' starting_passive_ids must be a list.")
         if not isinstance(raw_equipped_gear_ids, list):
             raise ValueError(
                 f"Player class '{class_id}' starting_equipped_gear_template_ids must be a list."
@@ -647,6 +717,25 @@ def load_player_classes() -> list[dict]:
             seen_skill_ids.add(normalized_skill_id)
             skill_ids.append(skill_id)
 
+        available_passive_ids = {
+            str(passive.get("passive_id", "")).strip().lower()
+            for passive in load_passives()
+            if str(passive.get("passive_id", "")).strip()
+        }
+        passive_ids: list[str] = []
+        seen_passive_ids: set[str] = set()
+        for raw_passive_id in raw_passive_ids:
+            passive_id = str(raw_passive_id).strip()
+            if not passive_id:
+                continue
+            normalized_passive_id = passive_id.lower()
+            if normalized_passive_id in seen_passive_ids:
+                continue
+            if normalized_passive_id not in available_passive_ids:
+                raise ValueError(f"Player class '{class_id}' references unknown passive: {passive_id}")
+            seen_passive_ids.add(normalized_passive_id)
+            passive_ids.append(passive_id)
+
         equipped_gear_ids: list[str] = []
         seen_equipped_gear_ids: set[str] = set()
         for raw_template_id in raw_equipped_gear_ids:
@@ -699,6 +788,7 @@ def load_player_classes() -> list[dict]:
             "starting_item_ids": item_ids,
             "starting_spell_ids": spell_ids,
             "starting_skill_ids": skill_ids,
+            "starting_passive_ids": passive_ids,
             "resource_progression": normalized_resource_progression,
             "is_default": bool(raw_class.get("is_default", False)),
         })
