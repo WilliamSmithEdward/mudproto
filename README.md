@@ -8,7 +8,7 @@ An easily customizable and extendable, server-authoritative MUD framework built 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![WebSockets](https://img.shields.io/badge/WebSockets-async-4B8BBE)](https://websockets.readthedocs.io)
 [![SQLite](https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
-[![CI](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml/badge.svg)](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml)
+[![CI](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml)
 
 </div>
 
