@@ -1,9 +1,11 @@
 import time
+import asyncio
 
 from display_core import build_display, build_part
 from display_feedback import build_prompt_parts_default
 from models import ClientSession
-from server_broadcasts import _build_room_broadcast_messages, _normalize_prompt_spacing
+from server_broadcasts import _build_room_broadcast_messages, _normalize_prompt_spacing, _send_room_broadcast
+from session_registry import connected_clients
 
 
 def _make_session(client_id: str, name: str = "Tester") -> ClientSession:
@@ -88,3 +90,45 @@ def test_room_broadcast_messages_keep_single_leading_blank_if_already_present() 
     assert isinstance(lines, list)
     assert lines[0] == []
     assert lines[1] != []
+
+
+def test_send_room_broadcast_applies_single_prompt_gap_with_private_lines() -> None:
+    origin = _make_session("client-origin-3", name="Lucia")
+    peer = _make_session("client-peer-3", name="Orlandu")
+    origin.player.current_room_id = "start"
+    peer.player.current_room_id = "start"
+    peer.pending_private_lines = [[build_part("You feel steadier.")]]
+
+    outbound = build_display([build_part("You cast regeneration ward on you.")])
+    broadcast_messages = _build_room_broadcast_messages(origin, outbound)
+
+    sent_payloads: list[list[dict]] = []
+
+    async def _capture_send(_websocket, message) -> None:
+        sent_payloads.append(message)
+
+    previous_clients = dict(connected_clients)
+    connected_clients.clear()
+    connected_clients[origin.client_id] = origin
+    connected_clients[peer.client_id] = peer
+    try:
+        asyncio.run(_send_room_broadcast(origin, broadcast_messages, _capture_send, prompt_observers=True))
+    finally:
+        connected_clients.clear()
+        connected_clients.update(previous_clients)
+
+    assert len(sent_payloads) == 1
+    peer_messages = sent_payloads[0]
+    assert isinstance(peer_messages, list)
+    assert len(peer_messages) == 1
+
+    payload = peer_messages[0].get("payload")
+    assert isinstance(payload, dict)
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    assert _line_text(lines[-2]).endswith("You feel steadier.")
+    assert lines[-1] == []
+
+    prompt_lines = payload.get("prompt_lines")
+    assert isinstance(prompt_lines, list)
+    assert _line_text(prompt_lines[0]).endswith("> ")

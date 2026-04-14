@@ -4,8 +4,8 @@ import copy
 import re
 
 from command_handlers.parsing import parse_command
-from display_core import build_display_lines, parts_to_lines
-from display_feedback import build_prompt_parts_default
+from display_core import build_display_lines
+from display_feedback import build_prompt_lines_default, build_prompt_parts_default
 from grammar import third_personize_text, to_third_person
 from models import ClientSession
 from session_registry import connected_clients
@@ -47,6 +47,48 @@ def _is_private_progression_line(text: str) -> bool:
 
 def _line_text(line: list[dict]) -> str:
     return "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+
+
+def _normalized_line_lists(raw_lines: object) -> list[list[dict]]:
+    if not isinstance(raw_lines, list):
+        return []
+    return [line for line in raw_lines if isinstance(line, list)]
+
+
+def _ensure_leading_blank_lines(lines: list[list[dict]], desired_count: int) -> list[list[dict]]:
+    leading_blank_count = 0
+    while leading_blank_count < len(lines) and not lines[leading_blank_count]:
+        leading_blank_count += 1
+    return ([[]] * max(0, desired_count - leading_blank_count)) + lines
+
+
+def _merge_lines_with_pending_private(existing_lines: object, pending_lines: list[list[dict]]) -> list[list[dict]]:
+    normalized_existing = _normalized_line_lists(existing_lines)
+    if normalized_existing and normalized_existing[-1]:
+        normalized_existing.append([])
+
+    merged_lines = normalized_existing + pending_lines
+    if merged_lines and merged_lines[-1]:
+        merged_lines.append([])
+    return merged_lines
+
+
+def _transform_observer_lines(lines: list[list[dict]], *, actor_name: str, actor_gender: str) -> list[list[dict]]:
+    filtered_lines: list[list[dict]] = []
+    for line in lines:
+        if _is_private_progression_line(_line_text(line)):
+            continue
+        for part in line:
+            if not isinstance(part, dict):
+                continue
+            original_text = str(part.get("text", ""))
+            part["text"] = third_personize_text(original_text, actor_name, actor_gender)
+        _prefix_observer_proc_line_actor(line, actor_name)
+        _strip_observer_proc_line_style(line)
+        _fix_observer_line_grammar(line, actor_name)
+        _strip_observer_actor_line_style(line, actor_name)
+        filtered_lines.append(line)
+    return filtered_lines
 
 
 def _fix_observer_line_grammar(line: list[dict], actor_name: str) -> None:
@@ -181,50 +223,26 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
             if isinstance(observer_lines, list) and observer_lines:
                 copied_payload["lines"] = observer_lines
             else:
-                copied_lines = copied_payload.get("lines")
-                if isinstance(copied_lines, list):
-                    filtered_lines: list = []
-                    for line in copied_lines:
-                        if not isinstance(line, list):
-                            continue
-                        if _is_private_progression_line(_line_text(line)):
-                            continue
-                        for part in line:
-                            if not isinstance(part, dict):
-                                continue
-                            original_text = str(part.get("text", ""))
-                            part["text"] = third_personize_text(
-                                original_text,
-                                actor_name,
-                                origin_session.player.gender,
-                            )
-                        _prefix_observer_proc_line_actor(line, actor_name)
-                        _strip_observer_proc_line_style(line)
-                        _fix_observer_line_grammar(line, actor_name)
-                        _strip_observer_actor_line_style(line, actor_name)
-                        filtered_lines.append(line)
-                    copied_payload["lines"] = filtered_lines
+                copied_lines = _normalized_line_lists(copied_payload.get("lines"))
+                copied_payload["lines"] = _transform_observer_lines(
+                    copied_lines,
+                    actor_name=actor_name,
+                    actor_gender=origin_session.player.gender,
+                )
             additional_observer_lines = copied_payload.get("additional_room_broadcast_lines")
             if isinstance(additional_observer_lines, list) and additional_observer_lines:
-                normalized_additional_lines = [line for line in additional_observer_lines if isinstance(line, list)]
-                copied_lines = copied_payload.get("lines")
-                normalized_lines = [line for line in copied_lines if isinstance(line, list)] if isinstance(copied_lines, list) else []
+                normalized_additional_lines = _normalized_line_lists(additional_observer_lines)
+                normalized_lines = _normalized_line_lists(copied_payload.get("lines"))
                 if normalized_lines and normalized_lines[-1]:
                     normalized_lines.append([])
                 normalized_lines.extend(normalized_additional_lines)
                 copied_payload["lines"] = normalized_lines
 
-            copied_lines = copied_payload.get("lines")
-            if isinstance(copied_lines, list):
-                normalized_lines = [line for line in copied_lines if isinstance(line, list)]
-                leading_blank_count = 0
-                while leading_blank_count < len(normalized_lines) and not normalized_lines[leading_blank_count]:
-                    leading_blank_count += 1
-                if normalized_lines:
-                    desired_leading_blank_count = 1
-                    copied_payload["lines"] = ([[]] * max(0, desired_leading_blank_count - leading_blank_count)) + normalized_lines
-                else:
-                    copied_payload["lines"] = normalized_lines
+            normalized_lines = _normalized_line_lists(copied_payload.get("lines"))
+            if normalized_lines:
+                copied_payload["lines"] = _ensure_leading_blank_lines(normalized_lines, 1)
+            else:
+                copied_payload["lines"] = normalized_lines
         broadcast_messages.append(copied_message)
 
     return broadcast_messages
@@ -246,7 +264,7 @@ def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | l
         if text.startswith("Error:"):
             return False
 
-    verb, args = parse_command(command_text)
+    verb, _args = parse_command(command_text)
     if verb in {
         "attack", "ki", "kil", "kill", "flee",
         "assist", "ass", "assi", "assis",
@@ -306,15 +324,7 @@ def _append_private_lines_to_payload(payload: dict, session: ClientSession) -> N
     if not pending_lines:
         return
 
-    existing_lines = payload.get("lines")
-    normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
-    if normalized_existing and normalized_existing[-1]:
-        normalized_existing.append([])
-
-    merged_lines = normalized_existing + pending_lines
-    if merged_lines and merged_lines[-1]:
-        merged_lines.append([])
-    payload["lines"] = merged_lines
+    payload["lines"] = _merge_lines_with_pending_private(payload.get("lines"), pending_lines)
 
 
 def _normalize_prompt_spacing(payload: dict) -> None:
@@ -326,8 +336,7 @@ def _normalize_prompt_spacing(payload: dict) -> None:
     while normalized_prompt and not normalized_prompt[0]:
         normalized_prompt.pop(0)
 
-    existing_lines = payload.get("lines")
-    normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
+    normalized_existing = _normalized_line_lists(payload.get("lines"))
     if normalized_existing and not normalized_existing[-1]:
         prompt_blank_count = 0
     elif normalized_existing:
@@ -351,15 +360,7 @@ def _inject_private_lines_into_outbound(session: ClientSession, outbound: dict |
         if not isinstance(payload, dict):
             continue
 
-        existing_lines = payload.get("lines")
-        normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
-        if normalized_existing and normalized_existing[-1]:
-            normalized_existing.append([])
-
-        merged_lines = normalized_existing + pending_lines
-        if merged_lines and merged_lines[-1]:
-            merged_lines.append([])
-        payload["lines"] = merged_lines
+        payload["lines"] = _merge_lines_with_pending_private(payload.get("lines"), pending_lines)
         _normalize_prompt_spacing(payload)
         return outbound
 
@@ -483,7 +484,7 @@ async def _send_room_broadcast(
 
             if prompt_observers:
                 _append_private_lines_to_payload(payload, peer)
-                payload["prompt_lines"] = parts_to_lines(build_prompt_parts_default(peer))
+                payload["prompt_lines"] = build_prompt_lines_default(peer)
                 _normalize_prompt_spacing(payload)
         await send_outbound_fn(peer.websocket, peer_messages)
 

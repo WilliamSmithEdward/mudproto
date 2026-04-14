@@ -11,7 +11,7 @@ from targeting_entities import list_room_entities
 from targeting_follow import _find_session_by_identity_key
 from world import get_room
 
-from display_core import build_display, build_display_lines, build_part, with_leading_blank_lines, with_prompt_gap
+from display_core import build_display, build_display_lines, build_part, parts_to_lines, with_leading_blank_lines, with_prompt_gap
 from room_exits import format_prompt_exit_token
 
 
@@ -191,6 +191,10 @@ def resolve_prompt_default(session: ClientSession, prompt_after: bool) -> tuple[
 
 def build_prompt_parts_default(session: ClientSession) -> list[dict]:
     return with_prompt_gap(build_prompt_parts(session), PROMPT_GAP_LINES)
+
+
+def build_prompt_lines_default(session: ClientSession) -> list[list[dict]]:
+    return parts_to_lines(build_prompt_parts_default(session))
 
 
 def display_prompt(session: ClientSession) -> dict:
