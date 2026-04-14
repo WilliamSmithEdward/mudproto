@@ -71,7 +71,7 @@ def _entity_is_engaged_by_any_player(entity_id: str) -> bool:
 
 def _npc_wander_display(parts: list[dict], session: ClientSession) -> dict:
     from display_feedback import build_prompt_parts
-    prompt_parts = [newline_part(2), *build_prompt_parts(session)]
+    prompt_parts = [newline_part(), *build_prompt_parts(session)]
     return build_display(
         parts,
         prompt_after=True,

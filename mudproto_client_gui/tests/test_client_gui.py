@@ -174,10 +174,10 @@ def test_render_display_passes_lines_and_prompt_groups() -> None:
         },
     })
 
-    assert len(appended) == 2
+    assert len(appended) == 1
     assert appended[0][0] == []
     assert appended[0][1][0]["text"] == "Adventurer's Ledger"
-    assert appended[1][0][0]["text"] == "prompt"
+    assert appended[0][2][0]["text"] == "prompt"
 
 
 def test_append_line_group_preserves_leading_blank_after_prompt_line() -> None:

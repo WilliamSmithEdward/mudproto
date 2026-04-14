@@ -181,7 +181,7 @@ class MudProtoGuiClient:
             selectbackground="#264f78",
             relief="flat",
             borderwidth=0,
-            wrap="none",
+            wrap="word",
             font=self.base_font,
             padx=10,
             pady=10,
@@ -559,11 +559,13 @@ class MudProtoGuiClient:
 
         lines = _extract_lines(payload, "lines")
         prompt_lines = _extract_lines(payload, "prompt_lines")
-
+        rendered_lines: list[Line] = []
         if lines:
-            self._append_line_group(lines)
+            rendered_lines.extend(lines)
         if prompt_lines:
-            self._append_line_group(prompt_lines)
+            rendered_lines.extend(prompt_lines)
+        if rendered_lines:
+            self._append_line_group(rendered_lines)
 
     def clear_output(self) -> None:
         self.output_text.configure(state="normal")

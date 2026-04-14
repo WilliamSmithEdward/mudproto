@@ -185,8 +185,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
                     build_part(f"{greeting}, ", "bright_white"),
                     build_part(character_name, "bright_green", True),
                     build_part(".", "bright_white"),
-                ),
-                [],
+                )
             ] + lines
     prepend_room_enter_communications(room_display, session, login_room.room_id)
 

@@ -166,7 +166,7 @@ def _append_scan_player_summary(parts: list[dict], players: list[ClientSession],
 
 
 def display_exits(session: ClientSession, room: Room) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=1)
     exit_items = sorted(room.exits.items(), key=lambda item: _direction_sort_key(item[0]))
 
     parts: list[dict] = [
@@ -260,7 +260,7 @@ def _display_look_summary(
     condition_color: str,
     gear_summary: list[str],
 ) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=1)
     parts = [
         build_part(_panel_title_line(title), title_color, True),
         newline_part(),
@@ -362,7 +362,7 @@ def _append_room_engagement_parts(parts: list[dict], target_name: str | None, *,
 
 
 def display_room(session: ClientSession, room: Room) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=1)
 
     parts = [
         build_part(room.title, "bright_green", True),

@@ -70,8 +70,7 @@ def test_display_command_result_default_has_leading_blank_and_prompt_gap() -> No
     prompt_lines = payload.get("prompt_lines")
     assert isinstance(prompt_lines, list)
     assert prompt_lines[0] == []
-    assert prompt_lines[1] == []
-    assert _line_text(prompt_lines[2]) == "> "
+    assert _line_text(prompt_lines[1]) == "> "
 
 
 def test_display_command_result_compact_skips_leading_blank() -> None:
@@ -115,4 +114,4 @@ def test_display_room_and_score_start_with_explicit_blank_line() -> None:
     score_prompt_lines = score_payload.get("prompt_lines")
     assert isinstance(score_prompt_lines, list)
     assert score_prompt_lines[0] == []
-    assert score_prompt_lines[1] == []
+    assert _line_text(score_prompt_lines[1]).endswith("> ")

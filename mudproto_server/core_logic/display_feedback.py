@@ -214,7 +214,7 @@ def display_connected(session: ClientSession) -> dict:
 
 
 def display_hello(name: str, session: ClientSession) -> dict:
-    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
+    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=1)
     return build_display(with_leading_blank_lines([
         build_part("Hello, ", "bright_green"),
         build_part(str(name), "bright_white", True),
@@ -222,14 +222,14 @@ def display_hello(name: str, session: ClientSession) -> dict:
 
 
 def display_pong(session: ClientSession) -> dict:
-    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
+    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=1)
     return build_display(with_leading_blank_lines([
         build_part("Ping received.", "bright_cyan"),
     ]), prompt_after=bool(prompt_parts), prompt_parts=prompt_parts)
 
 
 def display_whoami(session: ClientSession) -> dict:
-    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
+    prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=1)
     caps = get_player_resource_caps(session)
     me_condition, me_condition_color = get_health_condition(session.status.hit_points, caps["hit_points"])
     engaged_entity = get_engaged_entity(session)
@@ -389,7 +389,7 @@ def display_error(message: str, session: ClientSession | None = None) -> dict:
     prompt_parts: list[dict] | None = None
 
     if session is not None:
-        prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=2)
+        prompt_parts = resolve_prompt_parts(session, True, prompt_gap_lines=1)
 
     return build_display(
         with_leading_blank_lines(_build_lore_error_parts(message, session)),
@@ -420,7 +420,7 @@ def display_command_result(
     compact: bool = False,
     prompt_after: bool = True,
 ) -> dict:
-    prompt_parts = resolve_prompt_parts(session, prompt_after, prompt_gap_lines=2)
+    prompt_parts = resolve_prompt_parts(session, prompt_after, prompt_gap_lines=1)
     content_parts = list(parts)
     if not compact:
         content_parts = with_leading_blank_lines(content_parts)

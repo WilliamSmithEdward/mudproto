@@ -63,7 +63,7 @@ def _format_effect_remaining_duration(effect) -> str:
 
 
 def display_score(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=1)
     caps = get_player_resource_caps(session)
     xp_total = max(0, int(session.player.experience_points))
     xp_to_next = get_xp_to_next_level(xp_total)
@@ -225,7 +225,7 @@ def display_score(session: ClientSession) -> dict:
 
 
 def display_equipment(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=1)
     worn_items = list_worn_items(session)
     rows = [[str(wear_slot), str(item.name)] for wear_slot, item in worn_items]
     parts = build_menu_table_parts(
@@ -243,7 +243,7 @@ def display_equipment(session: ClientSession) -> dict:
 
 
 def display_inventory(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=2)
+    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=1)
     inventory_items = list(session.inventory_items.values())
     inventory_items.sort(key=lambda item: item.name.lower())
 
