@@ -1,9 +1,12 @@
+import asyncio
+
 from attribute_config import player_class_uses_mana
 from combat_state import get_health_condition
 from display_core import build_menu_table_parts, build_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession
 from player_resources import get_player_resource_caps
+from server_transport import send_outbound
 from targeting_follow import (
     _add_group_member,
     _clear_follow_state,
@@ -27,6 +30,22 @@ HandledResult = OutboundResult | None
 
 def _display_name(session: ClientSession) -> str:
     return (session.authenticated_character_name or "").strip() or "Unknown"
+
+
+def _notify_follow_target(target_session: ClientSession, follower_name: str) -> None:
+    if not target_session.is_connected or target_session.disconnected_by_server:
+        return
+
+    notification = display_command_result(target_session, [
+        build_part(follower_name, "bright_cyan", True),
+        build_part(" starts following you.", "bright_white"),
+    ])
+
+    try:
+        asyncio.get_running_loop().create_task(send_outbound(target_session.websocket, notification))
+    except RuntimeError:
+        # No running loop: skip best-effort realtime notification.
+        return
 
 
 def _build_group_status_parts(session: ClientSession) -> list[dict]:
@@ -306,6 +325,7 @@ def handle_social_command(
 
         session.following_player_key = target_key
         session.following_player_name = target_name
+        _notify_follow_target(target_session, _display_name(session))
         return display_command_result(session, [
             build_part("You start following ", "bright_white"),
             build_part(target_name, "bright_cyan", True),
