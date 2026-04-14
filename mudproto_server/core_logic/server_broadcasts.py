@@ -4,7 +4,7 @@ import copy
 import re
 
 from command_handlers.parsing import parse_command
-from display_core import build_display_lines
+from display_core import build_display_lines, parts_to_lines
 from display_feedback import build_prompt_parts_default
 from grammar import third_personize_text, to_third_person
 from models import ClientSession
@@ -221,7 +221,7 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
                 while leading_blank_count < len(normalized_lines) and not normalized_lines[leading_blank_count]:
                     leading_blank_count += 1
                 if normalized_lines:
-                    desired_leading_blank_count = 2
+                    desired_leading_blank_count = 1
                     copied_payload["lines"] = ([[]] * max(0, desired_leading_blank_count - leading_blank_count)) + normalized_lines
                 else:
                     copied_payload["lines"] = normalized_lines
@@ -329,11 +329,11 @@ def _normalize_prompt_spacing(payload: dict) -> None:
     existing_lines = payload.get("lines")
     normalized_existing = [line for line in existing_lines if isinstance(line, list)] if isinstance(existing_lines, list) else []
     if normalized_existing and not normalized_existing[-1]:
-        prompt_blank_count = 1
+        prompt_blank_count = 0
     elif normalized_existing:
-        prompt_blank_count = 2
-    else:
         prompt_blank_count = 1
+    else:
+        prompt_blank_count = 0
 
     payload["prompt_lines"] = ([[]] * prompt_blank_count) + normalized_prompt
 
@@ -483,7 +483,7 @@ async def _send_room_broadcast(
 
             if prompt_observers:
                 _append_private_lines_to_payload(payload, peer)
-                payload["prompt_lines"] = [build_prompt_parts_default(peer)]
+                payload["prompt_lines"] = parts_to_lines(build_prompt_parts_default(peer))
                 _normalize_prompt_spacing(payload)
         await send_outbound_fn(peer.websocket, peer_messages)
 
