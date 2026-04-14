@@ -27,7 +27,7 @@ def handle_posture_command(
 
         session.is_sleeping = False
         session.is_resting = False
-        session.is_sitting = False
+        session.is_sitting = True
         return display_command_result(session, [
             build_part("You wake up.", "bright_white"),
         ])

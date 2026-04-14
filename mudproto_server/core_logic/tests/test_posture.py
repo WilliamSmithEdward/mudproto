@@ -100,6 +100,7 @@ def test_posture_command_aliases_work() -> None:
         session.is_sleeping = True
         outbound = handle_posture_command(session, wake_alias, [], wake_alias)
         assert session.is_sleeping is False
+        assert session.is_sitting is True
         assert isinstance(outbound, dict)
 
 
@@ -117,10 +118,11 @@ def test_sleeping_blocks_posture_changes_until_wake() -> None:
     assert isinstance(wake_outbound, dict)
     assert "You wake up." in _extract_display_text(wake_outbound)
     assert session.is_sleeping is False
+    assert session.is_sitting is True
 
     stand_outbound = handle_posture_command(session, "stand", [], "stand")
     assert isinstance(stand_outbound, dict)
-    assert "already standing" in _extract_display_text(stand_outbound)
+    assert "You stand up." in _extract_display_text(stand_outbound)
 
 
 def test_sitting_damage_multiplier_applies_to_player(monkeypatch) -> None:
