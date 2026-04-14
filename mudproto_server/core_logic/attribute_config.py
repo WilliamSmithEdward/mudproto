@@ -421,7 +421,7 @@ def load_posture_config() -> dict:
         raise ValueError(f"Posture config file must contain an object: {POSTURE_FILE}")
 
     posture_states: dict[str, dict] = {}
-    for posture_state in ("sitting", "resting"):
+    for posture_state in ("sitting", "resting", "sleeping"):
         raw_state = raw_config.get(posture_state, {})
         if not isinstance(raw_state, dict):
             raise ValueError(f"Posture config '{posture_state}' must be an object.")
@@ -440,6 +440,7 @@ def load_posture_config() -> dict:
 
         prevents_movement = bool(raw_state.get("prevents_movement", False))
         prevents_skill_spell_use = bool(raw_state.get("prevents_skill_spell_use", False))
+        prevents_observation_commands = bool(raw_state.get("prevents_observation_commands", False))
         regeneration_bonus_multiplier = float(raw_state.get("regeneration_bonus_multiplier", 1.0))
         if regeneration_bonus_multiplier < 1.0:
             raise ValueError(
@@ -451,12 +452,14 @@ def load_posture_config() -> dict:
             "dealt_damage_multiplier": dealt_damage_multiplier,
             "prevents_movement": prevents_movement,
             "prevents_skill_spell_use": prevents_skill_spell_use,
+            "prevents_observation_commands": prevents_observation_commands,
             "regeneration_bonus_multiplier": regeneration_bonus_multiplier,
         }
 
     return {
         "sitting": posture_states["sitting"],
         "resting": posture_states["resting"],
+        "sleeping": posture_states["sleeping"],
     }
 
 
@@ -499,6 +502,14 @@ def posture_prevents_skill_spell_use(posture_state: str) -> bool:
     if not isinstance(posture_config, dict):
         return False
     return bool(posture_config.get("prevents_skill_spell_use", False))
+
+
+def posture_prevents_observation_commands(posture_state: str) -> bool:
+    normalized_state = str(posture_state).strip().lower()
+    posture_config = load_posture_config().get(normalized_state, {})
+    if not isinstance(posture_config, dict):
+        return False
+    return bool(posture_config.get("prevents_observation_commands", False))
 
 
 def get_posture_regeneration_bonus_multiplier(posture_state: str) -> float:

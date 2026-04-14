@@ -1,4 +1,5 @@
 from containers import display_container_examination, is_item_container
+from attribute_config import posture_prevents_observation_commands
 from display_feedback import display_error
 from display_room import display_entity_summary, display_exits, display_player_summary, display_room
 from item_logic import _display_item_examination
@@ -41,6 +42,9 @@ def handle_observation_command(
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
+    if session.is_sleeping and posture_prevents_observation_commands("sleeping"):
+        return display_error("Shhh... You are asleep.", session)
+
     if verb in {"look", "lo", "loo"}:
         room = get_room(session.player.current_room_id)
         if room is None:

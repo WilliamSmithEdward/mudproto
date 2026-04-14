@@ -68,18 +68,32 @@ def test_posture_command_aliases_work() -> None:
 
     for rest_alias in ["r", "re", "res", "rest"]:
         session.is_sitting = True
+        session.is_sleeping = True
         session.is_resting = False
         outbound = handle_posture_command(session, rest_alias, [], rest_alias)
         assert session.is_resting is True
         assert session.is_sitting is False
+        assert session.is_sleeping is False
+        assert isinstance(outbound, dict)
+
+    for sleep_alias in ["sl", "sle", "slee", "sleep"]:
+        session.is_sitting = True
+        session.is_resting = True
+        session.is_sleeping = False
+        outbound = handle_posture_command(session, sleep_alias, [], sleep_alias)
+        assert session.is_sleeping is True
+        assert session.is_sitting is False
+        assert session.is_resting is False
         assert isinstance(outbound, dict)
 
     for stand_alias in ["st", "sta", "stan", "stand"]:
         session.is_sitting = False
-        session.is_resting = True
+        session.is_resting = False
+        session.is_sleeping = True
         outbound = handle_posture_command(session, stand_alias, [], stand_alias)
         assert session.is_sitting is False
         assert session.is_resting is False
+        assert session.is_sleeping is False
         assert isinstance(outbound, dict)
 
 
@@ -137,6 +151,25 @@ def test_resting_damage_multiplier_applies_to_player(monkeypatch) -> None:
 
     assert dealt == 25
     assert session.status.hit_points == 75
+
+
+def test_sleeping_player_wakes_to_sitting_when_hit(monkeypatch) -> None:
+    session = _make_session("client-sleep-hit", "Lucia")
+    session.status.hit_points = 100
+    session.is_sleeping = True
+
+    monkeypatch.setattr(
+        effects,
+        "get_posture_received_damage_multiplier",
+        lambda posture_state: 2.0 if posture_state == "sleeping" else 1.0,
+    )
+
+    dealt = effects._apply_player_damage_with_reduction(session, 10)
+
+    assert dealt == 20
+    assert session.status.hit_points == 80
+    assert session.is_sleeping is False
+    assert session.is_sitting is True
 
 
 def test_sitting_dealt_damage_multiplier_applies_to_player(monkeypatch) -> None:

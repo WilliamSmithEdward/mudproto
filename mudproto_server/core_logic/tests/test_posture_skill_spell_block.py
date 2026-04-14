@@ -74,3 +74,46 @@ def test_player_resting_cannot_cast_spell() -> None:
 
     assert applied is False
     assert "cannot use skills or spells" in _extract_display_text(response)
+
+
+def test_player_sleeping_cannot_use_skill() -> None:
+    session = _make_session("client-sleep-skill", "Lucia")
+    session.is_sleeping = True
+
+    skill = {
+        "skill_id": "skill.jab",
+        "name": "Jab",
+        "skill_type": "damage",
+        "cast_type": "target",
+        "vigor_cost": 1,
+        "usable_out_of_combat": True,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    }
+
+    response, applied = player_abilities.use_skill(session, skill, "Goblin")
+
+    assert applied is False
+    assert "cannot use skills or spells" in _extract_display_text(response)
+
+
+def test_player_sleeping_cannot_cast_spell() -> None:
+    session = _make_session("client-sleep-spell", "Lucia")
+    session.is_sleeping = True
+
+    spell = {
+        "spell_id": "spell.missile",
+        "name": "Magic Missile",
+        "spell_type": "damage",
+        "cast_type": "target",
+        "mana_cost": 1,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    }
+
+    response, applied = player_abilities.cast_spell(session, spell, "Goblin")
+
+    assert applied is False
+    assert "cannot use skills or spells" in _extract_display_text(response)

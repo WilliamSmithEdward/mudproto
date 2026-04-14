@@ -1,4 +1,4 @@
-import display_character
+from command_handlers.observation import handle_observation_command
 from models import ClientSession
 
 
@@ -33,40 +33,11 @@ def _extract_display_text(outbound: dict | list[dict]) -> str:
     return "\n".join(lines)
 
 
-def test_score_displays_standing_posture() -> None:
-    session = _make_session("client-score-standing", "Lucia")
-
-    outbound = display_character.display_score(session)
-    rendered = _extract_display_text(outbound)
-
-    assert "Posture: Standing" in rendered
-
-
-def test_score_displays_sitting_posture() -> None:
-    session = _make_session("client-score-sitting", "Lucia")
-    session.is_sitting = True
-
-    outbound = display_character.display_score(session)
-    rendered = _extract_display_text(outbound)
-
-    assert "Posture: Sitting" in rendered
-
-
-def test_score_displays_resting_posture() -> None:
-    session = _make_session("client-score-resting", "Lucia")
-    session.is_resting = True
-
-    outbound = display_character.display_score(session)
-    rendered = _extract_display_text(outbound)
-
-    assert "Posture: Resting" in rendered
-
-
-def test_score_displays_sleeping_posture() -> None:
-    session = _make_session("client-score-sleeping", "Lucia")
+def test_sleeping_blocks_look_scan_and_examine() -> None:
+    session = _make_session("client-observe-sleep", "Lucia")
     session.is_sleeping = True
 
-    outbound = display_character.display_score(session)
-    rendered = _extract_display_text(outbound)
-
-    assert "Posture: Sleeping" in rendered
+    for verb, args in (("look", []), ("scan", []), ("examine", ["sword"])):
+        outbound = handle_observation_command(session, verb, list(args), f"{verb} {' '.join(args)}".strip())
+        assert isinstance(outbound, dict)
+        assert "Shhh... You are asleep." in _extract_display_text(outbound)

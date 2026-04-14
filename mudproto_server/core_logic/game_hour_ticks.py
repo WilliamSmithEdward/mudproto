@@ -67,7 +67,9 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
         regen_percent = _resolve_regen_percent(attribute_score, mapping)
         min_amount = max(0, int(resource_config.get("min_amount", 0)))
         regen_amount = max(min_amount, int(max_value * regen_percent))
-        if bool(getattr(session, "is_resting", False)):
+        if bool(getattr(session, "is_sleeping", False)):
+            regen_amount = int(regen_amount * get_posture_regeneration_bonus_multiplier("sleeping"))
+        elif bool(getattr(session, "is_resting", False)):
             regen_amount = int(regen_amount * get_posture_regeneration_bonus_multiplier("resting"))
 
         if regen_amount <= 0:

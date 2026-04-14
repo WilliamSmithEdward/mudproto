@@ -38,6 +38,8 @@ def _resource_color(current: int, maximum: int) -> str:
 
 
 def _resolve_posture_label(session: ClientSession) -> str:
+    if bool(getattr(session, "is_sleeping", False)):
+        return "Sleeping"
     if bool(getattr(session, "is_resting", False)):
         return "Resting"
     if bool(getattr(session, "is_sitting", False)):

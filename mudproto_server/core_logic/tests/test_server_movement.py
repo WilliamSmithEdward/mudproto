@@ -149,3 +149,13 @@ def test_try_move_not_blocked_when_posture_flags_do_not_prevent(monkeypatch) -> 
 
     assert isinstance(outbound, dict)
     assert "wavers strangely" in _extract_display_text(outbound)
+
+
+def test_try_move_blocked_while_sleeping() -> None:
+    session = _make_session("client-sleep-move", "Lucia")
+    session.is_sleeping = True
+
+    outbound = movement.try_move(session, "north")
+
+    assert isinstance(outbound, dict)
+    assert "You are sleeping. Use stand before moving." in _extract_display_text(outbound)

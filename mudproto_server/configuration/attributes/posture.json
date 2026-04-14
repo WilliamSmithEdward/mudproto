@@ -12,5 +12,13 @@
     "prevents_movement": true,
     "prevents_skill_spell_use": true,
     "regeneration_bonus_multiplier": 1.5
+  },
+  "sleeping": {
+    "received_damage_multiplier": 2.5,
+    "dealt_damage_multiplier": 0.75,
+    "prevents_movement": true,
+    "prevents_skill_spell_use": true,
+    "prevents_observation_commands": true,
+    "regeneration_bonus_multiplier": 2.0
   }
 }

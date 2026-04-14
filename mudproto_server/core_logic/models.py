@@ -209,6 +209,7 @@ class EntityState:
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     is_sitting: bool = False
     is_resting: bool = False
+    is_sleeping: bool = False
     wander_chance: float = 0.0
     wander_room_ids: list[str] = field(default_factory=list)
 
@@ -257,6 +258,7 @@ class ClientSession:
     following_player_name: str = ""
     is_sitting: bool = False
     is_resting: bool = False
+    is_sleeping: bool = False
     watch_player_key: str = ""
     watch_player_name: str = ""
     group_leader_key: str = ""

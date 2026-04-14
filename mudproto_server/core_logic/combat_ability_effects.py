@@ -204,9 +204,17 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> 
     if incoming_damage <= 0:
         return 0
 
+    was_sleeping = bool(getattr(session, "is_sleeping", False))
+
+    if was_sleeping:
+        session.is_sleeping = False
+        session.is_resting = False
+        session.is_sitting = True
+
     posture_damage_multiplier = _resolve_posture_received_damage_multiplier(
         is_sitting=bool(getattr(session, "is_sitting", False)),
         is_resting=bool(getattr(session, "is_resting", False)),
+        is_sleeping=was_sleeping,
     )
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
@@ -242,6 +250,7 @@ def _resolve_entity_damage_values(entity: EntityState, amount: int) -> tuple[int
     posture_damage_multiplier = _resolve_posture_received_damage_multiplier(
         is_sitting=bool(getattr(entity, "is_sitting", False)),
         is_resting=bool(getattr(entity, "is_resting", False)),
+        is_sleeping=bool(getattr(entity, "is_sleeping", False)),
     )
     if posture_damage_multiplier > 1.0:
         incoming_damage = int(incoming_damage * posture_damage_multiplier)
@@ -259,6 +268,7 @@ def _apply_player_dealt_damage_multiplier(session: ClientSession, amount: int) -
     posture_damage_multiplier = _resolve_posture_dealt_damage_multiplier(
         is_sitting=bool(getattr(session, "is_sitting", False)),
         is_resting=bool(getattr(session, "is_resting", False)),
+        is_sleeping=bool(getattr(session, "is_sleeping", False)),
     )
     return max(0, int(outgoing_damage * posture_damage_multiplier))
 
@@ -271,12 +281,18 @@ def _apply_entity_dealt_damage_multiplier(entity: EntityState, amount: int) -> i
     posture_damage_multiplier = _resolve_posture_dealt_damage_multiplier(
         is_sitting=bool(getattr(entity, "is_sitting", False)),
         is_resting=bool(getattr(entity, "is_resting", False)),
+        is_sleeping=bool(getattr(entity, "is_sleeping", False)),
     )
     return max(0, int(outgoing_damage * posture_damage_multiplier))
 
 
-def _resolve_posture_received_damage_multiplier(*, is_sitting: bool, is_resting: bool) -> float:
+def _resolve_posture_received_damage_multiplier(*, is_sitting: bool, is_resting: bool, is_sleeping: bool) -> float:
     posture_damage_multiplier = 1.0
+    if is_sleeping:
+        posture_damage_multiplier = max(
+            posture_damage_multiplier,
+            get_posture_received_damage_multiplier("sleeping"),
+        )
     if is_resting:
         posture_damage_multiplier = max(
             posture_damage_multiplier,
@@ -290,8 +306,13 @@ def _resolve_posture_received_damage_multiplier(*, is_sitting: bool, is_resting:
     return max(1.0, posture_damage_multiplier)
 
 
-def _resolve_posture_dealt_damage_multiplier(*, is_sitting: bool, is_resting: bool) -> float:
+def _resolve_posture_dealt_damage_multiplier(*, is_sitting: bool, is_resting: bool, is_sleeping: bool) -> float:
     posture_damage_multiplier = 1.0
+    if is_sleeping:
+        posture_damage_multiplier = min(
+            posture_damage_multiplier,
+            get_posture_dealt_damage_multiplier("sleeping"),
+        )
     if is_resting:
         posture_damage_multiplier = min(
             posture_damage_multiplier,

@@ -61,8 +61,20 @@ def test_display_room_shows_npc_posture_labels(monkeypatch) -> None:
         max_hit_points=100,
         is_resting=True,
     )
+    sleeping_entity = EntityState(
+        entity_id="entity-sleeping",
+        name="Scholar",
+        room_id="start",
+        hit_points=100,
+        max_hit_points=100,
+        is_sleeping=True,
+    )
 
-    monkeypatch.setattr(display_room, "list_room_entities", lambda _session, _room_id: [standing_entity, sitting_entity, resting_entity])
+    monkeypatch.setattr(
+        display_room,
+        "list_room_entities",
+        lambda _session, _room_id: [standing_entity, sitting_entity, resting_entity, sleeping_entity],
+    )
     monkeypatch.setattr(display_room, "list_authenticated_room_players", lambda _room_id, exclude_client_id=None: [])
     monkeypatch.setattr(display_room, "list_room_corpses", lambda _session, _room_id: [])
     monkeypatch.setattr(display_room, "is_entity_hostile_to_player", lambda _session, _entity: False)
@@ -73,6 +85,7 @@ def test_display_room_shows_npc_posture_labels(monkeypatch) -> None:
     assert "Sentry (standing)" in rendered
     assert "Bandit (sitting)" in rendered
     assert "Priest (resting)" in rendered
+    assert "Scholar (sleeping)" in rendered
 
 
 def test_display_room_shows_player_posture_labels(monkeypatch) -> None:
@@ -84,12 +97,14 @@ def test_display_room_shows_player_posture_labels(monkeypatch) -> None:
     sitting_player.is_sitting = True
     resting_player = _make_session("client-resting", "Orlandu")
     resting_player.is_resting = True
+    sleeping_player = _make_session("client-sleeping", "Mina")
+    sleeping_player.is_sleeping = True
 
     monkeypatch.setattr(display_room, "list_room_entities", lambda _session, _room_id: [])
     monkeypatch.setattr(
         display_room,
         "list_authenticated_room_players",
-        lambda _room_id, exclude_client_id=None: [standing_player, sitting_player, resting_player],
+        lambda _room_id, exclude_client_id=None: [standing_player, sitting_player, resting_player, sleeping_player],
     )
     monkeypatch.setattr(display_room, "list_room_corpses", lambda _session, _room_id: [])
 
@@ -99,3 +114,4 @@ def test_display_room_shows_player_posture_labels(monkeypatch) -> None:
     assert "Ragnar (standing)" in rendered
     assert "Beatrix (sitting)" in rendered
     assert "Orlandu (resting)" in rendered
+    assert "Mina (sleeping)" in rendered

@@ -468,6 +468,7 @@ def _serialize_session(session: ClientSession) -> dict:
         "known_passive_ids": list(session.known_passive_ids),
         "is_sitting": bool(session.is_sitting),
         "is_resting": bool(session.is_resting),
+        "is_sleeping": bool(session.is_sleeping),
         "combat": {
             "skill_hour_cooldowns": {
                 str(skill_id).strip(): max(0, int(remaining_hours))
@@ -657,6 +658,7 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
 
     session.is_sitting = bool(raw_state.get("is_sitting", False))
     session.is_resting = bool(raw_state.get("is_resting", False))
+    session.is_sleeping = bool(raw_state.get("is_sleeping", False))
 
     raw_combat = raw_state.get("combat", {})
     if isinstance(raw_combat, dict):

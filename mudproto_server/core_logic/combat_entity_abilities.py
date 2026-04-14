@@ -57,6 +57,8 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         return False
     if entity.is_resting and posture_prevents_skill_spell_use("resting"):
         return False
+    if entity.is_sleeping and posture_prevents_skill_spell_use("sleeping"):
+        return False
 
     chance = max(0.0, min(1.0, float(entity.skill_use_chance)))
     if random.random() >= chance:
@@ -220,6 +222,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
         if target_lag_rounds > 0 and damage_dealt > 0:
             apply_lag(session, float(target_lag_rounds) * float(COMBAT_ROUND_INTERVAL_SECONDS))
+            session.is_sleeping = False
             session.is_resting = False
             session.is_sitting = True
             entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
@@ -241,6 +244,8 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
     if entity.is_sitting and posture_prevents_skill_spell_use("sitting"):
         return False
     if entity.is_resting and posture_prevents_skill_spell_use("resting"):
+        return False
+    if entity.is_sleeping and posture_prevents_skill_spell_use("sleeping"):
         return False
 
     chance = max(0.0, min(1.0, float(entity.spell_use_chance)))

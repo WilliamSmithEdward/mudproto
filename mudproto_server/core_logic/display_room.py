@@ -13,7 +13,9 @@ from display_feedback import _direction_short_label, _direction_sort_key, resolv
 from room_exits import describe_exit_status
 
 
-def _resolve_posture_label(*, is_sitting: bool, is_resting: bool) -> str:
+def _resolve_posture_label(*, is_sitting: bool, is_resting: bool, is_sleeping: bool) -> str:
+    if is_sleeping:
+        return "sleeping"
     if is_resting:
         return "resting"
     if is_sitting:
@@ -21,8 +23,8 @@ def _resolve_posture_label(*, is_sitting: bool, is_resting: bool) -> str:
     return "standing"
 
 
-def _append_posture_parts(parts: list[dict], *, is_sitting: bool, is_resting: bool) -> None:
-    posture_label = _resolve_posture_label(is_sitting=is_sitting, is_resting=is_resting)
+def _append_posture_parts(parts: list[dict], *, is_sitting: bool, is_resting: bool, is_sleeping: bool) -> None:
+    posture_label = _resolve_posture_label(is_sitting=is_sitting, is_resting=is_resting, is_sleeping=is_sleeping)
     parts.extend([
         build_part(" (", "bright_white"),
         build_part(posture_label, "bright_white"),
@@ -387,6 +389,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 parts,
                 is_sitting=bool(getattr(entity, "is_sitting", False)),
                 is_resting=bool(getattr(entity, "is_resting", False)),
+                is_sleeping=bool(getattr(entity, "is_sleeping", False)),
             )
             engagement_target = _resolve_entity_engagement_target_name(session, entity)
             _append_room_engagement_parts(
@@ -414,6 +417,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
                 parts,
                 is_sitting=bool(getattr(other_player, "is_sitting", False)),
                 is_resting=bool(getattr(other_player, "is_resting", False)),
+                is_sleeping=bool(getattr(other_player, "is_sleeping", False)),
             )
             _append_room_engagement_parts(parts, _resolve_player_engagement_target_name(other_player))
 
