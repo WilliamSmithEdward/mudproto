@@ -35,6 +35,7 @@ COLOR_MAP = {
 }
 
 RECONNECT_INTERVAL_MS = 5000
+OUTPUT_RIGHT_MARGIN_PX = 80
 
 
 def configure_windows_dpi_awareness() -> None:
@@ -168,6 +169,8 @@ class MudProtoGuiClient:
             yscrollcommand=self.y_scrollbar.set,
         )
         self.output_text.pack(side="left", fill="both", expand=True)
+        self.output_margin_tag = "mudproto_output_margin"
+        self.output_text.tag_configure(self.output_margin_tag, rmargin=OUTPUT_RIGHT_MARGIN_PX)
         self.output_text.configure(state="disabled")
         self.output_text.bind("<KeyPress>", self._on_global_key_press, add="+")
         self.y_scrollbar.bind("<KeyPress>", self._on_global_key_press, add="+")
@@ -520,8 +523,13 @@ class MudProtoGuiClient:
                 fg = part.get("fg") if isinstance(part.get("fg"), str) else None
                 bold = bool(part.get("bold", False))
                 tag = self._ensure_tag(self.output_text, fg, bold)
-                if tag is not None:
+                margin_tag = getattr(self, "output_margin_tag", None)
+                if tag is not None and margin_tag:
+                    self.output_text.insert(tk.END, text, (margin_tag, tag))
+                elif tag is not None:
                     self.output_text.insert(tk.END, text, tag)
+                elif margin_tag:
+                    self.output_text.insert(tk.END, text, margin_tag)
                 else:
                     self.output_text.insert(tk.END, text)
 
