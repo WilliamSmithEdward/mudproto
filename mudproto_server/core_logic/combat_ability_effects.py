@@ -339,6 +339,18 @@ def _process_entity_battle_round_support_effects(entity: EntityState) -> None:
             entity.active_support_effects.remove(effect)
 
 
+def process_entity_battle_round_tick(entity: EntityState, elapsed_rounds: int = 1) -> None:
+    rounds = max(0, int(elapsed_rounds))
+    for _ in range(rounds):
+        _process_entity_battle_round_support_effects(entity)
+        for cooldowns in (entity.skill_cooldowns, entity.spell_cooldowns):
+            for key, remaining in list(cooldowns.items()):
+                if remaining <= 1:
+                    cooldowns.pop(key, None)
+                else:
+                    cooldowns[key] = remaining - 1
+
+
 def process_entity_game_hour_tick(entity: EntityState) -> None:
     for effect in list(entity.active_support_effects):
         if effect.support_mode != "timed":

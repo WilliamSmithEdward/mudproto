@@ -40,9 +40,16 @@ def process_battle_round_support_effects(session: ClientSession) -> None:
             session.active_support_effects.remove(effect)
 
 
-def process_player_battle_round_tick(session: ClientSession, elapsed_rounds: int = 1) -> None:
-    from combat_state import _tick_player_skill_cooldowns
+def _tick_player_skill_cooldowns(session: ClientSession) -> None:
+    cooldowns = session.combat.skill_cooldowns
+    for key, remaining in list(cooldowns.items()):
+        if remaining <= 1:
+            cooldowns.pop(key, None)
+        else:
+            cooldowns[key] = remaining - 1
 
+
+def process_player_battle_round_tick(session: ClientSession, elapsed_rounds: int = 1) -> None:
     rounds = max(0, int(elapsed_rounds))
     for _ in range(rounds):
         process_battle_round_support_effects(session)
@@ -57,11 +64,11 @@ def process_non_combat_support_round(session: ClientSession) -> bool:
         return has_battle_round_effect or bool(session.combat.skill_cooldowns)
 
     if not _has_battle_round_activity():
-        session.next_non_combat_support_round_monotonic = None
+        session.next_non_combat_battleround_tick_monotonic = None
         return False
 
     if get_engaged_entity(session) is not None:
-        session.next_non_combat_support_round_monotonic = None
+        session.next_non_combat_battleround_tick_monotonic = None
         return False
 
     try:
@@ -69,9 +76,9 @@ def process_non_combat_support_round(session: ClientSession) -> bool:
     except RuntimeError:
         return False
 
-    due_at = session.next_non_combat_support_round_monotonic
+    due_at = session.next_non_combat_battleround_tick_monotonic
     if due_at is None:
-        session.next_non_combat_support_round_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
+        session.next_non_combat_battleround_tick_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
         return False
 
     if now < due_at:
@@ -88,8 +95,8 @@ def process_non_combat_support_round(session: ClientSession) -> bool:
     process_player_battle_round_tick(session, elapsed_rounds)
 
     if _has_battle_round_activity():
-        session.next_non_combat_support_round_monotonic = due_at
+        session.next_non_combat_battleround_tick_monotonic = due_at
     else:
-        session.next_non_combat_support_round_monotonic = None
+        session.next_non_combat_battleround_tick_monotonic = None
 
     return True

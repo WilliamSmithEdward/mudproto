@@ -246,7 +246,7 @@ class ClientSession:
     known_passive_ids: list[str] = field(default_factory=list)
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     next_game_tick_monotonic: Optional[float] = None
-    next_non_combat_support_round_monotonic: Optional[float] = None
+    next_non_combat_battleround_tick_monotonic: Optional[float] = None
     is_authenticated: bool = False
     auth_stage: str = "awaiting_character_or_start"
     authenticated_character_name: str = ""

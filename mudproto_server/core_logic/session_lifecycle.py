@@ -43,7 +43,7 @@ def _copy_runtime_state(source: ClientSession, target: ClientSession) -> None:
     target.known_skill_ids = source.known_skill_ids
     target.active_support_effects = source.active_support_effects
     target.next_game_tick_monotonic = source.next_game_tick_monotonic
-    target.next_non_combat_support_round_monotonic = source.next_non_combat_support_round_monotonic
+    target.next_non_combat_battleround_tick_monotonic = source.next_non_combat_battleround_tick_monotonic
 
     # Keep world state shared for all sessions.
     attach_session_to_shared_world(target)

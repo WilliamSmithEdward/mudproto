@@ -5,7 +5,7 @@ import random
 import uuid
 
 from assets import get_gear_template_by_id
-from combat_ability_effects import _process_entity_battle_round_support_effects
+from combat_ability_effects import _process_entity_battle_round_support_effects, process_entity_battle_round_tick
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
 from session_registry import active_character_sessions, connected_clients, shared_world_entities, shared_world_flags
@@ -372,26 +372,13 @@ def _decrement_cooldowns(cooldowns: dict[str, int]) -> None:
             cooldowns[key] = remaining - 1
 
 
-def _tick_player_skill_cooldowns(session: ClientSession, elapsed_rounds: int = 1) -> None:
-    rounds = max(0, int(elapsed_rounds))
-    if rounds <= 0:
-        return
-
-    for _ in range(rounds):
-        if not session.combat.skill_cooldowns:
-            break
-        _decrement_cooldowns(session.combat.skill_cooldowns)
-
-
 def _process_combat_round_timers(session: ClientSession, entities: list[EntityState]) -> None:
     from battle_round_ticks import process_player_battle_round_tick
 
     process_player_battle_round_tick(session)
 
     for entity in entities:
-        _process_entity_battle_round_support_effects(entity)
-        _decrement_cooldowns(entity.skill_cooldowns)
-        _decrement_cooldowns(entity.spell_cooldowns)
+        process_entity_battle_round_tick(entity)
 
 
 def _consume_entity_action_lag(entity: EntityState) -> bool:

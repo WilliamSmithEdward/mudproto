@@ -1,7 +1,7 @@
 import combat_state
 import battle_round_ticks
 from combat_state import _process_combat_round_timers, tick_out_of_combat_cooldowns
-from models import ClientSession
+from models import ActiveSupportEffectState, ClientSession
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -67,3 +67,51 @@ def test_in_combat_round_timers_tick_skill_cooldowns() -> None:
     _process_combat_round_timers(session, [])
 
     assert session.combat.skill_cooldowns["skill.bash"] == 2
+
+
+def test_combat_and_non_combat_battleround_parity(monkeypatch) -> None:
+    """Both paths (combat timer and non-combat) must produce identical end state."""
+
+    def _make_session_with_activity(client_id: str) -> ClientSession:
+        session = _make_session(client_id, "Parity")
+        session.combat.skill_cooldowns["skill.bash"] = 5
+        effect = ActiveSupportEffectState(
+            spell_id="regen",
+            spell_name="Regen",
+            support_mode="battle_rounds",
+            support_effect="heal",
+            support_amount=10,
+            remaining_hours=0,
+            remaining_rounds=4,
+        )
+        session.active_support_effects.append(effect)
+        return session
+
+    class _FakeLoop:
+        def __init__(self, now: float):
+            self._now = now
+
+        def time(self) -> float:
+            return self._now
+
+    fake_loop = _FakeLoop(300.0)
+    monkeypatch.setattr(battle_round_ticks.asyncio, "get_running_loop", lambda: fake_loop)
+
+    n_rounds = 3
+    interval = combat_state.COMBAT_ROUND_INTERVAL_SECONDS
+
+    # Non-combat path: advance time to trigger exactly n_rounds via non-combat scheduler.
+    session_nc = _make_session_with_activity("client-parity-nc")
+    tick_out_of_combat_cooldowns(session_nc)   # sets due_at = 300 + interval
+    fake_loop._now = 300.0 + (interval * n_rounds)
+    tick_out_of_combat_cooldowns(session_nc)
+
+    # Combat path: call _process_combat_round_timers n_rounds times directly.
+    session_c = _make_session_with_activity("client-parity-c")
+    for _ in range(n_rounds):
+        _process_combat_round_timers(session_c, [])
+
+    assert session_c.combat.skill_cooldowns == session_nc.combat.skill_cooldowns
+    assert len(session_c.active_support_effects) == len(session_nc.active_support_effects)
+    for ec, enc in zip(session_c.active_support_effects, session_nc.active_support_effects):
+        assert ec.remaining_rounds == enc.remaining_rounds
