@@ -23,6 +23,26 @@ def _extract_display_text(outbound: dict | list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _leading_blank_line_count(outbound: dict | list[dict]) -> int:
+    message = outbound[0] if isinstance(outbound, list) and outbound else outbound
+    if not isinstance(message, dict):
+        return 0
+    payload = message.get("payload")
+    if not isinstance(payload, dict):
+        return 0
+    raw_lines = payload.get("lines", [])
+    if not isinstance(raw_lines, list):
+        return 0
+
+    count = 0
+    for line in raw_lines:
+        if isinstance(line, list) and len(line) == 0:
+            count += 1
+            continue
+        break
+    return count
+
+
 def _make_session(client_id: str, name: str) -> ClientSession:
     from protocol import utc_now_iso
 
@@ -45,7 +65,26 @@ def test_passive_aliases_show_menu() -> None:
         text = _extract_display_text(response)
         assert "Passives" in text
         assert "Unarmed Mastery" in text
+        assert "Description" in text
         assert "Your body is a practiced weapon." in text
+
+
+def test_passive_description_wraps_within_description_column() -> None:
+    long_description = (
+        "This passive intentionally uses a long single-sentence description so the menu "
+        "renderer needs to wrap it across multiple lines inside the description column."
+    )
+    rows = passives._build_passive_rows([
+        {
+            "name": "Long Passive",
+            "description": long_description,
+        }
+    ])
+
+    assert len(rows) >= 2
+    assert rows[0][0] == "Long Passive"
+    assert rows[1][0] == ""
+    assert max(len(row[1]) for row in rows) <= 58
 
 
 def test_passive_menu_shows_empty_state_message() -> None:
@@ -54,6 +93,23 @@ def test_passive_menu_shows_empty_state_message() -> None:
     response = passives.handle_passive_command(session, "passives", [], "passives")
     assert isinstance(response, dict)
     assert "You do not know any passives." in _extract_display_text(response)
+
+
+def test_passive_menu_has_single_leading_blank_line() -> None:
+    session = _make_session("client-passive-spacing", "Lucia")
+    apply_player_class(session, "class.monk", roll_attributes=False, initialize_progression=False)
+
+    response = passives.handle_passive_command(session, "passives", [], "passives")
+    assert isinstance(response, dict)
+    assert _leading_blank_line_count(response) == 1
+
+
+def test_passive_empty_message_has_single_leading_blank_line() -> None:
+    session = _make_session("client-passive-spacing-empty", "Lucia")
+
+    response = passives.handle_passive_command(session, "passives", [], "passives")
+    assert isinstance(response, dict)
+    assert _leading_blank_line_count(response) == 1
 
 
 def test_apply_player_class_grants_starting_passives() -> None:
