@@ -52,6 +52,7 @@ UNARMED_DAMAGE_VARIANCE = int(_COMBAT.get("unarmed_damage_variance", 2))
 
 FLEE_SUCCESS_CHANCE = float(_GAMEPLAY.get("flee_success_chance", 0.5))
 BASE_PLAYER_ARMOR_CLASS = int(_GAMEPLAY.get("base_player_armor_class", 10))
+DEBUG_MODE = bool(_GAMEPLAY.get("debug_mode", False))
 
 MAX_QUEUED_COMMANDS = int(_SESSION.get("max_queued_commands", 5))
 

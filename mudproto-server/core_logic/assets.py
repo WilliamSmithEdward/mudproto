@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from attribute_config import load_attributes, load_weapon_type_config
-from settings import CONFIGURABLE_ASSET_ROOT
+from settings import CONFIGURABLE_ASSET_ROOT, DEBUG_MODE
 
 
 SERVER_ROOT = Path(__file__).resolve().parent
@@ -506,6 +506,9 @@ def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> 
         if not isinstance(raw_keyword_action, dict):
             raise ValueError(f"{context} entries must be objects.")
 
+        if bool(raw_keyword_action.get("debug_only", False)) and not DEBUG_MODE:
+            continue
+
         raw_keywords = raw_keyword_action.get("keywords", [])
         if raw_keywords is None:
             raw_keywords = []
@@ -655,6 +658,7 @@ def _normalize_keyword_actions(raw_keyword_actions: object, *, context: str) -> 
             "keywords": normalized_keywords,
             "message": str(raw_keyword_action.get("message", "")).strip(),
             "already_message": str(raw_keyword_action.get("already_message", "")).strip(),
+            "debug_only": bool(raw_keyword_action.get("debug_only", False)),
             "refresh_view": refresh_view,
             "required_player_flags": required_player_flags,
             "excluded_player_flags": excluded_player_flags,
@@ -822,6 +826,9 @@ def load_rooms() -> list[dict]:
             if not isinstance(raw_room_object, dict):
                 raise ValueError(f"Room asset '{room_id}' room_objects entries must be objects.")
 
+            if bool(raw_room_object.get("debug_only", False)) and not DEBUG_MODE:
+                continue
+
             object_id = str(raw_room_object.get("object_id", "")).strip()
             object_name = str(raw_room_object.get("name", "")).strip()
             object_description = str(raw_room_object.get("description", "")).strip()
@@ -842,6 +849,7 @@ def load_rooms() -> list[dict]:
                 "object_id": object_id,
                 "name": object_name,
                 "description": object_description,
+                "debug_only": bool(raw_room_object.get("debug_only", False)),
                 "keywords": [str(keyword).strip().lower() for keyword in raw_object_keywords if str(keyword).strip()],
             })
 
