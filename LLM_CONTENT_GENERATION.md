@@ -1,4 +1,4 @@
-# LLM Content Generation for MudProto
+﻿# LLM Content Generation for MudProto
 
 This document describes the workflow for using an AI model to generate MudProto content as a **single downloadable `.json` payload file**.
 
@@ -8,7 +8,7 @@ This document describes the workflow for using an AI model to generate MudProto 
 
 MudProto supports content bundles dropped into:
 
-- `mudproto-server/configuration/assets/asset-payloads/`
+- `mudproto_server/configuration/assets/asset_payloads/`
 
 These payloads are loaded alongside the base asset files and can:
 - add new gear, items, spells, skills, NPCs, rooms, and zones
@@ -22,11 +22,11 @@ These payloads are loaded alongside the base asset files and can:
 ### 1. Start from the generator script
 Use:
 
-- `mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py`
+- `mudproto_llm_interfaces/generate_asset_payload_generation_instructions.py`
 
 That script regenerates:
 
-- `mudproto-llm-interfaces/asset_payload_generation_instructions.json`
+- `mudproto_llm_interfaces/asset_payload_generation_instructions.json`
 
 The generated instruction file is what you hand to the AI model. It contains:
 - the response contract
@@ -46,11 +46,11 @@ If the model only pastes JSON in chat, save it manually as a `.json` file before
 ### 3. Place the file here
 Drop the generated file into:
 
-- `mudproto-server/configuration/assets/asset-payloads/`
+- `mudproto_server/configuration/assets/asset_payloads/`
 
 Example:
 
-- `mudproto-server/configuration/assets/asset-payloads/dark-knight-outpost.json`
+- `mudproto_server/configuration/assets/asset_payloads/dark-knight-outpost.json`
 
 ### 4. Restart the server
 Asset payloads are cached by the loader, so restart the server after adding or changing a payload.
@@ -77,10 +77,10 @@ If those details are already provided, the model can proceed directly.
 
 The authoritative schema reference files live in:
 
-- `mudproto-server/configuration/assets/templates/`
-- `mudproto-server/configuration/attributes/templates/`
+- `mudproto_server/configuration/assets/templates/`
+- `mudproto_server/configuration/attributes/templates/`
 
-These template files describe the expected JSON structure for the game’s config files and should be kept in sync with schema changes.
+These template files describe the expected JSON structure for the gameâ€™s config files and should be kept in sync with schema changes.
 
 For broader authoring guidance, also see:
 
@@ -150,7 +150,7 @@ When asking an LLM to generate content, provide:
 
 A good final instruction is:
 
-> Return a single downloadable `.json` file suitable for placement in `mudproto-server/configuration/assets/asset-payloads/`.
+> Return a single downloadable `.json` file suitable for placement in `mudproto_server/configuration/assets/asset_payloads/`.
 
 ---
 
@@ -169,8 +169,9 @@ Before keeping a generated payload:
 
 ## Related files
 
-- `mudproto-llm-interfaces/asset_payload_generation_instructions.json`
-- `mudproto-server/configuration/assets/asset-payloads/`
-- `mudproto-server/configuration/assets/templates/`
-- `mudproto-server/configuration/attributes/templates/`
+- `mudproto_llm_interfaces/asset_payload_generation_instructions.json`
+- `mudproto_server/configuration/assets/asset_payloads/`
+- `mudproto_server/configuration/assets/templates/`
+- `mudproto_server/configuration/attributes/templates/`
 - `ASSET_GENERATION.md`
+

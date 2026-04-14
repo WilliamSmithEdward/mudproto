@@ -1,5 +1,5 @@
 [tool.pyright]
-extraPaths = ["mudproto-server/core_logic"]
+extraPaths = ["mudproto_server/core_logic"]
 
 [tool.pytest.ini_options]
-testpaths = ["mudproto-server/core_logic/tests"]
+testpaths = ["mudproto_server/core_logic/tests"]

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
@@ -7,9 +7,9 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
-ASSET_ROOT = REPO_ROOT / "mudproto-server" / "configuration" / "assets"
+ASSET_ROOT = REPO_ROOT / "mudproto_server" / "configuration" / "assets"
 TEMPLATE_ROOT = ASSET_ROOT / "templates"
-ASSET_PAYLOAD_ROOT = ASSET_ROOT / "asset-payloads"
+ASSET_PAYLOAD_ROOT = ASSET_ROOT / "asset_payloads"
 OUTPUT_FILE = SCRIPT_DIR / "asset_payload_generation_instructions.json"
 
 BASE_ASSET_FILES = {
@@ -128,8 +128,8 @@ def build_instruction_payload() -> dict[str, object]:
         "interface_id": "mudproto.asset-payload-generator",
         "version": "2.12",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
-        "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
+        "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
+        "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
         "response_contract": {
             "format": "Return one raw JSON object only.",
             "delivery_requirement": "The final result should be provided as a downloadable `.json` file, not just pasted as prose or wrapped in Markdown.",
@@ -230,7 +230,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Use lowercase IDs and keywords to match project conventions.",
             "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
             "Every asset section must be present and must be a JSON array, even when empty.",
-            "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto-server/configuration/assets/asset-payloads/`.",
+            "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto_server/configuration/assets/asset_payloads/`.",
             "Conform every asset and the top-level payload exactly to the provided schemas with no deviation.",
             "Only use fields supported by the schemas below.",
             "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
@@ -287,8 +287,8 @@ def build_instruction_payload() -> dict[str, object]:
         "asset_schemas": asset_schemas,
         "reference_docs": [
             "ASSET_GENERATION.md",
-            "mudproto-server/assets.py",
-            "mudproto-server/configuration/assets/templates/"
+            "mudproto_server/assets.py",
+            "mudproto_server/configuration/assets/templates/"
         ],
         "current_game_assets": {
             "counts": build_asset_counts(base_assets, asset_payloads),
@@ -317,3 +317,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

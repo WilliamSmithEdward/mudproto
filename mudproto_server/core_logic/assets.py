@@ -1,4 +1,4 @@
-import json
+﻿import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,7 +14,7 @@ ZONES_FILE = CONFIGURABLE_ASSET_ROOT / "zones.json"
 SPELLS_FILE = CONFIGURABLE_ASSET_ROOT / "spells.json"
 SKILLS_FILE = CONFIGURABLE_ASSET_ROOT / "skills.json"
 NPCS_FILE = CONFIGURABLE_ASSET_ROOT / "npcs.json"
-ASSET_PAYLOADS_DIR = CONFIGURABLE_ASSET_ROOT / "asset-payloads"
+ASSET_PAYLOADS_DIR = CONFIGURABLE_ASSET_ROOT / "asset_payloads"
 SUPPORTED_ASSET_PAYLOAD_SECTIONS = ("gear", "items", "zones", "rooms", "spells", "skills", "npcs")
 
 
@@ -1696,3 +1696,4 @@ def get_skill_by_id(skill_id: str) -> dict | None:
         if str(skill.get("skill_id", "")).strip().lower() == normalized:
             return skill
     return None
+

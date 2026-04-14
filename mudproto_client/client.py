@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 import sys
 from datetime import datetime, timezone
@@ -66,7 +66,7 @@ def utc_now_iso() -> str:
 def build_input_message(text: str) -> dict:
     return {
         "type": "input",
-        "source": "mudproto-client",
+        "source": "mudproto_client",
         "timestamp": utc_now_iso(),
         "payload": {
             "text": text
@@ -211,3 +211,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

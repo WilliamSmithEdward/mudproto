@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import ctypes
 import json
 import threading
@@ -71,7 +71,7 @@ def utc_now_iso() -> str:
 def build_input_message(text: str) -> dict[str, Any]:
     return {
         "type": "input",
-        "source": "mudproto-client-gui",
+        "source": "mudproto_client_gui",
         "timestamp": utc_now_iso(),
         "payload": {
             "text": text,
@@ -707,3 +707,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

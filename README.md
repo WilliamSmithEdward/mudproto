@@ -1,10 +1,10 @@
-<div align="center">
+﻿<div align="center">
 
-# ⚔️ MudProto
+# âš”ï¸ MudProto
 
 **A server-authoritative multiplayer MUD built in Python.**
 
-*Async WebSocket server · Terminal and GUI clients · Tabletop-inspired fantasy systems*
+*Async WebSocket server Â· Terminal and GUI clients Â· Tabletop-inspired fantasy systems*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
@@ -15,7 +15,7 @@
 
 ![MudProto gameplay screenshot](/images/mudproto_01.png)
 
-> 🤖 **Development note:** MudProto actively uses **agentic AI workflows** for content generation, documentation, schema-guided authoring, and iteration alongside normal hand-written development.
+> ðŸ¤– **Development note:** MudProto actively uses **agentic AI workflows** for content generation, documentation, schema-guided authoring, and iteration alongside normal hand-written development.
 
 ---
 
@@ -34,14 +34,14 @@ venv\Scripts\activate          # Windows
 pip install websockets
 
 # Start the server
-python mudproto-server/core_logic/server.py
+python mudproto_server/core_logic/server.py
 
-# In a second terminal — connect a client
-cd mudproto-client
+# In a second terminal â€” connect a client
+cd mudproto_client
 python client.py
 
 # Or launch the GUI client
-cd ..\mudproto-client-gui
+cd ..\mudproto_client_gui
 python client_gui.py
 ```
 
@@ -49,23 +49,23 @@ Type `start` to create a character and choose a class. Good first commands are `
 
 ---
 
-## 🤖 AI Content Generation
+## ðŸ¤– AI Content Generation
 
-MudProto can also take **LLM-generated content bundles** through the `asset-payloads` pipeline. The intended workflow starts from the generator script:
+MudProto can also take **LLM-generated content bundles** through the `asset_payloads` pipeline. The intended workflow starts from the generator script:
 
-- `mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py`
+- `mudproto_llm_interfaces/generate_asset_payload_generation_instructions.py`
 
 That script regenerates:
 
-- `mudproto-llm-interfaces/asset_payload_generation_instructions.json`
+- `mudproto_llm_interfaces/asset_payload_generation_instructions.json`
 
 which is the instruction payload you hand to an AI model when asking it to generate new game content.
 
 ### Quick workflow
-1. Run or reference `mudproto-llm-interfaces/generate_asset_payload_generation_instructions.py` to produce the latest instruction JSON.
+1. Run or reference `mudproto_llm_interfaces/generate_asset_payload_generation_instructions.py` to produce the latest instruction JSON.
 2. Give the resulting `asset_payload_generation_instructions.json` to your AI model along with your content brief.
-3. Make sure the model returns a **downloadable `.json` file** — not Markdown-wrapped output.
-4. Save that file into `mudproto-server/configuration/assets/asset-payloads/`.
+3. Make sure the model returns a **downloadable `.json` file** â€” not Markdown-wrapped output.
+4. Save that file into `mudproto_server/configuration/assets/asset_payloads/`.
 5. Restart the server to load the new payload.
 
 For the full process, merge rules, override behavior, caveats, and review checklist, see [`LLM_CONTENT_GENERATION.md`](LLM_CONTENT_GENERATION.md).
@@ -82,65 +82,65 @@ Built as both a playable game and a systems-focused codebase, MudProto emphasize
 
 ## Highlights
 
-### 🗡️ Combat Engine
-- **Multi-NPC engagement** — fight several enemies at once, each retaliating independently.
-- **Room-round consolidation** — all players in a room see a unified, chronological combat log each round.
-- **Opening-round initiative** — the opener acts before the first full exchange, with off-hand attacks held back during that opening moment.
-- **Selective spell engagement** — offensive spell casts only enroll the caster in combat against non-engaged targets; already-engaged targets can still be damaged without pulling the caster in.
-- **Configurable damage severity messaging** — attack text uses threshold-based tiers from `miss` and `barely` up through `massacre`, `annihilate`, and `obliterate`.
-- **Flee with uncertainty** — escaping is possible, but never guaranteed.
+### ðŸ—¡ï¸ Combat Engine
+- **Multi-NPC engagement** â€” fight several enemies at once, each retaliating independently.
+- **Room-round consolidation** â€” all players in a room see a unified, chronological combat log each round.
+- **Opening-round initiative** â€” the opener acts before the first full exchange, with off-hand attacks held back during that opening moment.
+- **Selective spell engagement** â€” offensive spell casts only enroll the caster in combat against non-engaged targets; already-engaged targets can still be damaged without pulling the caster in.
+- **Configurable damage severity messaging** â€” attack text uses threshold-based tiers from `miss` and `barely` up through `massacre`, `annihilate`, and `obliterate`.
+- **Flee with uncertainty** â€” escaping is possible, but never guaranteed.
 
-### 🧙 Spells & Skills
-- **Mana-based spells** — targeted damage, AoE, self-heal, vigor restore, mana restore.
-- **Vigor-based skills** — attribute-scaled damage and support, with per-skill cooldowns.
-- **Support effects** — instant, timed (game hours), or combat-round durations.
-- **Step-scaled support tuning** — skills can scale support effects by level steps using `support_level_step` and `support_amount_per_level_step`.
-- **Game-hour skill cooldowns** — support/damage skills can use `cooldown_hours`, and these persist across full disconnect/reconnect.
-- **NPC AI** — enemies can use both skills and spells with independent cooldown tracking.
+### ðŸ§™ Spells & Skills
+- **Mana-based spells** â€” targeted damage, AoE, self-heal, vigor restore, mana restore.
+- **Vigor-based skills** â€” attribute-scaled damage and support, with per-skill cooldowns.
+- **Support effects** â€” instant, timed (game hours), or combat-round durations.
+- **Step-scaled support tuning** â€” skills can scale support effects by level steps using `support_level_step` and `support_amount_per_level_step`.
+- **Game-hour skill cooldowns** â€” support/damage skills can use `cooldown_hours`, and these persist across full disconnect/reconnect.
+- **NPC AI** â€” enemies can use both skills and spells with independent cooldown tracking.
 
-### 👥 Social Systems
-- **Follow + watch targeting** — players can follow allies and watch a nearby player's status from the prompt.
-- **Group management** — `group`, `group form`, `group <player>`, `ungroup <player>`, and `group disband` are supported.
-- **Death-aware follow behavior** — follower/group relationships are reconciled when a leader dies (group disbands, follow retargeting rules applied).
+### ðŸ‘¥ Social Systems
+- **Follow + watch targeting** â€” players can follow allies and watch a nearby player's status from the prompt.
+- **Group management** â€” `group`, `group form`, `group <player>`, `ungroup <player>`, and `group disband` are supported.
+- **Death-aware follow behavior** â€” follower/group relationships are reconciled when a leader dies (group disbands, follow retargeting rules applied).
 
-### 🎒 Unified Item System
-- **Single `ItemState` model** — no split between "inventory items" and "equipment items." Every item carries an intrinsic `equippable` flag hydrated from gear templates.
-- **Flexible wear slots** — armor can be worn in primary or alternate slots (e.g., rings → left or right hand).
-- **Hand weight limits** — weapon wielding / holding gated by STR via configurable thresholds.
-- **Color-coded display** — equippable items appear in **magenta** and consumables in **yellow**, consistently across the UI.
+### ðŸŽ’ Unified Item System
+- **Single `ItemState` model** â€” no split between "inventory items" and "equipment items." Every item carries an intrinsic `equippable` flag hydrated from gear templates.
+- **Flexible wear slots** â€” armor can be worn in primary or alternate slots (e.g., rings â†’ left or right hand).
+- **Hand weight limits** â€” weapon wielding / holding gated by STR via configurable thresholds.
+- **Color-coded display** â€” equippable items appear in **magenta** and consumables in **yellow**, consistently across the UI.
 
-### 🌍 Persistent World
-- **Data-driven rooms** — exits, NPC spawns, and descriptions all defined in JSON.
-- **Shared world state** — entities, corpses, ground items, and coin piles visible to all connected players.
-- **Aggro NPCs** — auto-engage on room entry.
-- **Corpse loot** — defeated enemies drop gear and coins for any player to claim.
+### ðŸŒ Persistent World
+- **Data-driven rooms** â€” exits, NPC spawns, and descriptions all defined in JSON.
+- **Shared world state** â€” entities, corpses, ground items, and coin piles visible to all connected players.
+- **Aggro NPCs** â€” auto-engage on room entry.
+- **Corpse loot** â€” defeated enemies drop gear and coins for any player to claim.
 
-### 💾 Character Persistence
-- **SQLite-backed** — full character state serialized/deserialized on login/logout and every game hour (60 seconds by default).
-- **Offline processing** — disconnected characters auto-flee combat, regenerate, and gracefully disconnect after 5 safe hours.
-- **Seamless reconnect** — resume an active session mid-combat with full state hydration.
+### ðŸ’¾ Character Persistence
+- **SQLite-backed** â€” full character state serialized/deserialized on login/logout and every game hour (60 seconds by default).
+- **Offline processing** â€” disconnected characters auto-flee combat, regenerate, and gracefully disconnect after 5 safe hours.
+- **Seamless reconnect** â€” resume an active session mid-combat with full state hydration.
 
-### 🖥️ Clients
-- **Terminal client** — ANSI-rendered output with a compact, readable prompt.
-- **GUI client** — a Tk-based interface that consumes the same server protocol.
-- **Shared protocol** — both clients stay thin; all game logic remains server-side.
-- **Queue feedback** — lag-blocked commands are queued cleanly and the prompt returns when ready.
+### ðŸ–¥ï¸ Clients
+- **Terminal client** â€” ANSI-rendered output with a compact, readable prompt.
+- **GUI client** â€” a Tk-based interface that consumes the same server protocol.
+- **Shared protocol** â€” both clients stay thin; all game logic remains server-side.
+- **Queue feedback** â€” lag-blocked commands are queued cleanly and the prompt returns when ready.
 
 ---
 
 ## Architecture at a Glance
 
 ```
-┌──────────────────────┐         WebSocket          ┌─────────────────────────┐
-│       Clients        │◄──────────────────────────►│     Game Server         │
-│                      │   JSON envelopes           │                         │
-│  • ANSI / Tk render  │   { type, source,          │  • Command parsing      │
-│  • Raw input send    │     timestamp, payload }   │  • Combat resolution    │
-│  • Prompt display    │                            │  • Spell / skill engine │
-│  • /quit             │                            │  • Persistence (SQLite) │
-└──────────────────────┘                            │  • Tick systems         │
-                                                    │  • Room broadcasts      │
-                                                    └─────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”         WebSocket          â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚       Clients        â”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–ºâ”‚     Game Server         â”‚
+â”‚                      â”‚   JSON envelopes           â”‚                         â”‚
+â”‚  â€¢ ANSI / Tk render  â”‚   { type, source,          â”‚  â€¢ Command parsing      â”‚
+â”‚  â€¢ Raw input send    â”‚     timestamp, payload }   â”‚  â€¢ Combat resolution    â”‚
+â”‚  â€¢ Prompt display    â”‚                            â”‚  â€¢ Spell / skill engine â”‚
+â”‚  â€¢ /quit             â”‚                            â”‚  â€¢ Persistence (SQLite) â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                            â”‚  â€¢ Tick systems         â”‚
+                                                    â”‚  â€¢ Room broadcasts      â”‚
+                                                    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 The **clients send raw text**; the **server sends structured display instructions**. All game meaning lives server-side. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full technical deep-dive.
@@ -157,7 +157,7 @@ The **clients send raw text**; the **server sends structured display instruction
 | Configuration | JSON asset files with eager validation |
 | Client rendering | ANSI terminal output + Tkinter GUI |
 
-**Minimal dependencies** beyond `websockets`. No framework, no ORM — just the standard library and straightforward async Python.
+**Minimal dependencies** beyond `websockets`. No framework, no ORM â€” just the standard library and straightforward async Python.
 
 This keeps the project easy to inspect, run locally, and adapt for experiments in multiplayer game architecture.
 
@@ -167,43 +167,43 @@ This keeps the project easy to inspect, run locally, and adapt for experiments i
 
 ```
 mudproto/
-├── ARCHITECTURE.md                  # Full technical architecture doc
-├── mudproto-client/
-│   └── client.py                    # Generic WebSocket terminal client
-├── mudproto-client-gui/
-│   └── client_gui.py                # Optional GUI client
-│
-├── mudproto-server/
-│   ├── core_logic/
-│   │   ├── server.py                # Entry point and websocket orchestration
-│   │   ├── server_loops.py          # Tick loops and combat round scheduling
-│   │   ├── protocol.py              # Envelope construction & validation
-│   │   ├── models.py                # Core session/combat/item/entity dataclasses
-│   │   ├── commands.py              # Message dispatch and command routing
-│   │   ├── command_handlers/        # Auth/world/social/combat command handlers
-│   │   ├── combat.py                # Combat round resolution
-│   │   ├── combat_player_abilities.py
-│   │   ├── combat_state.py
-│   │   ├── targeting_follow.py      # Follow/watch/group helpers
-│   │   ├── display_feedback.py      # Prompt/result feedback builders
-│   │   ├── assets.py                # Asset loaders + validation
-│   │   ├── player_state_db.py       # SQLite persistence layer
-│   │   └── ...
-│   └── configuration/
-│       ├── server/settings.json     # Network, timing, combat, gameplay
-│       ├── assets/                  # gear, items, npcs, rooms, zones, spells, skills
-│       └── attributes/              # classes, attributes, regen, scaling, experience
-│
-└── README.md                        # You are here
+â”œâ”€â”€ ARCHITECTURE.md                  # Full technical architecture doc
+â”œâ”€â”€ mudproto_client/
+â”‚   â””â”€â”€ client.py                    # Generic WebSocket terminal client
+â”œâ”€â”€ mudproto_client_gui/
+â”‚   â””â”€â”€ client_gui.py                # Optional GUI client
+â”‚
+â”œâ”€â”€ mudproto_server/
+â”‚   â”œâ”€â”€ core_logic/
+â”‚   â”‚   â”œâ”€â”€ server.py                # Entry point and websocket orchestration
+â”‚   â”‚   â”œâ”€â”€ server_loops.py          # Tick loops and combat round scheduling
+â”‚   â”‚   â”œâ”€â”€ protocol.py              # Envelope construction & validation
+â”‚   â”‚   â”œâ”€â”€ models.py                # Core session/combat/item/entity dataclasses
+â”‚   â”‚   â”œâ”€â”€ commands.py              # Message dispatch and command routing
+â”‚   â”‚   â”œâ”€â”€ command_handlers/        # Auth/world/social/combat command handlers
+â”‚   â”‚   â”œâ”€â”€ combat.py                # Combat round resolution
+â”‚   â”‚   â”œâ”€â”€ combat_player_abilities.py
+â”‚   â”‚   â”œâ”€â”€ combat_state.py
+â”‚   â”‚   â”œâ”€â”€ targeting_follow.py      # Follow/watch/group helpers
+â”‚   â”‚   â”œâ”€â”€ display_feedback.py      # Prompt/result feedback builders
+â”‚   â”‚   â”œâ”€â”€ assets.py                # Asset loaders + validation
+â”‚   â”‚   â”œâ”€â”€ player_state_db.py       # SQLite persistence layer
+â”‚   â”‚   â””â”€â”€ ...
+â”‚   â””â”€â”€ configuration/
+â”‚       â”œâ”€â”€ server/settings.json     # Network, timing, combat, gameplay
+â”‚       â”œâ”€â”€ assets/                  # gear, items, npcs, rooms, zones, spells, skills
+â”‚       â””â”€â”€ attributes/              # classes, attributes, regen, scaling, experience
+â”‚
+â””â”€â”€ README.md                        # You are here
 ```
 
-**Modular Python server · terminal + GUI clients · JSON-driven game data**
+**Modular Python server Â· terminal + GUI clients Â· JSON-driven game data**
 
 ---
 
 ## Adding or Extending Game Content
 
-Most of MudProto’s playable content is **data-driven**. Rooms, NPCs, gear, consumables, spells, skills, and zones are defined under `mudproto-server/configuration/assets/`, which makes it straightforward to expand the world without reworking the core engine.
+Most of MudProtoâ€™s playable content is **data-driven**. Rooms, NPCs, gear, consumables, spells, skills, and zones are defined under `mudproto_server/configuration/assets/`, which makes it straightforward to expand the world without reworking the core engine.
 
 A typical content pass looks like this:
 
@@ -218,11 +218,11 @@ For the full schema, validation rules, naming conventions, and asset-authoring w
 
 ## Why This Project Stands Out
 
-- **Server-authoritative gameplay** — commands, combat resolution, cooldowns, and messaging all live on the server.
-- **Data-driven content** — rooms, NPCs, spells, skills, items, and progression are defined in JSON for easy iteration.
-- **Thin clients, stable protocol** — the same message format powers both the terminal and GUI clients.
-- **Small, readable systems** — the codebase is organized into focused modules so mechanics can be extended without losing clarity.
-- **Classic fantasy tone** — the project keeps a bit of dungeon-crawl character without losing technical clarity.
+- **Server-authoritative gameplay** â€” commands, combat resolution, cooldowns, and messaging all live on the server.
+- **Data-driven content** â€” rooms, NPCs, spells, skills, items, and progression are defined in JSON for easy iteration.
+- **Thin clients, stable protocol** â€” the same message format powers both the terminal and GUI clients.
+- **Small, readable systems** â€” the codebase is organized into focused modules so mechanics can be extended without losing clarity.
+- **Classic fantasy tone** â€” the project keeps a bit of dungeon-crawl character without losing technical clarity.
 
 ---
 
@@ -230,6 +230,6 @@ MudProto aims to preserve the spirit of classic tabletop-inspired fantasy while 
 
 <div align="center">
 
-*Roll for initiative.* 🎲
+*Roll for initiative.* ðŸŽ²
 
 </div>

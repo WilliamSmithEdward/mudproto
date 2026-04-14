@@ -1,14 +1,14 @@
-# MudProto Asset Generation Guide
+﻿# MudProto Asset Generation Guide
 
-> Scope: this document covers how to add or modify content in `mudproto-server/configuration/assets/`.
+> Scope: this document covers how to add or modify content in `mudproto_server/configuration/assets/`.
 >
-> Note: the real folder name is `assets` — not `asssets`.
+> Note: the real folder name is `assets` â€” not `asssets`.
 
 ---
 
 ## 1. What this folder contains
 
-`mudproto-server/configuration/assets/` is the content layer for the game world. These files define **what exists in the world**, while rules like wear slots, regeneration, level scaling, and potion cooldowns live in `mudproto-server/configuration/attributes/`.
+`mudproto_server/configuration/assets/` is the content layer for the game world. These files define **what exists in the world**, while rules like wear slots, regeneration, level scaling, and potion cooldowns live in `mudproto_server/configuration/attributes/`.
 
 ### Asset files
 
@@ -22,7 +22,7 @@
 | `spells.json` | Spell definitions |
 | `skills.json` | Skill definitions |
 
-The **authoritative schema and validation rules** for all of these files live in `mudproto-server/assets.py`.
+The **authoritative schema and validation rules** for all of these files live in `mudproto_server/assets.py`.
 
 ---
 
@@ -33,7 +33,7 @@ When editing or generating assets, follow these rules exactly:
 1. **All files must be valid JSON**
    - Use double quotes.
    - No trailing commas.
-   - Top-level structure must match the file’s expected shape.
+   - Top-level structure must match the fileâ€™s expected shape.
 
 2. **IDs must be unique within their asset type**
    - Duplicate IDs will raise a `ValueError` and stop load/startup.
@@ -72,7 +72,7 @@ After editing assets:
 
 - restart with:
   ```powershell
-  python mudproto-server/server.py
+  python mudproto_server/server.py
   ```
 - connect a client and test relevant commands:
   - `look`
@@ -119,17 +119,17 @@ A **list** of objects.
 ### Required/common fields
 
 #### Shared
-- `template_id` — required, unique string
-- `name` — required, non-empty string
-- `slot` — required, must be `"weapon"` or `"armor"`
-- `description` — recommended
-- `keywords` — recommended list of lowercase tokens
-- `weight` — non-negative integer
-- `coin_value` — non-negative integer
+- `template_id` â€” required, unique string
+- `name` â€” required, non-empty string
+- `slot` â€” required, must be `"weapon"` or `"armor"`
+- `description` â€” recommended
+- `keywords` â€” recommended list of lowercase tokens
+- `weight` â€” non-negative integer
+- `coin_value` â€” non-negative integer
 
 #### Weapon-only fields
-- `weapon_type` — e.g. `sword`, `dagger`
-- `can_hold` — `true` if the item should be holdable/off-hand usable for players
+- `weapon_type` â€” e.g. `sword`, `dagger`
+- `can_hold` â€” `true` if the item should be holdable/off-hand usable for players
 - `damage_dice_count`
 - `damage_dice_sides`
 - `damage_roll_modifier`
@@ -138,8 +138,8 @@ A **list** of objects.
 - `attacks_per_round_bonus`
 
 #### Armor-only fields
-- `wear_slots` — **required for armor**, non-empty list
-- `armor_class_bonus` — must be `>= 0`
+- `wear_slots` â€” **required for armor**, non-empty list
+- `armor_class_bonus` â€” must be `>= 0`
 
 ### Important validation rules
 - Weapons **cannot** define `wear_slots`.
@@ -197,16 +197,16 @@ Items in this file are currently **restore consumables**.
 - `name`
 - `description`
 - `keywords`
-- `effect_type` — currently must be `"restore"`
-- `effect_target` — must be one of:
+- `effect_type` â€” currently must be `"restore"`
+- `effect_target` â€” must be one of:
   - `hit_points`
   - `mana`
   - `vigor`
-- `effect_amount` — integer, must be `> 0`
-- `coin_value` — non-negative integer
-- `use_lag_seconds` — non-negative float
-- `observer_action` — optional but recommended
-- `observer_context` — optional but recommended
+- `effect_amount` â€” integer, must be `> 0`
+- `coin_value` â€” non-negative integer
+- `use_lag_seconds` â€” non-negative float
+- `observer_action` â€” optional but recommended
+- `observer_context` â€” optional but recommended
 
 ### Example
 ```json
@@ -228,7 +228,7 @@ Items in this file are currently **restore consumables**.
 ### Important note
 Potion cooldown behavior is **not** configured here. That lives in:
 
-- `mudproto-server/configuration/attributes/item_usage.json`
+- `mudproto_server/configuration/attributes/item_usage.json`
 
 ---
 
@@ -246,10 +246,10 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 ```
 
 ### Common fields
-- `npc_id` — required, unique string
-- `name` — required
-- `hit_points`, `max_hit_points` — must be `> 0`
-- `power_level` — non-negative integer
+- `npc_id` â€” required, unique string
+- `name` â€” required
+- `hit_points`, `max_hit_points` â€” must be `> 0`
+- `power_level` â€” non-negative integer
 - `attacks_per_round`
 - `hit_roll_modifier`
 - `armor_class`
@@ -261,24 +261,24 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 - `is_ally`
 - `is_peaceful`
 - `respawn`
-- `pronoun_possessive` — e.g. `his`, `her`, `its`
+- `pronoun_possessive` â€” e.g. `his`, `her`, `its`
 - `main_hand_weapon_template_id`
 - `off_hand_weapon_template_id`
 - `vigor`, `max_vigor`
 - `mana`, `max_mana`
-- `skill_use_chance` — float from `0.0` to `1.0`
-- `skill_ids` — valid `skill_id`s
-- `spell_use_chance` — float from `0.0` to `1.0`
-- `spell_ids` — valid `spell_id`s
+- `skill_use_chance` â€” float from `0.0` to `1.0`
+- `skill_ids` â€” valid `skill_id`s
+- `spell_use_chance` â€” float from `0.0` to `1.0`
+- `spell_ids` â€” valid `spell_id`s
 
 ### Merchant-only fields
 - `is_merchant: true`
-- `merchant_inventory` — list of stock objects:
+- `merchant_inventory` â€” list of stock objects:
   - `template_id`
-  - `infinite` — boolean
-  - `quantity` — required for limited stock (`>= 1` when `infinite: false`)
-- `merchant_buy_markup` — must be `> 0`
-- `merchant_sell_ratio` — must be between `0.0` and `1.0`
+  - `infinite` â€” boolean
+  - `quantity` â€” required for limited stock (`>= 1` when `infinite: false`)
+- `merchant_buy_markup` â€” must be `> 0`
+- `merchant_sell_ratio` â€” must be between `0.0` and `1.0`
 
 ### Respawn / world behavior notes
 - `respawn: true` means the NPC is eligible for zone-driven repopulation.
@@ -332,12 +332,12 @@ A **list** of rooms.
 - `title`
 - `description`
 - `zone_id`
-- `exits` — object mapping direction to destination `room_id`
+- `exits` â€” object mapping direction to destination `room_id`
 
 ### Optional field
-- `npcs` — list of spawn objects:
+- `npcs` â€” list of spawn objects:
   - `npc_id`
-  - `count` — integer, must be `>= 1`
+  - `count` â€” integer, must be `>= 1`
 
 ### Example
 ```json
@@ -358,7 +358,7 @@ A **list** of rooms.
 
 ### Notes
 - Exit destinations are validated at world build time in `world.py`.
-- Room-to-zone membership comes from each room’s `zone_id`.
+- Room-to-zone membership comes from each roomâ€™s `zone_id`.
 - Do **not** try to assign room membership inside `zones.json`; that is derived at runtime.
 
 ---
@@ -369,9 +369,9 @@ A **list** of rooms.
 A **list** of zone objects.
 
 ### Fields
-- `zone_id` — required, unique
-- `name` — required
-- `repopulate_game_hours` — integer, must be `>= 0`
+- `zone_id` â€” required, unique
+- `name` â€” required
+- `repopulate_game_hours` â€” integer, must be `>= 0`
 
 ### Example
 ```json
@@ -395,13 +395,13 @@ A **list** of zone objects.
 A **list** of spells.
 
 ### Required common fields
-- `spell_id` — required, unique
-- `name` — required, unique among spell names
-- `school` — required, non-empty
-- `description` — recommended
-- `mana_cost` — integer, `>= 0`
-- `spell_type` — `"damage"` or `"support"`
-- `cast_type` — `"self"`, `"target"`, or `"aoe"`
+- `spell_id` â€” required, unique
+- `name` â€” required, unique among spell names
+- `school` â€” required, non-empty
+- `description` â€” recommended
+- `mana_cost` â€” integer, `>= 0`
+- `spell_type` â€” `"damage"` or `"support"`
+- `cast_type` â€” `"self"`, `"target"`, or `"aoe"`
 
 If `cast_type` is omitted:
 - support spells default to `self`
@@ -411,29 +411,29 @@ If `cast_type` is omitted:
 - `damage_dice_count`
 - `damage_dice_sides`
 - `damage_modifier`
-- `damage_scaling_attribute_id` — must be a valid attribute id, usually `int`
-- `damage_scaling_multiplier` — `>= 0`
-- `level_scaling_multiplier` — `>= 0`
-- `damage_context` — **required for damage spells**
+- `damage_scaling_attribute_id` â€” must be a valid attribute id, usually `int`
+- `damage_scaling_multiplier` â€” `>= 0`
+- `level_scaling_multiplier` â€” `>= 0`
+- `damage_context` â€” **required for damage spells**
 
 Optional life-steal style fields on damage spells:
-- `restore_effect` — `heal`, `vigor`, or `mana`
-- `restore_ratio` — `0.0` to `1.0`
+- `restore_effect` â€” `heal`, `vigor`, or `mana`
+- `restore_ratio` â€” `0.0` to `1.0`
 - `restore_context`
 - `observer_restore_context`
 
 ### Support spell fields
-- `support_effect` — `heal`, `vigor`, or `mana`
+- `support_effect` â€” `heal`, `vigor`, or `mana`
 - `support_amount`
 - `support_dice_count`
 - `support_dice_sides`
 - `support_roll_modifier`
 - `support_scaling_attribute_id`
 - `support_scaling_multiplier`
-- `support_mode` — `instant`, `timed`, or `battle_rounds`
-- `duration_hours` — required when `support_mode` is `timed`
-- `duration_rounds` — required when `support_mode` is `battle_rounds`
-- `support_context` — **required for support spells**
+- `support_mode` â€” `instant`, `timed`, or `battle_rounds`
+- `duration_hours` â€” required when `support_mode` is `timed`
+- `duration_rounds` â€” required when `support_mode` is `battle_rounds`
+- `support_context` â€” **required for support spells**
 
 Optional presentation fields:
 - `observer_action`
@@ -492,24 +492,24 @@ Optional presentation fields:
 A **list** of skills.
 
 ### Required/common fields
-- `skill_id` — required, unique
-- `name` — required, unique among skill names
+- `skill_id` â€” required, unique
+- `name` â€” required, unique among skill names
 - `description`
-- `skill_type` — `"damage"` or `"support"`
-- `cast_type` — `"self"`, `"target"`, or `"aoe"`
-- `vigor_cost` — integer, `>= 0`
-- `usable_out_of_combat` — boolean
-- `lag_rounds` — integer, `>= 0`
-- `cooldown_rounds` — integer, `>= 0`
-- `scaling_attribute_id` — if set, must be a valid attribute id
-- `scaling_multiplier` — `>= 0`
-- `level_scaling_multiplier` — `>= 0`
+- `skill_type` â€” `"damage"` or `"support"`
+- `cast_type` â€” `"self"`, `"target"`, or `"aoe"`
+- `vigor_cost` â€” integer, `>= 0`
+- `usable_out_of_combat` â€” boolean
+- `lag_rounds` â€” integer, `>= 0`
+- `cooldown_rounds` â€” integer, `>= 0`
+- `scaling_attribute_id` â€” if set, must be a valid attribute id
+- `scaling_multiplier` â€” `>= 0`
+- `level_scaling_multiplier` â€” `>= 0`
 
 ### Damage skill fields
 - `damage_dice_count`
 - `damage_dice_sides`
 - `damage_modifier`
-- `damage_context` — **required for damage skills**
+- `damage_context` â€” **required for damage skills**
 
 Optional on damage skills:
 - `restore_effect`
@@ -518,9 +518,9 @@ Optional on damage skills:
 - `observer_restore_context`
 
 ### Support skill fields
-- `support_effect` — `heal`, `vigor`, or `mana`
+- `support_effect` â€” `heal`, `vigor`, or `mana`
 - `support_amount`
-- `support_context` — **required for support skills**
+- `support_context` â€” **required for support skills**
 - `observer_action`
 - `observer_context`
 
@@ -579,7 +579,7 @@ Example:
 "[a/an] [verb] jolted by crackling force."
 ```
 
-These are resolved in combat rendering code in `mudproto-server/combat.py`.
+These are resolved in combat rendering code in `mudproto_server/combat.py`.
 
 ---
 
@@ -598,7 +598,7 @@ Current valid ids:
 
 ## 8. Common pitfalls to avoid
 
-### Don’t do these
+### Donâ€™t do these
 - Put `wear_slots` on a weapon.
 - Forget `wear_slots` on armor.
 - Add a room exit to a room that does not exist.
@@ -654,7 +654,7 @@ A reliable pattern is:
 
 ## 11. Final guidance
 
-If you are a human author or an AI coding agent, treat `mudproto-server/assets.py` as the source of truth for what is allowed. When in doubt:
+If you are a human author or an AI coding agent, treat `mudproto_server/assets.py` as the source of truth for what is allowed. When in doubt:
 
 - copy the structure of an existing working asset
 - keep IDs stable and references valid
@@ -662,3 +662,4 @@ If you are a human author or an AI coding agent, treat `mudproto-server/assets.p
 - test the new content in the actual room flow
 
 That approach matches the current MudProto codebase and will prevent nearly all asset-loading failures.
+

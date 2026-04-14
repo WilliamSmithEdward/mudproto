@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 
 
 def utc_now_iso() -> str:
@@ -8,7 +8,7 @@ def utc_now_iso() -> str:
 def build_response(message_type: str, payload: dict) -> dict:
     return {
         "type": message_type,
-        "source": "mudproto-server",
+        "source": "mudproto_server",
         "timestamp": utc_now_iso(),
         "payload": payload
     }
