@@ -225,7 +225,11 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
         affect_roll_modifier = float(affect.get("roll_modifier", 0.0))
         affect_scaling_bonus = _resolve_affect_scaling_bonus(actor, affect)
         remaining_hours = max(0, int(affect.get("duration_hours", 0)))
+        if remaining_hours <= 0:
+            remaining_hours = max(0, int(ability.get("duration_hours", 0)))
         remaining_rounds = max(0, int(affect.get("duration_rounds", 0)))
+        if remaining_rounds <= 0:
+            remaining_rounds = max(0, int(ability.get("duration_rounds", 0)))
 
         extra_main_hand_hits = max(0, int(affect.get("extra_main_hand_hits", 0)))
         extra_off_hand_hits = max(0, int(affect.get("extra_off_hand_hits", 0)))

@@ -3,6 +3,8 @@ import combat_ability_effects
 import display_feedback
 import game_hour_ticks
 import item_logic
+import json
+from pathlib import Path
 import pytest
 from assets import _resolve_asset_affects, get_skill_by_id
 from combat_ability_effects import _preview_entity_damage_with_reduction
@@ -20,6 +22,15 @@ def _make_session(client_id: str, name: str) -> ClientSession:
     session.player_state_key = name.strip().lower()
     session.player.current_room_id = "start"
     return session
+
+
+def _read_raw_skill(skill_id: str) -> dict:
+    skills_path = Path(__file__).resolve().parents[2] / "configuration" / "assets" / "skills.json"
+    payload = json.loads(skills_path.read_text(encoding="utf-8"))
+    return next(
+        skill for skill in payload
+        if str(skill.get("skill_id", "")).strip().lower() == skill_id.strip().lower()
+    )
 
 
 def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
@@ -252,3 +263,185 @@ def test_timed_regeneration_affect_ticks_and_expires(monkeypatch) -> None:
 
     assert session.status.hit_points >= before_hit_points + 1
     assert session.active_affects == []
+
+
+# ---------------------------------------------------------------------------
+# Duration inheritance: affects inherit duration from parent ability
+# ---------------------------------------------------------------------------
+
+
+def test_affect_inherits_duration_rounds_from_parent_ability() -> None:
+    """When an affect entry omits duration_rounds, it inherits from the parent ability."""
+    from combat_ability_effects import _apply_ability_affects
+
+    session = _make_session("client-inherit-dur", "Tester")
+    ability = {
+        "duration_rounds": 5,
+        "affects": [
+            {
+                "affect_id": "affect.damage-reduction",
+                "affect_type": "damage_reduction",
+                "target": "self",
+                "affect_mode": "battle_rounds",
+                "amount": 3,
+            }
+        ],
+    }
+
+    _apply_ability_affects(actor=session, target=session, ability=ability, affect_target="self")
+
+    assert len(session.active_affects) == 1
+    assert session.active_affects[0].remaining_rounds == 5
+
+
+def test_affect_inherits_duration_hours_from_parent_ability() -> None:
+    """When an affect entry omits duration_hours, it inherits from the parent ability."""
+    from combat_ability_effects import _apply_ability_affects
+
+    session = _make_session("client-inherit-hours", "Tester")
+    ability = {
+        "duration_hours": 4,
+        "affects": [
+            {
+                "affect_id": "affect.regeneration",
+                "affect_type": "regeneration",
+                "target": "self",
+                "affect_mode": "timed",
+                "target_resource": "hit_points",
+                "amount": 5,
+            }
+        ],
+    }
+
+    _apply_ability_affects(actor=session, target=session, ability=ability, affect_target="self")
+
+    assert len(session.active_affects) == 1
+    assert session.active_affects[0].remaining_hours == 4
+
+
+def test_affect_explicit_duration_overrides_parent() -> None:
+    """An affect with its own duration_rounds takes priority over the parent's."""
+    from combat_ability_effects import _apply_ability_affects
+
+    session = _make_session("client-override-dur", "Tester")
+    ability = {
+        "duration_rounds": 5,
+        "affects": [
+            {
+                "affect_id": "affect.damage-reduction",
+                "affect_type": "damage_reduction",
+                "target": "self",
+                "affect_mode": "battle_rounds",
+                "amount": 2,
+                "duration_rounds": 7,
+            }
+        ],
+    }
+
+    _apply_ability_affects(actor=session, target=session, ability=ability, affect_target="self")
+
+    assert len(session.active_affects) == 1
+    assert session.active_affects[0].remaining_rounds == 7
+
+
+# ---------------------------------------------------------------------------
+# Battle-round tick ordering: affects last for the full N rounds
+# ---------------------------------------------------------------------------
+
+
+def test_battle_round_affect_active_for_full_duration() -> None:
+    """An affect with duration_rounds=3 should be active during 3 attack phases."""
+    from battle_round_ticks import process_player_battle_round_tick
+    from combat_ability_effects import _is_affect_active
+
+    session = _make_session("client-tick-dur", "Tester")
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.damage-reduction",
+        affect_name="Guard",
+        affect_mode="battle_rounds",
+        affect_type="damage_reduction",
+        affect_amount=5,
+        remaining_rounds=3,
+    ))
+
+    # Simulate 3 combat rounds: attacks happen first, then tick.
+    for round_num in range(3):
+        assert _is_affect_active(session.active_affects[0]), (
+            f"Affect should be active during attack phase of round {round_num + 1}"
+        )
+        process_player_battle_round_tick(session)
+
+    # After 3 ticks, the affect should be expired.
+    assert session.active_affects == [], "Affect should expire after 3 rounds"
+
+
+def test_battle_round_affect_not_consumed_before_attacks() -> None:
+    """Verify the tick order: duration should still be full before the first tick."""
+    session = _make_session("client-tick-order", "Tester")
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.extra-hits",
+        affect_name="Flurry",
+        affect_mode="battle_rounds",
+        affect_type="extra_hits",
+        extra_unarmed_hits=2,
+        remaining_rounds=3,
+    ))
+
+    # Before any tick, the affect has full duration.
+    assert session.active_affects[0].remaining_rounds == 3
+    # The combat round would run attacks here (affect is active).
+    # Then tick:
+    from battle_round_ticks import process_player_battle_round_tick
+    process_player_battle_round_tick(session)
+    assert session.active_affects[0].remaining_rounds == 2
+    assert len(session.active_affects) == 1
+
+
+# ---------------------------------------------------------------------------
+# Asset-level: fist-flurry and centered-guard inherit duration from skill
+# ---------------------------------------------------------------------------
+
+
+def test_fist_flurry_affect_inherits_skill_duration() -> None:
+    """Fist Flurry affect entry has no duration_rounds; it inherits from the skill."""
+    from combat_ability_effects import _apply_ability_affects
+
+    raw_skill = _read_raw_skill("skill.fist-flurry")
+    raw_affects = raw_skill.get("affect_ids", [])
+    assert len(raw_affects) >= 1
+    assert "duration_rounds" not in raw_affects[0]
+
+    skill = get_skill_by_id("skill.fist-flurry")
+    assert isinstance(skill, dict)
+    assert skill.get("duration_rounds") == 3
+    assert len(skill.get("affects", [])) == 1
+    assert skill["affects"][0].get("duration_rounds") == 0
+
+    # Verify runtime: applying the skill should produce an affect with duration 3.
+    session = _make_session("client-flurry-inherit", "Tester")
+    _apply_ability_affects(actor=session, target=session, ability=skill, affect_target="self")
+
+    assert len(session.active_affects) == 1
+    assert session.active_affects[0].remaining_rounds == 3
+
+
+def test_centered_guard_affect_inherits_skill_duration() -> None:
+    """Centered Guard affect entry has no duration_rounds; it inherits from the skill."""
+    from combat_ability_effects import _apply_ability_affects
+
+    raw_skill = _read_raw_skill("skill.centered-guard")
+    raw_affects = raw_skill.get("affect_ids", [])
+    assert len(raw_affects) >= 1
+    assert "duration_rounds" not in raw_affects[0]
+
+    skill = get_skill_by_id("skill.centered-guard")
+    assert isinstance(skill, dict)
+    assert skill.get("duration_rounds") == 3
+    assert len(skill.get("affects", [])) == 1
+    assert skill["affects"][0].get("duration_rounds") == 0
+
+    session = _make_session("client-guard-inherit", "Tester")
+    _apply_ability_affects(actor=session, target=session, ability=skill, affect_target="self")
+
+    assert len(session.active_affects) == 1
+    assert session.active_affects[0].remaining_rounds == 3

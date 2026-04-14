@@ -82,8 +82,7 @@
         "amount": 2,
         "scaling_attribute_id": "con",
         "scaling_multiplier": 0.5,
-        "level_scaling_multiplier": 0.5,
-        "duration_rounds": 3
+        "level_scaling_multiplier": 0.5
       }
     ],
     "support_mode": "battle_rounds",
@@ -193,8 +192,7 @@
         "extra_off_hand_hits": 0,
         "extra_unarmed_hits": 2,
         "hits_per_level_step": 1,
-        "level_step": 5,
-        "duration_rounds": 3
+        "level_step": 5
       }
     ],
     "support_mode": "battle_rounds",

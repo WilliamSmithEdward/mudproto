@@ -176,10 +176,6 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         raise ValueError(
             f"{context} affect scaling_attribute_id '{scaling_attribute_id}' is unknown."
         )
-    if affect_mode == "timed" and duration_hours <= 0:
-        raise ValueError(f"{context} timed affects must define duration_hours > 0.")
-    if affect_mode == "battle_rounds" and duration_rounds <= 0:
-        raise ValueError(f"{context} battle_rounds affects must define duration_rounds > 0.")
     if affect_type == "extra_hits":
         if extra_main_hand_hits <= 0 and extra_off_hand_hits <= 0 and extra_unarmed_hits <= 0:
             raise ValueError(f"{context} extra_hits affects must define at least one hit type > 0.")
