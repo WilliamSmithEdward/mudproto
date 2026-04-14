@@ -448,7 +448,7 @@ def _build_unified_room_round_display(
     if not merged_lines:
         return None
 
-    explicit_lines = [[]] + merged_lines
+    explicit_lines = merged_lines
     if explicit_lines and explicit_lines[-1]:
         explicit_lines.append([])
 
@@ -483,7 +483,7 @@ async def _send_room_broadcast(
 
             if prompt_observers:
                 _append_private_lines_to_payload(payload, peer)
-                payload["prompt_lines"] = [build_prompt_parts(peer)]
+                payload["prompt_lines"] = [build_prompt_parts_default(peer)]
                 _normalize_prompt_spacing(payload)
         await send_outbound_fn(peer.websocket, peer_messages)
 

@@ -181,10 +181,6 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 )
                 level_bonus = (max(1, int(session.player.level)) // extra_step_levels) * extra_per_step
                 total_support_amount = max(0, support_amount + level_bonus)
-                # Battle-round effects decrement at round start; add one so this lasts
-                # for the next N full rounds after the cast turn.
-                if support_mode == "battle_rounds" and duration_rounds > 0:
-                    effect_duration_rounds = duration_rounds + 1
 
             if support_mode == "instant":
                 if support_effect == "heal":

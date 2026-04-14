@@ -608,7 +608,6 @@ def resolve_combat_round(
     status = session.status
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
-    _process_combat_round_timers(session, engaged_entities)
 
     retaliating_entities = [
         engaged
@@ -655,6 +654,10 @@ def resolve_combat_round(
             _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
             if status.hit_points <= 0:
                 break
+
+    # Tick support effects, affects, and cooldowns *after* attacks so that
+    # a duration_rounds value of N gives N full rounds of benefit.
+    _process_combat_round_timers(session, engaged_entities)
 
     # Now display player death if it occurred this round.
 

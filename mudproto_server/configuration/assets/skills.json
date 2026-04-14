@@ -194,7 +194,7 @@
         "extra_unarmed_hits": 2,
         "hits_per_level_step": 1,
         "level_step": 5,
-        "duration_rounds": 4
+        "duration_rounds": 3
       }
     ],
     "support_mode": "battle_rounds",
