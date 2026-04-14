@@ -1,6 +1,6 @@
 import random
 
-from attribute_config import load_regeneration_config
+from attribute_config import get_posture_regeneration_bonus_multiplier, load_regeneration_config
 from inventory import tick_item_decay_map
 from models import ClientSession
 from player_resources import get_player_resource_caps
@@ -67,6 +67,8 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
         regen_percent = _resolve_regen_percent(attribute_score, mapping)
         min_amount = max(0, int(resource_config.get("min_amount", 0)))
         regen_amount = max(min_amount, int(max_value * regen_percent))
+        if bool(getattr(session, "is_resting", False)):
+            regen_amount = int(regen_amount * get_posture_regeneration_bonus_multiplier("resting"))
 
         if regen_amount <= 0:
             continue

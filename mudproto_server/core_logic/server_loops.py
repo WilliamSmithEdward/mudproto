@@ -97,6 +97,18 @@ async def _process_npc_wandering() -> None:
     for entity in list(shared_world_entities.values()):
         if not getattr(entity, "is_alive", False):
             continue
+
+        if bool(getattr(entity, "is_sitting", False)):
+            if int(getattr(entity, "skill_lag_rounds_remaining", 0)) <= 0 and int(getattr(entity, "spell_lag_rounds_remaining", 0)) <= 0:
+                entity.is_sitting = False
+                stand_parts = [
+                    build_part(with_article(entity.name, capitalize=True), "bright_white"),
+                    build_part(" stands up.", "bright_white"),
+                ]
+                for peer in _iter_room_sessions(entity.room_id):
+                    await send_outbound(peer.websocket, _npc_wander_display(stand_parts, peer))
+            continue
+
         if _entity_is_engaged_by_any_player(entity.entity_id):
             continue
         wander_chance = getattr(entity, "wander_chance", 0.0)

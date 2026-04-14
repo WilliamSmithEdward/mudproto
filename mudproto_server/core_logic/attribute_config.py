@@ -16,6 +16,7 @@ ITEM_USAGE_FILE = ATTRIBUTE_CONFIG_ROOT / "item_usage.json"
 LEVEL_SCALING_FILE = ATTRIBUTE_CONFIG_ROOT / "level_scaling.json"
 EXPERIENCE_TABLE_FILE = ATTRIBUTE_CONFIG_ROOT / "experience.json"
 WEAPON_TYPES_FILE = ATTRIBUTE_CONFIG_ROOT / "weapon_types.json"
+POSTURE_FILE = ATTRIBUTE_CONFIG_ROOT / "posture.json"
 
 
 def _read_json_attribute_config(path: Path) -> object:
@@ -411,6 +412,69 @@ def load_item_usage_config() -> dict:
             "cooldown_rounds": cooldown_rounds,
         }
     }
+
+
+@lru_cache(maxsize=1)
+def load_posture_config() -> dict:
+    raw_config = _read_json_attribute_config(POSTURE_FILE)
+    if not isinstance(raw_config, dict):
+        raise ValueError(f"Posture config file must contain an object: {POSTURE_FILE}")
+
+    posture_states: dict[str, dict] = {}
+    for posture_state in ("sitting", "resting"):
+        raw_state = raw_config.get(posture_state, {})
+        if not isinstance(raw_state, dict):
+            raise ValueError(f"Posture config '{posture_state}' must be an object.")
+
+        damage_multiplier = float(raw_state.get("damage_multiplier", 1.0))
+        if damage_multiplier < 1.0:
+            raise ValueError(f"Posture config '{posture_state}.damage_multiplier' must be >= 1.0.")
+
+        prevents_movement = bool(raw_state.get("prevents_movement", False))
+        regeneration_bonus_multiplier = float(raw_state.get("regeneration_bonus_multiplier", 1.0))
+        if regeneration_bonus_multiplier < 1.0:
+            raise ValueError(
+                f"Posture config '{posture_state}.regeneration_bonus_multiplier' must be >= 1.0."
+            )
+
+        posture_states[posture_state] = {
+            "damage_multiplier": damage_multiplier,
+            "prevents_movement": prevents_movement,
+            "regeneration_bonus_multiplier": regeneration_bonus_multiplier,
+        }
+
+    return {
+        "sitting": posture_states["sitting"],
+        "resting": posture_states["resting"],
+    }
+
+
+def get_sitting_damage_multiplier() -> float:
+    return float(get_posture_damage_multiplier("sitting"))
+
+
+def get_posture_damage_multiplier(posture_state: str) -> float:
+    normalized_state = str(posture_state).strip().lower()
+    posture_config = load_posture_config().get(normalized_state, {})
+    if not isinstance(posture_config, dict):
+        return 1.0
+    return max(1.0, float(posture_config.get("damage_multiplier", 1.0)))
+
+
+def posture_prevents_movement(posture_state: str) -> bool:
+    normalized_state = str(posture_state).strip().lower()
+    posture_config = load_posture_config().get(normalized_state, {})
+    if not isinstance(posture_config, dict):
+        return False
+    return bool(posture_config.get("prevents_movement", False))
+
+
+def get_posture_regeneration_bonus_multiplier(posture_state: str) -> float:
+    normalized_state = str(posture_state).strip().lower()
+    posture_config = load_posture_config().get(normalized_state, {})
+    if not isinstance(posture_config, dict):
+        return 1.0
+    return max(1.0, float(posture_config.get("regeneration_bonus_multiplier", 1.0)))
 
 
 @lru_cache(maxsize=1)

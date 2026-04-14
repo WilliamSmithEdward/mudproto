@@ -399,6 +399,15 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
         entity.spell_lag_rounds_remaining -= 1
         can_use_special_action = False
 
+    if entity.is_sitting and can_use_special_action:
+        entity.is_sitting = False
+        append_newline_if_needed(parts)
+        parts.extend([
+            build_part(with_article(entity.name, capitalize=True)),
+            build_part(" stands up."),
+        ])
+        can_use_special_action = False
+
     # Allow at most one special action (spell or skill) per round.
     # Keep existing priority: try spell first, then skill if no spell fired.
     if can_use_special_action:

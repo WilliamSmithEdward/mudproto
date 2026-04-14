@@ -2,6 +2,7 @@
 
 import random
 
+from attribute_config import get_posture_damage_multiplier
 from models import ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 
@@ -203,6 +204,14 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int) -> 
     if incoming_damage <= 0:
         return 0
 
+    posture_damage_multiplier = 1.0
+    if bool(getattr(session, "is_resting", False)):
+        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("resting"))
+    if bool(getattr(session, "is_sitting", False)):
+        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("sitting"))
+    if posture_damage_multiplier > 1.0:
+        incoming_damage = int(incoming_damage * posture_damage_multiplier)
+
     reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(list(session.active_support_effects)))
     damage_dealt = min(max(0, int(session.status.hit_points)), reduced_damage)
     session.status.hit_points = max(0, int(session.status.hit_points) - reduced_damage)
@@ -213,6 +222,14 @@ def _apply_entity_damage_with_reduction(entity: EntityState, amount: int) -> int
     incoming_damage = max(0, int(amount))
     if incoming_damage <= 0:
         return 0
+
+    posture_damage_multiplier = 1.0
+    if bool(getattr(entity, "is_resting", False)):
+        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("resting"))
+    if bool(getattr(entity, "is_sitting", False)):
+        posture_damage_multiplier = max(posture_damage_multiplier, get_posture_damage_multiplier("sitting"))
+    if posture_damage_multiplier > 1.0:
+        incoming_damage = int(incoming_damage * posture_damage_multiplier)
 
     active_effects = list(getattr(entity, "active_support_effects", []))
     reduced_damage = max(0, incoming_damage - _resolve_active_damage_reduction(active_effects))

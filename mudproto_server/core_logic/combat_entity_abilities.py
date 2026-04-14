@@ -210,8 +210,9 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             parts.append(build_part(rendered_restore_context))
 
         target_lag_rounds = max(0, int(skill.get("target_lag_rounds", 0)))
-        if target_lag_rounds > 0:
+        if target_lag_rounds > 0 and damage_dealt > 0:
             apply_lag(session, float(target_lag_rounds) * float(COMBAT_ROUND_INTERVAL_SECONDS))
+            session.is_sitting = True
             entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
 
         _set_entity_skill_cooldown(entity, skill)

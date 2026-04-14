@@ -10,6 +10,7 @@ from .loot import handle_loot_command
 from .movement import handle_movement_command
 from .observation import handle_observation_command
 from .passives import handle_passive_command
+from .posture import handle_posture_command
 from .parsing import parse_command
 from .skills import handle_skill_command, handle_skill_fallback_command
 from .types import OutboundResult
@@ -36,6 +37,7 @@ def dispatch_command(session: ClientSession, command_text: str) -> OutboundResul
         handle_debug_acquire_command,
         handle_spell_command,
         handle_passive_command,
+        handle_posture_command,
         handle_skill_command,
         handle_equipment_command,
         handle_item_drop_command,

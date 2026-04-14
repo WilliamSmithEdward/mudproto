@@ -309,6 +309,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             total_damage_dealt += max(0, dealt)
             if dealt > 0 and target_lag_rounds > 0 and entity.is_alive:
                 entity.skill_lag_rounds_remaining = max(entity.skill_lag_rounds_remaining, target_lag_rounds)
+                entity.is_sitting = True
             if resolved_context:
                 parts.append(build_part(resolved_context))
                 damage_observer_lines.append(resolved_context)

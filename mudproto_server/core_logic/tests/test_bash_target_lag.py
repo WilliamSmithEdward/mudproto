@@ -46,3 +46,4 @@ def test_bash_applies_target_lag_to_entity(monkeypatch) -> None:
     assert isinstance(response, dict)
     assert applied is True
     assert target.skill_lag_rounds_remaining == 2
+    assert target.is_sitting is True

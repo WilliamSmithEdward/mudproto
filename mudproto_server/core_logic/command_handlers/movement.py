@@ -1,5 +1,6 @@
 import random
 
+from attribute_config import posture_prevents_movement
 from combat_state import end_combat, get_engaged_entity, maybe_auto_engage_current_room
 from display_core import build_line, build_part
 from display_feedback import display_command_result, display_error
@@ -149,6 +150,11 @@ def flee(session: ClientSession) -> OutboundResult:
 
 
 def try_move(session: ClientSession, direction: str) -> OutboundResult:
+    if session.is_sitting and posture_prevents_movement("sitting"):
+        return display_error("You are sitting. Use stand before moving.", session)
+    if session.is_resting and posture_prevents_movement("resting"):
+        return display_error("You are resting. Use stand before moving.", session)
+
     if session.combat.engaged_entity_ids:
         return display_error("You cannot move while engaged in combat. Try flee.", session)
 

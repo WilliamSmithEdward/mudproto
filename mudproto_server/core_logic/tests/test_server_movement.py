@@ -4,6 +4,37 @@ from models import ClientSession
 from typing import Any, cast
 
 
+def _extract_display_text(outbound: dict | list[dict]) -> str:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    lines: list[str] = []
+    for message in messages:
+        if not isinstance(message, dict) or message.get("type") != "display":
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        raw_lines = payload.get("lines", [])
+        if not isinstance(raw_lines, list):
+            continue
+        for line in raw_lines:
+            if not isinstance(line, list):
+                continue
+            lines.append("".join(str(part.get("text", "")) for part in line if isinstance(part, dict)))
+    return "\n".join(lines)
+
+
+def _make_session(client_id: str, name: str) -> ClientSession:
+    from protocol import utc_now_iso
+
+    session = ClientSession(client_id=client_id, websocket=object(), connected_at=utc_now_iso())  # type: ignore[arg-type]
+    session.is_authenticated = True
+    session.is_connected = True
+    session.authenticated_character_name = name
+    session.player_state_key = name.strip().lower()
+    session.player.current_room_id = "start"
+    return session
+
+
 def test_direction_opposites_contains_only_supported_directions() -> None:
     expected_keys = {"north", "south", "east", "west", "up", "down"}
     assert set(DIRECTION_OPPOSITES.keys()) == expected_keys
@@ -85,3 +116,36 @@ def test_handle_movement_command_no_aliases_support_alone_suffix(monkeypatch) ->
         outbound_payload = cast(dict[str, Any], outbound["payload"])
         movement_payload = cast(dict[str, Any], outbound_payload["movement"])
         assert movement_payload["allow_followers"] is False
+
+
+def test_try_move_blocked_while_sitting() -> None:
+    session = _make_session("client-move", "Lucia")
+    session.is_sitting = True
+
+    outbound = movement.try_move(session, "north")
+
+    assert isinstance(outbound, dict)
+    assert "You are sitting. Use stand before moving." in _extract_display_text(outbound)
+
+
+def test_try_move_blocked_while_resting() -> None:
+    session = _make_session("client-rest-move", "Lucia")
+    session.is_resting = True
+
+    outbound = movement.try_move(session, "north")
+
+    assert isinstance(outbound, dict)
+    assert "You are resting. Use stand before moving." in _extract_display_text(outbound)
+
+
+def test_try_move_not_blocked_when_posture_flags_do_not_prevent(monkeypatch) -> None:
+    session = _make_session("client-posture-flags", "Lucia")
+    session.is_sitting = True
+
+    monkeypatch.setattr(movement, "posture_prevents_movement", lambda _state: False)
+    monkeypatch.setattr(movement, "get_room", lambda _room_id: None)
+
+    outbound = movement.try_move(session, "north")
+
+    assert isinstance(outbound, dict)
+    assert "wavers strangely" in _extract_display_text(outbound)

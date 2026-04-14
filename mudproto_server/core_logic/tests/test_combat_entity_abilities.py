@@ -99,3 +99,34 @@ def test_entity_does_not_recast_active_round_support_skill(monkeypatch) -> None:
     assert used is False
     assert entity.vigor == 100
     assert parts == []
+
+
+def test_entity_target_lag_skill_sets_player_sitting(monkeypatch) -> None:
+    session = _make_session("client-player", "Lucia")
+    entity = _make_entity("entity-ogre", "Ogre")
+    entity.skill_ids = ["skill.shield-bash"]
+    entity.skill_use_chance = 1.0
+    entity.vigor = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_skill_damage", lambda _skill: 12)
+    monkeypatch.setattr(entity_abilities, "apply_lag", lambda _session, _seconds: None)
+    monkeypatch.setattr(entity_abilities, "get_skill_by_id", lambda _skill_id: {
+        "skill_id": "skill.shield-bash",
+        "name": "Shield Bash",
+        "skill_type": "damage",
+        "cast_type": "target",
+        "vigor_cost": 10,
+        "target_lag_rounds": 2,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    parts: list[dict] = []
+    used = entity_abilities._entity_try_use_skill(session, entity, parts)
+
+    assert used is True
+    assert session.is_sitting is True
+    assert entity.skill_lag_rounds_remaining == 2

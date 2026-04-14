@@ -207,6 +207,7 @@ class EntityState:
     spell_cooldowns: dict[str, int] = field(default_factory=dict)
     spell_lag_rounds_remaining: int = 0
     active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
+    is_sitting: bool = False
     wander_chance: float = 0.0
     wander_room_ids: list[str] = field(default_factory=list)
 
@@ -253,6 +254,8 @@ class ClientSession:
     pending_gender: str = ""
     following_player_key: str = ""
     following_player_name: str = ""
+    is_sitting: bool = False
+    is_resting: bool = False
     watch_player_key: str = ""
     watch_player_name: str = ""
     group_leader_key: str = ""
