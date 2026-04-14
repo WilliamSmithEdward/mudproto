@@ -24,7 +24,7 @@ from server_broadcasts import (
     _iter_room_sessions,
     _looks_like_skill_spell_or_item_action,
 )
-from display_core import build_display, build_part, newline_part
+from display_core import build_display, build_part
 from server_movement import _handle_movement_side_effects
 from server_transport import send_json, send_outbound
 from settings import (
@@ -70,8 +70,8 @@ def _entity_is_engaged_by_any_player(entity_id: str) -> bool:
 
 
 def _npc_wander_display(parts: list[dict], session: ClientSession) -> dict:
-    from display_feedback import build_prompt_parts
-    prompt_parts = [newline_part(), *build_prompt_parts(session)]
+    from display_feedback import build_prompt_parts_default
+    prompt_parts = build_prompt_parts_default(session)
     return build_display(
         parts,
         prompt_after=True,

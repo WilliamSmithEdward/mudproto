@@ -139,20 +139,6 @@ class MudProtoGuiClient:
             "MudProto.Vertical.TScrollbar",
             background=[("active", "#323232")],
         )
-        style.configure(
-            "MudProto.Horizontal.TScrollbar",
-            background="#1f1f1f",
-            darkcolor="#1f1f1f",
-            lightcolor="#1f1f1f",
-            troughcolor="#070707",
-            bordercolor="#070707",
-            arrowcolor="#b8b8b8",
-            relief="flat",
-        )
-        style.map(
-            "MudProto.Horizontal.TScrollbar",
-            background=[("active", "#323232")],
-        )
 
         container = tk.Frame(self.root, bg="black")
         container.pack(fill="both", expand=True, padx=8, pady=8)
@@ -167,12 +153,6 @@ class MudProtoGuiClient:
         )
         self.y_scrollbar.pack(side="right", fill="y")
 
-        self.x_scrollbar = ttk.Scrollbar(
-            output_frame,
-            orient="horizontal",
-            style="MudProto.Horizontal.TScrollbar",
-        )
-
         self.output_text = tk.Text(
             output_frame,
             bg="black",
@@ -186,15 +166,12 @@ class MudProtoGuiClient:
             padx=10,
             pady=10,
             yscrollcommand=self.y_scrollbar.set,
-            xscrollcommand=self._on_xscroll,
         )
         self.output_text.pack(side="left", fill="both", expand=True)
         self.output_text.configure(state="disabled")
         self.output_text.bind("<KeyPress>", self._on_global_key_press, add="+")
         self.y_scrollbar.bind("<KeyPress>", self._on_global_key_press, add="+")
-        self.x_scrollbar.bind("<KeyPress>", self._on_global_key_press, add="+")
         self.y_scrollbar.config(command=self.output_text.yview)
-        self.x_scrollbar.config(command=self.output_text.xview)
 
         input_frame = tk.Frame(container, bg="black")
         input_frame.pack(fill="x", pady=(0, 0))
@@ -483,17 +460,6 @@ class MudProtoGuiClient:
         self.input_entry.delete(0, tk.END)
         self.input_entry.insert(0, text)
         self.input_entry.icursor(tk.END)
-
-    def _on_xscroll(self, first: float | str, last: float | str) -> None:
-        first_value = float(first)
-        last_value = float(last)
-        self.x_scrollbar.set(first_value, last_value)
-        if first_value <= 0.0 and last_value >= 1.0:
-            if self.x_scrollbar.winfo_ismapped():
-                self.x_scrollbar.pack_forget()
-        else:
-            if not self.x_scrollbar.winfo_ismapped():
-                self.x_scrollbar.pack(side="bottom", fill="x", before=self.y_scrollbar)
 
     def _set_prompt_text(self, text: str) -> None:
         self._append_local_status_line(text, fg="bright_cyan")

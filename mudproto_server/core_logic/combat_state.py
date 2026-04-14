@@ -271,9 +271,9 @@ def apply_entity_defeat_flags(session: ClientSession, entity: EntityState) -> No
 
 def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> dict:
     from display_core import build_display, build_part, with_leading_blank_lines
-    from display_feedback import resolve_prompt
+    from display_feedback import resolve_prompt_default
 
-    prompt_after, prompt_parts = resolve_prompt(session, True, prompt_gap_lines=1)
+    prompt_after, prompt_parts = resolve_prompt_default(session, True)
     return build_display(
         with_leading_blank_lines([
             build_part("Relax. ", "bright_yellow", True),

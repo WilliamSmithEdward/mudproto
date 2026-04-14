@@ -5,7 +5,7 @@ import re
 
 from command_handlers.parsing import parse_command
 from display_core import build_display_lines
-from display_feedback import build_prompt_parts
+from display_feedback import build_prompt_parts_default
 from grammar import third_personize_text, to_third_person
 from models import ClientSession
 from session_registry import connected_clients
@@ -366,7 +366,7 @@ def _inject_private_lines_into_outbound(session: ClientSession, outbound: dict |
     notification_message = build_display_lines(
         pending_lines,
         prompt_after=True,
-        prompt_parts=[newline_part(), *build_prompt_parts(session)],
+        prompt_parts=build_prompt_parts_default(session),
     )
     if isinstance(outbound, list):
         return [notification_message, *outbound]

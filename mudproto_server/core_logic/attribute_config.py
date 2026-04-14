@@ -467,11 +467,6 @@ def get_sitting_damage_multiplier() -> float:
     return float(get_posture_received_damage_multiplier("sitting"))
 
 
-def get_posture_damage_multiplier(posture_state: str) -> float:
-    # Backward-compatible alias. New code should call get_posture_received_damage_multiplier.
-    return float(get_posture_received_damage_multiplier(posture_state))
-
-
 def get_posture_received_damage_multiplier(posture_state: str) -> float:
     normalized_state = str(posture_state).strip().lower()
     posture_config = load_posture_config().get(normalized_state, {})

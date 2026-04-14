@@ -194,3 +194,23 @@ def test_append_line_group_preserves_leading_blank_after_prompt_line() -> None:
     ])
 
     assert fake_output.content == ">\n\nCharacter found. Enter your password."
+
+
+def test_render_display_long_line_then_prompt_has_single_boundary_newline() -> None:
+    client = _make_client("")
+    fake_output = _FakeTextWidget("> ")
+    client.output_text = fake_output  # type: ignore[assignment]
+    client.base_font = ("Consolas", 11)
+    client.bold_font = ("Consolas", 11, "bold")
+    client.output_ends_with_newline = False
+
+    long_text = "A plain stone chamber used for early server testing. " * 3
+    client.render_display_message({
+        "type": "display",
+        "payload": {
+            "lines": [[{"text": long_text, "fg": "bright_white", "bold": False}]],
+            "prompt_lines": [[{"text": "526H 311V 1531C 0X> ", "fg": "bright_white", "bold": False}]],
+        },
+    })
+
+    assert fake_output.content == f"> \n{long_text}\n526H 311V 1531C 0X> "
