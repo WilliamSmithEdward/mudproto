@@ -1,3 +1,5 @@
+from command_handlers.parsing import parse_command
+from command_handlers.queue import is_clear_queue_command
 from command_handlers.registry import dispatch_command
 from display_feedback import display_error, display_prompt
 from models import ClientSession
@@ -26,7 +28,12 @@ async def process_input_message(message: dict, session: ClientSession) -> Outbou
 
         return process_auth_input(session, input_text)
 
+    verb, _args = parse_command(input_text)
+
     if is_session_lagged(session):
+        if is_clear_queue_command(verb):
+            return dispatch_command(session, input_text)
+
         was_queued, queue_message = enqueue_command(session, input_text)
         if not was_queued:
             return display_error(queue_message, session)

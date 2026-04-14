@@ -42,3 +42,9 @@ def enqueue_command(session: ClientSession, command_text: str) -> tuple[bool, st
         received_at_iso=utc_now_iso()
     ))
     return True, "Command queued."
+
+
+def clear_queued_commands(session: ClientSession) -> int:
+    cleared_count = len(session.command_queue)
+    session.command_queue.clear()
+    return cleared_count

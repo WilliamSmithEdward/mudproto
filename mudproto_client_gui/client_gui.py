@@ -439,7 +439,6 @@ class MudProtoGuiClient:
             self.on_close()
             return "break"
 
-        self._advance_output_after_submit()
         future = asyncio.run_coroutine_threadsafe(self._send_text_async(user_text), self.network_loop)
 
         def _report_result() -> None:
@@ -487,16 +486,6 @@ class MudProtoGuiClient:
         self.input_entry.delete(0, tk.END)
         self.input_entry.insert(0, text)
         self.input_entry.icursor(tk.END)
-
-    def _advance_output_after_submit(self) -> None:
-        if self.output_ends_with_newline:
-            return
-
-        self.output_text.configure(state="normal")
-        self.output_text.insert(tk.END, "\n")
-        self.output_text.configure(state="disabled")
-        self.output_text.see(tk.END)
-        self.output_ends_with_newline = True
 
     def _on_xscroll(self, first: float | str, last: float | str) -> None:
         first_value = float(first)

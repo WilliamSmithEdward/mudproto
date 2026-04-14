@@ -11,6 +11,7 @@ from .movement import handle_movement_command
 from .observation import handle_observation_command
 from .passives import handle_passive_command
 from .posture import handle_posture_command
+from .queue import handle_queue_command
 from .parsing import parse_command
 from .skills import handle_skill_command, handle_skill_fallback_command
 from .types import OutboundResult
@@ -29,6 +30,7 @@ def dispatch_command(session: ClientSession, command_text: str) -> OutboundResul
         return display_prompt(session)
 
     handlers = (
+        handle_queue_command,
         handle_world_command,
         handle_observation_command,
         handle_loot_command,
