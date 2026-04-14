@@ -391,8 +391,12 @@ def _consume_entity_action_lag(entity: EntityState) -> bool:
 
 
 def tick_out_of_combat_cooldowns(session: ClientSession) -> None:
-    """Decrement player combat-tracked cooldowns for sessions not currently in combat."""
-    _decrement_cooldowns(session.combat.skill_cooldowns)
+    """No-op: player round cooldowns only tick during active combat rounds.
+
+    This keeps round-based skill cooldowns from draining in real time while a
+    player is out of combat (for example, after fleeing and immediately re-engaging).
+    """
+    _ = session
 
 
 def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSession) -> bool:
