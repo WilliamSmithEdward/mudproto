@@ -111,6 +111,7 @@ class MudProtoGuiClient:
         self.wrap_column = OUTPUT_WRAP_COLUMN
         self._focus_restore_job: str | None = None
         self._window_is_active = True
+        self._pending_prompt_refresh_spacing = False
 
         self._build_widgets()
         self.root.bind_all("<FocusIn>", self._on_window_activated, add="+")
@@ -424,22 +425,21 @@ class MudProtoGuiClient:
 
     def on_submit(self, _event=None) -> str | None:
         raw_text = self.input_entry.get()
-        user_text = raw_text.strip()
-        if not user_text:
-            return "break"
+        normalized_text = raw_text.strip()
 
         self.input_entry.delete(0, tk.END)
-        self._record_history(user_text)
+        if normalized_text:
+            self._record_history(normalized_text)
 
-        if user_text.lower() == "/clear":
+        if normalized_text.lower() == "/clear":
             self.clear_output()
             return "break"
 
-        if user_text.lower() == "/quit":
+        if normalized_text.lower() == "/quit":
             self.on_close()
             return "break"
 
-        future = asyncio.run_coroutine_threadsafe(self._send_text_async(user_text), self.network_loop)
+        future = asyncio.run_coroutine_threadsafe(self._send_text_async(raw_text), self.network_loop)
 
         def _report_result() -> None:
             try:
@@ -618,7 +618,7 @@ class MudProtoGuiClient:
             return
 
         self.output_text.configure(state="normal")
-        if not self.output_ends_with_newline and lines[0]:
+        if not self.output_ends_with_newline:
             self.output_text.insert(tk.END, "\n")
             self.output_ends_with_newline = True
 
@@ -659,8 +659,17 @@ class MudProtoGuiClient:
         lines = _extract_lines(payload, "lines")
         prompt_lines = _extract_lines(payload, "prompt_lines")
 
+        if not lines and prompt_lines:
+            # Blank input can yield a prompt-only refresh; remember to preserve
+            # one extra spacer before the next real command output.
+            self._pending_prompt_refresh_spacing = True
+
         if lines:
-            self._append_line_group(lines)
+            lines_to_render = lines
+            if self._pending_prompt_refresh_spacing:
+                lines_to_render = [[]] + lines_to_render
+                self._pending_prompt_refresh_spacing = False
+            self._append_line_group(lines_to_render)
         if prompt_lines:
             self._append_line_group(prompt_lines)
 
