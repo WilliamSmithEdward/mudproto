@@ -93,3 +93,273 @@ def test_follow_succeeds_without_running_loop(monkeypatch) -> None:
     assert notifications == []
 
     _clear_session_registries()
+
+
+def test_swap_self_with_party_member_reassigns_leader() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    second = _make_session("client-second", "Orlandu")
+    third = _make_session("client-third", "Beatrix")
+
+    for party_session in [leader, second, third]:
+        connected_clients[party_session.client_id] = party_session
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    second_key = (second.player_state_key or second.client_id).strip().lower()
+
+    leader.group_member_keys = {second_key, (third.player_state_key or third.client_id).strip().lower()}
+    second.group_leader_key = leader_key
+    third.group_leader_key = leader_key
+    second.following_player_key = leader.player_state_key
+    second.following_player_name = leader.authenticated_character_name
+    third.following_player_key = second.player_state_key
+    third.following_player_name = second.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["self", "Orlandu"], "swap self Orlandu")
+    assert isinstance(response, dict)
+    assert "You swap positions with Orlandu." in _extract_display_text(response)
+
+    assert second.group_leader_key == ""
+    assert leader.group_leader_key == second_key
+    assert third.group_leader_key == second_key
+    assert leader.following_player_key == second.player_state_key
+    assert third.following_player_key == leader.player_state_key
+    assert leader_key in second.group_member_keys
+
+    _clear_session_registries()
+
+
+def test_swap_two_party_members_updates_follow_chain() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    second = _make_session("client-second", "Orlandu")
+    third = _make_session("client-third", "Beatrix")
+
+    for party_session in [leader, second, third]:
+        connected_clients[party_session.client_id] = party_session
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    second_key = (second.player_state_key or second.client_id).strip().lower()
+    third_key = (third.player_state_key or third.client_id).strip().lower()
+
+    leader.group_member_keys = {second_key, third_key}
+    second.group_leader_key = leader_key
+    third.group_leader_key = leader_key
+    second.following_player_key = leader.player_state_key
+    second.following_player_name = leader.authenticated_character_name
+    third.following_player_key = second.player_state_key
+    third.following_player_name = second.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["Orlandu", "with", "Beatrix"], "swap Orlandu with Beatrix")
+    assert isinstance(response, dict)
+    assert "You swap Orlandu with Beatrix." in _extract_display_text(response)
+
+    assert third.following_player_key == leader.player_state_key
+    assert second.following_player_key == third.player_state_key
+    assert second.group_leader_key == leader_key
+    assert third.group_leader_key == leader_key
+    assert leader.group_member_keys == {second_key, third_key}
+
+    _clear_session_registries()
+
+
+def test_swap_me_member_alias_works() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    second = _make_session("client-second", "Orlandu")
+    third = _make_session("client-third", "Beatrix")
+
+    for party_session in [leader, second, third]:
+        connected_clients[party_session.client_id] = party_session
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    second_key = (second.player_state_key or second.client_id).strip().lower()
+
+    leader.group_member_keys = {second_key, (third.player_state_key or third.client_id).strip().lower()}
+    second.group_leader_key = leader_key
+    third.group_leader_key = leader_key
+    second.following_player_key = leader.player_state_key
+    second.following_player_name = leader.authenticated_character_name
+    third.following_player_key = second.player_state_key
+    third.following_player_name = second.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["me", "Orlandu"], "swap me Orlandu")
+    assert isinstance(response, dict)
+    assert "You swap positions with Orlandu." in _extract_display_text(response)
+    assert leader.group_leader_key == second_key
+
+    _clear_session_registries()
+
+
+def test_swap_two_party_members_without_with_keyword() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    second = _make_session("client-second", "Orlandu")
+    third = _make_session("client-third", "Beatrix")
+
+    for party_session in [leader, second, third]:
+        connected_clients[party_session.client_id] = party_session
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    second_key = (second.player_state_key or second.client_id).strip().lower()
+    third_key = (third.player_state_key or third.client_id).strip().lower()
+
+    leader.group_member_keys = {second_key, third_key}
+    second.group_leader_key = leader_key
+    third.group_leader_key = leader_key
+    second.following_player_key = leader.player_state_key
+    second.following_player_name = leader.authenticated_character_name
+    third.following_player_key = second.player_state_key
+    third.following_player_name = second.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["Orlandu", "Beatrix"], "swap Orlandu Beatrix")
+    assert isinstance(response, dict)
+    assert "You swap Orlandu with Beatrix." in _extract_display_text(response)
+    assert third.following_player_key == leader.player_state_key
+    assert second.following_player_key == third.player_state_key
+    assert leader.group_member_keys == {second_key, third_key}
+
+    _clear_session_registries()
+
+
+def test_swap_rejected_for_non_leader_member() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    second = _make_session("client-second", "Orlandu")
+    third = _make_session("client-third", "Beatrix")
+
+    for party_session in [leader, second, third]:
+        connected_clients[party_session.client_id] = party_session
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    second_key = (second.player_state_key or second.client_id).strip().lower()
+
+    leader.group_member_keys = {second_key, (third.player_state_key or third.client_id).strip().lower()}
+    second.group_leader_key = leader_key
+    third.group_leader_key = leader_key
+    second.following_player_key = leader.player_state_key
+    second.following_player_name = leader.authenticated_character_name
+    third.following_player_key = second.player_state_key
+    third.following_player_name = second.authenticated_character_name
+
+    response = social.handle_social_command(second, "swap", ["Ragnar", "Beatrix"], "swap Ragnar Beatrix")
+    assert isinstance(response, dict)
+    assert "Only the party leader can use swap." in _extract_display_text(response)
+
+    # Ensure failed command does not mutate chain.
+    assert second.group_leader_key == leader_key
+    assert second.following_player_key == leader.player_state_key
+    assert third.following_player_key == second.player_state_key
+
+    _clear_session_registries()
+
+
+def test_swap_requires_arguments() -> None:
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Ragnar")
+    connected_clients[leader.client_id] = leader
+
+    response = social.handle_social_command(leader, "swap", [], "swap")
+    assert isinstance(response, dict)
+    assert "swap self <member> or swap <member1> with <member2>" in _extract_display_text(response)
+
+    _clear_session_registries()
+
+
+def test_swap_self_requires_target() -> None:
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Ragnar")
+    connected_clients[leader.client_id] = leader
+
+    response = social.handle_social_command(leader, "swap", ["self"], "swap self")
+    assert isinstance(response, dict)
+    assert "swap self <member>" in _extract_display_text(response)
+
+    _clear_session_registries()
+
+
+def test_swap_self_unknown_member_errors_cleanly() -> None:
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Ragnar")
+    connected_clients[leader.client_id] = leader
+
+    response = social.handle_social_command(leader, "swap", ["self", "Nobody"], "swap self Nobody")
+    assert isinstance(response, dict)
+    assert "That party member was not found." in _extract_display_text(response)
+
+    _clear_session_registries()
+
+
+def test_swap_rejects_same_member_targets() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    second = _make_session("client-second", "Orlandu")
+    connected_clients[leader.client_id] = leader
+    connected_clients[second.client_id] = second
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    second_key = (second.player_state_key or second.client_id).strip().lower()
+    leader.group_member_keys = {second_key}
+    second.group_leader_key = leader_key
+    second.following_player_key = leader.player_state_key
+    second.following_player_name = leader.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["Orlandu", "Orlandu"], "swap Orlandu Orlandu")
+    assert isinstance(response, dict)
+    assert "You must choose two different party members." in _extract_display_text(response)
+
+    _clear_session_registries()
+
+
+def test_swap_rejects_non_party_target_even_if_present_in_room() -> None:
+    _clear_session_registries()
+
+    leader = _make_session("client-leader", "Ragnar")
+    second = _make_session("client-second", "Orlandu")
+    outsider = _make_session("client-outsider", "Cecil")
+
+    for party_session in [leader, second, outsider]:
+        connected_clients[party_session.client_id] = party_session
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    second_key = (second.player_state_key or second.client_id).strip().lower()
+    leader.group_member_keys = {second_key}
+    second.group_leader_key = leader_key
+    second.following_player_key = leader.player_state_key
+    second.following_player_name = leader.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["Orlandu", "Cecil"], "swap Orlandu Cecil")
+    assert isinstance(response, dict)
+    assert "The second swap target is not in your party order." in _extract_display_text(response)
+
+    _clear_session_registries()
+
+
+def test_swap_self_with_direct_follower_outside_party() -> None:
+    _clear_session_registries()
+
+    follower = _make_session("client-follower", "Orlandu")
+    leader = _make_session("client-leader", "Ragnar")
+
+    connected_clients[follower.client_id] = follower
+    connected_clients[leader.client_id] = leader
+
+    follower.following_player_key = leader.player_state_key
+    follower.following_player_name = leader.authenticated_character_name
+
+    response = social.handle_social_command(leader, "swap", ["self", "Orlandu"], "swap self Orlandu")
+    assert isinstance(response, dict)
+    assert "You swap positions with Orlandu." in _extract_display_text(response)
+
+    assert follower.following_player_key == ""
+    assert follower.following_player_name == ""
+    assert leader.following_player_key == follower.player_state_key
+    assert leader.following_player_name == follower.authenticated_character_name
+
+    _clear_session_registries()

@@ -324,9 +324,113 @@ def _list_group_member_sessions(session: ClientSession) -> tuple[ClientSession, 
             member_session.group_leader_key = leader_key
         valid_member_sessions.append(member_session)
 
-    valid_member_sessions.sort(key=lambda s: (s.authenticated_character_name or "").lower())
-    ordered_members.extend(valid_member_sessions)
+    member_by_key = {
+        _session_identity_key(member): member
+        for member in valid_member_sessions
+        if _session_identity_key(member)
+    }
+    allowed_parent_keys = set(member_by_key.keys()) | {leader_key}
+    followers_by_parent_key: dict[str, list[ClientSession]] = {
+        parent_key: []
+        for parent_key in allowed_parent_keys
+        if parent_key
+    }
+    for member in valid_member_sessions:
+        follow_key = (member.following_player_key or "").strip().lower()
+        if follow_key in followers_by_parent_key:
+            followers_by_parent_key[follow_key].append(member)
+
+    for children in followers_by_parent_key.values():
+        children.sort(key=lambda s: (s.authenticated_character_name or "").lower())
+
+    visited_member_keys: set[str] = set()
+
+    def _append_followers(parent_key: str) -> None:
+        for follower in followers_by_parent_key.get(parent_key, []):
+            follower_key = _session_identity_key(follower)
+            if not follower_key or follower_key in visited_member_keys:
+                continue
+            visited_member_keys.add(follower_key)
+            ordered_members.append(follower)
+            _append_followers(follower_key)
+
+    if leader_key:
+        _append_followers(leader_key)
+
+    for member in sorted(valid_member_sessions, key=lambda s: (s.authenticated_character_name or "").lower()):
+        member_key = _session_identity_key(member)
+        if not member_key or member_key in visited_member_keys:
+            continue
+        visited_member_keys.add(member_key)
+        ordered_members.append(member)
+
     return leader_session, ordered_members
+
+
+def _apply_party_order(ordered_sessions: list[ClientSession]) -> bool:
+    if not ordered_sessions:
+        return False
+
+    leader_session = ordered_sessions[0]
+    leader_key = _session_identity_key(leader_session)
+    if not leader_key:
+        return False
+
+    for party_session in ordered_sessions:
+        party_session.group_member_keys.clear()
+        party_session.group_leader_key = ""
+
+    _clear_follow_state(leader_session)
+    leader_session.group_leader_key = ""
+
+    for index in range(1, len(ordered_sessions)):
+        member_session = ordered_sessions[index]
+        member_key = _session_identity_key(member_session)
+        if not member_key or member_key == leader_key:
+            continue
+
+        parent_session = ordered_sessions[index - 1]
+        parent_key_raw = (parent_session.player_state_key or parent_session.client_id).strip()
+        parent_name = (parent_session.authenticated_character_name or "").strip() or "Unknown"
+
+        member_session.following_player_key = parent_key_raw
+        member_session.following_player_name = parent_name
+        member_session.group_leader_key = leader_key
+        leader_session.group_member_keys.add(member_key)
+
+    return True
+
+
+def _swap_party_positions(
+    leader_session: ClientSession,
+    first_session: ClientSession,
+    second_session: ClientSession,
+) -> tuple[bool, str]:
+    resolved_leader, party_order = _list_group_member_sessions(leader_session)
+    if resolved_leader.client_id != leader_session.client_id:
+        return False, "Only the group leader can swap party positions."
+
+    if first_session.client_id == second_session.client_id:
+        return False, "You must choose two different party members to swap."
+
+    index_by_client_id = {party_session.client_id: index for index, party_session in enumerate(party_order)}
+    if first_session.client_id not in index_by_client_id:
+        return False, "The first swap target is not in your party order."
+    if second_session.client_id not in index_by_client_id:
+        return False, "The second swap target is not in your party order."
+
+    first_index = index_by_client_id[first_session.client_id]
+    second_index = index_by_client_id[second_session.client_id]
+    if first_index == second_index:
+        return False, "You must choose two different party members to swap."
+
+    new_order = list(party_order)
+    new_order[first_index], new_order[second_index] = new_order[second_index], new_order[first_index]
+
+    if not _apply_party_order(new_order):
+        return False, "Could not apply the new party order."
+
+    return True, ""
 
 
 def _handle_player_death_follow_and_group(session: ClientSession) -> None:

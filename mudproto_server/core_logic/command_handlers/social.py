@@ -19,6 +19,7 @@ from targeting_follow import (
     _resolve_group_leader_session,
     _session_identity_key,
     _is_following_leader_recursive,
+    _swap_party_positions,
     _would_create_follow_loop,
 )
 
@@ -46,6 +47,24 @@ def _notify_follow_target(target_session: ClientSession, follower_name: str) -> 
     except RuntimeError:
         # No running loop: skip best-effort realtime notification.
         return
+
+
+def _swap_self_with_direct_follower(session: ClientSession, target_session: ClientSession) -> tuple[bool, str]:
+    session_key = _session_identity_key(session)
+    if not session_key:
+        return False, "Could not determine your character identity."
+
+    target_following_key = (target_session.following_player_key or "").strip().lower()
+    if target_following_key != session_key:
+        return False, "That player must be directly following you to swap outside a party."
+
+    target_key_raw = (target_session.player_state_key or target_session.client_id).strip()
+    target_name = (target_session.authenticated_character_name or "").strip() or "Unknown"
+
+    _clear_follow_state(target_session)
+    session.following_player_key = target_key_raw
+    session.following_player_name = target_name
+    return True, ""
 
 
 def _build_group_status_parts(session: ClientSession) -> list[dict]:
@@ -203,6 +222,91 @@ def handle_social_command(
             build_part("You add ", "bright_white"),
             build_part(_display_name(target_session), "bright_cyan", True),
             build_part(" to your group.", "bright_white"),
+        ])
+
+    if verb in {"swap", "swa", "sw"}:
+        if not session.authenticated_character_name:
+            return display_error("You are not currently controlling a character.", session)
+
+        if not args:
+            return display_error("Usage: swap self <member> or swap <member1> with <member2>", session)
+
+        leader_session = _resolve_group_leader_session(session)
+        if leader_session.client_id != session.client_id:
+            return display_error("Only the party leader can use swap.", session)
+
+        normalized_args = [arg.strip().lower() for arg in args if arg.strip()]
+        if not normalized_args:
+            return display_error("Usage: swap self <member> or swap <member1> with <member2>", session)
+
+        if normalized_args[0] in {"self", "me", "myself"}:
+            if len(args) >= 3 and str(args[1]).strip().lower() == "with":
+                target_selector = " ".join(args[2:]).strip()
+            else:
+                target_selector = " ".join(args[1:]).strip()
+            if not target_selector:
+                return display_error("Usage: swap self <member>", session)
+
+            target_session = _resolve_group_member_by_name(session, target_selector)
+            if target_session is None:
+                target_session, _target_error = _resolve_room_player_selector(session, target_selector)
+            if target_session is None:
+                return display_error("That party member was not found.", session)
+            if target_session.client_id == session.client_id:
+                return display_error("You cannot swap yourself with yourself.", session)
+
+            success, reason = _swap_party_positions(session, session, target_session)
+            if not success:
+                fallback_success, fallback_reason = _swap_self_with_direct_follower(session, target_session)
+                if not fallback_success:
+                    return display_error(reason or fallback_reason or "Could not swap party positions.", session)
+
+            target_name = _display_name(target_session)
+            return display_command_result(session, [
+                build_part("You swap positions with ", "bright_white"),
+                build_part(target_name, "bright_cyan", True),
+                build_part(".", "bright_white"),
+            ])
+
+        try:
+            with_index = normalized_args.index("with")
+            left_selector = " ".join(args[:with_index]).strip()
+            right_selector = " ".join(args[with_index + 1 :]).strip()
+        except ValueError:
+            if len(args) < 2:
+                return display_error("Usage: swap <member1> with <member2>", session)
+            left_selector = str(args[0]).strip()
+            right_selector = str(args[1]).strip()
+
+        if not left_selector or not right_selector:
+            return display_error("Usage: swap <member1> with <member2>", session)
+
+        first_session = _resolve_group_member_by_name(session, left_selector)
+        if first_session is None:
+            first_session, _first_error = _resolve_room_player_selector(session, left_selector)
+
+        second_session = _resolve_group_member_by_name(session, right_selector)
+        if second_session is None:
+            second_session, _second_error = _resolve_room_player_selector(session, right_selector)
+
+        if first_session is None or second_session is None:
+            return display_error("One or both party members were not found.", session)
+
+        if first_session.client_id == second_session.client_id:
+            return display_error("You must choose two different party members.", session)
+
+        success, reason = _swap_party_positions(session, first_session, second_session)
+        if not success:
+            return display_error(reason or "Could not swap party positions.", session)
+
+        first_name = _display_name(first_session)
+        second_name = _display_name(second_session)
+        return display_command_result(session, [
+            build_part("You swap ", "bright_white"),
+            build_part(first_name, "bright_cyan", True),
+            build_part(" with ", "bright_white"),
+            build_part(second_name, "bright_cyan", True),
+            build_part(".", "bright_white"),
         ])
 
     if verb in {"watch", "unwatch"}:
