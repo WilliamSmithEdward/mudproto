@@ -226,7 +226,7 @@
       "damage_scaling_attribute_id": "int",
       "damage_scaling_multiplier": 1.15,
       "level_scaling_multiplier": 1.0,
-      "damage_context": "A hungry spear of cinders tears into your foe!"
+      "damage_context": "[a/an] [verb] torn into by a hungry spear of cinders!"
     },
     {
       "spell_id": "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",

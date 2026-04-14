@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.9",
+        "version": "2.12",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
         "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
@@ -188,6 +188,39 @@ def build_instruction_payload() -> dict[str, object]:
             "scope": ["gear", "items", "spells", "skills", "npcs", "rooms", "zones"]
         },
         "top_level_schema": PAYLOAD_BUNDLE_SCHEMA,
+        "engine_capabilities": {
+            "combat_and_abilities": [
+                "Skills and spells support cast_type values self, target, and aoe (subject to asset-specific type constraints).",
+                "Damage and support abilities support rich player-facing context strings (damage_context, support_context, observer_action, observer_context).",
+                "Damage abilities support secondary restore effects via restore_effect/restore_ratio/restore_context fields.",
+                "Skills support lag and cooldown controls including lag_rounds, cooldown_rounds, cooldown_hours, and target_lag_rounds.",
+                "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
+                "Support effects include heal, vigor, mana, damage_reduction, and extra_unarmed_hits (skills)."
+            ],
+            "npc_behavior_and_content": [
+                "NPCs support aggro/ally/peaceful roles, merchant inventories and pricing, combat loadouts, and loot/inventory drops.",
+                "NPCs support room_communications with audience control (private, room, both) plus player/world flag gating and mutation.",
+                "NPCs support keyword_actions for interactive commands, including noop/grant_item/teleport_player and exit reveal/hide actions.",
+                "NPCs support wandering via wander_chance and wander_room_ids (movement is constrained to directly connected exits that are also in wander_room_ids)."
+            ],
+            "rooms_and_interactions": [
+                "Rooms support seeded NPCs, seeded items, room_objects, keyword_actions, and exit_details metadata/state.",
+                "Exit details support close/open and lock/unlock state (including lock_id, can_lock, is_closed, is_locked, and optional message overrides).",
+                "Room exits support only north/south/east/west/up/down directions; diagonals are not supported.",
+                "Flavor-only interactions are supported through keyword_actions with noop-style messages and can be used for atmospheric commands like look shrine."
+            ],
+            "zones_and_world_state": [
+                "Zones support periodic repopulation via repopulate_game_hours.",
+                "Zones support repopulation reset controls: reset_player_flags, reset_world_flags, and reset_container_template_ids.",
+                "Zones support repopulation blockers via repopulation_blocking_item_template_ids and repopulation_block_cooldown_game_hours.",
+                "Zones support conditional NPC spawn orchestration through flag_spawns (required/excluded world flags, npc_id, room_id, count)."
+            ],
+            "asset_payload_override_model": [
+                "Payload entries can intentionally override base assets by reusing an existing asset ID.",
+                "Rooms merge exits across payloads with the last loaded room defining non-exit fields.",
+                "For non-room assets, last-loaded definition wins when IDs collide."
+            ]
+        },
         "generation_rules": [
             "Keep all IDs unique within their asset type.",
             "Append a GUID suffix to every new asset ID and payload_id unless you are intentionally overriding an existing base-game asset.",
@@ -206,10 +239,14 @@ def build_instruction_payload() -> dict[str, object]:
             "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
             "Preserve MudProto's existing fantasy tone and naming style.",
             "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
+            "Whenever appropriate, add at least one optional flavor interaction that is not required for progression or combat, such as a keyword action like 'look shrine' that returns atmospheric text.",
+            "Flavor interactions should enrich worldbuilding and roleplay even when they have no mechanical reward.",
             "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
             "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition.",
             "Room exits may only use the directions north, south, east, west, up, and down. Diagonal directions such as northeast, northwest, southeast, and southwest are not supported.",
             "damage_context and support_context strings that end with '!' or '?' must not also include a trailing period. The server automatically handles terminal punctuation for '.', '!', and '?'.",
+            "For damage_context and support_context, write perspective-safe text that works for both player recipients and named NPC recipients. Prefer placeholders like [a/an] and [verb] rather than fixed second-person possessives.",
+            "Do not use recipient-relative phrases like 'your foe', 'your enemy', or 'your target' inside damage_context/support_context. Use neutral wording such as '[a/an] [verb] struck by ...' so rendering remains grammatically correct for all targets.",
             "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
             "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
             "NPCs that are currently engaged in combat with any player will not wander.",
@@ -241,6 +278,8 @@ def build_instruction_payload() -> dict[str, object]:
             "Room descriptions should be 3-4 sentences in length and should tie directly into the theme of their zone.",
             "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
             "Combat/support context strings should be ready for player-facing text.",
+            "Combat/support context strings should be perspective-safe for both 'you' and named targets, avoiding recipient-relative nouns like 'your foe'.",
+            "Include optional flavor-only interaction hooks (for example room or NPC keyword actions with noop-style output text) when they naturally fit the scene.",
             "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
             "Merchant inventories should be sensible for the NPC role.",
             "Avoid overpowered numbers unless explicitly requested."

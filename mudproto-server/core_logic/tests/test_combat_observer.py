@@ -21,3 +21,12 @@ def test_resolve_combat_context_adds_period_when_missing() -> None:
 def test_resolve_combat_context_normalizes_you_is_to_you_are() -> None:
     text = _resolve_combat_context("[a/an] [verb] knocked backward", target_text="you", verb="is")
     assert text.startswith("You are")
+
+
+def test_resolve_combat_context_cinder_kiss_template_for_player_target() -> None:
+    text = _resolve_combat_context(
+        "[a/an] [verb] torn into by a hungry spear of cinders!",
+        target_text="you",
+        verb="are",
+    )
+    assert text == "You are torn into by a hungry spear of cinders!"

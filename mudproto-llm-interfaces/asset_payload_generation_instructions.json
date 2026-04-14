@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.9",
-  "generated_at_utc": "2026-04-12T15:51:48.705146+00:00",
+  "version": "2.12",
+  "generated_at_utc": "2026-04-14T13:52:25.756805+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto-server/configuration/assets/asset-payloads/ and loaded by the server.",
   "drop_location": "mudproto-server/configuration/assets/asset-payloads/",
   "response_contract": {
@@ -103,6 +103,39 @@
       }
     }
   },
+  "engine_capabilities": {
+    "combat_and_abilities": [
+      "Skills and spells support cast_type values self, target, and aoe (subject to asset-specific type constraints).",
+      "Damage and support abilities support rich player-facing context strings (damage_context, support_context, observer_action, observer_context).",
+      "Damage abilities support secondary restore effects via restore_effect/restore_ratio/restore_context fields.",
+      "Skills support lag and cooldown controls including lag_rounds, cooldown_rounds, cooldown_hours, and target_lag_rounds.",
+      "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
+      "Support effects include heal, vigor, mana, damage_reduction, and extra_unarmed_hits (skills)."
+    ],
+    "npc_behavior_and_content": [
+      "NPCs support aggro/ally/peaceful roles, merchant inventories and pricing, combat loadouts, and loot/inventory drops.",
+      "NPCs support room_communications with audience control (private, room, both) plus player/world flag gating and mutation.",
+      "NPCs support keyword_actions for interactive commands, including noop/grant_item/teleport_player and exit reveal/hide actions.",
+      "NPCs support wandering via wander_chance and wander_room_ids (movement is constrained to directly connected exits that are also in wander_room_ids)."
+    ],
+    "rooms_and_interactions": [
+      "Rooms support seeded NPCs, seeded items, room_objects, keyword_actions, and exit_details metadata/state.",
+      "Exit details support close/open and lock/unlock state (including lock_id, can_lock, is_closed, is_locked, and optional message overrides).",
+      "Room exits support only north/south/east/west/up/down directions; diagonals are not supported.",
+      "Flavor-only interactions are supported through keyword_actions with noop-style messages and can be used for atmospheric commands like look shrine."
+    ],
+    "zones_and_world_state": [
+      "Zones support periodic repopulation via repopulate_game_hours.",
+      "Zones support repopulation reset controls: reset_player_flags, reset_world_flags, and reset_container_template_ids.",
+      "Zones support repopulation blockers via repopulation_blocking_item_template_ids and repopulation_block_cooldown_game_hours.",
+      "Zones support conditional NPC spawn orchestration through flag_spawns (required/excluded world flags, npc_id, room_id, count)."
+    ],
+    "asset_payload_override_model": [
+      "Payload entries can intentionally override base assets by reusing an existing asset ID.",
+      "Rooms merge exits across payloads with the last loaded room defining non-exit fields.",
+      "For non-room assets, last-loaded definition wins when IDs collide."
+    ]
+  },
   "generation_rules": [
     "Keep all IDs unique within their asset type.",
     "Append a GUID suffix to every new asset ID and payload_id unless you are intentionally overriding an existing base-game asset.",
@@ -121,10 +154,14 @@
     "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
     "Preserve MudProto's existing fantasy tone and naming style.",
     "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
+    "Whenever appropriate, add at least one optional flavor interaction that is not required for progression or combat, such as a keyword action like 'look shrine' that returns atmospheric text.",
+    "Flavor interactions should enrich worldbuilding and roleplay even when they have no mechanical reward.",
     "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
     "Prefer small, coherent bundles that describe one area, quest pocket, encounter set, merchant restock, or feature addition.",
     "Room exits may only use the directions north, south, east, west, up, and down. Diagonal directions such as northeast, northwest, southeast, and southwest are not supported.",
     "damage_context and support_context strings that end with '!' or '?' must not also include a trailing period. The server automatically handles terminal punctuation for '.', '!', and '?'.",
+    "For damage_context and support_context, write perspective-safe text that works for both player recipients and named NPC recipients. Prefer placeholders like [a/an] and [verb] rather than fixed second-person possessives.",
+    "Do not use recipient-relative phrases like 'your foe', 'your enemy', or 'your target' inside damage_context/support_context. Use neutral wording such as '[a/an] [verb] struck by ...' so rendering remains grammatically correct for all targets.",
     "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
     "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
     "NPCs that are currently engaged in combat with any player will not wander.",
@@ -156,6 +193,8 @@
     "Room descriptions should be 3-4 sentences in length and should tie directly into the theme of their zone.",
     "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
     "Combat/support context strings should be ready for player-facing text.",
+    "Combat/support context strings should be perspective-safe for both 'you' and named targets, avoiding recipient-relative nouns like 'your foe'.",
+    "Include optional flavor-only interaction hooks (for example room or NPC keyword actions with noop-style output text) when they naturally fit the scene.",
     "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
     "Merchant inventories should be sensible for the NPC role.",
     "Avoid overpowered numbers unless explicitly requested."
@@ -1611,7 +1650,7 @@
       "skills": 7,
       "spells": 9,
       "zones": 4,
-      "asset_payload_files": 3
+      "asset_payload_files": 4
     },
     "base_assets": {
       "gear": [
@@ -2762,7 +2801,7 @@
           "damage_dice_sides": 10,
           "damage_modifier": 6,
           "damage_context": "[a/an] [verb] viciously slammed to the ground!",
-          "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal shoulder bash.",
+          "observer_action": "[actor_name] crashes into [actor_possessive] target with a brutal bash.",
           "lag_rounds": 1,
           "cooldown_rounds": 3,
           "target_lag_rounds": 2
@@ -3701,6 +3740,1342 @@
                 "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
               ],
               "repopulation_block_cooldown_game_hours": 6
+            }
+          ]
+        }
+      },
+      {
+        "file_name": "crowbanner-fort.json",
+        "content": {
+          "payload_id": "crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+          "description": "A 30-room high-level bandit fort north of West Road \u2014 Ridgeline Climb, with four corner bosses, wandering aggro defenders, and a central keep unlock after the corner commanders fall.",
+          "gear": [
+            {
+              "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Ironhook Cleaver",
+              "slot": "weapon",
+              "description": "A broad chopping blade with a hooked back-spur meant to drag shields and flesh alike out of line.",
+              "keywords": [
+                "ironhook",
+                "cleaver",
+                "hook",
+                "blade"
+              ],
+              "weapon_type": "axe",
+              "can_hold": false,
+              "can_two_hand": true,
+              "weight": 9,
+              "coin_value": 180,
+              "damage_dice_count": 5,
+              "damage_dice_sides": 8,
+              "damage_roll_modifier": 4,
+              "hit_roll_modifier": 4,
+              "attack_damage_bonus": 2,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Smokeglass Dirk",
+              "slot": "weapon",
+              "description": "A narrow black dirk whose edge shines like wet soot in firelight.",
+              "keywords": [
+                "smokeglass",
+                "dirk",
+                "dagger",
+                "black knife"
+              ],
+              "weapon_type": "dagger",
+              "can_hold": true,
+              "weight": 2,
+              "coin_value": 125,
+              "damage_dice_count": 4,
+              "damage_dice_sides": 6,
+              "damage_roll_modifier": 2,
+              "hit_roll_modifier": 3,
+              "attack_damage_bonus": 1,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Cinderbrand Sabre",
+              "slot": "weapon",
+              "description": "A heat-blushed sabre wrapped in charred leather, still faintly warm to the touch.",
+              "keywords": [
+                "cinderbrand",
+                "sabre",
+                "sword",
+                "ember"
+              ],
+              "weapon_type": "sword",
+              "can_hold": false,
+              "can_two_hand": false,
+              "weight": 7,
+              "coin_value": 170,
+              "damage_dice_count": 4,
+              "damage_dice_sides": 8,
+              "damage_roll_modifier": 4,
+              "hit_roll_modifier": 4,
+              "attack_damage_bonus": 1,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Tower Shiv",
+              "slot": "weapon",
+              "description": "A long stabbing knife balanced for vicious work in narrow stairs and murder slits.",
+              "keywords": [
+                "tower",
+                "shiv",
+                "knife",
+                "dagger"
+              ],
+              "weapon_type": "dagger",
+              "can_hold": true,
+              "weight": 3,
+              "coin_value": 150,
+              "damage_dice_count": 4,
+              "damage_dice_sides": 7,
+              "damage_roll_modifier": 3,
+              "hit_roll_modifier": 4,
+              "attack_damage_bonus": 1,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Carrion Maul",
+              "slot": "weapon",
+              "description": "A brutal iron maul wrapped in grave-cloth strips stiff with old blood and lamp soot.",
+              "keywords": [
+                "carrion",
+                "maul",
+                "hammer",
+                "club"
+              ],
+              "weapon_type": "club",
+              "can_hold": false,
+              "can_two_hand": true,
+              "weight": 12,
+              "coin_value": 195,
+              "damage_dice_count": 6,
+              "damage_dice_sides": 8,
+              "damage_roll_modifier": 5,
+              "hit_roll_modifier": 3,
+              "attack_damage_bonus": 2,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crowbanner Greatsword",
+              "slot": "weapon",
+              "description": "A torn black pennon is wired beneath the hilt of this immense greatsword so it snaps and hisses with every swing.",
+              "keywords": [
+                "crowbanner",
+                "greatsword",
+                "sword",
+                "banner blade"
+              ],
+              "weapon_type": "sword",
+              "can_hold": false,
+              "requires_two_hands": true,
+              "weight": 13,
+              "coin_value": 320,
+              "damage_dice_count": 8,
+              "damage_dice_sides": 10,
+              "damage_roll_modifier": 7,
+              "hit_roll_modifier": 6,
+              "attack_damage_bonus": 4,
+              "attacks_per_round_bonus": 0
+            },
+            {
+              "template_id": "armor.crowbanner-plate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crowbanner Plate",
+              "slot": "armor",
+              "wear_slots": [
+                "chest"
+              ],
+              "description": "A scorched breastplate lacquered black and stamped with the torn-wing badge of the fort.",
+              "keywords": [
+                "crowbanner",
+                "plate",
+                "breastplate",
+                "armor"
+              ],
+              "weight": 16,
+              "coin_value": 240,
+              "armor_class_bonus": 4
+            }
+          ],
+          "items": [
+            {
+              "template_id": "item.bandit-salve-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Bandit Salve",
+              "description": "A tarry herbal paste in a dented tin that stings like a curse and seals shallow wounds fast.",
+              "keywords": [
+                "bandit",
+                "salve",
+                "tin",
+                "healing"
+              ],
+              "item_type": "consumable",
+              "effect_type": "restore",
+              "effect_target": "hit_points",
+              "effect_amount": 80,
+              "coin_value": 20,
+              "use_lag_seconds": 0,
+              "observer_action": "[actor_name] smears on a bandit salve.",
+              "observer_context": "A bitter medicinal stink rises around [actor_object]."
+            },
+            {
+              "template_id": "item.smoked-salt-tonic-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Smoked Salt Tonic",
+              "description": "A sharp brown tonic cut with salt and pepper bark that drags tired lungs back into rhythm.",
+              "keywords": [
+                "smoked",
+                "salt",
+                "tonic",
+                "vigor"
+              ],
+              "item_type": "consumable",
+              "effect_type": "restore",
+              "effect_target": "vigor",
+              "effect_amount": 70,
+              "coin_value": 18,
+              "use_lag_seconds": 0,
+              "observer_action": "[actor_name] drinks a smoked salt tonic.",
+              "observer_context": "Fresh breath and ugly resolve return to [actor_object]."
+            },
+            {
+              "template_id": "item.black-banner-token-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Black Banner Token",
+              "description": "A flat iron token punched with a crow in flight above a burning keep.",
+              "keywords": [
+                "black",
+                "banner",
+                "token",
+                "crowbanner",
+                "iron token"
+              ],
+              "item_type": "misc",
+              "coin_value": 55
+            }
+          ],
+          "spells": [
+            {
+              "spell_id": "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Cinder Kiss",
+              "school": "embercraft",
+              "description": "A spiteful lance of banked fire that bursts hot on contact.",
+              "mana_cost": 28,
+              "spell_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 5,
+              "damage_dice_sides": 8,
+              "damage_modifier": 9,
+              "damage_scaling_attribute_id": "int",
+              "damage_scaling_multiplier": 1.15,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "[a/an] [verb] torn into by a hungry spear of cinders!"
+            },
+            {
+              "spell_id": "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Coalburst",
+              "school": "embercraft",
+              "description": "A short violent bloom of black fire and stinging grit.",
+              "mana_cost": 36,
+              "spell_type": "damage",
+              "cast_type": "aoe",
+              "damage_dice_count": 4,
+              "damage_dice_sides": 8,
+              "damage_modifier": 8,
+              "damage_scaling_attribute_id": "int",
+              "damage_scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "A choking burst of coals tears across the whole room!"
+            },
+            {
+              "spell_id": "spell.grave-prayer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Grave Prayer",
+              "school": "heresy",
+              "description": "A ragged mutter over old wounds that drags flesh back together by sheer malice.",
+              "mana_cost": 30,
+              "spell_type": "support",
+              "cast_type": "self",
+              "support_effect": "heal",
+              "support_amount": 140,
+              "support_dice_count": 2,
+              "support_dice_sides": 20,
+              "support_roll_modifier": 0,
+              "support_scaling_attribute_id": "wis",
+              "support_scaling_multiplier": 0.8,
+              "duration_hours": 0,
+              "duration_rounds": 0,
+              "support_mode": "instant",
+              "support_context": "You mutter a grave prayer and stolen strength knits your wounds.",
+              "observer_action": "[actor_name] mutters over old blood and bone.",
+              "observer_context": "A foul prayer closes some of [actor_name]'s wounds."
+            }
+          ],
+          "skills": [
+            {
+              "skill_id": "skill.ironhook-rend-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Ironhook Rend",
+              "description": "A savage hooking chop that tears open a guard and leaves the target stumbling.",
+              "skill_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 5,
+              "damage_dice_sides": 8,
+              "damage_modifier": 8,
+              "vigor_cost": 20,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "str",
+              "scaling_multiplier": 1.1,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "You rip into your foe with a hooking rend!",
+              "lag_rounds": 1,
+              "cooldown_rounds": 1,
+              "target_lag_rounds": 1
+            },
+            {
+              "skill_id": "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Gutter Step",
+              "description": "A quick slip across broken footing followed by a low killing strike.",
+              "skill_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 4,
+              "damage_dice_sides": 7,
+              "damage_modifier": 6,
+              "vigor_cost": 16,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "dex",
+              "scaling_multiplier": 1.0,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "You dart through a narrow angle and cut low!",
+              "lag_rounds": 0,
+              "cooldown_rounds": 1,
+              "target_lag_rounds": 0
+            },
+            {
+              "skill_id": "skill.wallbreaker-swing-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Wallbreaker Swing",
+              "description": "A full-hip crushing blow meant to pulp ribs through armor and timber alike.",
+              "skill_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 6,
+              "damage_dice_sides": 8,
+              "damage_modifier": 10,
+              "vigor_cost": 24,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "str",
+              "scaling_multiplier": 1.2,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "You smash through with a wallbreaker swing!",
+              "lag_rounds": 1,
+              "cooldown_rounds": 2,
+              "target_lag_rounds": 0
+            },
+            {
+              "skill_id": "skill.crippling-pitchknife-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crippling Pitchknife",
+              "description": "A sudden thrust or thrown knife that leaves the target fighting for balance.",
+              "skill_type": "damage",
+              "cast_type": "target",
+              "damage_dice_count": 4,
+              "damage_dice_sides": 8,
+              "damage_modifier": 7,
+              "vigor_cost": 18,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "dex",
+              "scaling_multiplier": 1.05,
+              "level_scaling_multiplier": 1.0,
+              "damage_context": "You drive a crippling pitchknife into your foe!",
+              "lag_rounds": 1,
+              "cooldown_rounds": 1,
+              "target_lag_rounds": 1
+            },
+            {
+              "skill_id": "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Plank Guard",
+              "description": "A rough defensive brace behind shield wood, door planks, and pure stubbornness.",
+              "skill_type": "support",
+              "cast_type": "self",
+              "vigor_cost": 16,
+              "usable_out_of_combat": false,
+              "scaling_attribute_id": "",
+              "scaling_multiplier": 0.0,
+              "level_scaling_multiplier": 1.0,
+              "support_effect": "damage_reduction",
+              "support_amount": 8,
+              "support_mode": "battle_rounds",
+              "duration_rounds": 2,
+              "support_context": "You hunker behind a brutal plank guard.",
+              "observer_action": "[actor_name] squares up behind a brutal guard.",
+              "observer_context": "[actor_name] settles into a stubborn defensive stance.",
+              "lag_rounds": 0,
+              "cooldown_rounds": 2
+            }
+          ],
+          "npcs": [
+            {
+              "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crowbanner Reaver",
+              "hit_points": 920,
+              "max_hit_points": 920,
+              "power_level": 12,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 7,
+              "armor_class": 14,
+              "off_hand_attacks_per_round": 1,
+              "off_hand_hit_roll_modifier": 5,
+              "coin_reward": 70,
+              "experience_reward": 120,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.mercenary-scimitar",
+              "off_hand_weapon_template_id": "weapon.scout-dagger",
+              "vigor": 140,
+              "max_vigor": 140,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.45,
+              "skill_ids": [
+                "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.ironhook-rend-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "inventory_items": [
+                {
+                  "template_id": "item.bandit-salve-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "quantity": 1
+                }
+              ],
+              "wander_chance": 0.1,
+              "wander_room_ids": [
+                "room.north-approach-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.switchback-scramble-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.thorn-ditch-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.outer-picket-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ]
+            },
+            {
+              "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crowbanner Hexer",
+              "hit_points": 840,
+              "max_hit_points": 840,
+              "power_level": 12,
+              "attacks_per_round": 1,
+              "hit_roll_modifier": 5,
+              "armor_class": 13,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 74,
+              "experience_reward": 125,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.training-sword",
+              "off_hand_weapon_template_id": "",
+              "vigor": 40,
+              "max_vigor": 40,
+              "mana": 240,
+              "max_mana": 240,
+              "skill_use_chance": 0.1,
+              "skill_ids": [
+                "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.55,
+              "spell_ids": [
+                "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ]
+            },
+            {
+              "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crowbanner Bulwark",
+              "hit_points": 1080,
+              "max_hit_points": 1080,
+              "power_level": 13,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 8,
+              "armor_class": 16,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 78,
+              "experience_reward": 130,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 160,
+              "max_vigor": 160,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.5,
+              "skill_ids": [
+                "skill.wallbreaker-swing-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": []
+            },
+            {
+              "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crowbanner Knifeman",
+              "hit_points": 880,
+              "max_hit_points": 880,
+              "power_level": 12,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 8,
+              "armor_class": 14,
+              "off_hand_attacks_per_round": 1,
+              "off_hand_hit_roll_modifier": 6,
+              "coin_reward": 72,
+              "experience_reward": 122,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "off_hand_weapon_template_id": "weapon.training-dagger",
+              "vigor": 145,
+              "max_vigor": 145,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.5,
+              "skill_ids": [
+                "skill.crippling-pitchknife-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "wander_chance": 0.08,
+              "wander_room_ids": [
+                "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ]
+            },
+            {
+              "npc_id": "npc.ironhook-maela-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Ironhook Maela",
+              "hit_points": 1450,
+              "max_hit_points": 1450,
+              "power_level": 14,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 9,
+              "armor_class": 16,
+              "off_hand_attacks_per_round": 1,
+              "off_hand_hit_roll_modifier": 8,
+              "coin_reward": 160,
+              "experience_reward": 260,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "her",
+              "main_hand_weapon_template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "off_hand_weapon_template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "vigor": 220,
+              "max_vigor": 220,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.65,
+              "skill_ids": [
+                "skill.ironhook-rend-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "room_communications": [
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "message": "A scarred woman on the tower platform grins without warmth. \"Climb all this way just to die at my boots? Good. Saves me the walk.\""
+                }
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "quantity": 1
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.varo-cindersmile-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Varo Cindersmile",
+              "hit_points": 1360,
+              "max_hit_points": 1360,
+              "power_level": 14,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 8,
+              "armor_class": 15,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 165,
+              "experience_reward": 265,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 80,
+              "max_vigor": 80,
+              "mana": 300,
+              "max_mana": 300,
+              "skill_use_chance": 0.15,
+              "skill_ids": [
+                "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.7,
+              "spell_ids": [
+                "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "room_communications": [
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "message": "A thin man by the signal brazier laughs through broken teeth. \"You smell rain-soaked. Let me fix that with fire.\""
+                }
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "quantity": 1
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.seln-of-the-pins-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Seln of the Pins",
+              "hit_points": 1390,
+              "max_hit_points": 1390,
+              "power_level": 14,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 9,
+              "armor_class": 16,
+              "off_hand_attacks_per_round": 1,
+              "off_hand_hit_roll_modifier": 8,
+              "coin_reward": 162,
+              "experience_reward": 262,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "off_hand_weapon_template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "vigor": 225,
+              "max_vigor": 225,
+              "mana": 0,
+              "max_mana": 0,
+              "skill_use_chance": 0.65,
+              "skill_ids": [
+                "skill.crippling-pitchknife-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.0,
+              "spell_ids": [],
+              "room_communications": [
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "message": "A hooded killer rises from the crenels as if he had been nailed there by shadow. \"Too slow,\" he says, already moving."
+                }
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "quantity": 1
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.brother-cleft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Brother Cleft",
+              "hit_points": 1510,
+              "max_hit_points": 1510,
+              "power_level": 14,
+              "attacks_per_round": 2,
+              "hit_roll_modifier": 9,
+              "armor_class": 16,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 170,
+              "experience_reward": 270,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 200,
+              "max_vigor": 200,
+              "mana": 210,
+              "max_mana": 210,
+              "skill_use_chance": 0.5,
+              "skill_ids": [
+                "skill.wallbreaker-swing-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.45,
+              "spell_ids": [
+                "spell.grave-prayer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "room_communications": [
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "message": "A broad priest in split vestments lifts his maul from the chapel stones. \"Mercy has left this fort. Only weight remains.\""
+                }
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "quantity": 1
+                }
+              ]
+            },
+            {
+              "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Hadrik Crowbanner",
+              "hit_points": 2400,
+              "max_hit_points": 2400,
+              "power_level": 16,
+              "attacks_per_round": 3,
+              "hit_roll_modifier": 10,
+              "armor_class": 17,
+              "off_hand_attacks_per_round": 0,
+              "off_hand_hit_roll_modifier": 0,
+              "coin_reward": 300,
+              "experience_reward": 520,
+              "is_aggro": true,
+              "is_ally": false,
+              "pronoun_possessive": "his",
+              "main_hand_weapon_template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "off_hand_weapon_template_id": "",
+              "vigor": 260,
+              "max_vigor": 260,
+              "mana": 260,
+              "max_mana": 260,
+              "skill_use_chance": 0.6,
+              "skill_ids": [
+                "skill.wallbreaker-swing-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.ironhook-rend-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "spell_use_chance": 0.5,
+              "spell_ids": [
+                "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spell.grave-prayer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              ],
+              "room_communications": [
+                {
+                  "trigger": "player_enter",
+                  "audience": "private",
+                  "message": "The warlord in the keep-heart rises beneath his torn black banner and drags his greatsword free. \"You broke my corners. Now break here, in the middle, where all things end.\""
+                }
+              ],
+              "inventory_items": [
+                {
+                  "template_id": "armor.crowbanner-plate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "quantity": 1
+                },
+                {
+                  "template_id": "item.black-banner-token-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "quantity": 1
+                }
+              ]
+            }
+          ],
+          "rooms": [
+            {
+              "room_id": "west-road-rise",
+              "title": "West Road \u2014 Ridgeline Climb",
+              "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
+              "zone_id": "zone.west-road",
+              "npcs": [
+                {
+                  "npc_id": "npc.wandering-mercenary",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "west-road-ford",
+                "west": "west-road-clearing",
+                "north": "room.north-approach-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.north-approach-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "North Approach",
+              "description": "A narrow hunter's trace cuts off the ridge and climbs toward darker ground under a fringe of leaning pines. Boot prints, horse droppings, and old ash say the trail sees hard traffic despite the scrub meant to hide it. Somewhere ahead, wood knocks softly against wood in the wind like watch slats tapping together.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "west-road-rise",
+                "north": "room.switchback-scramble-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.switchback-scramble-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Switchback Scramble",
+              "description": "The path doubles back over itself in cramped shelves hacked into the slope, forcing every ascent into a slow exposed weave. Loose shale skitters down into thorn and bramble below with every misplaced step. Someone has hammered black-feather charms into the posts here, half warning and half boast.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.north-approach-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.thorn-ditch-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.thorn-ditch-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Thorn Ditch",
+              "description": "A dry ditch choked with thorn bundles and sharpened stakes bars the last easy run toward the fort. Old blood blackens some of the lower points where less careful attackers were fed into the hedge. A crude plank crossing leads on toward heavier works at the crest.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.switchback-scramble-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.outer-picket-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.outer-picket-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Outer Picket",
+              "description": "Stunted pikes and ragged warning pennons mark a rough outer picket where sentries can see the whole climb below. The wind here carries smoke, tallow, and the iron stink of butchered game from inside the walls. Ahead, a wagon jam and a cut in the palisade form the only clear way forward.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.thorn-ditch-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Broken Wagon Choke",
+              "description": "Two ruined wagons have been dragged nose to nose to narrow the way into a splintered killing lane. Arrow scars and soot blooms on the boards show this choke has stopped more than one bold rush. Beyond it, the black palisade rises at full height around the fort proper.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.outer-picket-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Palisade Gate",
+              "description": "The gate is nothing noble, only heavy timber lashed in iron and black pitch beneath a skull-nailed lintel. Fresh axe marks along the posts suggest the bandits repair what siege and weather keep trying to undo. The main yard opens just inside while side tracks run along the inner wall.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 2
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "South Yard",
+              "description": "Hard-packed mud spreads through the lower yard where carts, boots, and dragged bodies have all churned the same ground smooth. Cooking smoke hangs low between sheds and tether posts while rough laughter bounces off the timber walls. The yard branches west to the kennels, east to the cookfires, and north toward the fort's harsher heart.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                },
+                {
+                  "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "east": "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Kennel Lane",
+              "description": "A rank side lane runs under the western palisade where chained posts, bone piles, and overturned troughs line the wall. The smell is old grease, wet fur, and fresh fear worked into the planks by years of use. A stair tower rises at the far corner while the barracks squat just beyond the lane.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "east": "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.southwest-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.raider-barracks-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Cookfire Square",
+              "description": "Three stone-ringed fires burn in this square around spits, black kettles, and hacked blocks sticky with grease. The fort feeds itself on stolen cattle, bad grain, and whatever else its riders drag home. An eastern corner platform looms over the smoke while store sheds crowd the way north.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "west": "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "east": "room.southeast-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.spoils-shed-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.raider-barracks-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Raider Barracks",
+              "description": "Low bunks, rolled cloaks, and stolen kit are crammed into a drafty hall built more for exhaustion than comfort. Names, threats, and victory tallies have been carved into every post within arm's reach. The room opens back toward the lane and up toward the west wall where the night watch broods.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 2
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.spoils-shed-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Spoils Shed",
+              "description": "Shelves bow under sacks, lamp oil, torn banners, and half-sorted plunder from a dozen roads and hamlets. Anything fine has been picked clean already, leaving only the useful, the ugly, and the bloodstained. A rough path runs west toward the armory and north into the eastern wall quarter.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Armory Lean-To",
+              "description": "A long lean-to of warped boards shelters weapon racks, shield stacks, and buckets of arrow shafts gone damp at the fletching. Most of the gear here is patched together from battlefield salvage and caravan dead. The way north opens into the central yard while side lanes run to both halves of the fort.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.raider-barracks-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "east": "room.spoils-shed-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Central Yard",
+              "description": "The fort's middle is an open churn of mud and trampled ash ringed by watch platforms at every quarter. A chained iron brazier squats in the center, cold for now, with grooves worn into the ground around it by old ritual movement. From here the whole place feels built to drive blood and fear inward toward one final reckoning.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "keyword_actions": [
+                {
+                  "keywords": [
+                    "inspect brazier",
+                    "touch brazier",
+                    "stir brazier",
+                    "raise chains",
+                    "pull chains"
+                  ],
+                  "required_world_flags": [
+                    "npc.ironhook-maela.defeated",
+                    "npc.varo-cindersmile.defeated",
+                    "npc.seln-of-the-pins.defeated",
+                    "npc.brother-cleft.defeated"
+                  ],
+                  "message": "The central brazier roars to life as the fort's four corners finally fall silent. Hidden chains wrench taut inside the keep and a black-doored passage grinds open to the north.",
+                  "already_message": "The black-doored passage is already open.",
+                  "refresh_view": "room",
+                  "actions": [
+                    {
+                      "type": "set_exit",
+                      "direction": "north",
+                      "destination_room_id": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+                    }
+                  ]
+                },
+                {
+                  "keywords": [
+                    "inspect brazier",
+                    "touch brazier",
+                    "stir brazier",
+                    "raise chains",
+                    "pull chains"
+                  ],
+                  "message": "The brazier is dead and stubborn. Somewhere in the fort, four command fires have not yet gone out.",
+                  "refresh_view": "none",
+                  "actions": [
+                    {
+                      "type": "noop"
+                    }
+                  ]
+                }
+              ],
+              "room_objects": [
+                {
+                  "object_id": "central-brazier",
+                  "name": "chained brazier",
+                  "keywords": [
+                    "brazier",
+                    "chains",
+                    "chained brazier",
+                    "central brazier"
+                  ],
+                  "description": "A heavy iron brazier sits in the yard on hooked chains sunk into the mud. Its bowl is full of black clinker and old bone ash, as if it waits for a signal rather than a flame."
+                }
+              ],
+              "exits": {
+                "south": "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "east": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "West Wall Walk",
+              "description": "A timber catwalk runs the length of the western palisade, flexing underfoot above the kennel stink and barracks noise below. The parapet slots here give a long cruel view back down the climbing trail to the road. The northwest corner hardens into a true bastion while the southwest tower stair drops near the lower yard.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.raider-barracks-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "east": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.northwest-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "East Wall Walk",
+              "description": "The eastern wall walk smells of lamp pitch and cold smoke from signal fires left to smolder between watches. Boards here are newer, less warped, and marked with knife scratches counting raids and caravan burns. A tower stair climbs at the far corner while the square below feeds back toward the middle of the fort.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.spoils-shed-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "east": "room.northeast-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "North Yard",
+              "description": "The mud thins here into hard trampled earth beneath the shadow of the inner keep and the highest wall crowns. Command traffic seems to have passed this way for years, wearing a disciplined channel through the otherwise ugly fort. The keep looms close, though its deeper door looks sealed until some harsher rite is met.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "west": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "east": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.southwest-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Southwest Tower Stairs",
+              "description": "A cramped spiral of timber and pegged steps climbs inside the southwest corner tower, every riser worn hollow by hurried boots. The tower shaft smells of wet rope and stale lamp oil with the lane's animal reek rising from below. Above, open air and hard laughter leak down from the firing platform.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "east": "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "up": "room.southwest-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.southwest-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Southwest Tower Crown",
+              "description": "The tower top is a cramped ring of planks and murder slits overlooking the whole lower ascent into the fort. Old hooks, chain lengths, and snapped grapnels hang from the rail as trophies and tools alike. This corner has the feel of a butcher's favorite block, kept ready for whatever climbs within reach.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.ironhook-maela-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "down": "room.southwest-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.northwest-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Northwest Bastion",
+              "description": "The northwest corner broadens into a reinforced firing shelf where signal braziers, spare fuel, and stacked darts sit ready at hand. Char and soot stain the planks here darker than anywhere else in the fort. From this angle the whole western country looks like kindling waiting on a spark.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.varo-cindersmile-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "east": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "up": "room.northwest-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.northwest-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Northwest Parapet",
+              "description": "A higher fighting lip crowns the bastion, narrow and blackened where sentries once lay flat behind the crenels. The wind snaps loose ember ash across the boards and carries it away over the ridge beyond. No one stands here long without feeling the pull of arson and distance.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [],
+              "items": [],
+              "exits": {
+                "down": "room.northwest-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.northeast-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Northeast Tower Stairs",
+              "description": "Sharp ladder-stairs climb the northeast tower through a skin of cold wind slipping between warped boards. Thin nails and broken knife points have been driven into the beams as makeshift omens or trophies. The upper platform waits in a hush that feels watched even before it is seen.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "west": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "up": "room.northeast-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.northeast-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Northeast Tower Crown",
+              "description": "This high tower platform is all angles, slits, and narrow shadows where a killer can vanish between blinks. Spent darts crunch underfoot beside old rainwater trapped in the grain of the planks. It is the kind of place built for patient murder rather than defense.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.seln-of-the-pins-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "down": "room.northeast-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.southeast-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Southeast Bastion",
+              "description": "The southeast corner has been half turned into a mean little shrine, half into a fighting shelf, with bones and shields sharing the same wall pegs. Pitch smoke coils around a cracked icon set in the timber as if devotion and intimidation have merged here. Every sound seems to strike the boards harder in this corner than anywhere else.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.brother-cleft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "west": "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "up": "room.southeast-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.southeast-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Southeast Parapet",
+              "description": "A narrow lip of fighting space hangs above the cookfire smoke and lets the whole southern yard be watched at once. Wind rattles a string of split prayer boards tied to the rail, each one inked with a name someone meant to remember or curse. The view back toward the gate makes clear how any retreat would become a slaughter.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [],
+              "items": [],
+              "exits": {
+                "down": "room.southeast-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Keep Threshold",
+              "description": "The inner keep begins in a heavy timber throat where black doors, iron chains, and scarred posts crowd together with no wasted ornament. Everything here feels built for command, intimidation, and quick executions when command fails. The deeper hall ahead carries the cold stillness of someone important waiting to be reached.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [],
+              "items": [],
+              "exits": {
+                "south": "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.hall-of-plunder-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "up": "room.rope-loft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "down": "room.cistern-undercroft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.hall-of-plunder-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Hall of Plunder",
+              "description": "Long tables, cracked chests, campaign maps, and hanging trophies turn this inner hall into a ledger of organized theft. The fort's raids were not random from here, but weighed, chosen, and sent outward with patient cruelty. A final chamber lies deeper in, behind the place where orders became blood.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "north": "room.keep-heart-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.keep-heart-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Keep Heart",
+              "description": "The center chamber of the fort is a hard square of scarred beams and black banner cloth, dominated by a raised plank dais and a rack of extinguished signal horns. Every wall bears the mark of councils, punishments, and final decisions handed down without appeal. Now the whole room feels poised on the knife-edge between conquest and collapse.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "south": "room.hall-of-plunder-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.cistern-undercroft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Cistern Undercroft",
+              "description": "Cold dark stone replaces timber here around a half-covered cistern sunk below the keep's command rooms. Drips echo off the water and vanish into a gloom that smells of wet lime, mildew, and hidden old stores. This is where a prudent warlord keeps what should not be seen by the fort above.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "up": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            },
+            {
+              "room_id": "room.rope-loft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "title": "Rope Loft",
+              "description": "A cramped loft above the threshold holds spare tackle, signal cords, rolled nets, and a hooked mechanism for the keep's chained inner door. Dust and old hemp fuzz drift in shafts of light through the roof boards. It is the sort of practical overhead space that only matters when a fort is trying not to die.",
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "npcs": [
+                {
+                  "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                  "count": 1
+                }
+              ],
+              "items": [],
+              "exits": {
+                "down": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+              }
+            }
+          ],
+          "zones": [
+            {
+              "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+              "name": "Crowbanner Fort",
+              "repopulate_game_hours": 2,
+              "reset_player_flags": [],
+              "reset_world_flags": [
+                "npc.ironhook-maela.defeated",
+                "npc.varo-cindersmile.defeated",
+                "npc.seln-of-the-pins.defeated",
+                "npc.brother-cleft.defeated",
+                "npc.hadrik-crowbanner.defeated"
+              ],
+              "reset_container_template_ids": [],
+              "repopulation_blocking_item_template_ids": [],
+              "repopulation_block_cooldown_game_hours": 0
             }
           ]
         }
