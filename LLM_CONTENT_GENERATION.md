@@ -144,6 +144,9 @@ This makes it possible for multiple payloads to attach new paths to the same roo
 - **Write ability narration in a target-safe format:** use placeholders such as `[a/an] [verb] thrown off balance by the strike!` so the same line reads correctly for both players and NPC victims. Avoid actor-POV lines like `You drive a knife into your foe!`.
 - **Room merges are special-case only for exits:** everything else on the room comes from the last loaded room payload.
 - **Room interconnections must be logical:** connected rooms should feel spatially and thematically adjacent, not randomly stitched together.
+- **Wire multi-stage boss gates completely:** if a final boss or keep unlock depends on multiple sub-boss kills, each sub-boss must set the exact world flag the gate checks.
+- **Do not leave bypass routes open:** if a path, door, or keep is meant to unlock later, do not include that progression exit in the room's default exits before the gate is satisfied.
+- **Do not pre-place gated finale bosses:** if a boss is meant to appear only after prerequisites are met, prefer zone `flag_spawns` with `required_world_flags` instead of placing that boss in the room's default `npcs` list.
 
 ---
 

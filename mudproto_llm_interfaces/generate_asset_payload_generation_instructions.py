@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.15",
+        "version": "2.16",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
         "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
@@ -246,6 +246,9 @@ def build_instruction_payload() -> dict[str, object]:
             "Preserve MudProto's existing fantasy tone and naming style.",
             "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
             "All room interconnections must be logical in-world and spatially coherent. Avoid random or immersion-breaking adjacency, and make connected rooms feel like they belong next to each other in a believable layout.",
+            "If a final boss or locked area is gated behind multiple prerequisite kills or events, make sure every prerequisite emits the exact world flag the gate checks.",
+            "Do not leave bypass routes open for gated progression. If a keep, vault, or sanctum is meant to unlock later, omit or hide that exit from the room's default exits until the gated action reveals it.",
+            "Do not place a gated final boss in the room's default npc list. Prefer a zone flag_spawns rule with required_world_flags so the boss appears only after the prerequisites are met.",
             "Whenever appropriate, add at least one optional flavor interaction that is not required for progression or combat, such as a keyword action like 'look shrine' that returns atmospheric text.",
             "Flavor interactions should enrich worldbuilding and roleplay even when they have no mechanical reward.",
             "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
@@ -295,6 +298,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Merchant inventories should be sensible for the NPC role.",
             "Avoid redundant consumables, spells, and skills that duplicate existing mechanics under a new name unless the user explicitly requests a distinct variant or override.",
             "Gear bonus authoring should also stay broad and reusable: prefer direct stat bonuses over bespoke one-off effect labels.",
+            "Boss-gated zones should be progression-safe: no always-open bypass to the finale, no missing prerequisite flags, and no pre-spawned final boss when the design calls for an unlock.",
             "Avoid overpowered numbers unless explicitly requested."
         ],
         "asset_schemas": asset_schemas,
