@@ -21,8 +21,7 @@
       "is_named": {
         "type": "boolean",
         "required": false,
-        "default": false,
-        "notes": "Set true for uniquely named NPCs that should render without an indefinite article in combat and room text."
+        "notes": "Optional. Set true for uniquely named or story-significant NPCs that should render without an indefinite article in combat and room text. Omit it for ordinary generic mobs."
       },
       "hit_points": {
         "type": "integer",

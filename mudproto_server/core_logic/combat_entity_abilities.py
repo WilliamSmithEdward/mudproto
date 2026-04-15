@@ -49,6 +49,13 @@ def _entity_has_active_ongoing_support_effect(entity: EntityState, effect_id: st
     return False
 
 
+def _supports_target_placeholders(context: str) -> bool:
+    lowered = str(context).strip().lower()
+    if not lowered:
+        return False
+    return "[a/an]" in lowered or "[verb]" in lowered
+
+
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
     from combat_observer import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
     from display_core import build_part
@@ -205,8 +212,10 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             restored_amount = _apply_entity_secondary_restore(entity, restore_effect, restore_amount)
 
         append_newline_if_needed(parts)
-        if damage_context:
+        resolved_context = ""
+        if damage_context and _supports_target_placeholders(damage_context):
             resolved_context = _resolve_combat_context(damage_context, target_text="you", verb="are")
+        if resolved_context:
             parts.append(build_part(resolved_context))
         elif total_damage > 0:
             parts.extend([
@@ -406,8 +415,10 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
             restored_amount = _apply_entity_secondary_restore(entity, restore_effect, restore_amount)
 
         append_newline_if_needed(parts)
-        if damage_context:
+        resolved_context = ""
+        if damage_context and _supports_target_placeholders(damage_context):
             resolved_context = _resolve_combat_context(damage_context, target_text="you", verb="are")
+        if resolved_context:
             parts.append(build_part(resolved_context))
         elif spell_damage > 0:
             parts.extend([

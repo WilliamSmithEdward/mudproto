@@ -282,7 +282,7 @@
       "scaling_attribute_id": "str",
       "scaling_multiplier": 1.1,
       "level_scaling_multiplier": 1.0,
-      "damage_context": "You rip into your foe with a hooking rend!",
+      "damage_context": "[a/an] [verb] ripped open by a hooking rend!",
       "lag_rounds": 1,
       "cooldown_rounds": 1,
       "target_lag_rounds": 1
@@ -301,7 +301,7 @@
       "scaling_attribute_id": "dex",
       "scaling_multiplier": 1.0,
       "level_scaling_multiplier": 1.0,
-      "damage_context": "You dart through a narrow angle and cut low!",
+      "damage_context": "[a/an] [verb] cut low from a narrow-angle step!",
       "lag_rounds": 0,
       "cooldown_rounds": 1,
       "target_lag_rounds": 0
@@ -320,7 +320,7 @@
       "scaling_attribute_id": "str",
       "scaling_multiplier": 1.2,
       "level_scaling_multiplier": 1.0,
-      "damage_context": "You smash through with a wallbreaker swing!",
+      "damage_context": "[a/an] [verb] smashed by a wallbreaker swing!",
       "lag_rounds": 1,
       "cooldown_rounds": 2,
       "target_lag_rounds": 0
@@ -339,7 +339,7 @@
       "scaling_attribute_id": "dex",
       "scaling_multiplier": 1.05,
       "level_scaling_multiplier": 1.0,
-      "damage_context": "You drive a crippling pitchknife into your foe!",
+      "damage_context": "[a/an] [verb] thrown off balance by a crippling pitchknife!",
       "lag_rounds": 1,
       "cooldown_rounds": 1,
       "target_lag_rounds": 1

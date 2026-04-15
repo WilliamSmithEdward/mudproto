@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.13",
-  "generated_at_utc": "2026-04-15T05:12:45.756610+00:00",
+  "version": "2.14",
+  "generated_at_utc": "2026-04-15T05:46:50.424726+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -164,7 +164,8 @@
     "Room exits may only use the directions north, south, east, west, up, and down. Diagonal directions such as northeast, northwest, southeast, and southwest are not supported.",
     "damage_context and support_context strings that end with '!' or '?' must not also include a trailing period. The server automatically handles terminal punctuation for '.', '!', and '?'.",
     "For damage_context and support_context, write perspective-safe text that works for both player recipients and named NPC recipients. Prefer placeholders like [a/an] and [verb] rather than fixed second-person possessives.",
-    "Do not use recipient-relative phrases like 'your foe', 'your enemy', or 'your target' inside damage_context/support_context. Use neutral wording such as '[a/an] [verb] struck by ...' so rendering remains grammatically correct for all targets.",
+    "Do not use actor-POV lines like 'You drive a knife into your foe!' inside damage_context/support_context. Use neutral target-state wording such as '[a/an] [verb] thrown off balance by the strike!' so rendering remains grammatically correct for all targets.",
+    "If an NPC is a unique proper-name character or story-significant individual, set is_named to true. Leave is_named omitted for ordinary generic mobs.",
     "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
     "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
     "NPCs that are currently engaged in combat with any player will not wander.",
@@ -643,6 +644,11 @@
         "name": {
           "type": "string",
           "required": true
+        },
+        "is_named": {
+          "type": "boolean",
+          "required": false,
+          "notes": "Optional. Set true for uniquely named or story-significant NPCs that should render without an indefinite article in combat and room text. Omit it for ordinary generic mobs."
         },
         "hit_points": {
           "type": "integer",
@@ -2374,6 +2380,7 @@
           {
             "npc_id": "npc.south-market-merchant",
             "name": "Quartermaster Vessa",
+            "is_named": true,
             "hit_points": 180,
             "max_hit_points": 180,
             "power_level": 1,
@@ -4208,7 +4215,7 @@
               "scaling_attribute_id": "str",
               "scaling_multiplier": 1.1,
               "level_scaling_multiplier": 1.0,
-              "damage_context": "You rip into your foe with a hooking rend!",
+              "damage_context": "[a/an] [verb] ripped open by a hooking rend!",
               "lag_rounds": 1,
               "cooldown_rounds": 1,
               "target_lag_rounds": 1
@@ -4227,7 +4234,7 @@
               "scaling_attribute_id": "dex",
               "scaling_multiplier": 1.0,
               "level_scaling_multiplier": 1.0,
-              "damage_context": "You dart through a narrow angle and cut low!",
+              "damage_context": "[a/an] [verb] cut low from a narrow-angle step!",
               "lag_rounds": 0,
               "cooldown_rounds": 1,
               "target_lag_rounds": 0
@@ -4246,7 +4253,7 @@
               "scaling_attribute_id": "str",
               "scaling_multiplier": 1.2,
               "level_scaling_multiplier": 1.0,
-              "damage_context": "You smash through with a wallbreaker swing!",
+              "damage_context": "[a/an] [verb] smashed by a wallbreaker swing!",
               "lag_rounds": 1,
               "cooldown_rounds": 2,
               "target_lag_rounds": 0
@@ -4265,7 +4272,7 @@
               "scaling_attribute_id": "dex",
               "scaling_multiplier": 1.05,
               "level_scaling_multiplier": 1.0,
-              "damage_context": "You drive a crippling pitchknife into your foe!",
+              "damage_context": "[a/an] [verb] thrown off balance by a crippling pitchknife!",
               "lag_rounds": 1,
               "cooldown_rounds": 1,
               "target_lag_rounds": 1
@@ -4477,6 +4484,7 @@
             {
               "npc_id": "npc.ironhook-maela-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "name": "Ironhook Maela",
+              "is_named": true,
               "hit_points": 1450,
               "max_hit_points": 1450,
               "power_level": 14,
@@ -4522,6 +4530,7 @@
             {
               "npc_id": "npc.varo-cindersmile-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "name": "Varo Cindersmile",
+              "is_named": true,
               "hit_points": 1360,
               "max_hit_points": 1360,
               "power_level": 14,
@@ -4569,6 +4578,7 @@
             {
               "npc_id": "npc.seln-of-the-pins-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "name": "Seln of the Pins",
+              "is_named": true,
               "hit_points": 1390,
               "max_hit_points": 1390,
               "power_level": 14,
@@ -4614,6 +4624,7 @@
             {
               "npc_id": "npc.brother-cleft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "name": "Brother Cleft",
+              "is_named": true,
               "hit_points": 1510,
               "max_hit_points": 1510,
               "power_level": 14,
@@ -4661,6 +4672,7 @@
             {
               "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "name": "Hadrik Crowbanner",
+              "is_named": true,
               "hit_points": 2400,
               "max_hit_points": 2400,
               "power_level": 16,
@@ -5687,6 +5699,7 @@
             {
               "npc_id": "npc.dark-priestess-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "name": "Dark Priestess Vael",
+              "is_named": true,
               "hit_points": 320,
               "max_hit_points": 320,
               "power_level": 6,
@@ -6423,6 +6436,7 @@
             {
               "npc_id": "npc.lamp-keeper-sera-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "name": "Lamp-Keeper Sera",
+              "is_named": true,
               "hit_points": 190,
               "max_hit_points": 190,
               "power_level": 1,
@@ -6504,6 +6518,7 @@
             {
               "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "name": "Sunmarshal Aurek",
+              "is_named": true,
               "corpse_label_style": "possessive",
               "hit_points": 360,
               "max_hit_points": 360,
@@ -6761,6 +6776,7 @@
             {
               "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "name": "Prayer-Warden Samiel",
+              "is_named": true,
               "hit_points": 330,
               "max_hit_points": 330,
               "power_level": 6,

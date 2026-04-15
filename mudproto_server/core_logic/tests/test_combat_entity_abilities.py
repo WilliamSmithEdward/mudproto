@@ -161,6 +161,71 @@ def test_entity_sitting_does_not_use_skill(monkeypatch) -> None:
     assert parts == []
 
 
+def test_entity_named_skill_message_uses_name_without_article_when_flag_is_unspecified(monkeypatch) -> None:
+    session = _make_session("client-player", "Lucia")
+    entity = _make_entity("entity-seln", "Seln of the Pins")
+    entity.skill_ids = ["skill.gutter-step"]
+    entity.skill_use_chance = 1.0
+    entity.vigor = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_skill_damage", lambda _skill: 12)
+    monkeypatch.setattr(entity_abilities, "apply_lag", lambda _session, _seconds: None)
+    monkeypatch.setattr(entity_abilities, "get_skill_by_id", lambda _skill_id: {
+        "skill_id": "skill.gutter-step",
+        "name": "Gutter Step",
+        "skill_type": "damage",
+        "cast_type": "target",
+        "vigor_cost": 10,
+        "description": "A quick slip across broken footing followed by a low killing strike.",
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    parts: list[dict] = []
+    used = entity_abilities._entity_try_use_skill(session, entity, parts)
+
+    rendered = "".join(str(part.get("text", "")) for part in parts)
+    assert used is True
+    assert "Seln of the Pins uses Gutter Step on you!" in rendered
+    assert "A Seln of the Pins uses Gutter Step on you!" not in rendered
+
+
+def test_entity_damage_skill_does_not_echo_player_perspective_context_to_victim(monkeypatch) -> None:
+    session = _make_session("client-player", "Lucia")
+    entity = _make_entity("entity-knifeman", "Crowbanner Knifeman")
+    entity.skill_ids = ["skill.crippling-pitchknife"]
+    entity.skill_use_chance = 1.0
+    entity.vigor = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_skill_damage", lambda _skill: 12)
+    monkeypatch.setattr(entity_abilities, "apply_lag", lambda _session, _seconds: None)
+    monkeypatch.setattr(entity_abilities, "get_skill_by_id", lambda _skill_id: {
+        "skill_id": "skill.crippling-pitchknife",
+        "name": "Crippling Pitchknife",
+        "skill_type": "damage",
+        "cast_type": "target",
+        "vigor_cost": 10,
+        "description": "A sudden thrust or thrown knife that leaves the target fighting for balance.",
+        "damage_context": "You drive a crippling pitchknife into your foe!",
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    parts: list[dict] = []
+    used = entity_abilities._entity_try_use_skill(session, entity, parts)
+
+    rendered = "".join(str(part.get("text", "")) for part in parts)
+    assert used is True
+    assert "You drive a crippling pitchknife into your foe!" not in rendered
+    assert "You are hit by Crippling Pitchknife." in rendered
+
+
 def test_entity_resting_does_not_cast_spell(monkeypatch) -> None:
     session = _make_session("client-player", "Lucia")
     entity = _make_entity("entity-priest", "Priest")

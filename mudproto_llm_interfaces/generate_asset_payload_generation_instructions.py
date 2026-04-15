@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.13",
+        "version": "2.14",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
         "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
@@ -249,7 +249,8 @@ def build_instruction_payload() -> dict[str, object]:
             "Room exits may only use the directions north, south, east, west, up, and down. Diagonal directions such as northeast, northwest, southeast, and southwest are not supported.",
             "damage_context and support_context strings that end with '!' or '?' must not also include a trailing period. The server automatically handles terminal punctuation for '.', '!', and '?'.",
             "For damage_context and support_context, write perspective-safe text that works for both player recipients and named NPC recipients. Prefer placeholders like [a/an] and [verb] rather than fixed second-person possessives.",
-            "Do not use recipient-relative phrases like 'your foe', 'your enemy', or 'your target' inside damage_context/support_context. Use neutral wording such as '[a/an] [verb] struck by ...' so rendering remains grammatically correct for all targets.",
+            "Do not use actor-POV lines like 'You drive a knife into your foe!' inside damage_context/support_context. Use neutral target-state wording such as '[a/an] [verb] thrown off balance by the strike!' so rendering remains grammatically correct for all targets.",
+            "If an NPC is a unique proper-name character or story-significant individual, set is_named to true. Leave is_named omitted for ordinary generic mobs.",
             "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
             "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
             "NPCs that are currently engaged in combat with any player will not wander.",

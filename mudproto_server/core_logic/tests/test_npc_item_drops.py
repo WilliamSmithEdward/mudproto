@@ -75,6 +75,17 @@ def test_entity_build_preserves_explicit_is_named_flag(monkeypatch: pytest.Monke
     assert entity.is_named is True
 
 
+def test_entity_build_leaves_is_named_unspecified_when_flag_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(world_population.random, "random", lambda: 0.0)
+    template = _build_template()
+    template["name"] = "Seln of the Pins"
+    template.pop("is_named", None)
+
+    entity = world_population._build_entity_from_template(template, ROOM_ID, 1)
+
+    assert entity.is_named is None
+
+
 def test_spawn_corpse_respects_drop_on_death(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(world_population.random, "random", lambda: 0.0)
     session = _make_session()
