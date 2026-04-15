@@ -1,5 +1,6 @@
 import asyncio
 
+import command_handlers.save as save_handler
 from commands import process_input_message
 from models import ClientSession, QueuedCommand
 from protocol import utc_now_iso
@@ -85,3 +86,16 @@ def test_cl_is_not_treated_as_clear_while_lagged() -> None:
         assert [queued.command_text for queued in session.command_queue] == ["cl north"]
 
     asyncio.run(_run())
+
+
+def test_save_aliases_trigger_immediate_player_state_write(monkeypatch) -> None:
+    for alias in ("sa", "sav", "save"):
+        session = _make_session(f"client-{alias}-save", "Lucia")
+        save_calls: list[str] = []
+        monkeypatch.setattr(save_handler, "save_player_state", lambda target_session: save_calls.append(target_session.player_state_key))
+
+        outbound = save_handler.handle_save_command(session, alias, [], alias)
+
+        assert isinstance(outbound, dict)
+        assert "Your progress has been saved." in _flatten_display_lines(outbound)
+        assert save_calls == ["lucia"]
