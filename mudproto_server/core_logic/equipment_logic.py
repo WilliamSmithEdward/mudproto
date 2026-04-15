@@ -248,6 +248,12 @@ def _move_equipped_item_to_inventory(session: ClientSession, item_id: str) -> No
         session.inventory_items[item_id] = equipped_item
 
 
+def _reevaluate_player_equipment_effects(session: ClientSession) -> None:
+    from player_resources import clamp_player_resources_to_caps
+
+    clamp_player_resources_to_caps(session)
+
+
 def _clear_item_slot_references(session: ClientSession, item_id: str) -> None:
     if session.equipment.equipped_main_hand_id == item_id:
         session.equipment.equipped_main_hand_id = None
@@ -382,6 +388,7 @@ def equip_item(session: ClientSession, item: ItemState, hand: str | None = None)
 
     session.equipment.equipped_items[item.item_id] = item
     session.inventory_items.pop(item.item_id, None)
+    _reevaluate_player_equipment_effects(session)
 
     return True, target_hand
 
@@ -421,6 +428,7 @@ def wear_item(session: ClientSession, item: ItemState, target_wear_slot: str | N
     session.equipment.worn_item_ids[target_slot_key] = item.item_id
     session.equipment.equipped_items[item.item_id] = item
     session.inventory_items.pop(item.item_id, None)
+    _reevaluate_player_equipment_effects(session)
     return True, _normalize_wear_slot_label(target_slot_key)
 
 
@@ -431,4 +439,5 @@ def unequip_item(session: ClientSession, item: ItemState) -> bool:
 
     _clear_item_slot_references(session, item_id)
     _move_equipped_item_to_inventory(session, item_id)
+    _reevaluate_player_equipment_effects(session)
     return True

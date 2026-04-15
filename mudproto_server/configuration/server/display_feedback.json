@@ -1,6 +1,6 @@
 {
   "merchant_quotes": {
-    "no-merchant-here": "The marketplace is empty of any willing trader.",
+    "no-merchant-here": "No mechant could be found here.",
     "merchant-item-unavailable": "I'm sorry, I don't have that item.",
     "merchant-out-of-stock": "I'm afraid we've sold the last of that for now.",
     "merchant-insufficient-coins": "You'll need a heavier purse for that one.",

@@ -1,5 +1,6 @@
 import combat
-from equipment_logic import get_player_effective_attributes
+from equipment_logic import get_player_effective_attributes, unequip_item, wear_item
+from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, EntityState, ItemState
 from player_resources import get_player_resource_caps
 
@@ -97,3 +98,51 @@ def test_equipment_weapon_damage_bonus_applies_to_player_attacks(monkeypatch) ->
     combat._apply_player_attacks(session, entity, [], [], allow_off_hand=False)
 
     assert entity.hit_points == 86
+
+
+def test_equippable_hydration_preserves_equipment_effects() -> None:
+    template = {
+        "template_id": "armor.test-travel-ring",
+        "name": "Travel Ring",
+        "slot": "armor",
+        "wear_slots": ["ring"],
+        "equipment_effects": [
+            {"effect_type": "dex", "amount": 2},
+            {"effect_type": "hitroll", "amount": 3},
+        ],
+    }
+
+    hydrated = build_equippable_item_from_template(template, item_id="item-test-ring")
+    assert hydrated.equipment_effects == [
+        {"effect_type": "dex", "amount": 2},
+        {"effect_type": "hitroll", "amount": 3},
+    ]
+
+
+def test_wear_and_unequip_recalculate_resource_caps_immediately() -> None:
+    session = _make_session("client-reeval", "Lucia")
+    ring = ItemState(
+        item_id="item-vital-ring",
+        name="Vital Ring",
+        equippable=True,
+        slot="armor",
+        wear_slot="ring",
+        wear_slots=["ring"],
+        equipment_effects=[{"effect_type": "hit_points", "amount": 40}],
+    )
+    session.inventory_items[ring.item_id] = ring
+
+    baseline_caps = get_player_resource_caps(session)
+    session.status.hit_points = baseline_caps["hit_points"]
+
+    wore, _slot = wear_item(session, ring)
+    assert wore is True
+    boosted_caps = get_player_resource_caps(session)
+    assert boosted_caps["hit_points"] == baseline_caps["hit_points"] + 40
+
+    session.status.hit_points = boosted_caps["hit_points"]
+    assert unequip_item(session, ring) is True
+    reduced_caps = get_player_resource_caps(session)
+
+    assert reduced_caps["hit_points"] == baseline_caps["hit_points"]
+    assert session.status.hit_points == reduced_caps["hit_points"]
