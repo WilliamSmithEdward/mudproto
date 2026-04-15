@@ -80,6 +80,34 @@ def test_spawn_corpse_respects_drop_on_death(monkeypatch: pytest.MonkeyPatch) ->
     assert "item.potion.mending" in dropped_template_ids
 
 
+def test_inventory_does_not_duplicate_equipped_weapon_loot(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(world_population.random, "random", lambda: 0.0)
+    session = _make_session()
+
+    template = _build_template()
+    template["inventory_items"] = [
+        {
+            "template_id": "weapon.training-sword",
+            "quantity": 1,
+            "spawn_chance": 100,
+        },
+        {
+            "template_id": "item.potion.mending",
+            "quantity": 1,
+            "spawn_chance": 100,
+        },
+    ]
+
+    entity = world_population._build_entity_from_template(template, ROOM_ID, 1)
+    assert [item.template_id for item in entity.inventory_items] == ["item.potion.mending"]
+
+    corpse = spawn_corpse_for_entity(session, entity)
+    dropped_template_ids = {item.template_id for item in corpse.loot_items.values()}
+
+    assert "weapon.training-sword" not in dropped_template_ids
+    assert "item.potion.mending" in dropped_template_ids
+
+
 def test_load_npc_templates_rejects_legacy_loot_items(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     npcs_path = tmp_path / "npcs.json"
     npcs_path.write_text(

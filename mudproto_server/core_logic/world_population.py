@@ -23,14 +23,24 @@ def _roll_percent_chance(chance_percent: float) -> bool:
     return chance_percent > 0.0 and (random.random() * 100.0) < chance_percent
 
 
-def _build_inventory_items_from_template(template: dict) -> list[ItemState]:
+def _build_inventory_items_from_template(
+    template: dict,
+    excluded_template_ids: set[str] | None = None,
+) -> list[ItemState]:
     inventory_items: list[ItemState] = []
+    excluded_ids = {
+        str(template_id).strip().lower()
+        for template_id in (excluded_template_ids or set())
+        if str(template_id).strip()
+    }
     for raw_inventory_item in template.get("inventory_items", []):
         if not isinstance(raw_inventory_item, dict):
             continue
 
         template_id = str(raw_inventory_item.get("template_id", "")).strip()
         if not template_id:
+            continue
+        if template_id.lower() in excluded_ids:
             continue
 
         quantity = max(0, int(raw_inventory_item.get("quantity", 1)))
@@ -112,7 +122,6 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.off_hand_hit_roll_modifier = int(template.get("off_hand_hit_roll_modifier", 0))
     entity.coin_reward = max(0, int(template.get("coin_reward", 0)))
     entity.experience_reward = max(0, int(template.get("experience_reward", 0)))
-    entity.inventory_items = _build_inventory_items_from_template(template)
     entity.spawn_sequence = spawn_sequence
     entity.is_aggro = bool(template.get("is_aggro", False))
     entity.aggro_player_flags = [
@@ -178,6 +187,14 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
         else ""
     )
     entity.off_hand_weapon_drop_on_death = max(0.0, min(100.0, float(off_hand_weapon.get("drop_on_death", 0.0))))
+    entity.inventory_items = _build_inventory_items_from_template(
+        template,
+        excluded_template_ids={
+            template_id
+            for template_id in (entity.main_hand_weapon_template_id, entity.off_hand_weapon_template_id)
+            if template_id
+        },
+    )
     entity.vigor = max(0, int(template.get("vigor", template.get("max_vigor", 0))))
     entity.max_vigor = max(0, int(template.get("max_vigor", 0)))
     entity.mana = max(0, int(template.get("mana", template.get("max_mana", 0))))

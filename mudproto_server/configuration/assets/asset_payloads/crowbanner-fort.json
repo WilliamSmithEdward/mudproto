@@ -582,13 +582,6 @@
           "message": "A scarred woman on the tower platform grins without warmth. \"Climb all this way just to die at my boots? Good. Saves me the walk.\""
         }
       ],
-      "inventory_items": [
-        {
-          "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1,
-          "spawn_chance": 100
-        }
-      ],
       "main_hand_weapon": {
         "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "spawn_chance": 100,
@@ -636,13 +629,6 @@
           "message": "A thin man by the signal brazier laughs through broken teeth. \"You smell rain-soaked. Let me fix that with fire.\""
         }
       ],
-      "inventory_items": [
-        {
-          "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1,
-          "spawn_chance": 100
-        }
-      ],
       "main_hand_weapon": {
         "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "spawn_chance": 100,
@@ -686,13 +672,6 @@
           "trigger": "player_enter",
           "audience": "private",
           "message": "A hooded killer rises from the crenels as if he had been nailed there by shadow. \"Too slow,\" he says, already moving."
-        }
-      ],
-      "inventory_items": [
-        {
-          "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1,
-          "spawn_chance": 100
         }
       ],
       "main_hand_weapon": {
@@ -739,14 +718,7 @@
         {
           "trigger": "player_enter",
           "audience": "private",
-          "message": "A broad priest in split vestments lifts his maul from the chapel stones. \"Mercy has left this fort. Only weight remains.\""
-        }
-      ],
-      "inventory_items": [
-        {
-          "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1,
-          "spawn_chance": 100
+          "message": "A broad priest in split vestments lifts a massive maul from the chapel stones. \"Mercy has left this fort. Only weight remains.\""
         }
       ],
       "main_hand_weapon": {
