@@ -10,6 +10,8 @@
 
 `mudproto_server/configuration/assets/` is the content layer for the game world. These files define **what exists in the world**, while rules like wear slots, regeneration, level scaling, and potion cooldowns live in `mudproto_server/configuration/attributes/`.
 
+Server runtime and presentation configuration now lives separately under [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), and [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json). Those files are not content assets and should be maintained independently from the world bundle JSON.
+
 ### Asset files
 
 | File | Purpose |

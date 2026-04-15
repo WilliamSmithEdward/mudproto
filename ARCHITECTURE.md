@@ -44,6 +44,7 @@ Responsibilities:
 - Command queues are FIFO per session.
 - The client sends generic input; the server sends structured display
   instructions.
+- Lore-friendly error presentation is driven by explicit handler error codes; untyped errors render their raw text instead of relying on phrase-matching fallback heuristics.
 - Damage spell engagement is selective: casting on already-engaged targets can
   apply damage without enrolling the caster in combat.
 - AoE damage spells only enroll the caster against affected non-engaged
@@ -151,7 +152,7 @@ Level gains: +10HP +5V +6M
 | `server_movement.py` | Movement notices, follower propagation, arrival/departure messaging, and post-move room refresh handling. |
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
 | `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `ActiveAffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
-| `settings.py` | Loads `configuration/server/settings.json` and exposes typed constants (timing, combat, gameplay, session, offline, database, assets). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
+| `settings.py` | Loads typed runtime config from [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), and [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
 | `session_registry.py` | Shared connected/authenticated session maps, shared world state attachment, and session/world lookup helpers. |
 | `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
 | `session_bootstrap.py` | Player class application, attribute initialization, starting gear/items, and early progression bootstrap. |
@@ -182,7 +183,7 @@ Level gains: +10HP +5V +6M
 | `equipment_logic.py` | Equip/wear/unequip mechanics, hand weight validation, armor class calculation, equipped-item selector resolution. |
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
 | `display_core.py` | Core display builders, line/part composition, and item-highlight coloring helpers. |
-| `display_feedback.py` | Prompt/status displays, command results, and error/connection feedback builders. |
+| `display_feedback.py` | Prompt/status displays, command results, and explicit error-code-based feedback builders using lore text from [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json). |
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
 | `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
 | `assets.py` | Content asset loaders for gear, items, rooms, zones, NPCs, spells, and skills with structural and cross-reference validation. |
@@ -747,6 +748,9 @@ mudproto/
       game_hour_ticks.py         # per-hour regen and timed support processing
     configuration/
       server/settings.json
+      server/directions.json
+      server/health_conditions.json
+      server/display_feedback.json
       assets/gear.json
       assets/items.json
       assets/npcs.json

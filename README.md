@@ -81,6 +81,7 @@ First commands to try:
 - SQLite-backed player persistence.
 - Shared room state for NPCs, corpses, coin piles, and ground items.
 - JSON-driven content for rooms, zones, NPCs, items, spells, skills, and attributes.
+- Server runtime and presentation config is split under [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), and [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json).
 
 ## Architecture
 
@@ -123,6 +124,11 @@ mudproto/
 |  |- asset_payload_generation_instructions.json
 |- mudproto_server/
 |  |- configuration/
+|  |  |- server/
+|  |  |  |- settings.json
+|  |  |  |- directions.json
+|  |  |  |- health_conditions.json
+|  |  |  |- display_feedback.json
 |  |  |- assets/
 |  |  |- attributes/
 |  |- core_logic/
