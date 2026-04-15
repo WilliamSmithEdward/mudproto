@@ -96,7 +96,35 @@ def test_follow_succeeds_without_running_loop(monkeypatch) -> None:
     _clear_session_registries()
 
 
-def test_ungroup_notifies_removed_member_that_following_has_ended(monkeypatch) -> None:
+def test_follow_self_notifies_previous_leader_when_loop_running(monkeypatch) -> None:
+    _clear_session_registries()
+    follower, target = _register_room_pair()
+    follower.following_player_key = target.player_state_key
+    follower.following_player_name = target.authenticated_character_name
+    notifications: list[tuple[object, dict | list[dict]]] = []
+
+    async def fake_send_outbound(websocket, outbound):
+        notifications.append((websocket, outbound))
+        return True
+
+    monkeypatch.setattr(social, "send_outbound", fake_send_outbound)
+
+    async def _scenario() -> None:
+        response = social.handle_social_command(follower, "fol", ["self"], "fol self")
+        assert isinstance(response, dict)
+        assert "You stop following" in _extract_display_text(response)
+        await asyncio.sleep(0)
+
+    asyncio.run(_scenario())
+
+    assert len(notifications) == 1
+    assert notifications[0][0] is target.websocket
+    assert "Ragnar stops following you." in _extract_display_text(notifications[0][1])
+
+    _clear_session_registries()
+
+
+def test_ungroup_suppresses_unfollow_notifications(monkeypatch) -> None:
     _clear_session_registries()
     leader = _make_session("client-leader", "Ragnar")
     member = _make_session("client-member", "Orlandu")
@@ -127,14 +155,12 @@ def test_ungroup_notifies_removed_member_that_following_has_ended(monkeypatch) -
     asyncio.run(_scenario())
 
     assert member.following_player_key == ""
-    assert len(notifications) == 1
-    assert notifications[0][0] is member.websocket
-    assert "You no longer follow Ragnar." in _extract_display_text(notifications[0][1])
+    assert notifications == []
 
     _clear_session_registries()
 
 
-def test_group_disband_notifies_members_that_following_has_ended(monkeypatch) -> None:
+def test_group_disband_suppresses_unfollow_notifications(monkeypatch) -> None:
     _clear_session_registries()
     leader = _make_session("client-leader", "Ragnar")
     member = _make_session("client-member", "Orlandu")
@@ -169,9 +195,7 @@ def test_group_disband_notifies_members_that_following_has_ended(monkeypatch) ->
 
     asyncio.run(_scenario())
 
-    notification_text = "\n".join(_extract_display_text(outbound) for _, outbound in notifications)
-    assert "You no longer follow Ragnar." in notification_text
-    assert "You no longer follow Orlandu." in notification_text
+    assert notifications == []
 
     _clear_session_registries()
 
