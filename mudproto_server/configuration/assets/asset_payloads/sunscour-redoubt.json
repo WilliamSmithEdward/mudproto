@@ -929,8 +929,8 @@
     {
       "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "name": "Buried Heresiarch",
-      "hit_points": 1200,
-      "max_hit_points": 1200,
+      "hit_points": 3000,
+      "max_hit_points": 3000,
       "power_level": 10,
       "attacks_per_round": 2,
       "hit_roll_modifier": 4,
@@ -938,7 +938,7 @@
       "off_hand_attacks_per_round": 1,
       "off_hand_hit_roll_modifier": 4,
       "coin_reward": 96,
-      "experience_reward": 130,
+      "experience_reward": 580,
       "is_aggro": true,
       "is_ally": false,
       "set_world_flags_on_death": [
@@ -970,7 +970,7 @@
       ],
       "loot_items": [
         {
-          "name": "cracked sun medallion",
+          "name": "Cracked Sun Medallion",
           "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
           "keywords": [
             "sun",

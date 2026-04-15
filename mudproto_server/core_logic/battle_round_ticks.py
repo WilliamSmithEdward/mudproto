@@ -75,7 +75,8 @@ def process_non_combat_battleround_tick(session: ClientSession) -> bool:
 
     def _has_battle_round_activity() -> bool:
         has_battle_round_effect = any(effect.support_mode == "battle_rounds" for effect in session.active_support_effects)
-        return has_battle_round_effect or bool(session.combat.skill_cooldowns)
+        has_battle_round_affect = any(affect.affect_mode == "battle_rounds" for affect in session.active_affects)
+        return has_battle_round_effect or has_battle_round_affect or bool(session.combat.skill_cooldowns)
 
     if not _has_battle_round_activity():
         session.next_non_combat_battleround_tick_monotonic = None

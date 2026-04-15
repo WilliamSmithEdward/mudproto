@@ -1,7 +1,7 @@
 import combat_state
 import battle_round_ticks
 from combat_state import _process_combat_round_timers
-from models import ActiveSupportEffectState, ClientSession
+from models import ActiveAffectState, ActiveSupportEffectState, ClientSession
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -167,3 +167,75 @@ def test_non_combat_battleround_scheduler_clears_when_no_activity(monkeypatch) -
     battle_round_ticks.process_non_combat_battleround_tick(session)
 
     assert session.next_non_combat_battleround_tick_monotonic is None
+
+
+def test_out_of_combat_battle_round_affects_expire_on_elapsed_round_time(monkeypatch) -> None:
+    session = _make_session("client-affect-expire", "Lucia")
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.extra-hits",
+        affect_name="Fist Flurry",
+        affect_mode="battle_rounds",
+        affect_type="extra_hits",
+        extra_unarmed_hits=2,
+        remaining_rounds=3,
+    ))
+
+    class _FakeLoop:
+        def __init__(self, now: float):
+            self._now = now
+
+        def time(self) -> float:
+            return self._now
+
+    fake_loop = _FakeLoop(600.0)
+    monkeypatch.setattr(battle_round_ticks.asyncio, "get_running_loop", lambda: fake_loop)
+
+    battle_round_ticks.process_non_combat_battleround_tick(session)
+    due_at = session.next_non_combat_battleround_tick_monotonic
+    assert due_at is not None
+
+    fake_loop._now = 600.0 + (combat_state.COMBAT_ROUND_INTERVAL_SECONDS * 3.0)
+    battle_round_ticks.process_non_combat_battleround_tick(session)
+
+    assert session.active_affects == []
+    assert session.next_non_combat_battleround_tick_monotonic is None
+
+
+def test_combat_and_non_combat_battleround_parity_includes_affects(monkeypatch) -> None:
+    def _make_session_with_affect_activity(client_id: str) -> ClientSession:
+        session = _make_session(client_id, "Parity Affect")
+        session.active_affects.append(ActiveAffectState(
+            affect_id="affect.extra-hits",
+            affect_name="Fist Flurry",
+            affect_mode="battle_rounds",
+            affect_type="extra_hits",
+            extra_unarmed_hits=2,
+            remaining_rounds=4,
+        ))
+        return session
+
+    class _FakeLoop:
+        def __init__(self, now: float):
+            self._now = now
+
+        def time(self) -> float:
+            return self._now
+
+    fake_loop = _FakeLoop(700.0)
+    monkeypatch.setattr(battle_round_ticks.asyncio, "get_running_loop", lambda: fake_loop)
+
+    n_rounds = 2
+    interval = combat_state.COMBAT_ROUND_INTERVAL_SECONDS
+
+    session_nc = _make_session_with_affect_activity("client-affect-parity-nc")
+    battle_round_ticks.process_non_combat_battleround_tick(session_nc)
+    fake_loop._now = 700.0 + (interval * n_rounds)
+    battle_round_ticks.process_non_combat_battleround_tick(session_nc)
+
+    session_c = _make_session_with_affect_activity("client-affect-parity-c")
+    for _ in range(n_rounds):
+        _process_combat_round_timers(session_c, [])
+
+    assert len(session_c.active_affects) == len(session_nc.active_affects)
+    for combat_affect, noncombat_affect in zip(session_c.active_affects, session_nc.active_affects):
+        assert combat_affect.remaining_rounds == noncombat_affect.remaining_rounds
