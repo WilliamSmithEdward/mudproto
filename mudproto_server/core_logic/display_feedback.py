@@ -7,6 +7,7 @@ from experience import get_xp_to_next_level
 from models import ClientSession
 from player_resources import get_player_resource_caps
 from session_timing import is_session_lagged
+from settings import DIRECTION_ALIASES, DIRECTION_SHORT_LABELS, DIRECTION_SORT_ORDER
 from targeting_entities import list_room_entities
 from targeting_follow import _find_session_by_identity_key
 from world import get_room
@@ -31,29 +32,13 @@ def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
 
 
 def _direction_short_label(direction: str) -> str:
-    direction_letters = {
-        "north": "N",
-        "south": "S",
-        "east": "E",
-        "west": "W",
-        "up": "U",
-        "down": "D",
-    }
     normalized = str(direction).strip().lower()
-    return direction_letters.get(normalized, normalized[:1].upper() or "?")
+    return DIRECTION_SHORT_LABELS.get(normalized, normalized[:1].upper() or "?")
 
 
 def _direction_sort_key(direction: str) -> tuple[int, str]:
-    order = {
-        "north": 0,
-        "east": 1,
-        "south": 2,
-        "west": 3,
-        "up": 4,
-        "down": 5,
-    }
     normalized = str(direction).strip().lower()
-    return order.get(normalized, 99), normalized
+    return DIRECTION_SORT_ORDER.get(normalized, 99), normalized
 
 
 def build_prompt_parts(session: ClientSession) -> list[dict]:
@@ -341,22 +326,8 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
     if "more than one target matches" in lowered:
         return [build_part("More than one foe matches that name. Be more specific.", "bright_white", False)]
     if "no target named" in lowered:
-        direction_aliases = {
-            "n": "north",
-            "north": "north",
-            "s": "south",
-            "south": "south",
-            "e": "east",
-            "east": "east",
-            "w": "west",
-            "west": "west",
-            "u": "up",
-            "up": "up",
-            "d": "down",
-            "down": "down",
-        }
         target_match = re.search(r"no target named '([^']+)' is here", lowered)
-        normalized_target = direction_aliases.get(str(target_match.group(1)).strip().lower()) if target_match else None
+        normalized_target = DIRECTION_ALIASES.get(str(target_match.group(1)).strip().lower()) if target_match else None
         if normalized_target == "up":
             return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "bright_white", False)]
         if normalized_target == "down":

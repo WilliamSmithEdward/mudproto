@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 SERVER_ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_FILE = SERVER_ROOT / "configuration" / "server" / "settings.json"
+CONSTANTS_FILE = SERVER_ROOT / "configuration" / "server" / "constants.json"
 
 
 @lru_cache(maxsize=1)
@@ -20,13 +21,37 @@ def load_server_settings() -> dict:
     return raw
 
 
+@lru_cache(maxsize=1)
+def load_server_constants() -> dict:
+    if not CONSTANTS_FILE.exists():
+        return {}
+
+    raw_text = CONSTANTS_FILE.read_text(encoding="utf-8").strip()
+    if not raw_text:
+        return {}
+
+    raw = json.loads(raw_text)
+    if not isinstance(raw, dict):
+        raise ValueError(f"Server constants file must contain an object: {CONSTANTS_FILE}")
+
+    return raw
+
+
 _SETTINGS = load_server_settings()
+_CONSTANTS = load_server_constants()
 
 
 def _section(name: str) -> dict:
     value = _SETTINGS.get(name, {})
     if not isinstance(value, dict):
         raise ValueError(f"Server settings section '{name}' must be an object.")
+    return value
+
+
+def _constant_section(name: str) -> dict:
+    value = _CONSTANTS.get(name, {})
+    if not isinstance(value, dict):
+        raise ValueError(f"Server constants section '{name}' must be an object.")
     return value
 
 
@@ -38,6 +63,88 @@ _SESSION = _section("session")
 _OFFLINE = _section("offline")
 _DATABASE = _section("database")
 _ASSETS = _section("assets")
+_DIRECTIONS = _constant_section("directions")
+_HEALTH_CONDITIONS = _constant_section("health_conditions")
+
+_DEFAULT_DIRECTION_SHORT_LABELS = {
+    "north": "N",
+    "south": "S",
+    "east": "E",
+    "west": "W",
+    "up": "U",
+    "down": "D",
+}
+_DEFAULT_DIRECTION_SORT_ORDER = {
+    "north": 0,
+    "east": 1,
+    "south": 2,
+    "west": 3,
+    "up": 4,
+    "down": 5,
+}
+_DEFAULT_DIRECTION_ALIASES = {
+    "n": "north",
+    "north": "north",
+    "s": "south",
+    "south": "south",
+    "e": "east",
+    "east": "east",
+    "w": "west",
+    "west": "west",
+    "u": "up",
+    "up": "up",
+    "d": "down",
+    "down": "down",
+}
+_DEFAULT_HEALTH_CONDITION_BANDS = [
+    {"max_ratio": 0.15, "label": "awful", "color": "bright_red"},
+    {"max_ratio": 0.30, "label": "very poor", "color": "bright_red"},
+    {"max_ratio": 0.45, "label": "poor", "color": "bright_red"},
+    {"max_ratio": 0.60, "label": "average", "color": "bright_yellow"},
+    {"max_ratio": 0.75, "label": "fair", "color": "bright_yellow"},
+    {"max_ratio": 0.90, "label": "good", "color": "bright_green"},
+    {"max_ratio": 0.999999, "label": "very good", "color": "bright_green"},
+    {"max_ratio": 1.0, "label": "perfect", "color": "bright_green"},
+]
+
+DIRECTION_SHORT_LABELS = {
+    **_DEFAULT_DIRECTION_SHORT_LABELS,
+    **{
+        str(direction).strip().lower(): str(label).strip()
+        for direction, label in dict(_DIRECTIONS.get("short_labels", {})).items()
+        if str(direction).strip() and str(label).strip()
+    },
+}
+DIRECTION_SORT_ORDER = {
+    **_DEFAULT_DIRECTION_SORT_ORDER,
+    **{
+        str(direction).strip().lower(): int(order)
+        for direction, order in dict(_DIRECTIONS.get("sort_order", {})).items()
+        if str(direction).strip()
+    },
+}
+DIRECTION_ALIASES = {
+    **_DEFAULT_DIRECTION_ALIASES,
+    **{
+        str(alias).strip().lower(): str(target).strip().lower()
+        for alias, target in dict(_DIRECTIONS.get("aliases", {})).items()
+        if str(alias).strip() and str(target).strip()
+    },
+}
+
+_raw_health_condition_bands = _HEALTH_CONDITIONS.get("bands", _DEFAULT_HEALTH_CONDITION_BANDS)
+if not isinstance(_raw_health_condition_bands, list) or not _raw_health_condition_bands:
+    _raw_health_condition_bands = list(_DEFAULT_HEALTH_CONDITION_BANDS)
+
+HEALTH_CONDITION_BANDS = sorted([
+    {
+        "max_ratio": max(0.0, min(1.0, float(band.get("max_ratio", 1.0)))),
+        "label": str(band.get("label", "perfect")).strip().lower() or "perfect",
+        "color": str(band.get("color", "bright_green")).strip() or "bright_green",
+    }
+    for band in _raw_health_condition_bands
+    if isinstance(band, dict)
+], key=lambda band: float(band.get("max_ratio", 1.0))) or list(_DEFAULT_HEALTH_CONDITION_BANDS)
 
 
 SERVER_HOST = str(_NETWORK.get("host", "localhost")).strip() or "localhost"

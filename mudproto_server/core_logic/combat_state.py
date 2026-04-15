@@ -11,7 +11,7 @@ from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
 from session_registry import active_character_sessions, connected_clients, shared_world_entities, shared_world_flags
 from session_timing import apply_lag
-from settings import COMBAT_ROUND_INTERVAL_SECONDS
+from settings import COMBAT_ROUND_INTERVAL_SECONDS, HEALTH_CONDITION_BANDS
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
 
@@ -23,20 +23,13 @@ def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str
         return "awful", "bright_red"
 
     ratio = max(0.0, min(1.0, hit_points / max_hit_points))
-    if ratio <= 0.15:
-        return "awful", "bright_red"
-    if ratio <= 0.30:
-        return "very poor", "bright_red"
-    if ratio <= 0.45:
-        return "poor", "bright_red"
-    if ratio <= 0.60:
-        return "average", "bright_yellow"
-    if ratio <= 0.75:
-        return "fair", "bright_yellow"
-    if ratio <= 0.90:
-        return "good", "bright_green"
-    if ratio < 1.0:
-        return "very good", "bright_green"
+    for band in HEALTH_CONDITION_BANDS:
+        max_ratio = max(0.0, min(1.0, float(band.get("max_ratio", 1.0))))
+        if ratio <= max_ratio:
+            label = str(band.get("label", "perfect")).strip().lower() or "perfect"
+            color = str(band.get("color", "bright_green")).strip() or "bright_green"
+            return label, color
+
     return "perfect", "bright_green"
 
 
