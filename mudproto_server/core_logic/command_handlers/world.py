@@ -5,6 +5,8 @@ from display_feedback import display_error, display_force_prompt
 from models import ClientSession
 from room_actions import handle_room_keyword_action
 from room_exits import handle_room_exit_command
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
+from session_timing import apply_lag
 from targeting_follow import _list_group_member_sessions, _resolve_room_player_selector
 from world_population import spawn_dummy
 
@@ -35,6 +37,7 @@ def _assist_on_entity(
 
     immediate_round = resolve_combat_round(session)
     if immediate_round is not None:
+        apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
         if session.pending_death_logout:
             return immediate_round
         return [immediate_round, display_force_prompt(session)]

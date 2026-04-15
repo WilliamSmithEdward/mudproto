@@ -37,6 +37,19 @@ def _flatten_display_lines(outbound: dict) -> str:
     return "\n".join(rendered)
 
 
+def _flatten_prompt_lines(outbound: dict) -> str:
+    payload = outbound.get("payload", {})
+    prompt_lines = payload.get("prompt_lines", []) if isinstance(payload, dict) else []
+
+    rendered: list[str] = []
+    for line in prompt_lines:
+        if not isinstance(line, list):
+            continue
+        rendered.append("".join(str(part.get("text", "")) for part in line if isinstance(part, dict)))
+
+    return "\n".join(rendered)
+
+
 def test_clear_aliases_clear_queued_commands_while_lagged() -> None:
     async def _run() -> None:
         for alias in ("cle", "clea", "clear"):
@@ -49,10 +62,13 @@ def test_clear_aliases_clear_queued_commands_while_lagged() -> None:
 
             outbound = await process_input_message(_input_message(alias), session)
 
-            assert isinstance(outbound, dict)
-            assert outbound.get("type") == "display"
+            assert isinstance(outbound, list)
+            assert len(outbound) == 2
+            assert outbound[0].get("type") == "display"
+            assert outbound[1].get("type") == "display"
             assert session.command_queue == []
-            assert "Cleared 2 queued commands." in _flatten_display_lines(outbound)
+            assert "Cleared 2 queued commands." in _flatten_display_lines(outbound[0])
+            assert "> " in _flatten_prompt_lines(outbound[1])
 
     asyncio.run(_run())
 

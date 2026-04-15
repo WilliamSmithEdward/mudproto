@@ -44,6 +44,8 @@ from display_core import build_part
 from equipment_logic import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
 from grammar import with_article
 from models import ClientSession, EntityState, ItemState
+from settings import COMBAT_ROUND_INTERVAL_SECONDS
+from session_timing import apply_lag
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
 
@@ -281,6 +283,7 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
 
     immediate_round = resolve_combat_round(session)
     if immediate_round is not None:
+        apply_lag(session, COMBAT_ROUND_INTERVAL_SECONDS)
         if session.pending_death_logout:
             return immediate_round
         return [immediate_round, display_force_prompt(session)]

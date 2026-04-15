@@ -1,7 +1,7 @@
 from display_core import build_part
-from display_feedback import display_command_result
+from display_feedback import display_command_result, display_force_prompt
 from models import ClientSession
-from session_timing import clear_queued_commands
+from session_timing import clear_queued_commands, is_session_lagged
 
 from .types import OutboundResult
 
@@ -24,10 +24,16 @@ def handle_queue_command(
         return None
 
     cleared_count = clear_queued_commands(session)
-    return display_command_result(session, [
+    lagged = is_session_lagged(session)
+    message = display_command_result(session, [
         build_part("Cleared ", "bright_white"),
         build_part(str(cleared_count), "bright_cyan", True),
         build_part(" queued command", "bright_white"),
         build_part("s" if cleared_count != 1 else "", "bright_white"),
         build_part(".", "bright_white"),
-    ])
+    ], prompt_after=not lagged)
+
+    if lagged:
+        return [message, display_force_prompt(session)]
+
+    return message

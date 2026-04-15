@@ -10,6 +10,7 @@ from display_core import build_display, build_part, with_leading_blank_lines
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
 from session_registry import active_character_sessions, connected_clients, shared_world_entities, shared_world_flags
+from session_timing import apply_lag
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
@@ -448,7 +449,9 @@ def process_pending_auto_aggro() -> None:
             continue
 
         chosen_session = random.choice(candidates)
-        start_combat(chosen_session, entity.entity_id, "entity")
+        started = start_combat(chosen_session, entity.entity_id, "entity")
+        if started:
+            apply_lag(chosen_session, COMBAT_ROUND_INTERVAL_SECONDS)
 
 
 def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:
