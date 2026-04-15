@@ -354,3 +354,37 @@ def test_combat_round_does_not_stand_sitting_npc_while_lagged(monkeypatch) -> No
     assert entity.is_sitting is True
     assert entity.skill_lag_rounds_remaining == 0
     assert "stands up." not in rendered
+
+
+def test_bashed_npc_can_use_skills_again_after_standing(monkeypatch) -> None:
+    session = _make_session("client-bash-recovery", "Lucia")
+    entity = EntityState(
+        entity_id="entity-reaver",
+        name="Reaver",
+        room_id="start",
+        hit_points=100,
+        max_hit_points=100,
+    )
+    entity.is_sitting = True
+    entity.skill_lag_rounds_remaining = 1
+    entity.spell_lag_rounds_remaining = 0
+
+    skill_uses: list[str] = []
+
+    monkeypatch.setattr(combat, "_entity_try_cast_spell", lambda _session, _entity, _parts: False)
+    monkeypatch.setattr(combat, "_entity_try_use_skill", lambda _session, npc, _parts: skill_uses.append(npc.entity_id) or True)
+    monkeypatch.setattr(combat, "roll_hit", lambda _hit_mod, _armor_class: False)
+
+    combat._apply_entity_attacks(session, entity, [], allow_off_hand=False)
+    assert entity.is_sitting is True
+    assert skill_uses == []
+
+    stand_parts: list[dict] = []
+    combat._apply_entity_attacks(session, entity, stand_parts, allow_off_hand=False)
+    stand_rendered = "".join(str(part.get("text", "")) for part in stand_parts if isinstance(part, dict))
+    assert entity.is_sitting is False
+    assert "stands up." in stand_rendered
+    assert skill_uses == []
+
+    combat._apply_entity_attacks(session, entity, [], allow_off_hand=False)
+    assert skill_uses == ["entity-reaver"]
