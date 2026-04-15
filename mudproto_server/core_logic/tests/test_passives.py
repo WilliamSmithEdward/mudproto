@@ -1,7 +1,9 @@
 import command_handlers.passives as passives
+import session_lifecycle
 from combat import _get_player_unarmed_profile
 from models import ClientSession
 from session_bootstrap import apply_player_class
+from world import Room
 
 
 def _extract_display_text(outbound: dict | list[dict]) -> str:
@@ -134,3 +136,88 @@ def test_monk_unarmed_profile_uses_passive_package() -> None:
     assert unarmed_damage_bonus == 13
     assert unarmed_hit_bonus == 4
     assert dual_unarmed_attacks is True
+
+
+def test_complete_login_does_not_auto_add_class_kit_passives_for_loaded_character(monkeypatch) -> None:
+    session = _make_session("client-login-passive", "Lucia")
+
+    def _fake_load_player_state(target_session, player_key=None) -> bool:
+        target_session.player.class_id = "class.monk"
+        target_session.known_passive_ids = []
+        return True
+
+    monkeypatch.setattr(session_lifecycle, "load_player_state", _fake_load_player_state)
+    monkeypatch.setattr(session_lifecycle, "hydrate_session_from_active_character", lambda _session, _character_key: False)
+    monkeypatch.setattr(session_lifecycle, "purge_nonpersistent_items", lambda _session, reason="": 0)
+    monkeypatch.setattr(session_lifecycle, "clear_transient_interaction_flags_for_session", lambda _session: 0)
+    monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
+    monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
+    monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: [])
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+
+    session_lifecycle.complete_login(
+        session,
+        {
+            "character_key": "lucia",
+            "character_name": "Lucia",
+            "class_id": "class.monk",
+            "gender": "female",
+            "login_room_id": "start",
+        },
+        is_new_character=False,
+    )
+
+    assert session.known_passive_ids == []
+
+
+def test_complete_login_preserves_loaded_passives_for_existing_character(monkeypatch) -> None:
+    session = _make_session("client-login-passive-existing", "Lucia")
+
+    def _fake_load_player_state(target_session, player_key=None) -> bool:
+        target_session.player.class_id = "class.monk"
+        target_session.known_passive_ids = ["passive.monk-unarmed-mastery"]
+        return True
+
+    monkeypatch.setattr(session_lifecycle, "load_player_state", _fake_load_player_state)
+    monkeypatch.setattr(session_lifecycle, "hydrate_session_from_active_character", lambda _session, _character_key: False)
+    monkeypatch.setattr(session_lifecycle, "purge_nonpersistent_items", lambda _session, reason="": 0)
+    monkeypatch.setattr(session_lifecycle, "clear_transient_interaction_flags_for_session", lambda _session: 0)
+    monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
+    monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
+    monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: [])
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+
+    session_lifecycle.complete_login(
+        session,
+        {
+            "character_key": "lucia",
+            "character_name": "Lucia",
+            "class_id": "class.monk",
+            "gender": "female",
+            "login_room_id": "start",
+        },
+        is_new_character=False,
+    )
+
+    assert [value.strip().lower() for value in session.known_passive_ids] == ["passive.monk-unarmed-mastery"]
+
+
+def test_hydrate_session_from_active_character_copies_known_passives() -> None:
+    existing = _make_session("client-existing-passive", "Lucia")
+    target = _make_session("client-target-passive", "Lucia")
+    existing.player_state_key = "lucia"
+    existing.known_passive_ids = ["passive.monk-unarmed-mastery"]
+
+    previous_active = dict(session_lifecycle.active_character_sessions)
+    session_lifecycle.active_character_sessions.clear()
+    session_lifecycle.active_character_sessions["lucia"] = existing
+    try:
+        hydrated = session_lifecycle.hydrate_session_from_active_character(target, "lucia")
+    finally:
+        session_lifecycle.active_character_sessions.clear()
+        session_lifecycle.active_character_sessions.update(previous_active)
+
+    assert hydrated is True
+    assert "passive.monk-unarmed-mastery" in [
+        value.strip().lower() for value in target.known_passive_ids
+    ]
