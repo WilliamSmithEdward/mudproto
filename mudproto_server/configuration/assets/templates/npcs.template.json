@@ -21,7 +21,8 @@
       "is_named": {
         "type": "boolean",
         "required": false,
-        "notes": "Optional. Set true for uniquely named or story-significant NPCs that should render without an indefinite article in combat and room text. Omit it for ordinary generic mobs."
+        "default": false,
+        "notes": "Explicit naming control. Set true for uniquely named or story-significant NPCs that should render without an indefinite article in combat and room text; leave false for ordinary generic mobs. Named NPC corpses render as full possessive labels such as 'Brother Cleft's corpse'."
       },
       "hit_points": {
         "type": "integer",

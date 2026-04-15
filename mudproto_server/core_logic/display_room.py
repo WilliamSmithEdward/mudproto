@@ -437,6 +437,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
                     _build_corpse_label(
                         corpse.source_name,
                         getattr(corpse, "corpse_label_style", "generic"),
+                        is_named=bool(getattr(corpse, "is_named", False)),
                     ),
                     bold=True,
                 ),

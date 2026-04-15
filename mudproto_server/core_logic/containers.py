@@ -37,6 +37,7 @@ def _container_label(container: ContainerTarget) -> str:
         return _build_corpse_label(
             container.source_name,
             getattr(container, "corpse_label_style", "generic"),
+            is_named=bool(getattr(container, "is_named", False)),
         )
     return str(getattr(container, "name", "container")).strip() or "container"
 

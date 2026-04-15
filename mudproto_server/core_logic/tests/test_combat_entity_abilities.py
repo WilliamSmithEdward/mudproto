@@ -161,9 +161,10 @@ def test_entity_sitting_does_not_use_skill(monkeypatch) -> None:
     assert parts == []
 
 
-def test_entity_named_skill_message_uses_name_without_article_when_flag_is_unspecified(monkeypatch) -> None:
+def test_entity_named_skill_message_uses_name_without_article_when_flag_is_true(monkeypatch) -> None:
     session = _make_session("client-player", "Lucia")
     entity = _make_entity("entity-seln", "Seln of the Pins")
+    entity.is_named = True
     entity.skill_ids = ["skill.gutter-step"]
     entity.skill_use_chance = 1.0
     entity.vigor = 100

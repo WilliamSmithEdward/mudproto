@@ -19,8 +19,8 @@ from targeting_items import _resolve_misc_inventory_selector
 
 
 
-def _build_corpse_label(source_name: str, corpse_label_style: str = "generic") -> str:
-    return build_corpse_label(source_name, corpse_label_style)
+def _build_corpse_label(source_name: str, corpse_label_style: str = "generic", *, is_named: bool = False) -> str:
+    return build_corpse_label(source_name, corpse_label_style, is_named=is_named)
 
 
 def _item_highlight_color(item) -> str:

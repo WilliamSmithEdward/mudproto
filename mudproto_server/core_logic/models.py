@@ -169,6 +169,7 @@ class CorpseState:
     source_entity_id: str
     source_name: str
     room_id: str
+    is_named: bool = False
     corpse_label_style: str = "generic"
     coins: int = 0
     loot_items: dict[str, ItemState] = field(default_factory=dict)
@@ -197,7 +198,7 @@ class EntityState:
     is_alive: bool = True
     spawn_sequence: int = 0
     is_aggro: bool = False
-    is_named: bool | None = None
+    is_named: bool = False
     aggro_player_flags: list[str] = field(default_factory=list)
     set_player_flags_on_hostile_action: list[str] = field(default_factory=list)
     set_player_flags_on_death: list[str] = field(default_factory=list)

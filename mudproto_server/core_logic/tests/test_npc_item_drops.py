@@ -6,6 +6,7 @@ import pytest
 import assets
 import world_population
 from combat_state import spawn_corpse_for_entity
+from corpse_labels import build_corpse_label
 from models import ClientSession, CombatState, PlayerState, PlayerStatus
 from protocol import utc_now_iso
 
@@ -75,7 +76,7 @@ def test_entity_build_preserves_explicit_is_named_flag(monkeypatch: pytest.Monke
     assert entity.is_named is True
 
 
-def test_entity_build_leaves_is_named_unspecified_when_flag_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_entity_build_defaults_is_named_to_false_when_flag_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(world_population.random, "random", lambda: 0.0)
     template = _build_template()
     template["name"] = "Seln of the Pins"
@@ -83,7 +84,20 @@ def test_entity_build_leaves_is_named_unspecified_when_flag_is_missing(monkeypat
 
     entity = world_population._build_entity_from_template(template, ROOM_ID, 1)
 
-    assert entity.is_named is None
+    assert entity.is_named is False
+
+
+def test_named_npc_corpse_uses_full_name_possessive_label(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(world_population.random, "random", lambda: 0.0)
+    session = _make_session()
+    template = _build_template()
+    template["name"] = "Brother Cleft"
+    template["is_named"] = True
+
+    entity = world_population._build_entity_from_template(template, ROOM_ID, 1)
+    corpse = spawn_corpse_for_entity(session, entity)
+
+    assert build_corpse_label(corpse.source_name, corpse.corpse_label_style, is_named=corpse.is_named) == "Brother Cleft's corpse"
 
 
 def test_spawn_corpse_respects_drop_on_death(monkeypatch: pytest.MonkeyPatch) -> None:

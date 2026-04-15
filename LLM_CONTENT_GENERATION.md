@@ -138,7 +138,8 @@ This makes it possible for multiple payloads to attach new paths to the same roo
 - **New spells and skills are welcome when warranted:** the LLM may create fully new spells and skills as long as they feel flavorful, distinct, and well-matched to the theme, lore, and tone of the zone and the broader game.
 - **Avoid redundant reskins:** do not create new consumable items, spells, or skills that are functionally just renamed copies of existing mechanics unless a distinct variant or direct override is explicitly desired.
 - **Use the affect artifact correctly:** support and lingering status behavior should reference the centralized affect templates in `mudproto_server/configuration/attributes/affects.json` via `affect_ids`; do not invent inline affect payloads.
-- **Mark true proper-name NPCs explicitly:** if an NPC is a unique named character (for example a boss, officer, priestess, or story NPC with a personal name/title), set `is_named: true`; leave the field omitted for ordinary generic enemies.
+- **Set NPC naming explicitly:** generated NPCs should include `is_named` deliberately. Use `true` for unique named characters (for example bosses, officers, priestesses, or story NPCs with personal names/titles) and `false` for ordinary generic enemies.
+- **Named NPC corpse labels are possessive:** when `is_named: true`, the corpse should read as the full-name possessive form, such as `Brother Cleft's corpse`.
 - **Write ability narration in a target-safe format:** use placeholders such as `[a/an] [verb] thrown off balance by the strike!` so the same line reads correctly for both players and NPC victims. Avoid actor-POV lines like `You drive a knife into your foe!`.
 - **Room merges are special-case only for exits:** everything else on the room comes from the last loaded room payload.
 
@@ -168,7 +169,8 @@ Before keeping a generated payload:
 - confirm the IDs follow the intended new-vs-override rule
 - confirm room exits point to real rooms
 - confirm NPCs only reference valid spells, skills, and item/gear IDs
-- confirm uniquely named NPCs have `is_named: true` when appropriate
+- confirm every generated NPC sets `is_named` intentionally, with `true` only for real named/story NPCs
+- confirm named NPC corpses will read correctly as full-name possessives
 - confirm ability `damage_context` / `support_context` lines use placeholder-safe, target-state wording
 - confirm balance is reasonable for the target difficulty
 - restart the server and smoke test in-game

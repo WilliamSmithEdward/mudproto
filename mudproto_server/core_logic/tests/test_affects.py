@@ -194,8 +194,8 @@ def test_pressure_point_increases_physical_damage_from_any_source() -> None:
     assert spell_damage == 10
 
 
-def test_with_article_avoids_indefinite_article_for_brother_cleft_style_names() -> None:
-    assert with_article("Brother Cleft", capitalize=True) == "Brother Cleft"
+def test_with_article_requires_explicit_named_flag_for_named_npcs() -> None:
+    assert with_article("Brother Cleft", capitalize=True) == "A Brother Cleft"
     assert with_article("goblin", capitalize=True) == "A goblin"
 
 

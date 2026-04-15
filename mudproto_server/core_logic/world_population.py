@@ -124,8 +124,7 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.experience_reward = max(0, int(template.get("experience_reward", 0)))
     entity.spawn_sequence = spawn_sequence
     entity.is_aggro = bool(template.get("is_aggro", False))
-    raw_is_named = template.get("is_named", None)
-    entity.is_named = bool(raw_is_named) if raw_is_named is not None else None
+    entity.is_named = bool(template.get("is_named", False))
     entity.aggro_player_flags = [
         str(flag).strip().lower()
         for flag in template.get("aggro_player_flags", [])

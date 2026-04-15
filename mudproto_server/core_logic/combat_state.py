@@ -77,6 +77,7 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
         source_entity_id=entity.entity_id,
         source_name=entity.name,
         room_id=entity.room_id,
+        is_named=bool(getattr(entity, "is_named", False)),
         corpse_label_style=str(getattr(entity, "corpse_label_style", "generic")).strip().lower() or "generic",
         coins=max(0, entity.coin_reward),
         loot_items=loot_items,

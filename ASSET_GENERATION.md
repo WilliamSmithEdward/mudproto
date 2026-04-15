@@ -258,6 +258,7 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 - `coin_reward`
 - `experience_reward`
 - `is_aggro`
+- `is_named` — explicit boolean for article-free named NPC rendering; set `true` only for unique named/story NPCs
 - `is_ally`
 - `is_peaceful`
 - `respawn`
@@ -285,6 +286,8 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 - `respawn: true` means the NPC is eligible for zone-driven repopulation.
 - `is_peaceful: true` means offensive effects should not land on the NPC.
 - `is_aggro: true` means the NPC auto-engages players when appropriate.
+- `is_named: true` suppresses indefinite articles in combat and room text and gives the corpse a full-name possessive label, such as `Brother Cleft's corpse`.
+- Ability `damage_context` / `support_context` should be written in neutral target-state wording, preferably with `[a/an]` and `[verb]` placeholders, rather than actor-POV phrases like `You slash your foe!`.
 
 ### Example hostile NPC
 ```json

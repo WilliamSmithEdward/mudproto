@@ -34,8 +34,8 @@ def _entity_name_keywords(name: str) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
 
 
-def _build_corpse_label(source_name: str, corpse_label_style: str = "generic") -> str:
-    return build_corpse_label(source_name, corpse_label_style)
+def _build_corpse_label(source_name: str, corpse_label_style: str = "generic", *, is_named: bool = False) -> str:
+    return build_corpse_label(source_name, corpse_label_style, is_named=is_named)
 
 
 def _corpse_keywords(corpse: CorpseState) -> set[str]:
@@ -216,6 +216,7 @@ def resolve_room_corpse_selector(
                 _build_corpse_label(
                     corpse.source_name,
                     getattr(corpse, "corpse_label_style", "generic"),
+                    is_named=bool(getattr(corpse, "is_named", False)),
                 ).lower(),
                 f"{corpse.source_name} corpse".lower(),
             }
