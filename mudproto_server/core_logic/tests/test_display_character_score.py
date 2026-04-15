@@ -1,4 +1,5 @@
 import display_character
+import combat_player_abilities
 from models import ActiveAffectState, ActiveSupportEffectState, ClientSession
 
 
@@ -95,3 +96,37 @@ def test_score_displays_active_affects_and_support_effects() -> None:
 
     assert "Regeneration Ward (2 hours remaining)" in rendered
     assert "Fist Flurry (3 rounds remaining)" in rendered
+
+
+def test_score_displays_targeted_support_spell_affect_from_another_player(monkeypatch) -> None:
+    caster = _make_session("client-caster", "Lucia")
+    target = _make_session("client-target", "Orlandu")
+
+    spell = {
+        "spell_id": "spell.regeneration-ward",
+        "name": "Regeneration Ward",
+        "school": "Restoration",
+        "spell_type": "support",
+        "element": "restoration",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "support_effect": "heal",
+        "support_amount": 1,
+        "support_mode": "instant",
+        "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
+        "affect_ids": ["affect.regeneration"],
+    }
+
+    monkeypatch.setattr(
+        combat_player_abilities,
+        "_resolve_room_player_selector",
+        lambda _session, _target_name, require_exact_name=True: (target, None),
+    )
+
+    outbound, applied = combat_player_abilities.cast_spell(caster, spell, "Orlandu")
+    rendered = _extract_display_text(outbound)
+    score_rendered = _extract_display_text(display_character.display_score(target))
+
+    assert applied is True
+    assert "Regeneration Ward" in rendered
+    assert "Regeneration Ward (3 rounds remaining)" in score_rendered

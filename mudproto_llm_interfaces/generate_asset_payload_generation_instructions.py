@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.12",
+        "version": "2.13",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
         "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
@@ -237,6 +237,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
             "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
             "Only reference assets that exist in the base game or in this same payload.",
+            "Do not create new consumable items, spells, or skills that are only cosmetic or lore reskins of existing mechanics. If the gameplay is materially the same, reuse or intentionally override the existing asset instead of adding a near-duplicate.",
             "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
             "Preserve MudProto's existing fantasy tone and naming style.",
             "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
@@ -283,12 +284,13 @@ def build_instruction_payload() -> dict[str, object]:
             "Include optional flavor-only interaction hooks (for example room or NPC keyword actions with noop-style output text) when they naturally fit the scene.",
             "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
             "Merchant inventories should be sensible for the NPC role.",
+            "Avoid redundant consumables, spells, and skills that duplicate existing mechanics under a new name unless the user explicitly requests a distinct variant or override.",
             "Avoid overpowered numbers unless explicitly requested."
         ],
         "asset_schemas": asset_schemas,
         "reference_docs": [
             "ASSET_GENERATION.md",
-            "mudproto_server/assets.py",
+            "mudproto_server/core_logic/assets.py",
             "mudproto_server/configuration/assets/templates/"
         ],
         "current_game_assets": {

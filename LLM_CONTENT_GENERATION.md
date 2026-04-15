@@ -35,6 +35,7 @@ The generated instruction file is what you hand to the AI model. It contains:
 - conflict resolution behavior
 - schema references from the template files
 - a serialized snapshot of the current asset set
+- the current authoring constraints, including anti-duplication guidance for abilities and consumables
 
 ### 2. Make sure the AI returns a downloadable `.json` file
 This is important.
@@ -80,7 +81,7 @@ The authoritative schema reference files live in:
 - `mudproto_server/configuration/assets/templates/`
 - `mudproto_server/configuration/attributes/templates/`
 
-These template files describe the expected JSON structure for the gameâ€™s config files and should be kept in sync with schema changes.
+These template files describe the expected JSON structure for the game's config files and should be kept in sync with schema changes.
 
 For broader authoring guidance, also see:
 
@@ -134,6 +135,7 @@ This makes it possible for multiple payloads to attach new paths to the same roo
 - **Output must be raw JSON:** no comments, no trailing commas, no Markdown fences.
 - **Use lowercase IDs and keywords:** this matches existing conventions and selector behavior.
 - **Override carefully:** reusing a base ID replaces behavior/data for that asset type.
+- **Avoid redundant reskins:** do not create new consumable items, spells, or skills that are functionally just renamed copies of existing mechanics unless a distinct variant or direct override is explicitly desired.
 - **Room merges are special-case only for exits:** everything else on the room comes from the last loaded room payload.
 
 ---

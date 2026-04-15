@@ -575,7 +575,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 actor=session,
                 target=support_target_session,
                 ability=spell,
-                affect_target=support_cast_type,
+                affect_target="self",
             )
             observer_lines = [
                 _resolve_observer_action_line(
@@ -669,7 +669,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             actor=session,
             target=support_target_session,
             ability=spell,
-            affect_target=support_cast_type,
+            affect_target="self",
         )
         observer_lines = [
             _resolve_observer_action_line(
