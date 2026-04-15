@@ -17,6 +17,7 @@ from combat_ability_effects import (
     _apply_entity_spell_lag,
     _apply_target_posture,
     _apply_player_damage_with_reduction,
+    _entity_has_active_ongoing_support_effect,
     _observer_restore_fallback,
     _resolve_entity_damage_scaling_bonus,
     _resolve_entity_skill_scale_bonus,
@@ -28,25 +29,6 @@ from combat_ability_effects import (
 )
 from session_timing import apply_lag
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
-
-
-def _entity_has_active_ongoing_support_effect(entity: EntityState, effect_id: str) -> bool:
-    normalized_effect_id = str(effect_id).strip().lower()
-    if not normalized_effect_id:
-        return False
-
-    for active_effect in entity.active_support_effects:
-        active_effect_id = str(active_effect.spell_id).strip().lower()
-        if active_effect_id != normalized_effect_id:
-            continue
-
-        support_mode = str(active_effect.support_mode).strip().lower() or "timed"
-        if support_mode == "battle_rounds" and int(active_effect.remaining_rounds) > 0:
-            return True
-        if support_mode == "timed" and int(active_effect.remaining_hours) > 0:
-            return True
-
-    return False
 
 
 def _supports_target_placeholders(context: str) -> bool:

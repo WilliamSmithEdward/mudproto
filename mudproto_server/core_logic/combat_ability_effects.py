@@ -2,7 +2,15 @@
 
 import random
 
-from attribute_config import get_affect_template_by_id, get_posture_dealt_damage_multiplier, get_posture_received_damage_multiplier
+from attribute_config import (
+    get_affect_template_by_id,
+    get_posture_dealt_damage_multiplier,
+    get_posture_received_damage_multiplier,
+    get_posture_regeneration_bonus_multiplier,
+    load_regeneration_config,
+    posture_prevents_skill_spell_use,
+)
+from assets import get_skill_by_id, get_spell_by_id
 from models import ActiveAffectState, ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 
@@ -18,6 +26,25 @@ _AFFECT_TYPES = {
     _AFFECT_TYPE_EXTRA_HITS,
     _AFFECT_TYPE_DAMAGE_REDUCTION,
 }
+
+
+def _entity_has_active_ongoing_support_effect(entity: EntityState, effect_id: str) -> bool:
+    normalized_effect_id = str(effect_id).strip().lower()
+    if not normalized_effect_id:
+        return False
+
+    for active_effect in list(getattr(entity, "active_support_effects", [])):
+        active_effect_id = str(getattr(active_effect, "spell_id", "")).strip().lower()
+        if active_effect_id != normalized_effect_id:
+            continue
+
+        support_mode = str(getattr(active_effect, "support_mode", "timed")).strip().lower() or "timed"
+        if support_mode == "battle_rounds" and int(getattr(active_effect, "remaining_rounds", 0)) > 0:
+            return True
+        if support_mode == "timed" and int(getattr(active_effect, "remaining_hours", 0)) > 0:
+            return True
+
+    return False
 
 
 def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, str]:
@@ -739,7 +766,266 @@ def process_entity_battle_round_tick(entity: EntityState, elapsed_rounds: int = 
                     cooldowns[key] = remaining - 1
 
 
+def _entity_needs_secondary_restore(entity: EntityState, effect: str) -> bool:
+    normalized_effect = str(effect).strip().lower()
+    if normalized_effect == "mana":
+        return int(entity.mana) < int(entity.max_mana)
+    if normalized_effect == "vigor":
+        return int(entity.vigor) < int(entity.max_vigor)
+    return int(entity.hit_points) < int(entity.max_hit_points)
+
+
+def _apply_entity_passive_regeneration(entity: EntityState) -> None:
+    if not getattr(entity, "is_alive", False):
+        return
+
+    regeneration_config = load_regeneration_config()
+    resources = regeneration_config.get("resources", {}) if isinstance(regeneration_config, dict) else {}
+
+    def _resolve_regen_percent(attribute_score: int, mapping: list[dict]) -> float:
+        resolved_percent = 0.0
+        for entry in mapping:
+            if attribute_score >= int(entry.get("min", 0)):
+                resolved_percent = float(entry.get("percent", 0.0))
+            else:
+                break
+        return max(0.0, resolved_percent)
+
+    attribute_score = max(0, int(getattr(entity, "power_level", 0)))
+    posture_multiplier = 1.0
+    if bool(getattr(entity, "is_sleeping", False)):
+        posture_multiplier = get_posture_regeneration_bonus_multiplier("sleeping")
+    elif bool(getattr(entity, "is_resting", False)):
+        posture_multiplier = get_posture_regeneration_bonus_multiplier("resting")
+
+    resource_specs = [
+        ("hit_points", "hit_points", "max_hit_points"),
+        ("vigor", "vigor", "max_vigor"),
+        ("mana", "mana", "max_mana"),
+    ]
+    for resource_key, entity_field, max_field in resource_specs:
+        max_value = max(0, int(getattr(entity, max_field, 0)))
+        current_value = max(0, int(getattr(entity, entity_field, 0)))
+        if max_value <= 0 or current_value >= max_value:
+            continue
+
+        resource_config = resources.get(resource_key, {}) if isinstance(resources, dict) else {}
+        if not isinstance(resource_config, dict):
+            continue
+
+        mapping = resource_config.get("percent_by_attribute", [])
+        if not isinstance(mapping, list):
+            continue
+
+        regen_percent = _resolve_regen_percent(attribute_score, mapping)
+        min_amount = max(0, int(resource_config.get("min_amount", 0)))
+        regen_amount = max(min_amount, int(max_value * regen_percent))
+        if posture_multiplier != 1.0:
+            regen_amount = int(regen_amount * posture_multiplier)
+
+        if regen_amount <= 0:
+            continue
+
+        setattr(entity, entity_field, min(max_value, current_value + regen_amount))
+
+
+def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
+    if not getattr(entity, "is_alive", False):
+        return False
+
+    if str(getattr(entity, "combat_target_player_key", "")).strip():
+        return False
+
+    if entity.is_sitting and posture_prevents_skill_spell_use("sitting"):
+        return False
+    if entity.is_resting and posture_prevents_skill_spell_use("resting"):
+        return False
+    if entity.is_sleeping and posture_prevents_skill_spell_use("sleeping"):
+        return False
+
+    missing_resources = (
+        int(entity.hit_points) < int(entity.max_hit_points)
+        or int(entity.vigor) < int(entity.max_vigor)
+        or int(entity.mana) < int(entity.max_mana)
+    )
+    if not missing_resources:
+        return False
+
+    available_spells: list[dict] = []
+    for spell_id in entity.spell_ids:
+        spell = get_spell_by_id(spell_id)
+        if not isinstance(spell, dict):
+            continue
+
+        spell_type = str(spell.get("spell_type", "damage")).strip().lower() or "damage"
+        cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
+        support_effect = str(spell.get("support_effect", "")).strip().lower()
+        if spell_type != "support" or cast_type != "self" or not support_effect:
+            continue
+
+        normalized_spell_id = str(spell.get("spell_id", "")).strip()
+        if normalized_spell_id and entity.spell_cooldowns.get(normalized_spell_id, 0) > 0:
+            continue
+
+        mana_cost = max(0, int(spell.get("mana_cost", 0)))
+        if int(entity.mana) < mana_cost:
+            continue
+
+        if not _entity_needs_secondary_restore(entity, support_effect):
+            continue
+
+        support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
+        effect_id = normalized_spell_id or str(spell.get("name", "")).strip()
+        if support_mode in {"timed", "battle_rounds"} and effect_id and _entity_has_active_ongoing_support_effect(entity, effect_id):
+            continue
+
+        available_spells.append(spell)
+
+    spell_chance = max(0.0, min(1.0, float(getattr(entity, "spell_use_chance", 0.0))))
+    if available_spells and random.random() < spell_chance:
+        spell = random.choice(available_spells)
+        support_effect = str(spell.get("support_effect", "")).strip().lower()
+        rolled_support_amount, dice_count, dice_sides, roll_modifier, scaling_bonus = _roll_entity_support_amount(
+            entity,
+            spell,
+            support_effect,
+        )
+        support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
+        duration_hours = max(0, int(spell.get("duration_hours", 0)))
+        duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
+        spell_id = str(spell.get("spell_id", spell.get("name", ""))).strip() or str(spell.get("name", "Spell")).strip() or "Spell"
+        spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
+
+        entity.mana = max(0, int(entity.mana) - max(0, int(spell.get("mana_cost", 0))))
+
+        if support_mode == "instant":
+            _apply_entity_secondary_restore(entity, support_effect, rolled_support_amount)
+        elif support_mode in {"timed", "battle_rounds"}:
+            refreshed = False
+            for active_effect in entity.active_support_effects:
+                if active_effect.spell_id != spell_id:
+                    continue
+                active_effect.support_mode = support_mode
+                active_effect.support_effect = support_effect
+                active_effect.support_amount = max(0, int(spell.get("support_amount", 0)))
+                active_effect.support_dice_count = dice_count
+                active_effect.support_dice_sides = dice_sides
+                active_effect.support_roll_modifier = roll_modifier
+                active_effect.support_scaling_bonus = scaling_bonus
+                active_effect.remaining_hours = duration_hours
+                active_effect.remaining_rounds = duration_rounds
+                refreshed = True
+                break
+
+            if not refreshed:
+                entity.active_support_effects.append(ActiveSupportEffectState(
+                    spell_id=spell_id,
+                    spell_name=spell_name,
+                    support_mode=support_mode,
+                    support_effect=support_effect,
+                    support_amount=max(0, int(spell.get("support_amount", 0))),
+                    support_dice_count=dice_count,
+                    support_dice_sides=dice_sides,
+                    support_roll_modifier=roll_modifier,
+                    support_scaling_bonus=scaling_bonus,
+                    remaining_hours=duration_hours,
+                    remaining_rounds=duration_rounds,
+                ))
+
+        _apply_ability_affects(actor=entity, target=entity, ability=spell, affect_target="self")
+        _set_entity_spell_cooldown(entity, spell)
+        _apply_entity_spell_lag(entity, spell)
+        return True
+
+    available_skills: list[dict] = []
+    for skill_id in entity.skill_ids:
+        skill = get_skill_by_id(skill_id)
+        if not isinstance(skill, dict):
+            continue
+
+        skill_type = str(skill.get("skill_type", "damage")).strip().lower() or "damage"
+        cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
+        support_effect = str(skill.get("support_effect", "")).strip().lower()
+        if skill_type != "support" or cast_type != "self" or not support_effect:
+            continue
+
+        normalized_skill_id = str(skill.get("skill_id", "")).strip()
+        if normalized_skill_id and entity.skill_cooldowns.get(normalized_skill_id, 0) > 0:
+            continue
+
+        vigor_cost = max(0, int(skill.get("vigor_cost", 0)))
+        if int(entity.vigor) < vigor_cost:
+            continue
+
+        if not _entity_needs_secondary_restore(entity, support_effect):
+            continue
+
+        support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
+        effect_id = normalized_skill_id or str(skill.get("name", "")).strip()
+        if support_mode in {"timed", "battle_rounds"} and effect_id and _entity_has_active_ongoing_support_effect(entity, effect_id):
+            continue
+
+        available_skills.append(skill)
+
+    skill_chance = max(0.0, min(1.0, float(getattr(entity, "skill_use_chance", 0.0))))
+    if available_skills and random.random() < skill_chance:
+        skill = random.choice(available_skills)
+        support_effect = str(skill.get("support_effect", "")).strip().lower()
+        total_support_amount = max(0, int(skill.get("support_amount", 0)) + _resolve_entity_skill_scale_bonus(entity, skill))
+        support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
+        duration_hours = max(0, int(skill.get("duration_hours", 0)))
+        duration_rounds = max(0, int(skill.get("duration_rounds", 0)))
+        skill_id = str(skill.get("skill_id", skill.get("name", ""))).strip() or str(skill.get("name", "Skill")).strip() or "Skill"
+        skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
+
+        entity.vigor = max(0, int(entity.vigor) - max(0, int(skill.get("vigor_cost", 0))))
+
+        if support_mode == "instant":
+            _apply_entity_secondary_restore(entity, support_effect, total_support_amount)
+        elif support_mode in {"timed", "battle_rounds"}:
+            refreshed = False
+            for active_effect in entity.active_support_effects:
+                if active_effect.spell_id != skill_id:
+                    continue
+                active_effect.support_mode = support_mode
+                active_effect.support_effect = support_effect
+                active_effect.support_amount = total_support_amount
+                active_effect.support_dice_count = 0
+                active_effect.support_dice_sides = 0
+                active_effect.support_roll_modifier = 0
+                active_effect.support_scaling_bonus = 0
+                active_effect.remaining_hours = duration_hours
+                active_effect.remaining_rounds = duration_rounds
+                refreshed = True
+                break
+
+            if not refreshed:
+                entity.active_support_effects.append(ActiveSupportEffectState(
+                    spell_id=skill_id,
+                    spell_name=skill_name,
+                    support_mode=support_mode,
+                    support_effect=support_effect,
+                    support_amount=total_support_amount,
+                    support_dice_count=0,
+                    support_dice_sides=0,
+                    support_roll_modifier=0,
+                    support_scaling_bonus=0,
+                    remaining_hours=duration_hours,
+                    remaining_rounds=duration_rounds,
+                ))
+
+        _apply_ability_affects(actor=entity, target=entity, ability=skill, affect_target="self")
+        _set_entity_skill_cooldown(entity, skill)
+        _apply_entity_skill_lag(entity, skill)
+        return True
+
+    return False
+
+
 def process_entity_game_hour_tick(entity: EntityState) -> None:
+    _apply_entity_passive_regeneration(entity)
+    _entity_try_use_noncombat_restorative_support(entity)
+
     for effect in list(entity.active_support_effects):
         if effect.support_mode != "timed":
             continue
