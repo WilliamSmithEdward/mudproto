@@ -1863,13 +1863,14 @@ def load_skills() -> list[dict]:
 
         if skill_type == "support":
             has_affect_payload = bool(affect_ids)
+            is_rescue_skill = normalized_skill_id == "skill.rescue"
             if support_effect and support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
                 raise ValueError(
                     f"Skill asset '{skill_id}' support_effect must be one of: heal, vigor, mana, damage_reduction, extra_unarmed_hits."
                 )
-            if not support_effect and not has_affect_payload:
+            if not support_effect and not has_affect_payload and not is_rescue_skill:
                 raise ValueError(
-                    f"Skill asset '{skill_id}' support skills must define support_effect or affects."
+                    f"Skill asset '{skill_id}' support skills must define support_effect or affect_ids."
                 )
             if support_mode not in {"instant", "timed", "battle_rounds"}:
                 raise ValueError(

@@ -211,6 +211,48 @@ def sync_entity_target_player(entity: EntityState, preferred_session: ClientSess
     return ""
 
 
+def rescue_player(rescuer_session: ClientSession, rescued_session: ClientSession) -> tuple[EntityState | None, str | None]:
+    rescuer_key = get_session_combatant_key(rescuer_session)
+    rescued_key = get_session_combatant_key(rescued_session)
+    rescued_name = (rescued_session.authenticated_character_name or "Your ally").strip() or "Your ally"
+
+    if not rescuer_key or not rescued_key:
+        return None, f"{rescued_name} cannot be reached through the chaos of battle."
+    if rescuer_key == rescued_key:
+        return None, "You are already standing in the thick of danger."
+
+    targeted_entities = [
+        entity
+        for entity in get_engaged_entities(rescued_session)
+        if entity.is_alive
+        and entity.room_id == rescued_session.player.current_room_id
+        and str(getattr(entity, "combat_target_player_key", "")).strip().lower() == rescued_key
+    ]
+    if not targeted_entities:
+        return None, f"{rescued_name} needs no rescuing; no foe has them pinned."
+
+    redirected_entity = targeted_entities[0]
+    rescuing_from_idle = not bool(rescuer_session.combat.engaged_entity_ids)
+    rescuer_session.combat.engaged_entity_ids.add(redirected_entity.entity_id)
+    rescued_session.combat.engaged_entity_ids.discard(redirected_entity.entity_id)
+    redirected_entity.combat_target_player_key = rescuer_key
+
+    rescuer_session.combat.next_round_monotonic = None
+    if rescuing_from_idle:
+        rescuer_session.combat.opening_attacker = None
+
+    remaining_targeted_entities = [
+        entity
+        for entity in get_engaged_entities(rescued_session)
+        if str(getattr(entity, "combat_target_player_key", "")).strip().lower() == rescued_key
+    ]
+    if not remaining_targeted_entities:
+        end_combat(rescued_session)
+        redirected_entity.combat_target_player_key = rescuer_key
+
+    return redirected_entity, None
+
+
 def start_combat(
     session: ClientSession,
     entity_id: str,

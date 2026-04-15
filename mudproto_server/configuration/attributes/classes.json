@@ -109,7 +109,8 @@
       "skill.guard-breath",
       "skill.centered-guard",
       "skill.roundhouse-kick",
-      "skill.fist-flurry"
+      "skill.fist-flurry",
+      "skill.rescue"
     ],
     "starting_passive_ids": [
       "passive.monk-unarmed-mastery"

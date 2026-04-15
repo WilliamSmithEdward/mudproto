@@ -167,5 +167,26 @@
     "lag_rounds": 0,
     "cooldown_rounds": 0,
     "cooldown_hours": 2
+  },
+  {
+    "skill_id": "skill.rescue",
+    "name": "Rescue",
+    "description": "You dive into the press of battle and drag a companion clear of the worst blow.",
+    "skill_type": "support",
+    "element": "physical",
+    "cast_type": "target",
+    "vigor_cost": 8,
+    "usable_out_of_combat": false,
+    "scaling_attribute_id": "",
+    "scaling_multiplier": 0.0,
+    "level_scaling_multiplier": 0.0,
+    "support_effect": "",
+    "support_amount": 0,
+    "support_mode": "instant",
+    "support_context": "You hurl yourself into danger and draw the enemy's fury away.",
+    "observer_action": "[actor_name] lunges into the melee to rescue an ally.",
+    "observer_context": "[actor_name] throws [actor_possessive] body between an ally and danger.",
+    "lag_rounds": 3,
+    "cooldown_rounds": 2
   }
 ]

@@ -41,6 +41,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         apply_entity_defeat_flags,
         clear_combat_if_invalid,
         get_engaged_entity,
+        rescue_player,
         spawn_corpse_for_entity,
         start_combat,
     )
@@ -78,12 +79,19 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         return display_error("Shhh... You are asleep. Use wake first.", session), False
 
     has_explicit_target = bool(str(target_name or "").strip())
+    is_rescue_skill = skill_id.strip().lower() == "skill.rescue" or skill_name.strip().lower() == "rescue"
     can_open_with_targeted_damage = (
         skill_type == "damage"
         and cast_type == "target"
         and has_explicit_target
     )
-    if get_engaged_entity(session) is None and not usable_out_of_combat and not can_open_with_targeted_damage:
+    can_open_with_targeted_support = (
+        skill_type == "support"
+        and cast_type == "target"
+        and has_explicit_target
+        and is_rescue_skill
+    )
+    if get_engaged_entity(session) is None and not usable_out_of_combat and not can_open_with_targeted_damage and not can_open_with_targeted_support:
         return display_error(f"{skill_name} can only be used while in combat.", session), False
 
     if skill_id and session.combat.skill_cooldowns.get(skill_id, 0) > 0:
@@ -135,14 +143,16 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     if skill_type == "support":
         has_affect_payload = bool(skill.get("affect_ids", [])) if isinstance(skill.get("affect_ids", []), list) else False
-        if cast_type != "self":
+        if cast_type not in {"self", "target"}:
+            return display_error(f"Support skill '{skill_name}' must be cast_type 'self' or 'target'.", session), False
+        if cast_type == "target" and not is_rescue_skill:
             return display_error(f"Support skill '{skill_name}' must be cast_type 'self'.", session), False
         if support_effect and support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
             return display_error(
                 f"Skill '{skill_name}' has unsupported support_effect '{support_effect}'.",
                 session,
             ), False
-        if not support_effect and not has_affect_payload:
+        if not support_effect and not has_affect_payload and not is_rescue_skill:
             return display_error(
                 f"Support skill '{skill_name}' must define support_effect or affect_ids.",
                 session,
@@ -161,16 +171,78 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             return display_error(f"Skill '{skill_name}' must have duration_hours > 0.", session), False
         if support_mode == "battle_rounds" and duration_rounds <= 0:
             return display_error(f"Skill '{skill_name}' must have duration_rounds > 0.", session), False
-
         if session.status.vigor < vigor_cost:
             return display_error(
                 f"Not enough vigor for {skill_name}. Need {vigor_cost}V, have {session.status.vigor}V.",
                 session,
             ), False
 
+        support_target_session = session
+        support_target_name = actor_name
+        if cast_type == "target":
+            if not target_name or not str(target_name).strip():
+                return display_error(f"Who do you want to aid with {skill_name}?", session), False
+            support_target_session, resolve_error = _resolve_room_player_selector(
+                session,
+                target_name,
+                require_exact_name=True,
+            )
+            if support_target_session is None:
+                return display_error(resolve_error or f"No player named '{target_name}' is here.", session), False
+            if support_target_session.client_id == session.client_id:
+                return display_error("You are already standing in the thick of danger.", session), False
+            support_target_name = (support_target_session.authenticated_character_name or actor_name).strip() or actor_name
+
         session.status.vigor -= vigor_cost
+
+        if is_rescue_skill:
+            rescued_entity, rescue_error = rescue_player(session, support_target_session)
+            if rescued_entity is None:
+                session.status.vigor += vigor_cost
+                return display_error(rescue_error or f"{support_target_name} needs no rescuing.", session), False
+
+            parts = [
+                build_part("You use "),
+                build_part(skill_name),
+                build_part(f" on {support_target_name}."),
+                newline_part(),
+                build_part(
+                    f"You hurl yourself between {support_target_name} and {with_article(rescued_entity.name)}, drawing the foe onto yourself."
+                ),
+            ]
+
+            _set_player_skill_cooldown(session, skill)
+            cooldown_hours = max(0, int(skill.get("cooldown_hours", 0)))
+            if cooldown_hours > 0 and skill_id:
+                session.combat.skill_hour_cooldowns[skill_id] = cooldown_hours
+            _apply_player_skill_lag(session, skill)
+
+            observer_lines = [
+                _resolve_observer_action_line(
+                    actor_name,
+                    "uses",
+                    skill_name,
+                    "target",
+                    target_label=support_target_name,
+                    observer_action=observer_action,
+                ),
+                f"{actor_name} hurls into the melee, dragging {with_article(rescued_entity.name)} away from {support_target_name}.",
+            ]
+            recipient_observer_lines = {
+                support_target_session.client_id: [
+                    f"{actor_name} rushes to your aid and draws {with_article(rescued_entity.name)} away from you."
+                ]
+            }
+
+            result = display_command_result(session, parts, compact=True)
+            return _attach_room_broadcast_lines(
+                result,
+                observer_lines,
+                recipient_lines_by_client_id=recipient_observer_lines,
+            ), True
+
         if support_effect:
-            caps = get_player_resource_caps(session)
+            caps = get_player_resource_caps(support_target_session)
             total_support_amount = max(0, support_amount + scaling_bonus)
             effect_duration_rounds = duration_rounds
             if support_effect == "extra_unarmed_hits":
@@ -184,15 +256,15 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
             if support_mode == "instant":
                 if support_effect == "heal":
-                    session.status.hit_points = min(caps["hit_points"], session.status.hit_points + total_support_amount)
+                    support_target_session.status.hit_points = min(caps["hit_points"], support_target_session.status.hit_points + total_support_amount)
                 elif support_effect == "vigor":
-                    session.status.vigor = min(caps["vigor"], session.status.vigor + total_support_amount)
+                    support_target_session.status.vigor = min(caps["vigor"], support_target_session.status.vigor + total_support_amount)
                 else:
-                    session.status.mana = min(caps["mana"], session.status.mana + total_support_amount)
+                    support_target_session.status.mana = min(caps["mana"], support_target_session.status.mana + total_support_amount)
             else:
                 effect_id = skill_id or skill_name
                 refreshed = False
-                for active_effect in session.active_support_effects:
+                for active_effect in support_target_session.active_support_effects:
                     if active_effect.spell_id != effect_id:
                         continue
                     active_effect.support_mode = support_mode
@@ -208,7 +280,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     break
 
                 if not refreshed:
-                    session.active_support_effects.append(ActiveSupportEffectState(
+                    support_target_session.active_support_effects.append(ActiveSupportEffectState(
                         spell_id=effect_id,
                         spell_name=skill_name,
                         support_mode=support_mode,
@@ -223,12 +295,19 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     ))
 
         if support_context:
+            rendered_support_context = support_context
+            if cast_type == "target":
+                rendered_support_context = third_personize_text(
+                    support_context,
+                    support_target_name,
+                    support_target_session.player.gender,
+                )
             parts.extend([
                 newline_part(),
-                build_part(support_context),
+                build_part(rendered_support_context),
             ])
 
-        _apply_ability_affects(actor=session, target=session, ability=skill, affect_target="self")
+        _apply_ability_affects(actor=session, target=support_target_session, ability=skill, affect_target="self")
 
         _set_player_skill_cooldown(session, skill)
         cooldown_hours = max(0, int(skill.get("cooldown_hours", 0)))
@@ -241,12 +320,21 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 "uses",
                 skill_name,
                 cast_type,
+                target_label=support_target_name if cast_type == "target" else None,
                 observer_action=observer_action,
             ),
         ]
-        support_observer_context = observer_context or _observer_context_from_player_context(support_context)
+        support_observer_context = observer_context or _observer_context_from_player_context(
+            support_context,
+            subject_name=support_target_name,
+            subject_gender=support_target_session.player.gender,
+        )
         if support_observer_context:
-            observer_lines.append(_render_observer_template(support_observer_context, actor_name))
+            observer_lines.append(_render_observer_template(
+                support_observer_context,
+                support_target_name,
+                support_target_session.player.gender,
+            ))
 
         result = display_command_result(session, parts, compact=True)
         return _attach_room_broadcast_lines(result, observer_lines), True
