@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.16",
-  "generated_at_utc": "2026-04-15T08:03:40.712574+00:00",
+  "generated_at_utc": "2026-04-15T08:08:08.830931+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -1715,6 +1715,12 @@
               "required": false,
               "default": [],
               "notes": "If any of these world flags are set, the spawn is suppressed."
+            },
+            "announcement_message": {
+              "type": "string",
+              "required": false,
+              "default": "",
+              "notes": "Optional zone-wide announcement sent to connected players in the zone when this flag-spawn rule actually fires. Useful for boss-unlock or escalation messaging."
             }
           }
         }
@@ -5574,7 +5580,8 @@
                   ],
                   "excluded_world_flags": [
                     "npc.hadrik-crowbanner.defeated"
-                  ]
+                  ],
+                  "announcement_message": "A roar of iron chains rolls through Crowbanner Fort. The central brazier can now be raised, and Hadrik Crowbanner awaits the challengers who broke his corners."
                 }
               ]
             }

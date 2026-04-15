@@ -88,6 +88,12 @@
             "required": false,
             "default": [],
             "notes": "If any of these world flags are set, the spawn is suppressed."
+          },
+          "announcement_message": {
+            "type": "string",
+            "required": false,
+            "default": "",
+            "notes": "Optional zone-wide announcement sent to connected players in the zone when this flag-spawn rule actually fires. Useful for boss-unlock or escalation messaging."
           }
         }
       }

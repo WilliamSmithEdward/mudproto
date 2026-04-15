@@ -643,12 +643,14 @@ def load_zones() -> list[dict]:
                 raw_flag_spawn.get("excluded_world_flags", []),
                 context=f"Zone '{zone_id}' flag_spawns excluded_world_flags",
             )
+            fs_announcement_message = str(raw_flag_spawn.get("announcement_message", "")).strip()
             flag_spawns.append({
                 "npc_id": fs_npc_id,
                 "room_id": fs_room_id,
                 "count": fs_count,
                 "required_world_flags": fs_required,
                 "excluded_world_flags": fs_excluded,
+                "announcement_message": fs_announcement_message,
             })
 
         if normalized_zone_id not in normalized_zones_by_id:

@@ -3,12 +3,14 @@
 Exercises the full path from apply_entity_defeat_flags → process_zone_flag_spawns.
 Path setup is handled by conftest.py.
 """
+import asyncio
+
 import pytest
 
 import world_population
 from combat_state import apply_entity_defeat_flags
 from models import ClientSession, CombatState, EntityState, PlayerState, PlayerStatus
-from session_registry import shared_world_entities, shared_world_flags
+from session_registry import active_character_sessions, connected_clients, shared_world_entities, shared_world_flags
 from world import WORLD, Zone
 from world_population import process_zone_flag_spawns
 
@@ -22,10 +24,30 @@ def _make_session() -> ClientSession:
     session = ClientSession(client_id="test-client", websocket=None, connected_at=utc_now_iso())  # type: ignore[arg-type]
     session.entities = shared_world_entities
     session.is_authenticated = True
+    session.is_connected = True
     session.player = PlayerState(current_room_id=_ROOM_ID, class_id="", level=1)
     session.status = PlayerStatus()
     session.combat = CombatState()
     return session
+
+
+def _extract_display_text(outbound: dict | list[dict]) -> str:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    lines: list[str] = []
+    for message in messages:
+        if not isinstance(message, dict) or message.get("type") != "display":
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        raw_lines = payload.get("lines", [])
+        if not isinstance(raw_lines, list):
+            continue
+        for line in raw_lines:
+            if not isinstance(line, list):
+                continue
+            lines.append("".join(str(part.get("text", "")) for part in line if isinstance(part, dict)))
+    return "\n".join(lines)
 
 
 def _make_entity(entity_id: str, npc_id: str, *, death_flags: list[str] | None = None) -> EntityState:
@@ -61,6 +83,8 @@ def _clean_world_state():
     """Clear test entities and flags before and after every test."""
     def _purge():
         shared_world_flags.clear()
+        connected_clients.clear()
+        active_character_sessions.clear()
         for eid in [k for k in shared_world_entities if k.startswith("test-")]:
             shared_world_entities.pop(eid, None)
         for zid in [k for k in WORLD.zones if k.startswith("zone.test-")]:
@@ -172,3 +196,45 @@ def test_crowbanner_final_boss_is_flag_gated() -> None:
         "npc.seln-of-the-pins.defeated",
         "npc.brother-cleft.defeated",
     }
+
+
+def test_flag_spawn_announcement_notifies_zone_players(monkeypatch) -> None:
+    zone_id = "zone.test-flag-spawn-announce"
+    mini_npc_id = "npc.test-miniboss-announce"
+    boss_npc_id = "npc.test-bigboss-announce"
+    death_flag = "flag.test-miniboss-announce-slain"
+
+    _inject_zone(zone_id, [{
+        "npc_id": boss_npc_id,
+        "room_id": _ROOM_ID,
+        "count": 1,
+        "required_world_flags": [death_flag],
+        "excluded_world_flags": [],
+        "announcement_message": "A dread horn sounds. The final foe is ready."
+    }])
+    _patch_npc_template(boss_npc_id)
+
+    session = _make_session()
+    session.client_id = "test-zone-player"
+    session.websocket = object()
+    connected_clients[session.client_id] = session
+
+    notifications: list[tuple[object, dict | list[dict]]] = []
+
+    async def fake_send_outbound(websocket, outbound):
+        notifications.append((websocket, outbound))
+        return True
+
+    monkeypatch.setattr(world_population, "send_outbound", fake_send_outbound, raising=False)
+
+    mini_boss = _make_entity("test-miniboss-announce", mini_npc_id, death_flags=[death_flag])
+    shared_world_entities["test-miniboss-announce"] = mini_boss
+
+    async def _scenario() -> None:
+        apply_entity_defeat_flags(session, mini_boss)
+        await asyncio.sleep(0)
+
+    asyncio.run(_scenario())
+
+    assert any(websocket is session.websocket for websocket, _outbound in notifications)
+    assert any("The final foe is ready." in _extract_display_text(outbound) for _websocket, outbound in notifications)

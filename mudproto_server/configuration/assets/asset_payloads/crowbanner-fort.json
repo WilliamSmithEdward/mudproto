@@ -1406,7 +1406,8 @@
           ],
           "excluded_world_flags": [
             "npc.hadrik-crowbanner.defeated"
-          ]
+          ],
+          "announcement_message": "A roar of iron chains rolls through Crowbanner Fort. The central brazier can now be raised, and Hadrik Crowbanner awaits the challengers who broke his corners."
         }
       ]
     }

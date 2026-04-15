@@ -1,3 +1,4 @@
+import asyncio
 import random
 import uuid
 
@@ -17,6 +18,7 @@ from session_registry import (
 )
 from targeting_entities import list_room_entities
 from world import WORLD
+from server_transport import send_outbound
 
 
 def _roll_percent_chance(chance_percent: float) -> bool:
@@ -460,6 +462,41 @@ def reinitialize_zone(zone_id: str) -> int:
     return spawned_count
 
 
+def _broadcast_zone_flag_spawn_announcement(zone_id: str, message: str) -> None:
+    cleaned_message = str(message).strip()
+    if not cleaned_message:
+        return
+
+    zone = WORLD.zones.get(zone_id)
+    if zone is None:
+        return
+
+    zone_room_ids = {room_id for room_id in zone.room_ids if room_id in WORLD.rooms}
+    if not zone_room_ids:
+        return
+
+    from display_core import build_part
+    from display_feedback import display_command_result
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+
+    for session in _iter_unique_sessions():
+        if not getattr(session, "is_authenticated", False):
+            continue
+        if not getattr(session, "is_connected", False) or bool(getattr(session, "disconnected_by_server", False)):
+            continue
+        if getattr(session.player, "current_room_id", "") not in zone_room_ids:
+            continue
+
+        notification = display_command_result(session, [
+            build_part(cleaned_message, "bright_yellow", True),
+        ])
+        loop.create_task(send_outbound(session.websocket, notification))
+
+
 def process_zone_flag_spawns() -> int:
     """Spawn NPCs whose flag conditions are now satisfied.
 
@@ -490,6 +527,7 @@ def process_zone_flag_spawns() -> int:
             room_id: str = spawn_rule.get("room_id", "")
             npc_id: str = spawn_rule.get("npc_id", "")
             count: int = max(1, int(spawn_rule.get("count", 1)))
+            announcement_message = str(spawn_rule.get("announcement_message", "")).strip()
 
             if room_id not in WORLD.rooms:
                 continue
@@ -507,11 +545,16 @@ def process_zone_flag_spawns() -> int:
             if template is None:
                 continue
 
+            spawned_for_rule = 0
             for _ in range(count):
                 next_spawn_sequence += 1
                 entity = _build_entity_from_template(template, room_id, next_spawn_sequence)
                 shared_world_entities[entity.entity_id] = entity
                 spawned_count += 1
+                spawned_for_rule += 1
+
+            if spawned_for_rule > 0 and announcement_message:
+                _broadcast_zone_flag_spawn_announcement(zone.zone_id, announcement_message)
 
     if spawned_count > 0:
         for session in list(connected_clients.values()) + list(active_character_sessions.values()):
