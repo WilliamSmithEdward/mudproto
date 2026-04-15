@@ -49,6 +49,23 @@ def _notify_follow_target(target_session: ClientSession, follower_name: str) -> 
         return
 
 
+def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
+    if not session.is_connected or session.disconnected_by_server:
+        return
+
+    resolved_name = str(followed_name).strip() or "them"
+    notification = display_command_result(session, [
+        build_part("You no longer follow ", "bright_white"),
+        build_part(resolved_name, "bright_cyan", True),
+        build_part(".", "bright_white"),
+    ])
+
+    try:
+        asyncio.get_running_loop().create_task(send_outbound(session.websocket, notification))
+    except RuntimeError:
+        return
+
+
 def _swap_self_with_direct_follower(session: ClientSession, target_session: ClientSession) -> tuple[bool, str]:
     session_key = _session_identity_key(session)
     if not session_key:
@@ -147,7 +164,11 @@ def handle_social_command(
             if target_key not in session.group_member_keys or (target_session.group_leader_key or "").strip().lower() != leader_key:
                 return display_error(f"{_display_name(target_session)} is not in your group.", session)
 
+            previous_follow_name = target_session.following_player_name.strip() or _display_name(session)
+            had_follow_target = bool(target_session.following_player_key.strip())
             _remove_session_from_group(target_session)
+            if had_follow_target:
+                _notify_follow_stopped(target_session, previous_follow_name)
             return display_command_result(session, [
                 build_part("You remove ", "bright_white"),
                 build_part(_display_name(target_session), "bright_cyan", True),
@@ -185,11 +206,22 @@ def handle_social_command(
             if leader_session.client_id != session.client_id:
                 return display_error("Only the group leader can disband the group.", session)
 
+            _, group_members = _list_group_member_sessions(session)
+            prior_follow_names = {
+                member.client_id: (member.following_player_name.strip() or _display_name(session))
+                for member in group_members
+                if member.client_id != session.client_id and member.following_player_key.strip()
+            }
             removed_members = _disband_group(session)
             if not removed_members:
                 return display_command_result(session, [
                     build_part("Your group has only you.", "bright_white"),
                 ])
+
+            for removed_member in removed_members:
+                followed_name = prior_follow_names.get(removed_member.client_id, "")
+                if followed_name:
+                    _notify_follow_stopped(removed_member, followed_name)
 
             return display_command_result(session, [
                 build_part("You disband the group.", "bright_white"),

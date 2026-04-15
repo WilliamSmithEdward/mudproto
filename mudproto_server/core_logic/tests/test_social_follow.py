@@ -95,6 +95,86 @@ def test_follow_succeeds_without_running_loop(monkeypatch) -> None:
     _clear_session_registries()
 
 
+def test_ungroup_notifies_removed_member_that_following_has_ended(monkeypatch) -> None:
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Ragnar")
+    member = _make_session("client-member", "Orlandu")
+    connected_clients[leader.client_id] = leader
+    connected_clients[member.client_id] = member
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    member_key = (member.player_state_key or member.client_id).strip().lower()
+    leader.group_member_keys = {member_key}
+    member.group_leader_key = leader_key
+    member.following_player_key = leader.player_state_key
+    member.following_player_name = leader.authenticated_character_name
+
+    notifications: list[tuple[object, dict | list[dict]]] = []
+
+    async def fake_send_outbound(websocket, outbound):
+        notifications.append((websocket, outbound))
+        return True
+
+    monkeypatch.setattr(social, "send_outbound", fake_send_outbound)
+
+    async def _scenario() -> None:
+        response = social.handle_social_command(leader, "ungroup", ["Orlandu"], "ungroup Orlandu")
+        assert isinstance(response, dict)
+        assert "You remove Orlandu from your group." in _extract_display_text(response)
+        await asyncio.sleep(0)
+
+    asyncio.run(_scenario())
+
+    assert member.following_player_key == ""
+    assert len(notifications) == 1
+    assert notifications[0][0] is member.websocket
+    assert "You no longer follow Ragnar." in _extract_display_text(notifications[0][1])
+
+    _clear_session_registries()
+
+
+def test_group_disband_notifies_members_that_following_has_ended(monkeypatch) -> None:
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Ragnar")
+    member = _make_session("client-member", "Orlandu")
+    follower = _make_session("client-follower", "Beatrix")
+    for party_session in [leader, member, follower]:
+        connected_clients[party_session.client_id] = party_session
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    member_key = (member.player_state_key or member.client_id).strip().lower()
+    follower_key = (follower.player_state_key or follower.client_id).strip().lower()
+    leader.group_member_keys = {member_key, follower_key}
+    member.group_leader_key = leader_key
+    follower.group_leader_key = leader_key
+    member.following_player_key = leader.player_state_key
+    member.following_player_name = leader.authenticated_character_name
+    follower.following_player_key = member.player_state_key
+    follower.following_player_name = member.authenticated_character_name
+
+    notifications: list[tuple[object, dict | list[dict]]] = []
+
+    async def fake_send_outbound(websocket, outbound):
+        notifications.append((websocket, outbound))
+        return True
+
+    monkeypatch.setattr(social, "send_outbound", fake_send_outbound)
+
+    async def _scenario() -> None:
+        response = social.handle_social_command(leader, "group", ["disband"], "group disband")
+        assert isinstance(response, dict)
+        assert "You disband the group." in _extract_display_text(response)
+        await asyncio.sleep(0)
+
+    asyncio.run(_scenario())
+
+    notification_text = "\n".join(_extract_display_text(outbound) for _, outbound in notifications)
+    assert "You no longer follow Ragnar." in notification_text
+    assert "You no longer follow Orlandu." in notification_text
+
+    _clear_session_registries()
+
+
 def test_swap_self_with_party_member_reassigns_leader() -> None:
     _clear_session_registries()
 
