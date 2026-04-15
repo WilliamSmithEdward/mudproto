@@ -193,7 +193,6 @@ class EntityState:
     experience_reward: int = 0
     experience_contributor_keys: set[str] = field(default_factory=set)
     experience_reward_claimed: bool = False
-    loot_items: list[ItemState] = field(default_factory=list)
     inventory_items: list[ItemState] = field(default_factory=list)
     is_alive: bool = True
     spawn_sequence: int = 0
@@ -215,7 +214,9 @@ class EntityState:
     merchant_resale_items: dict[str, dict[str, object]] = field(default_factory=dict)
     pronoun_possessive: str = "its"
     main_hand_weapon_template_id: str = ""
+    main_hand_weapon_drop_on_death: float = 0.0
     off_hand_weapon_template_id: str = ""
+    off_hand_weapon_drop_on_death: float = 0.0
     vigor: int = 0
     max_vigor: int = 0
     mana: int = 0

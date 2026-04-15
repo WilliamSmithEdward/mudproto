@@ -7,7 +7,12 @@
       "name": "Censer Chain",
       "slot": "weapon",
       "description": "A length of blackened links ending in a bronze censer heavy with bitter ash.",
-      "keywords": ["censer", "chain", "ash", "flail"],
+      "keywords": [
+        "censer",
+        "chain",
+        "ash",
+        "flail"
+      ],
       "weapon_type": "mace",
       "can_hold": true,
       "weight": 5,
@@ -24,7 +29,12 @@
       "name": "Sepulcher Maul",
       "slot": "weapon",
       "description": "A square-headed war maul stained with old soot and prayer-oil.",
-      "keywords": ["sepulcher", "maul", "warhammer", "hammer"],
+      "keywords": [
+        "sepulcher",
+        "maul",
+        "warhammer",
+        "hammer"
+      ],
       "weapon_type": "club",
       "can_hold": false,
       "can_two_hand": true,
@@ -42,11 +52,18 @@
       "name": "Funerary Plate",
       "slot": "armor",
       "description": "Laminar plates lacquered in ash-black varnish and inscribed with dim protective verses.",
-      "keywords": ["funerary", "plate", "armor", "ash"],
+      "keywords": [
+        "funerary",
+        "plate",
+        "armor",
+        "ash"
+      ],
       "weight": 10,
       "coin_value": 86,
       "armor_class_bonus": 3,
-      "wear_slots": ["chest"]
+      "wear_slots": [
+        "chest"
+      ]
     }
   ],
   "items": [
@@ -54,9 +71,29 @@
       "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "name": "Sepulcher Key",
       "description": "A long blackened key engraved with a half-eclipsed sun. It feels heavier than iron should.",
-      "keywords": ["sepulcher", "key", "blackened", "sun", "reliquary"],
+      "keywords": [
+        "sepulcher",
+        "key",
+        "blackened",
+        "sun",
+        "reliquary"
+      ],
       "item_type": "key",
-      "lock_ids": ["lock.sepulcher-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "lock_ids": [
+        "lock.sepulcher-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "coin_value": 0
+    },
+    {
+      "template_id": "item.charred-prayer-beads-penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "charred prayer beads",
+      "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
+      "keywords": [
+        "charred",
+        "prayer",
+        "beads"
+      ],
+      "item_type": "misc",
       "coin_value": 0
     }
   ],
@@ -151,16 +188,28 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "off_hand_weapon_template_id": "",
       "vigor": 42,
       "max_vigor": 42,
       "mana": 30,
       "max_mana": 30,
       "skill_use_chance": 0.25,
-      "skill_ids": ["skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "skill_ids": [
+        "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
       "spell_use_chance": 0.2,
-      "spell_ids": ["spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"]
+      "spell_ids": [
+        "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -179,19 +228,29 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "",
-      "off_hand_weapon_template_id": "",
       "vigor": 30,
       "max_vigor": 30,
       "mana": 95,
       "max_mana": 95,
       "skill_use_chance": 0.1,
-      "skill_ids": ["skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "skill_ids": [
+        "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
       "spell_use_chance": 0.45,
       "spell_ids": [
         "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
         "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -210,14 +269,24 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "its",
-      "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "off_hand_weapon_template_id": "",
       "vigor": 56,
       "max_vigor": 56,
       "skill_use_chance": 0.3,
-      "skill_ids": ["skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "skill_ids": [
+        "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
       "spell_use_chance": 0.0,
-      "spell_ids": []
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -236,16 +305,28 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "its",
-      "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "off_hand_weapon_template_id": "",
       "vigor": 62,
       "max_vigor": 62,
       "mana": 45,
       "max_mana": 45,
       "skill_use_chance": 0.25,
-      "skill_ids": ["skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"],
+      "skill_ids": [
+        "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
       "spell_use_chance": 0.15,
-      "spell_ids": ["spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"]
+      "spell_ids": [
+        "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -264,8 +345,6 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "off_hand_weapon_template_id": "",
       "vigor": 84,
       "max_vigor": 84,
       "mana": 120,
@@ -283,16 +362,25 @@
       "inventory_items": [
         {
           "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.charred-prayer-beads-penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "quantity": 1,
+          "spawn_chance": 100
         }
       ],
-      "loot_items": [
-        {
-          "name": "charred prayer beads",
-          "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
-          "keywords": ["charred", "prayer", "beads"]
-        }
-      ]
+      "main_hand_weapon": {
+        "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     }
   ],
   "rooms": [
@@ -311,7 +399,12 @@
           "direction": "up",
           "exit_type": "hatch",
           "name": "vault hatch",
-          "keywords": ["hatch", "vault hatch", "stone hatch", "shaft"],
+          "keywords": [
+            "hatch",
+            "vault hatch",
+            "stone hatch",
+            "shaft"
+          ],
           "can_close": true,
           "is_closed": true,
           "open_message": "You push the vault hatch open and feel cooler air spill down from the reliquary above.",
@@ -325,7 +418,11 @@
         {
           "object_id": "entry-shaft",
           "name": "broken shaft",
-          "keywords": ["shaft", "broken shaft", "opening"],
+          "keywords": [
+            "shaft",
+            "broken shaft",
+            "opening"
+          ],
           "description": "A narrow stone shaft rises back toward the reliquary vault above. Dust drifts slowly through the still air."
         }
       ]
@@ -340,7 +437,10 @@
         "south": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -353,7 +453,10 @@
         "west": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -366,7 +469,10 @@
         "south": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -381,7 +487,10 @@
         "west": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -394,7 +503,10 @@
         "south": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -408,7 +520,10 @@
         "east": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -432,7 +547,10 @@
         "south": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -446,7 +564,10 @@
         "south": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -460,7 +581,10 @@
         "south": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -473,7 +597,10 @@
         "south": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -487,7 +614,10 @@
         "south": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -501,7 +631,10 @@
         "south": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -515,7 +648,10 @@
         "south": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -529,7 +665,10 @@
         "south": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -542,7 +681,10 @@
         "east": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -567,7 +709,10 @@
         "east": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -581,7 +726,10 @@
         "south": "room.penitent-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     },
     {
@@ -593,7 +741,10 @@
         "north": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
       },
       "npcs": [
-        {"npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77", "count": 1}
+        {
+          "npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "count": 1
+        }
       ]
     }
   ],

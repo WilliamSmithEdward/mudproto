@@ -258,7 +258,7 @@ def build_instruction_payload() -> dict[str, object]:
             "rooms[].zone_id must match a zone_id in the base assets or this payload.",
             "rooms[].npcs[].npc_id must match an NPC in the base assets or this payload.",
             "rooms[].exits[direction] must point to a valid room_id.",
-            "npcs[].main_hand_weapon_template_id and off_hand_weapon_template_id must match gear template_id values.",
+            "npcs[].main_hand_weapon.template_id and npcs[].off_hand_weapon.template_id must match gear template_id values.",
             "npcs[].inventory_items[].template_id and npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
             "npcs[].spell_ids[] must match spell_id values.",
             "npcs[].skill_ids[] must match skill_id values.",

@@ -1,3 +1,4 @@
+import random
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id, load_rooms
@@ -18,28 +19,8 @@ from targeting_entities import list_room_entities
 from world import WORLD
 
 
-def _build_loot_items_from_template(template: dict) -> list[ItemState]:
-    loot_items: list[ItemState] = []
-    for loot_template in template.get("loot_items", []):
-        template_id = str(loot_template.get("template_id", "")).strip()
-        resolved_item_template = get_item_template_by_id(template_id) if template_id else None
-        if resolved_item_template is not None:
-            loot_items.append(
-                build_misc_item_from_template(
-                    resolved_item_template,
-                    item_id=f"loot-{uuid.uuid4().hex[:8]}",
-                )
-            )
-            continue
-
-        loot_items.append(ItemState(
-            item_id=f"loot-{uuid.uuid4().hex[:8]}",
-            name=str(loot_template.get("name", "Loot")).strip() or "Loot",
-            template_id=template_id,
-            description=str(loot_template.get("description", "")),
-            keywords=list(loot_template.get("keywords", [])),
-        ))
-    return loot_items
+def _roll_percent_chance(chance_percent: float) -> bool:
+    return chance_percent > 0.0 and (random.random() * 100.0) < chance_percent
 
 
 def _build_inventory_items_from_template(template: dict) -> list[ItemState]:
@@ -56,6 +37,10 @@ def _build_inventory_items_from_template(template: dict) -> list[ItemState]:
         if quantity <= 0:
             continue
 
+        spawn_chance = max(0.0, min(100.0, float(raw_inventory_item.get("spawn_chance", 100.0))))
+        if spawn_chance <= 0.0:
+            continue
+
         gear_template = get_gear_template_by_id(template_id)
         item_template = get_item_template_by_id(template_id) if gear_template is None else None
         resolved_template = gear_template or item_template
@@ -63,6 +48,8 @@ def _build_inventory_items_from_template(template: dict) -> list[ItemState]:
             continue
 
         for _ in range(quantity):
+            if not _roll_percent_chance(spawn_chance):
+                continue
             if gear_template is not None:
                 inventory_item = build_equippable_item_from_template(
                     gear_template,
@@ -125,7 +112,6 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.off_hand_hit_roll_modifier = int(template.get("off_hand_hit_roll_modifier", 0))
     entity.coin_reward = max(0, int(template.get("coin_reward", 0)))
     entity.experience_reward = max(0, int(template.get("experience_reward", 0)))
-    entity.loot_items = _build_loot_items_from_template(template)
     entity.inventory_items = _build_inventory_items_from_template(template)
     entity.spawn_sequence = spawn_sequence
     entity.is_aggro = bool(template.get("is_aggro", False))
@@ -171,8 +157,27 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.merchant_buy_markup = max(0.1, float(template.get("merchant_buy_markup", 1.0)))
     entity.merchant_sell_ratio = max(0.0, min(1.0, float(template.get("merchant_sell_ratio", 0.5))))
     entity.pronoun_possessive = str(template.get("pronoun_possessive", "its")).strip().lower() or "its"
-    entity.main_hand_weapon_template_id = str(template.get("main_hand_weapon_template_id", "")).strip()
-    entity.off_hand_weapon_template_id = str(template.get("off_hand_weapon_template_id", "")).strip()
+    main_hand_weapon = template.get("main_hand_weapon", {})
+    if not isinstance(main_hand_weapon, dict):
+        main_hand_weapon = {"template_id": str(template.get("main_hand_weapon_template_id", "")).strip()}
+    off_hand_weapon = template.get("off_hand_weapon", {})
+    if not isinstance(off_hand_weapon, dict):
+        off_hand_weapon = {"template_id": str(template.get("off_hand_weapon_template_id", "")).strip()}
+
+    main_hand_spawn_chance = max(0.0, min(100.0, float(main_hand_weapon.get("spawn_chance", 100.0))))
+    off_hand_spawn_chance = max(0.0, min(100.0, float(off_hand_weapon.get("spawn_chance", 100.0))))
+    entity.main_hand_weapon_template_id = (
+        str(main_hand_weapon.get("template_id", "")).strip()
+        if _roll_percent_chance(main_hand_spawn_chance)
+        else ""
+    )
+    entity.main_hand_weapon_drop_on_death = max(0.0, min(100.0, float(main_hand_weapon.get("drop_on_death", 0.0))))
+    entity.off_hand_weapon_template_id = (
+        str(off_hand_weapon.get("template_id", "")).strip()
+        if _roll_percent_chance(off_hand_spawn_chance)
+        else ""
+    )
+    entity.off_hand_weapon_drop_on_death = max(0.0, min(100.0, float(off_hand_weapon.get("drop_on_death", 0.0))))
     entity.vigor = max(0, int(template.get("vigor", template.get("max_vigor", 0))))
     entity.max_vigor = max(0, int(template.get("max_vigor", 0)))
     entity.mana = max(0, int(template.get("mana", template.get("max_mana", 0))))
@@ -299,7 +304,6 @@ def process_world_item_game_hour_tick() -> None:
 
     for entity in shared_world_entities.values():
         tick_item_decay_list(entity.inventory_items)
-        tick_item_decay_list(entity.loot_items)
 
 
 def _item_matches_template_ids(item: ItemState, template_ids: set[str]) -> bool:
@@ -358,9 +362,6 @@ def _zone_repopulation_is_blocked(zone) -> bool:
     if not blocker_exists:
         for entity in shared_world_entities.values():
             if _item_list_contains_template_ids(getattr(entity, "inventory_items", []), template_ids):
-                blocker_exists = True
-                break
-            if _item_list_contains_template_ids(getattr(entity, "loot_items", []), template_ids):
                 blocker_exists = True
                 break
 

@@ -1,6 +1,6 @@
 {
   "payload_id": "crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-  "description": "A 30-room high-level bandit fort north of West Road — Ridgeline Climb, with four corner bosses, wandering aggro defenders, and a central keep unlock after the corner commanders fall.",
+  "description": "A 30-room high-level bandit fort north of West Road \u2014 Ridgeline Climb, with four corner bosses, wandering aggro defenders, and a central keep unlock after the corner commanders fall.",
   "gear": [
     {
       "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -383,8 +383,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.mercenary-scimitar",
-      "off_hand_weapon_template_id": "weapon.scout-dagger",
       "vigor": 140,
       "max_vigor": 140,
       "mana": 0,
@@ -399,7 +397,8 @@
       "inventory_items": [
         {
           "template_id": "item.bandit-salve-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
       ],
       "wander_chance": 0.1,
@@ -411,7 +410,17 @@
         "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.mercenary-scimitar",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.scout-dagger",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -429,8 +438,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.training-sword",
-      "off_hand_weapon_template_id": "",
       "vigor": 40,
       "max_vigor": 40,
       "mana": 240,
@@ -443,7 +450,17 @@
       "spell_ids": [
         "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.training-sword",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -461,8 +478,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "off_hand_weapon_template_id": "",
       "vigor": 160,
       "max_vigor": 160,
       "mana": 0,
@@ -473,7 +488,17 @@
         "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
       ],
       "spell_use_chance": 0.0,
-      "spell_ids": []
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -491,8 +516,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "off_hand_weapon_template_id": "weapon.training-dagger",
       "vigor": 145,
       "max_vigor": 145,
       "mana": 0,
@@ -513,7 +536,17 @@
         "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.training-dagger",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.ironhook-maela-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -531,8 +564,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "her",
-      "main_hand_weapon_template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "off_hand_weapon_template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "vigor": 220,
       "max_vigor": 220,
       "mana": 0,
@@ -554,9 +585,20 @@
       "inventory_items": [
         {
           "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.varo-cindersmile-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -574,8 +616,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "off_hand_weapon_template_id": "",
       "vigor": 80,
       "max_vigor": 80,
       "mana": 300,
@@ -599,9 +639,20 @@
       "inventory_items": [
         {
           "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.seln-of-the-pins-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -619,8 +670,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "off_hand_weapon_template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "vigor": 225,
       "max_vigor": 225,
       "mana": 0,
@@ -642,9 +691,20 @@
       "inventory_items": [
         {
           "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.brother-cleft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -662,8 +722,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "off_hand_weapon_template_id": "",
       "vigor": 200,
       "max_vigor": 200,
       "mana": 210,
@@ -687,9 +745,20 @@
       "inventory_items": [
         {
           "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -707,8 +776,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "off_hand_weapon_template_id": "",
       "vigor": 260,
       "max_vigor": 260,
       "mana": 260,
@@ -735,19 +802,31 @@
       "inventory_items": [
         {
           "template_id": "armor.crowbanner-plate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         },
         {
           "template_id": "item.black-banner-token-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     }
   ],
   "rooms": [
     {
       "room_id": "west-road-rise",
-      "title": "West Road — Ridgeline Climb",
+      "title": "West Road \u2014 Ridgeline Climb",
       "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
       "zone_id": "zone.west-road",
       "npcs": [

@@ -1191,6 +1191,43 @@ def load_rooms() -> list[dict]:
     return [normalized_rooms_by_id[room_id] for room_id in ordered_room_ids]
 
 
+def _normalize_percent_chance(raw_value: object, *, context: str, default: float) -> float:
+    if raw_value is None or raw_value == "":
+        return default
+
+    chance = float(raw_value)
+    if chance < 0.0 or chance > 100.0:
+        raise ValueError(f"{context} must be between 0 and 100.")
+    return chance
+
+
+def _normalize_npc_weapon_config(raw_value: object, *, field_name: str, npc_id: str) -> dict[str, object]:
+    if raw_value is None:
+        raw_value = {}
+    if isinstance(raw_value, str):
+        raw_value = {"template_id": str(raw_value).strip()}
+    if not isinstance(raw_value, dict):
+        raise ValueError(f"NPC '{npc_id}' {field_name} must be an object or template_id string.")
+
+    template_id = str(raw_value.get("template_id", "")).strip()
+    if template_id and get_gear_template_by_id(template_id) is None:
+        raise ValueError(f"NPC '{npc_id}' references unknown {field_name} template: {template_id}")
+
+    return {
+        "template_id": template_id,
+        "spawn_chance": _normalize_percent_chance(
+            raw_value.get("spawn_chance", 100),
+            context=f"NPC '{npc_id}' {field_name} spawn_chance",
+            default=100.0,
+        ),
+        "drop_on_death": _normalize_percent_chance(
+            raw_value.get("drop_on_death", 0),
+            context=f"NPC '{npc_id}' {field_name} drop_on_death",
+            default=0.0,
+        ),
+    }
+
+
 @lru_cache(maxsize=1)
 def load_npc_templates() -> list[dict]:
     raw_config = _read_json_asset(NPCS_FILE)
@@ -1229,31 +1266,21 @@ def load_npc_templates() -> list[dict]:
         if hit_points <= 0:
             raise ValueError(f"NPC '{npc_id}' hit_points must be greater than zero.")
 
-        raw_loot_items = raw_npc.get("loot_items", [])
-        if raw_loot_items is None:
-            raw_loot_items = []
-        if not isinstance(raw_loot_items, list):
-            raise ValueError(f"NPC '{npc_id}' loot_items must be a list.")
+        if "loot_items" in raw_npc:
+            raise ValueError(
+                f"NPC '{npc_id}' loot_items is no longer supported; use inventory_items with item template_ids instead."
+            )
 
-        normalized_loot_items: list[dict] = []
-        for raw_loot_item in raw_loot_items:
-            if not isinstance(raw_loot_item, dict):
-                raise ValueError(f"NPC '{npc_id}' loot items must be objects.")
-            loot_name = str(raw_loot_item.get("name", "")).strip()
-            if not loot_name:
-                raise ValueError(f"NPC '{npc_id}' loot items must include name.")
-            raw_loot_keywords = raw_loot_item.get("keywords", [])
-            if raw_loot_keywords is None:
-                raw_loot_keywords = []
-            if not isinstance(raw_loot_keywords, list):
-                raise ValueError(f"NPC '{npc_id}' loot item '{loot_name}' keywords must be a list.")
-
-            normalized_loot_items.append({
-                "template_id": str(raw_loot_item.get("template_id", "")).strip(),
-                "name": loot_name,
-                "description": str(raw_loot_item.get("description", "")),
-                "keywords": [str(keyword).strip().lower() for keyword in raw_loot_keywords if str(keyword).strip()],
-            })
+        main_hand_weapon = _normalize_npc_weapon_config(
+            raw_npc.get("main_hand_weapon", raw_npc.get("main_hand_weapon_template_id", "")),
+            field_name="main_hand_weapon",
+            npc_id=npc_id,
+        )
+        off_hand_weapon = _normalize_npc_weapon_config(
+            raw_npc.get("off_hand_weapon", raw_npc.get("off_hand_weapon_template_id", "")),
+            field_name="off_hand_weapon",
+            npc_id=npc_id,
+        )
 
         raw_inventory_items = raw_npc.get("inventory_items", [])
         if raw_inventory_items is None:
@@ -1284,6 +1311,11 @@ def load_npc_templates() -> list[dict]:
             normalized_inventory_items.append({
                 "template_id": template_id,
                 "quantity": quantity,
+                "spawn_chance": _normalize_percent_chance(
+                    raw_inventory_item.get("spawn_chance", 100),
+                    context=f"NPC '{npc_id}' inventory item '{template_id}' spawn_chance",
+                    default=100.0,
+                ),
             })
 
         is_merchant = bool(raw_npc.get("is_merchant", False))
@@ -1487,8 +1519,8 @@ def load_npc_templates() -> list[dict]:
             "merchant_buy_markup": merchant_buy_markup,
             "merchant_sell_ratio": merchant_sell_ratio,
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
-            "main_hand_weapon_template_id": str(raw_npc.get("main_hand_weapon_template_id", "")).strip(),
-            "off_hand_weapon_template_id": str(raw_npc.get("off_hand_weapon_template_id", "")).strip(),
+            "main_hand_weapon": main_hand_weapon,
+            "off_hand_weapon": off_hand_weapon,
             "vigor": vigor,
             "max_vigor": max_vigor,
             "mana": mana,
@@ -1498,7 +1530,6 @@ def load_npc_templates() -> list[dict]:
             "spell_use_chance": spell_use_chance,
             "spell_ids": normalized_spell_ids,
             "inventory_items": normalized_inventory_items,
-            "loot_items": normalized_loot_items,
             "keyword_actions": keyword_actions,
             "room_communications": room_communications,
             "wander_chance": wander_chance,

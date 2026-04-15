@@ -17,12 +17,23 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.training-sword",
-      "off_hand_weapon_template_id": "weapon.scout-dagger",
       "vigor": 48,
       "max_vigor": 48,
       "skill_use_chance": 0.35,
-      "skill_ids": ["skill.jab", "skill.overhead-crack"]
+      "skill_ids": [
+        "skill.jab",
+        "skill.overhead-crack"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.training-sword",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.scout-dagger",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.sanctum-invoker",
@@ -41,18 +52,28 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.training-sword",
-      "off_hand_weapon_template_id": "",
       "vigor": 24,
       "max_vigor": 24,
       "mana": 120,
       "max_mana": 120,
       "skill_use_chance": 0.15,
-      "skill_ids": ["skill.jab"],
+      "skill_ids": [
+        "skill.jab"
+      ],
       "spell_use_chance": 0.55,
       "spell_ids": [
         "spell.regeneration-ward"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.training-sword",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.east-watch-reaver",
@@ -71,8 +92,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.reaver-nightblade",
-      "off_hand_weapon_template_id": "weapon.scout-dagger",
       "vigor": 72,
       "max_vigor": 72,
       "skill_use_chance": 0.45,
@@ -80,7 +99,17 @@
         "skill.jab",
         "skill.overhead-crack",
         "skill.guard-breath"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.reaver-nightblade",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.scout-dagger",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.ashen-reliquary-exarch",
@@ -99,8 +128,6 @@
       "is_aggro": true,
       "is_ally": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.exarch-doomblade",
-      "off_hand_weapon_template_id": "weapon.exarch-emberfang",
       "vigor": 110,
       "max_vigor": 110,
       "mana": 180,
@@ -116,7 +143,17 @@
         "spell.spark",
         "spell.ember-lance",
         "spell.regeneration-ward"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.exarch-doomblade",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.exarch-emberfang",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.wandering-mercenary",
@@ -136,13 +173,15 @@
       "is_ally": false,
       "is_peaceful": false,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.mercenary-scimitar",
-      "off_hand_weapon_template_id": "",
       "vigor": 100,
       "max_vigor": 100,
       "skill_use_chance": 0.45,
-      "skill_ids": ["skill.bash", "skill.overhead-crack", "skill.jab"],
-      "wander_chance": 0.10,
+      "skill_ids": [
+        "skill.bash",
+        "skill.overhead-crack",
+        "skill.jab"
+      ],
+      "wander_chance": 0.1,
       "wander_room_ids": [
         "west-road",
         "west-road-curve",
@@ -150,7 +189,17 @@
         "west-road-ford",
         "west-road-rise",
         "west-road-clearing"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.mercenary-scimitar",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.south-market-merchant",
@@ -214,8 +263,6 @@
       "merchant_buy_markup": 1.0,
       "merchant_sell_ratio": 0.55,
       "pronoun_possessive": "her",
-      "main_hand_weapon_template_id": "",
-      "off_hand_weapon_template_id": "",
       "vigor": 0,
       "max_vigor": 0,
       "mana": 0,
@@ -223,7 +270,18 @@
       "skill_use_chance": 0.0,
       "skill_ids": [],
       "spell_use_chance": 0.0,
-      "spell_ids": []
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     }
-  ]
+  ],
+  "items": []
 }

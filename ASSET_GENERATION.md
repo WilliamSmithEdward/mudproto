@@ -92,8 +92,8 @@ These references must stay valid:
 |---|---|---|
 | `rooms[].zone_id` | `zones.json -> zone_id` | Required for every room |
 | `rooms[].npcs[].npc_id` | `npcs.json -> npc_id` | Spawn entries must reference valid NPCs |
-| `npcs[].main_hand_weapon_template_id` | `gear.json -> template_id` | Usually `weapon.*` |
-| `npcs[].off_hand_weapon_template_id` | `gear.json -> template_id` | Usually `weapon.*` |
+| `npcs[].main_hand_weapon.template_id` | `gear.json -> template_id` | Usually `weapon.*` |
+| `npcs[].off_hand_weapon.template_id` | `gear.json -> template_id` | Usually `weapon.*` |
 | `npcs[].merchant_inventory[].template_id` | `gear.json` or `items.json` | Merchant stock can sell gear or consumables |
 | `npcs[].skill_ids[]` | `skills.json -> skill_id` | Unknown IDs fail validation |
 | `npcs[].spell_ids[]` | `spells.json -> spell_id` | Unknown IDs fail validation |
@@ -262,8 +262,9 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 - `is_peaceful`
 - `respawn`
 - `pronoun_possessive` â€” e.g. `his`, `her`, `its`
-- `main_hand_weapon_template_id`
-- `off_hand_weapon_template_id`
+- `main_hand_weapon` â€” object with `template_id`, `spawn_chance`, `drop_on_death`
+- `off_hand_weapon` â€” object with `template_id`, `spawn_chance`, `drop_on_death`
+- `inventory_items` â€” template-backed carried items; each entry may include `spawn_chance`
 - `vigor`, `max_vigor`
 - `mana`, `max_mana`
 - `skill_use_chance` â€” float from `0.0` to `1.0`
@@ -302,8 +303,16 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
   "is_aggro": true,
   "is_ally": false,
   "pronoun_possessive": "his",
-  "main_hand_weapon_template_id": "weapon.reaver-nightblade",
-  "off_hand_weapon_template_id": "weapon.scout-dagger",
+  "main_hand_weapon": {
+    "template_id": "weapon.reaver-nightblade",
+    "spawn_chance": 100,
+    "drop_on_death": 0
+  },
+  "off_hand_weapon": {
+    "template_id": "weapon.scout-dagger",
+    "spawn_chance": 100,
+    "drop_on_death": 0
+  },
   "vigor": 72,
   "max_vigor": 72,
   "skill_use_chance": 0.45,

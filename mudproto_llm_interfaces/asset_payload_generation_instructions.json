@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.12",
-  "generated_at_utc": "2026-04-14T23:06:47.669545+00:00",
+  "generated_at_utc": "2026-04-15T03:48:39.015846+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -173,7 +173,7 @@
     "rooms[].zone_id must match a zone_id in the base assets or this payload.",
     "rooms[].npcs[].npc_id must match an NPC in the base assets or this payload.",
     "rooms[].exits[direction] must point to a valid room_id.",
-    "npcs[].main_hand_weapon_template_id and off_hand_weapon_template_id must match gear template_id values.",
+    "npcs[].main_hand_weapon.template_id and npcs[].off_hand_weapon.template_id must match gear template_id values.",
     "npcs[].inventory_items[].template_id and npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
     "npcs[].spell_ids[] must match spell_id values.",
     "npcs[].skill_ids[] must match skill_id values.",
@@ -764,15 +764,61 @@
           "required": false,
           "default": "its"
         },
-        "main_hand_weapon_template_id": {
-          "type": "string",
+        "main_hand_weapon": {
+          "type": "object",
           "required": false,
-          "default": ""
+          "default": {},
+          "schema": {
+            "template_id": {
+              "type": "string",
+              "required": false,
+              "default": "",
+              "notes": "Must match an existing gear template_id when provided."
+            },
+            "spawn_chance": {
+              "type": "number",
+              "required": false,
+              "default": 100,
+              "minimum": 0,
+              "maximum": 100
+            },
+            "drop_on_death": {
+              "type": "number",
+              "required": false,
+              "default": 0,
+              "minimum": 0,
+              "maximum": 100,
+              "notes": "Percent chance for this equipped weapon to appear on the corpse when the NPC dies."
+            }
+          }
         },
-        "off_hand_weapon_template_id": {
-          "type": "string",
+        "off_hand_weapon": {
+          "type": "object",
           "required": false,
-          "default": ""
+          "default": {},
+          "schema": {
+            "template_id": {
+              "type": "string",
+              "required": false,
+              "default": "",
+              "notes": "Must match an existing gear template_id when provided."
+            },
+            "spawn_chance": {
+              "type": "number",
+              "required": false,
+              "default": 100,
+              "minimum": 0,
+              "maximum": 100
+            },
+            "drop_on_death": {
+              "type": "number",
+              "required": false,
+              "default": 0,
+              "minimum": 0,
+              "maximum": 100,
+              "notes": "Percent chance for this equipped weapon to appear on the corpse when the NPC dies."
+            }
+          }
         },
         "vigor": {
           "type": "integer",
@@ -978,40 +1024,21 @@
             "template_id": {
               "type": "string",
               "required": true,
-              "notes": "Must match an existing gear or item template id. These items transfer to the corpse on NPC death."
+              "notes": "Must match an existing gear or item template id. Spawned items transfer to the corpse on NPC death."
             },
             "quantity": {
               "type": "integer",
               "required": false,
               "default": 1,
               "minimum": 1
-            }
-          }
-        },
-        "loot_items": {
-          "type": "array[object]",
-          "required": false,
-          "default": [],
-          "entry_schema": {
-            "template_id": {
-              "type": "string",
-              "required": false,
-              "default": "",
-              "notes": "Optional existing gear or item template id for the corpse drop."
             },
-            "name": {
-              "type": "string",
-              "required": true
-            },
-            "description": {
-              "type": "string",
+            "spawn_chance": {
+              "type": "number",
               "required": false,
-              "default": ""
-            },
-            "keywords": {
-              "type": "array[string]",
-              "required": false,
-              "default": []
+              "default": 100,
+              "minimum": 0,
+              "maximum": 100,
+              "notes": "Percent chance for each quantity instance to appear on the NPC when it spawns."
             }
           }
         },
@@ -2156,15 +2183,23 @@
             "is_aggro": true,
             "is_ally": false,
             "pronoun_possessive": "his",
-            "main_hand_weapon_template_id": "weapon.training-sword",
-            "off_hand_weapon_template_id": "weapon.scout-dagger",
             "vigor": 48,
             "max_vigor": 48,
             "skill_use_chance": 0.35,
             "skill_ids": [
               "skill.jab",
               "skill.overhead-crack"
-            ]
+            ],
+            "main_hand_weapon": {
+              "template_id": "weapon.training-sword",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            },
+            "off_hand_weapon": {
+              "template_id": "weapon.scout-dagger",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
           },
           {
             "npc_id": "npc.sanctum-invoker",
@@ -2183,8 +2218,6 @@
             "is_aggro": true,
             "is_ally": false,
             "pronoun_possessive": "his",
-            "main_hand_weapon_template_id": "weapon.training-sword",
-            "off_hand_weapon_template_id": "",
             "vigor": 24,
             "max_vigor": 24,
             "mana": 120,
@@ -2196,7 +2229,17 @@
             "spell_use_chance": 0.55,
             "spell_ids": [
               "spell.regeneration-ward"
-            ]
+            ],
+            "main_hand_weapon": {
+              "template_id": "weapon.training-sword",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            },
+            "off_hand_weapon": {
+              "template_id": "",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
           },
           {
             "npc_id": "npc.east-watch-reaver",
@@ -2215,8 +2258,6 @@
             "is_aggro": true,
             "is_ally": false,
             "pronoun_possessive": "his",
-            "main_hand_weapon_template_id": "weapon.reaver-nightblade",
-            "off_hand_weapon_template_id": "weapon.scout-dagger",
             "vigor": 72,
             "max_vigor": 72,
             "skill_use_chance": 0.45,
@@ -2224,7 +2265,17 @@
               "skill.jab",
               "skill.overhead-crack",
               "skill.guard-breath"
-            ]
+            ],
+            "main_hand_weapon": {
+              "template_id": "weapon.reaver-nightblade",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            },
+            "off_hand_weapon": {
+              "template_id": "weapon.scout-dagger",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
           },
           {
             "npc_id": "npc.ashen-reliquary-exarch",
@@ -2243,8 +2294,6 @@
             "is_aggro": true,
             "is_ally": false,
             "pronoun_possessive": "his",
-            "main_hand_weapon_template_id": "weapon.exarch-doomblade",
-            "off_hand_weapon_template_id": "weapon.exarch-emberfang",
             "vigor": 110,
             "max_vigor": 110,
             "mana": 180,
@@ -2260,7 +2309,17 @@
               "spell.spark",
               "spell.ember-lance",
               "spell.regeneration-ward"
-            ]
+            ],
+            "main_hand_weapon": {
+              "template_id": "weapon.exarch-doomblade",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            },
+            "off_hand_weapon": {
+              "template_id": "weapon.exarch-emberfang",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
           },
           {
             "npc_id": "npc.wandering-mercenary",
@@ -2280,8 +2339,6 @@
             "is_ally": false,
             "is_peaceful": false,
             "pronoun_possessive": "his",
-            "main_hand_weapon_template_id": "weapon.mercenary-scimitar",
-            "off_hand_weapon_template_id": "",
             "vigor": 100,
             "max_vigor": 100,
             "skill_use_chance": 0.45,
@@ -2298,7 +2355,17 @@
               "west-road-ford",
               "west-road-rise",
               "west-road-clearing"
-            ]
+            ],
+            "main_hand_weapon": {
+              "template_id": "weapon.mercenary-scimitar",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            },
+            "off_hand_weapon": {
+              "template_id": "",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
           },
           {
             "npc_id": "npc.south-market-merchant",
@@ -2362,8 +2429,6 @@
             "merchant_buy_markup": 1.0,
             "merchant_sell_ratio": 0.55,
             "pronoun_possessive": "her",
-            "main_hand_weapon_template_id": "",
-            "off_hand_weapon_template_id": "",
             "vigor": 0,
             "max_vigor": 0,
             "mana": 0,
@@ -2371,9 +2436,20 @@
             "skill_use_chance": 0.0,
             "skill_ids": [],
             "spell_use_chance": 0.0,
-            "spell_ids": []
+            "spell_ids": [],
+            "main_hand_weapon": {
+              "template_id": "",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            },
+            "off_hand_weapon": {
+              "template_id": "",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
           }
-        ]
+        ],
+        "items": []
       },
       "rooms": [
         {
@@ -2825,8 +2901,7 @@
               "amount": 2,
               "scaling_attribute_id": "con",
               "scaling_multiplier": 0.5,
-              "level_scaling_multiplier": 0.5,
-              "duration_rounds": 3
+              "level_scaling_multiplier": 0.5
             }
           ],
           "support_mode": "battle_rounds",
@@ -2938,8 +3013,7 @@
               "extra_off_hand_hits": 0,
               "extra_unarmed_hits": 2,
               "hits_per_level_step": 1,
-              "level_step": 5,
-              "duration_rounds": 4
+              "level_step": 5
             }
           ],
           "support_mode": "battle_rounds",
@@ -3189,6 +3263,18 @@
                 "lock.sepulcher-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
               ],
               "coin_value": 0
+            },
+            {
+              "template_id": "item.charred-prayer-beads-penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "name": "charred prayer beads",
+              "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
+              "keywords": [
+                "charred",
+                "prayer",
+                "beads"
+              ],
+              "item_type": "misc",
+              "coin_value": 0
             }
           ],
           "spells": [
@@ -3282,8 +3368,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "off_hand_weapon_template_id": "",
               "vigor": 42,
               "max_vigor": 42,
               "mana": 30,
@@ -3295,7 +3379,17 @@
               "spell_use_chance": 0.2,
               "spell_ids": [
                 "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -3314,8 +3408,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "",
-              "off_hand_weapon_template_id": "",
               "vigor": 30,
               "max_vigor": 30,
               "mana": 95,
@@ -3328,7 +3420,17 @@
               "spell_ids": [
                 "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
                 "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -3347,8 +3449,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "its",
-              "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "off_hand_weapon_template_id": "",
               "vigor": 56,
               "max_vigor": 56,
               "skill_use_chance": 0.3,
@@ -3356,7 +3456,17 @@
                 "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
               ],
               "spell_use_chance": 0.0,
-              "spell_ids": []
+              "spell_ids": [],
+              "main_hand_weapon": {
+                "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -3375,8 +3485,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "its",
-              "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "off_hand_weapon_template_id": "",
               "vigor": 62,
               "max_vigor": 62,
               "mana": 45,
@@ -3388,7 +3496,17 @@
               "spell_use_chance": 0.15,
               "spell_ids": [
                 "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
@@ -3407,8 +3525,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "off_hand_weapon_template_id": "",
               "vigor": 84,
               "max_vigor": 84,
               "mana": 120,
@@ -3426,20 +3542,25 @@
               "inventory_items": [
                 {
                   "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
+                },
+                {
+                  "template_id": "item.charred-prayer-beads-penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
               ],
-              "loot_items": [
-                {
-                  "name": "charred prayer beads",
-                  "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
-                  "keywords": [
-                    "charred",
-                    "prayer",
-                    "beads"
-                  ]
-                }
-              ]
+              "main_hand_weapon": {
+                "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             }
           ],
           "rooms": [
@@ -4207,8 +4328,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.mercenary-scimitar",
-              "off_hand_weapon_template_id": "weapon.scout-dagger",
               "vigor": 140,
               "max_vigor": 140,
               "mana": 0,
@@ -4223,7 +4342,8 @@
               "inventory_items": [
                 {
                   "template_id": "item.bandit-salve-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
               ],
               "wander_chance": 0.1,
@@ -4235,7 +4355,17 @@
                 "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
                 "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
                 "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.mercenary-scimitar",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "weapon.scout-dagger",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4253,8 +4383,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.training-sword",
-              "off_hand_weapon_template_id": "",
               "vigor": 40,
               "max_vigor": 40,
               "mana": 240,
@@ -4267,7 +4395,17 @@
               "spell_ids": [
                 "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
                 "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.training-sword",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4285,8 +4423,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "off_hand_weapon_template_id": "",
               "vigor": 160,
               "max_vigor": 160,
               "mana": 0,
@@ -4297,7 +4433,17 @@
                 "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
               ],
               "spell_use_chance": 0.0,
-              "spell_ids": []
+              "spell_ids": [],
+              "main_hand_weapon": {
+                "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4315,8 +4461,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "off_hand_weapon_template_id": "weapon.training-dagger",
               "vigor": 145,
               "max_vigor": 145,
               "mana": 0,
@@ -4337,7 +4481,17 @@
                 "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
                 "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
                 "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "weapon.training-dagger",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.ironhook-maela-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4355,8 +4509,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "her",
-              "main_hand_weapon_template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "off_hand_weapon_template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "vigor": 220,
               "max_vigor": 220,
               "mana": 0,
@@ -4378,9 +4530,20 @@
               "inventory_items": [
                 {
                   "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.varo-cindersmile-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4398,8 +4561,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "off_hand_weapon_template_id": "",
               "vigor": 80,
               "max_vigor": 80,
               "mana": 300,
@@ -4423,9 +4584,20 @@
               "inventory_items": [
                 {
                   "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.seln-of-the-pins-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4443,8 +4615,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "off_hand_weapon_template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "vigor": 225,
               "max_vigor": 225,
               "mana": 0,
@@ -4466,9 +4636,20 @@
               "inventory_items": [
                 {
                   "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.brother-cleft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4486,8 +4667,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "off_hand_weapon_template_id": "",
               "vigor": 200,
               "max_vigor": 200,
               "mana": 210,
@@ -4511,9 +4690,20 @@
               "inventory_items": [
                 {
                   "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -4531,8 +4721,6 @@
               "is_aggro": true,
               "is_ally": false,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "off_hand_weapon_template_id": "",
               "vigor": 260,
               "max_vigor": 260,
               "mana": 260,
@@ -4559,13 +4747,25 @@
               "inventory_items": [
                 {
                   "template_id": "armor.crowbanner-plate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 },
                 {
                   "template_id": "item.black-banner-token-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             }
           ],
           "rooms": [
@@ -5394,7 +5594,6 @@
               "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "vigor": 56,
               "max_vigor": 56,
               "mana": 0,
@@ -5408,13 +5607,25 @@
               "inventory_items": [
                 {
                   "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 },
                 {
                   "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.grave-acolyte-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -5434,7 +5645,6 @@
               "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "her",
-              "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "vigor": 24,
               "max_vigor": 24,
               "mana": 95,
@@ -5449,13 +5659,25 @@
               "inventory_items": [
                 {
                   "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 },
                 {
                   "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.crypt-warden-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -5475,7 +5697,6 @@
               "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "vigor": 64,
               "max_vigor": 64,
               "mana": 0,
@@ -5490,13 +5711,25 @@
               "inventory_items": [
                 {
                   "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 },
                 {
                   "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.dark-priestess-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -5516,7 +5749,6 @@
               "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "her",
-              "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "vigor": 30,
               "max_vigor": 30,
               "mana": 145,
@@ -5532,17 +5764,30 @@
               "inventory_items": [
                 {
                   "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 },
                 {
                   "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 },
                 {
                   "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.dread-revenant-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -5562,7 +5807,6 @@
               "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "its",
-              "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "vigor": 78,
               "max_vigor": 78,
               "mana": 0,
@@ -5577,9 +5821,20 @@
               "inventory_items": [
                 {
                   "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             }
           ],
           "rooms": [
@@ -5942,6 +6197,29 @@
               "use_lag_seconds": 0.0,
               "observer_action": "[actor_name] drinks a sunwell drop.",
               "observer_context": "A clean radiance settles behind [actor_object]'s eyes."
+            },
+            {
+              "template_id": "item.scarab-shell-dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "scarab shell",
+              "description": "A lacquered dune scarab shell with bands of sun-baked gold.",
+              "keywords": [
+                "scarab",
+                "shell"
+              ],
+              "item_type": "misc",
+              "coin_value": 0
+            },
+            {
+              "template_id": "item.cracked-sun-medallion-buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+              "name": "Cracked Sun Medallion",
+              "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
+              "keywords": [
+                "sun",
+                "medallion",
+                "cracked"
+              ],
+              "item_type": "misc",
+              "coin_value": 0
             }
           ],
           "spells": [
@@ -6040,8 +6318,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "its",
-              "main_hand_weapon_template_id": "",
-              "off_hand_weapon_template_id": "",
               "vigor": 34,
               "max_vigor": 34,
               "skill_use_chance": 0.3,
@@ -6050,14 +6326,21 @@
               ],
               "spell_use_chance": 0.0,
               "spell_ids": [],
-              "loot_items": [
+              "main_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "inventory_items": [
                 {
-                  "name": "scarab shell",
-                  "description": "A lacquered dune scarab shell with bands of sun-baked gold.",
-                  "keywords": [
-                    "scarab",
-                    "shell"
-                  ]
+                  "template_id": "item.scarab-shell-dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
               ]
             },
@@ -6078,8 +6361,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "its",
-              "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "off_hand_weapon_template_id": "",
               "vigor": 40,
               "max_vigor": 40,
               "skill_use_chance": 0.35,
@@ -6087,7 +6368,17 @@
                 "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
               ],
               "spell_use_chance": 0.0,
-              "spell_ids": []
+              "spell_ids": [],
+              "main_hand_weapon": {
+                "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.sunken-guardian-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -6106,8 +6397,6 @@
               "is_ally": false,
               "respawn": true,
               "pronoun_possessive": "its",
-              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "off_hand_weapon_template_id": "",
               "vigor": 58,
               "max_vigor": 58,
               "mana": 40,
@@ -6119,7 +6408,17 @@
               "spell_use_chance": 0.2,
               "spell_ids": [
                 "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -6145,8 +6444,6 @@
               "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "off_hand_weapon_template_id": "",
               "vigor": 70,
               "max_vigor": 70,
               "mana": 80,
@@ -6158,7 +6455,17 @@
               "spell_use_chance": 0.2,
               "spell_ids": [
                 "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.lamp-keeper-sera-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -6222,8 +6529,6 @@
               "merchant_buy_markup": 1.0,
               "merchant_sell_ratio": 0.55,
               "pronoun_possessive": "her",
-              "main_hand_weapon_template_id": "",
-              "off_hand_weapon_template_id": "",
               "vigor": 0,
               "max_vigor": 0,
               "mana": 0,
@@ -6231,7 +6536,17 @@
               "skill_use_chance": 0.0,
               "skill_ids": [],
               "spell_use_chance": 0.0,
-              "spell_ids": []
+              "spell_ids": [],
+              "main_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -6258,8 +6573,6 @@
               "is_peaceful": false,
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "off_hand_weapon_template_id": "",
               "vigor": 90,
               "max_vigor": 90,
               "mana": 110,
@@ -6480,7 +6793,17 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -6507,8 +6830,6 @@
               "respawn": true,
               "corpse_label_style": "possessive",
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "off_hand_weapon_template_id": "",
               "vigor": 74,
               "max_vigor": 74,
               "mana": 90,
@@ -6730,13 +7051,23 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "main_hand_weapon": {
+                "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             },
             {
               "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "name": "Buried Heresiarch",
-              "hit_points": 1200,
-              "max_hit_points": 1200,
+              "hit_points": 3000,
+              "max_hit_points": 3000,
               "power_level": 10,
               "attacks_per_round": 2,
               "hit_roll_modifier": 4,
@@ -6744,7 +7075,7 @@
               "off_hand_attacks_per_round": 1,
               "off_hand_hit_roll_modifier": 4,
               "coin_reward": 96,
-              "experience_reward": 130,
+              "experience_reward": 580,
               "is_aggro": true,
               "is_ally": false,
               "set_world_flags_on_death": [
@@ -6752,8 +7083,6 @@
               ],
               "respawn": true,
               "pronoun_possessive": "his",
-              "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "off_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "vigor": 72,
               "max_vigor": 72,
               "mana": 170,
@@ -6771,20 +7100,25 @@
               "inventory_items": [
                 {
                   "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-                  "quantity": 1
+                  "quantity": 1,
+                  "spawn_chance": 100
+                },
+                {
+                  "template_id": "item.cracked-sun-medallion-buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                  "quantity": 1,
+                  "spawn_chance": 100
                 }
               ],
-              "loot_items": [
-                {
-                  "name": "cracked sun medallion",
-                  "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
-                  "keywords": [
-                    "sun",
-                    "medallion",
-                    "cracked"
-                  ]
-                }
-              ]
+              "main_hand_weapon": {
+                "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              },
+              "off_hand_weapon": {
+                "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+                "spawn_chance": 100,
+                "drop_on_death": 0
+              }
             }
           ],
           "rooms": [

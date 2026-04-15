@@ -234,7 +234,6 @@
       "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "vigor": 56,
       "max_vigor": 56,
       "mana": 0,
@@ -248,13 +247,25 @@
       "inventory_items": [
         {
           "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         },
         {
           "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.grave-acolyte-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -274,7 +285,6 @@
       "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "her",
-      "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "vigor": 24,
       "max_vigor": 24,
       "mana": 95,
@@ -289,13 +299,25 @@
       "inventory_items": [
         {
           "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         },
         {
           "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.crypt-warden-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -315,7 +337,6 @@
       "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "vigor": 64,
       "max_vigor": 64,
       "mana": 0,
@@ -330,13 +351,25 @@
       "inventory_items": [
         {
           "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         },
         {
           "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.dark-priestess-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -356,7 +389,6 @@
       "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "her",
-      "main_hand_weapon_template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "vigor": 30,
       "max_vigor": 30,
       "mana": 145,
@@ -372,17 +404,30 @@
       "inventory_items": [
         {
           "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         },
         {
           "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         },
         {
           "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.dread-revenant-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -402,7 +447,6 @@
       "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "its",
-      "main_hand_weapon_template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "vigor": 78,
       "max_vigor": 78,
       "mana": 0,
@@ -417,9 +461,20 @@
       "inventory_items": [
         {
           "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     }
   ],
   "rooms": [

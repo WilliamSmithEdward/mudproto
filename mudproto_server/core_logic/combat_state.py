@@ -42,13 +42,22 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
     corpse_id = f"corpse-{uuid.uuid4().hex[:8]}"
     loot_items: dict[str, ItemState] = {}
 
-    equipped_template_ids: list[str] = []
+    equipped_template_ids: list[tuple[str, float]] = []
     if entity.main_hand_weapon_template_id.strip():
-        equipped_template_ids.append(entity.main_hand_weapon_template_id.strip())
+        equipped_template_ids.append((
+            entity.main_hand_weapon_template_id.strip(),
+            float(getattr(entity, "main_hand_weapon_drop_on_death", 0.0) or 0.0),
+        ))
     if entity.off_hand_weapon_template_id.strip():
-        equipped_template_ids.append(entity.off_hand_weapon_template_id.strip())
+        equipped_template_ids.append((
+            entity.off_hand_weapon_template_id.strip(),
+            float(getattr(entity, "off_hand_weapon_drop_on_death", 0.0) or 0.0),
+        ))
 
-    for template_id in equipped_template_ids:
+    for template_id, drop_chance in equipped_template_ids:
+        if drop_chance <= 0.0 or (random.random() * 100.0) >= drop_chance:
+            continue
+
         template = get_gear_template_by_id(template_id)
         if template is None:
             continue
@@ -56,13 +65,12 @@ def spawn_corpse_for_entity(session: ClientSession, entity: EntityState) -> Corp
         loot_item = build_equippable_item_from_template(template, item_id=f"loot-{uuid.uuid4().hex[:8]}")
         loot_items[loot_item.item_id] = loot_item
 
-    for carried_item in list(getattr(entity, "inventory_items", [])) + list(getattr(entity, "loot_items", [])):
+    for carried_item in list(getattr(entity, "inventory_items", [])):
         if not isinstance(carried_item, ItemState):
             continue
         loot_items[carried_item.item_id] = carried_item
 
     entity.inventory_items = []
-    entity.loot_items = []
 
     corpse = CorpseState(
         corpse_id=corpse_id,

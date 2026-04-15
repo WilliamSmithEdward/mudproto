@@ -142,15 +142,61 @@
         "required": false,
         "default": "its"
       },
-      "main_hand_weapon_template_id": {
-        "type": "string",
+      "main_hand_weapon": {
+        "type": "object",
         "required": false,
-        "default": ""
+        "default": {},
+        "schema": {
+          "template_id": {
+            "type": "string",
+            "required": false,
+            "default": "",
+            "notes": "Must match an existing gear template_id when provided."
+          },
+          "spawn_chance": {
+            "type": "number",
+            "required": false,
+            "default": 100,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "drop_on_death": {
+            "type": "number",
+            "required": false,
+            "default": 0,
+            "minimum": 0,
+            "maximum": 100,
+            "notes": "Percent chance for this equipped weapon to appear on the corpse when the NPC dies."
+          }
+        }
       },
-      "off_hand_weapon_template_id": {
-        "type": "string",
+      "off_hand_weapon": {
+        "type": "object",
         "required": false,
-        "default": ""
+        "default": {},
+        "schema": {
+          "template_id": {
+            "type": "string",
+            "required": false,
+            "default": "",
+            "notes": "Must match an existing gear template_id when provided."
+          },
+          "spawn_chance": {
+            "type": "number",
+            "required": false,
+            "default": 100,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "drop_on_death": {
+            "type": "number",
+            "required": false,
+            "default": 0,
+            "minimum": 0,
+            "maximum": 100,
+            "notes": "Percent chance for this equipped weapon to appear on the corpse when the NPC dies."
+          }
+        }
       },
       "vigor": {
         "type": "integer",
@@ -346,40 +392,21 @@
           "template_id": {
             "type": "string",
             "required": true,
-            "notes": "Must match an existing gear or item template id. These items transfer to the corpse on NPC death."
+            "notes": "Must match an existing gear or item template id. Spawned items transfer to the corpse on NPC death."
           },
           "quantity": {
             "type": "integer",
             "required": false,
             "default": 1,
             "minimum": 1
-          }
-        }
-      },
-      "loot_items": {
-        "type": "array[object]",
-        "required": false,
-        "default": [],
-        "entry_schema": {
-          "template_id": {
-            "type": "string",
-            "required": false,
-            "default": "",
-            "notes": "Optional existing gear or item template id for the corpse drop."
           },
-          "name": {
-            "type": "string",
-            "required": true
-          },
-          "description": {
-            "type": "string",
+          "spawn_chance": {
+            "type": "number",
             "required": false,
-            "default": ""
-          },
-          "keywords": {
-            "type": "array[string]",
-            "required": false,
-            "default": []
+            "default": 100,
+            "minimum": 0,
+            "maximum": 100,
+            "notes": "Percent chance for each quantity instance to appear on the NPC when it spawns."
           }
         }
       },

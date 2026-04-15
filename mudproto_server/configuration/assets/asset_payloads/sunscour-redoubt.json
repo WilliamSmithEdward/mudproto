@@ -136,6 +136,29 @@
       "use_lag_seconds": 0.0,
       "observer_action": "[actor_name] drinks a sunwell drop.",
       "observer_context": "A clean radiance settles behind [actor_object]'s eyes."
+    },
+    {
+      "template_id": "item.scarab-shell-dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "scarab shell",
+      "description": "A lacquered dune scarab shell with bands of sun-baked gold.",
+      "keywords": [
+        "scarab",
+        "shell"
+      ],
+      "item_type": "misc",
+      "coin_value": 0
+    },
+    {
+      "template_id": "item.cracked-sun-medallion-buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Cracked Sun Medallion",
+      "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
+      "keywords": [
+        "sun",
+        "medallion",
+        "cracked"
+      ],
+      "item_type": "misc",
+      "coin_value": 0
     }
   ],
   "spells": [
@@ -234,8 +257,6 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "its",
-      "main_hand_weapon_template_id": "",
-      "off_hand_weapon_template_id": "",
       "vigor": 34,
       "max_vigor": 34,
       "skill_use_chance": 0.3,
@@ -244,14 +265,21 @@
       ],
       "spell_use_chance": 0.0,
       "spell_ids": [],
-      "loot_items": [
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "inventory_items": [
         {
-          "name": "scarab shell",
-          "description": "A lacquered dune scarab shell with bands of sun-baked gold.",
-          "keywords": [
-            "scarab",
-            "shell"
-          ]
+          "template_id": "item.scarab-shell-dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 1,
+          "spawn_chance": 100
         }
       ]
     },
@@ -272,8 +300,6 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "its",
-      "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "off_hand_weapon_template_id": "",
       "vigor": 40,
       "max_vigor": 40,
       "skill_use_chance": 0.35,
@@ -281,7 +307,17 @@
         "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
       ],
       "spell_use_chance": 0.0,
-      "spell_ids": []
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.sunken-guardian-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -300,8 +336,6 @@
       "is_ally": false,
       "respawn": true,
       "pronoun_possessive": "its",
-      "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "off_hand_weapon_template_id": "",
       "vigor": 58,
       "max_vigor": 58,
       "mana": 40,
@@ -313,7 +347,17 @@
       "spell_use_chance": 0.2,
       "spell_ids": [
         "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -339,8 +383,6 @@
       "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "off_hand_weapon_template_id": "",
       "vigor": 70,
       "max_vigor": 70,
       "mana": 80,
@@ -352,7 +394,17 @@
       "spell_use_chance": 0.2,
       "spell_ids": [
         "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.lamp-keeper-sera-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -416,8 +468,6 @@
       "merchant_buy_markup": 1.0,
       "merchant_sell_ratio": 0.55,
       "pronoun_possessive": "her",
-      "main_hand_weapon_template_id": "",
-      "off_hand_weapon_template_id": "",
       "vigor": 0,
       "max_vigor": 0,
       "mana": 0,
@@ -425,7 +475,17 @@
       "skill_use_chance": 0.0,
       "skill_ids": [],
       "spell_use_chance": 0.0,
-      "spell_ids": []
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -452,8 +512,6 @@
       "is_peaceful": false,
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "off_hand_weapon_template_id": "",
       "vigor": 90,
       "max_vigor": 90,
       "mana": 110,
@@ -674,7 +732,17 @@
             }
           ]
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -701,8 +769,6 @@
       "respawn": true,
       "corpse_label_style": "possessive",
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "off_hand_weapon_template_id": "",
       "vigor": 74,
       "max_vigor": 74,
       "mana": 90,
@@ -924,7 +990,17 @@
             }
           ]
         }
-      ]
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     },
     {
       "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -946,8 +1022,6 @@
       ],
       "respawn": true,
       "pronoun_possessive": "his",
-      "main_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "off_hand_weapon_template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "vigor": 72,
       "max_vigor": 72,
       "mana": 170,
@@ -965,20 +1039,25 @@
       "inventory_items": [
         {
           "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-          "quantity": 1
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.cracked-sun-medallion-buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 1,
+          "spawn_chance": 100
         }
       ],
-      "loot_items": [
-        {
-          "name": "Cracked Sun Medallion",
-          "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
-          "keywords": [
-            "sun",
-            "medallion",
-            "cracked"
-          ]
-        }
-      ]
+      "main_hand_weapon": {
+        "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     }
   ],
   "rooms": [
@@ -1240,7 +1319,12 @@
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "keyword_actions": [
         {
-          "keywords": ["stand circle", "stand in circle", "step circle", "step into circle"],
+          "keywords": [
+            "stand circle",
+            "stand in circle",
+            "step circle",
+            "step into circle"
+          ],
           "message": "The magic circle glimmers underfoot and carries you back to the Prototype Chamber in a wash of pale light.",
           "refresh_view": "room",
           "actions": [
@@ -1255,7 +1339,12 @@
         {
           "object_id": "return-circle",
           "name": "magic circle",
-          "keywords": ["circle", "magic circle", "return circle", "rune circle"],
+          "keywords": [
+            "circle",
+            "magic circle",
+            "return circle",
+            "rune circle"
+          ],
           "description": "A pale chalk circle marked with returning runes has been drawn into the training sand. Its lines shimmer faintly, ready to carry a traveler home."
         }
       ],
@@ -1342,7 +1431,14 @@
         {
           "object_id": "broken-sun-dais",
           "name": "broken sun-dais",
-          "keywords": ["dais", "sun", "sun dais", "broken sun", "sun disc", "disc"],
+          "keywords": [
+            "dais",
+            "sun",
+            "sun dais",
+            "broken sun",
+            "sun disc",
+            "disc"
+          ],
           "description": "A cracked disc of pale stone is set into the floor here, its old sunburst motif split through the center. The worn surface suggests kneeling penitents once spoke rites over it."
         }
       ],
