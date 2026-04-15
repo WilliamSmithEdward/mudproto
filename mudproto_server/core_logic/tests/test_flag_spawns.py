@@ -4,6 +4,7 @@ Exercises the full path from apply_entity_defeat_flags → process_zone_flag_spa
 Path setup is handled by conftest.py.
 """
 import asyncio
+from typing import Any, cast
 
 import pytest
 
@@ -216,7 +217,7 @@ def test_flag_spawn_announcement_notifies_zone_players(monkeypatch) -> None:
 
     session = _make_session()
     session.client_id = "test-zone-player"
-    session.websocket = object()
+    session.websocket = cast(Any, object())
     connected_clients[session.client_id] = session
 
     notifications: list[tuple[object, dict | list[dict]]] = []
