@@ -130,3 +130,37 @@ def test_score_displays_targeted_support_spell_affect_from_another_player(monkey
     assert applied is True
     assert "Regeneration Ward" in rendered
     assert "Regeneration Ward (3 rounds remaining)" in score_rendered
+
+
+def test_score_displays_targeted_ongoing_support_spell_from_another_player(monkeypatch) -> None:
+    caster = _make_session("client-caster-ongoing", "Lucia")
+    target = _make_session("client-target-ongoing", "Orlandu")
+
+    spell = {
+        "spell_id": "spell.guardian-light",
+        "name": "Guardian Light",
+        "school": "Restoration",
+        "spell_type": "support",
+        "element": "restoration",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "support_effect": "heal",
+        "support_amount": 6,
+        "support_dice_count": 0,
+        "support_mode": "battle_rounds",
+        "duration_rounds": 2,
+        "support_context": "A steady ward shines over you.",
+        "affect_ids": [],
+    }
+
+    monkeypatch.setattr(
+        combat_player_abilities,
+        "_resolve_room_player_selector",
+        lambda _session, _target_name, require_exact_name=True: (target, None),
+    )
+
+    _, applied = combat_player_abilities.cast_spell(caster, spell, "Orlandu")
+    score_rendered = _extract_display_text(display_character.display_score(target))
+
+    assert applied is True
+    assert "Guardian Light (2 rounds remaining)" in score_rendered
