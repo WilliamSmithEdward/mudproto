@@ -583,6 +583,9 @@
           "message": "A scarred woman on the tower platform grins without warmth. \"Climb all this way just to die at my boots? Good. Saves me the walk.\""
         }
       ],
+      "set_world_flags_on_death": [
+        "npc.ironhook-maela.defeated"
+      ],
       "main_hand_weapon": {
         "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "spawn_chance": 100,
@@ -631,6 +634,9 @@
           "message": "A thin man by the signal brazier laughs through broken teeth. \"You smell rain-soaked. Let me fix that with fire.\""
         }
       ],
+      "set_world_flags_on_death": [
+        "npc.varo-cindersmile.defeated"
+      ],
       "main_hand_weapon": {
         "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "spawn_chance": 100,
@@ -676,6 +682,9 @@
           "audience": "private",
           "message": "A hooded killer rises from the crenels as if he had been nailed there by shadow. \"Too slow,\" he says, already moving."
         }
+      ],
+      "set_world_flags_on_death": [
+        "npc.seln-of-the-pins.defeated"
       ],
       "main_hand_weapon": {
         "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -724,6 +733,9 @@
           "audience": "private",
           "message": "A broad priest in split vestments lifts a massive maul from the chapel stones. \"Mercy has left this fort. Only weight remains.\""
         }
+      ],
+      "set_world_flags_on_death": [
+        "npc.brother-cleft.defeated"
       ],
       "main_hand_weapon": {
         "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -775,6 +787,9 @@
           "audience": "private",
           "message": "The warlord in the keep-heart rises beneath his torn black banner and drags his greatsword free. \"You broke my corners. Now break here, in the middle, where all things end.\""
         }
+      ],
+      "set_world_flags_on_death": [
+        "npc.hadrik-crowbanner.defeated"
       ],
       "inventory_items": [
         {
@@ -1162,8 +1177,7 @@
       "exits": {
         "south": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
         "west": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-        "east": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-        "north": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+        "east": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
       }
     },
     {
@@ -1324,12 +1338,7 @@
       "title": "Keep Heart",
       "description": "The center chamber of the fort is a hard square of scarred beams and black banner cloth, dominated by a raised plank dais and a rack of extinguished signal horns. Every wall bears the mark of councils, punishments, and final decisions handed down without appeal. Now the whole room feels poised on the knife-edge between conquest and collapse.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "npcs": [
-        {
-          "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-          "count": 1
-        }
-      ],
+      "npcs": [],
       "items": [],
       "exits": {
         "south": "room.hall-of-plunder-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
@@ -1383,7 +1392,23 @@
       ],
       "reset_container_template_ids": [],
       "repopulation_blocking_item_template_ids": [],
-      "repopulation_block_cooldown_game_hours": 0
+      "repopulation_block_cooldown_game_hours": 0,
+      "flag_spawns": [
+        {
+          "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+          "room_id": "room.keep-heart-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+          "count": 1,
+          "required_world_flags": [
+            "npc.ironhook-maela.defeated",
+            "npc.varo-cindersmile.defeated",
+            "npc.seln-of-the-pins.defeated",
+            "npc.brother-cleft.defeated"
+          ],
+          "excluded_world_flags": [
+            "npc.hadrik-crowbanner.defeated"
+          ]
+        }
+      ]
     }
   ]
 }

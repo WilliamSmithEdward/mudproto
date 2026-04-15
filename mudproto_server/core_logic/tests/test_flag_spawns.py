@@ -153,3 +153,22 @@ def test_no_spawn_without_required_flag() -> None:
     process_zone_flag_spawns()
 
     assert not any(getattr(e, "npc_id", "") == BOSS_NPC_ID for e in shared_world_entities.values())
+
+
+def test_crowbanner_final_boss_is_flag_gated() -> None:
+    zone = WORLD.zones["zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"]
+    north_yard = WORLD.rooms["room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"]
+
+    assert "north" not in north_yard.exits
+
+    matching_rules = [
+        rule for rule in getattr(zone, "flag_spawns", [])
+        if rule.get("npc_id") == "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+    ]
+    assert len(matching_rules) == 1
+    assert set(matching_rules[0].get("required_world_flags", [])) == {
+        "npc.ironhook-maela.defeated",
+        "npc.varo-cindersmile.defeated",
+        "npc.seln-of-the-pins.defeated",
+        "npc.brother-cleft.defeated",
+    }
