@@ -1,0 +1,12 @@
+{
+  "bands": [
+    {"max_ratio": 0.15, "label": "awful", "color": "bright_red"},
+    {"max_ratio": 0.30, "label": "very poor", "color": "bright_red"},
+    {"max_ratio": 0.45, "label": "poor", "color": "bright_red"},
+    {"max_ratio": 0.60, "label": "average", "color": "bright_yellow"},
+    {"max_ratio": 0.75, "label": "fair", "color": "bright_yellow"},
+    {"max_ratio": 0.90, "label": "good", "color": "bright_green"},
+    {"max_ratio": 0.999999, "label": "very good", "color": "bright_green"},
+    {"max_ratio": 1.0, "label": "perfect", "color": "bright_green"}
+  ]
+}

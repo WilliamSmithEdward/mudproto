@@ -7,7 +7,13 @@ from experience import get_xp_to_next_level
 from models import ClientSession
 from player_resources import get_player_resource_caps
 from session_timing import is_session_lagged
-from settings import DIRECTION_ALIASES, DIRECTION_SHORT_LABELS, DIRECTION_SORT_ORDER
+from settings import (
+    DIRECTION_ALIASES,
+    DIRECTION_SHORT_LABELS,
+    DIRECTION_SORT_ORDER,
+    DISPLAY_FEEDBACK_MERCHANT_QUOTES,
+    DISPLAY_FEEDBACK_SIMPLE_MESSAGES,
+)
 from targeting_entities import list_room_entities
 from targeting_follow import _find_session_by_identity_key
 from world import get_room
@@ -228,30 +234,6 @@ def _merchant_quote_parts(merchant_name: str, quote: str) -> list[dict]:
 
 
 
-_CODED_MERCHANT_LORE_QUOTES: dict[str, str] = {
-    "no-merchant-here": "The marketplace is empty of any willing trader.",
-    "merchant-item-unavailable": "I'm sorry, I don't have that item.",
-    "merchant-out-of-stock": "I'm afraid we've sold the last of that for now.",
-    "merchant-insufficient-coins": "You'll need a heavier purse for that one.",
-    "merchant-not-carrying": "I can only bargain for what you are actually carrying.",
-}
-
-_CODED_SIMPLE_LORE_MESSAGES: dict[str, str] = {
-    "unknown-command": "Those words carry no meaning here.",
-    "player-not-found": "No ally by that exact name is here.",
-    "already-fighting": "You are already locked in battle.",
-    "not-enough-mana": "Your inner reserves are too thin for that spell.",
-    "not-enough-vigor": "Your body lacks the vigor for that effort just now.",
-    "not-engaged": "No foe presently presses you.",
-    "cannot-go": "The way does not open for you there.",
-    "current-room-not-found": "The world around you wavers strangely for a moment.",
-    "item-not-usable": "That would not serve you in that way.",
-    "item-not-equippable": "That would not serve you in that way.",
-    "item-not-wearable": "That would not serve you in that way.",
-    "item-not-wieldable": "That would not serve you in that way.",
-    "item-not-holdable": "That would not serve you in that way.",
-    "no-ground-coins": "Not a single coin glints at your feet.",
-}
 
 
 def _build_usage_lore_error_parts(usage_text: str) -> list[dict]:
@@ -302,16 +284,16 @@ def _build_coded_lore_error_parts(
     if normalized_code == "corpse-not-found":
         return [build_part("Nothing of that sort can be found here.", "bright_white", False)]
 
-    if normalized_code in _CODED_SIMPLE_LORE_MESSAGES:
-        return [build_part(_CODED_SIMPLE_LORE_MESSAGES[normalized_code], "bright_white", False)]
+    if normalized_code in DISPLAY_FEEDBACK_SIMPLE_MESSAGES:
+        return [build_part(DISPLAY_FEEDBACK_SIMPLE_MESSAGES[normalized_code], "bright_white", False)]
 
     if normalized_code == "no-merchant-here":
-        return [build_part(_CODED_MERCHANT_LORE_QUOTES[normalized_code], "bright_white", False)]
+        return [build_part(DISPLAY_FEEDBACK_MERCHANT_QUOTES[normalized_code], "bright_white", False)]
 
     merchant = _find_room_merchant(session)
-    if merchant is not None and normalized_code in _CODED_MERCHANT_LORE_QUOTES:
+    if merchant is not None and normalized_code in DISPLAY_FEEDBACK_MERCHANT_QUOTES:
         merchant_name = str(getattr(merchant, "name", "Merchant")).strip() or "Merchant"
-        return _merchant_quote_parts(merchant_name, _CODED_MERCHANT_LORE_QUOTES[normalized_code])
+        return _merchant_quote_parts(merchant_name, DISPLAY_FEEDBACK_MERCHANT_QUOTES[normalized_code])
 
     return None
 

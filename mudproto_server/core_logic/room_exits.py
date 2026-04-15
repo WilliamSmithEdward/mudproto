@@ -5,38 +5,11 @@ import re
 from display_core import build_part, newline_part
 from inventory import consume_item_on_use, get_item_keywords, item_unlocks_lock
 from models import ClientSession
+from settings import DIRECTION_ALIASES, DIRECTION_SHORT_LABELS
 from world import Room, get_room
 
 
 _VALID_DIRECTIONS = {"north", "south", "east", "west", "up", "down"}
-_DIRECTION_ALIASES = {
-    "n": "north",
-    "no": "north",
-    "nor": "north",
-    "nort": "north",
-    "s": "south",
-    "so": "south",
-    "sou": "south",
-    "sout": "south",
-    "e": "east",
-    "ea": "east",
-    "eas": "east",
-    "w": "west",
-    "we": "west",
-    "wes": "west",
-    "u": "up",
-    "d": "down",
-    "do": "down",
-    "dow": "down",
-}
-_DIRECTION_LETTERS = {
-    "north": "N",
-    "south": "S",
-    "east": "E",
-    "west": "W",
-    "up": "U",
-    "down": "D",
-}
 _REVERSE_DIRECTIONS = {
     "north": "south",
     "south": "north",
@@ -49,7 +22,7 @@ _REVERSE_DIRECTIONS = {
 
 def normalize_direction_token(text: str) -> str:
     normalized = str(text).strip().lower()
-    return _DIRECTION_ALIASES.get(normalized, normalized)
+    return DIRECTION_ALIASES.get(normalized, normalized)
 
 
 def _get_exit_details(room: Room) -> list[dict]:
@@ -175,7 +148,7 @@ def can_traverse_exit(room: Room, direction: str) -> tuple[bool, str | None]:
 
 def format_prompt_exit_token(room: Room, direction: str) -> str:
     normalized_direction = normalize_direction_token(direction)
-    letter = _DIRECTION_LETTERS.get(normalized_direction, normalized_direction[:1].upper() or "?")
+    letter = DIRECTION_SHORT_LABELS.get(normalized_direction, normalized_direction[:1].upper() or "?")
     if is_exit_closed(room, normalized_direction):
         return f"({letter})"
     return letter

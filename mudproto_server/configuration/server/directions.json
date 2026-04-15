@@ -1,0 +1,44 @@
+{
+  "short_labels": {
+    "north": "N",
+    "south": "S",
+    "east": "E",
+    "west": "W",
+    "up": "U",
+    "down": "D"
+  },
+  "sort_order": {
+    "north": 0,
+    "east": 1,
+    "south": 2,
+    "west": 3,
+    "up": 4,
+    "down": 5
+  },
+  "aliases": {
+    "n": "north",
+    "no": "north",
+    "nor": "north",
+    "nort": "north",
+    "north": "north",
+    "s": "south",
+    "so": "south",
+    "sou": "south",
+    "sout": "south",
+    "south": "south",
+    "e": "east",
+    "ea": "east",
+    "eas": "east",
+    "east": "east",
+    "w": "west",
+    "we": "west",
+    "wes": "west",
+    "west": "west",
+    "u": "up",
+    "up": "up",
+    "d": "down",
+    "do": "down",
+    "dow": "down",
+    "down": "down"
+  }
+}

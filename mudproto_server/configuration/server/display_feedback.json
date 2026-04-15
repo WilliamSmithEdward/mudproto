@@ -1,0 +1,25 @@
+{
+  "merchant_quotes": {
+    "no-merchant-here": "The marketplace is empty of any willing trader.",
+    "merchant-item-unavailable": "I'm sorry, I don't have that item.",
+    "merchant-out-of-stock": "I'm afraid we've sold the last of that for now.",
+    "merchant-insufficient-coins": "You'll need a heavier purse for that one.",
+    "merchant-not-carrying": "I can only bargain for what you are actually carrying."
+  },
+  "simple_messages": {
+    "unknown-command": "Those words carry no meaning here.",
+    "player-not-found": "No ally by that exact name is here.",
+    "already-fighting": "You are already locked in battle.",
+    "not-enough-mana": "Your inner reserves are too thin for that spell.",
+    "not-enough-vigor": "Your body lacks the vigor for that effort just now.",
+    "not-engaged": "No foe presently presses you.",
+    "cannot-go": "The way does not open for you there.",
+    "current-room-not-found": "The world around you wavers strangely for a moment.",
+    "item-not-usable": "That would not serve you in that way.",
+    "item-not-equippable": "That would not serve you in that way.",
+    "item-not-wearable": "That would not serve you in that way.",
+    "item-not-wieldable": "That would not serve you in that way.",
+    "item-not-holdable": "That would not serve you in that way.",
+    "no-ground-coins": "Not a single coin glints at your feet."
+  }
+}

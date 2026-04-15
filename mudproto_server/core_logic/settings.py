@@ -6,52 +6,53 @@ from datetime import datetime, timezone
 
 
 SERVER_ROOT = Path(__file__).resolve().parent.parent
-SETTINGS_FILE = SERVER_ROOT / "configuration" / "server" / "settings.json"
-CONSTANTS_FILE = SERVER_ROOT / "configuration" / "server" / "constants.json"
+SERVER_CONFIG_ROOT = SERVER_ROOT / "configuration" / "server"
+SETTINGS_FILE = SERVER_CONFIG_ROOT / "settings.json"
+DIRECTIONS_FILE = SERVER_CONFIG_ROOT / "directions.json"
+HEALTH_CONDITIONS_FILE = SERVER_CONFIG_ROOT / "health_conditions.json"
+DISPLAY_FEEDBACK_FILE = SERVER_CONFIG_ROOT / "display_feedback.json"
+
+
+def _load_json_object(path: Path, *, label: str) -> dict:
+    with path.open("r", encoding="utf-8") as handle:
+        raw = json.load(handle)
+
+    if not isinstance(raw, dict):
+        raise ValueError(f"{label} must contain a JSON object: {path}")
+
+    return raw
 
 
 @lru_cache(maxsize=1)
 def load_server_settings() -> dict:
-    with SETTINGS_FILE.open("r", encoding="utf-8") as handle:
-        raw = json.load(handle)
-
-    if not isinstance(raw, dict):
-        raise ValueError(f"Server settings file must contain an object: {SETTINGS_FILE}")
-
-    return raw
+    return _load_json_object(SETTINGS_FILE, label="Server settings file")
 
 
 @lru_cache(maxsize=1)
-def load_server_constants() -> dict:
-    if not CONSTANTS_FILE.exists():
-        return {}
+def load_direction_config() -> dict:
+    return _load_json_object(DIRECTIONS_FILE, label="Directions config")
 
-    raw_text = CONSTANTS_FILE.read_text(encoding="utf-8").strip()
-    if not raw_text:
-        return {}
 
-    raw = json.loads(raw_text)
-    if not isinstance(raw, dict):
-        raise ValueError(f"Server constants file must contain an object: {CONSTANTS_FILE}")
+@lru_cache(maxsize=1)
+def load_health_condition_config() -> dict:
+    return _load_json_object(HEALTH_CONDITIONS_FILE, label="Health conditions config")
 
-    return raw
+
+@lru_cache(maxsize=1)
+def load_display_feedback_config() -> dict:
+    return _load_json_object(DISPLAY_FEEDBACK_FILE, label="Display feedback config")
 
 
 _SETTINGS = load_server_settings()
-_CONSTANTS = load_server_constants()
+_DIRECTIONS = load_direction_config()
+_HEALTH_CONDITIONS = load_health_condition_config()
+_DISPLAY_FEEDBACK = load_display_feedback_config()
 
 
 def _section(name: str) -> dict:
     value = _SETTINGS.get(name, {})
     if not isinstance(value, dict):
         raise ValueError(f"Server settings section '{name}' must be an object.")
-    return value
-
-
-def _constant_section(name: str) -> dict:
-    value = _CONSTANTS.get(name, {})
-    if not isinstance(value, dict):
-        raise ValueError(f"Server constants section '{name}' must be an object.")
     return value
 
 
@@ -63,78 +64,38 @@ _SESSION = _section("session")
 _OFFLINE = _section("offline")
 _DATABASE = _section("database")
 _ASSETS = _section("assets")
-_DIRECTIONS = _constant_section("directions")
-_HEALTH_CONDITIONS = _constant_section("health_conditions")
 
-_DEFAULT_DIRECTION_SHORT_LABELS = {
-    "north": "N",
-    "south": "S",
-    "east": "E",
-    "west": "W",
-    "up": "U",
-    "down": "D",
-}
-_DEFAULT_DIRECTION_SORT_ORDER = {
-    "north": 0,
-    "east": 1,
-    "south": 2,
-    "west": 3,
-    "up": 4,
-    "down": 5,
-}
-_DEFAULT_DIRECTION_ALIASES = {
-    "n": "north",
-    "north": "north",
-    "s": "south",
-    "south": "south",
-    "e": "east",
-    "east": "east",
-    "w": "west",
-    "west": "west",
-    "u": "up",
-    "up": "up",
-    "d": "down",
-    "down": "down",
-}
-_DEFAULT_HEALTH_CONDITION_BANDS = [
-    {"max_ratio": 0.15, "label": "awful", "color": "bright_red"},
-    {"max_ratio": 0.30, "label": "very poor", "color": "bright_red"},
-    {"max_ratio": 0.45, "label": "poor", "color": "bright_red"},
-    {"max_ratio": 0.60, "label": "average", "color": "bright_yellow"},
-    {"max_ratio": 0.75, "label": "fair", "color": "bright_yellow"},
-    {"max_ratio": 0.90, "label": "good", "color": "bright_green"},
-    {"max_ratio": 0.999999, "label": "very good", "color": "bright_green"},
-    {"max_ratio": 1.0, "label": "perfect", "color": "bright_green"},
-]
+_raw_direction_short_labels = _DIRECTIONS.get("short_labels")
+if not isinstance(_raw_direction_short_labels, dict) or not _raw_direction_short_labels:
+    raise ValueError("Directions config must define a non-empty 'short_labels' object.")
+
+_raw_direction_sort_order = _DIRECTIONS.get("sort_order")
+if not isinstance(_raw_direction_sort_order, dict) or not _raw_direction_sort_order:
+    raise ValueError("Directions config must define a non-empty 'sort_order' object.")
+
+_raw_direction_aliases = _DIRECTIONS.get("aliases")
+if not isinstance(_raw_direction_aliases, dict) or not _raw_direction_aliases:
+    raise ValueError("Directions config must define a non-empty 'aliases' object.")
 
 DIRECTION_SHORT_LABELS = {
-    **_DEFAULT_DIRECTION_SHORT_LABELS,
-    **{
-        str(direction).strip().lower(): str(label).strip()
-        for direction, label in dict(_DIRECTIONS.get("short_labels", {})).items()
-        if str(direction).strip() and str(label).strip()
-    },
+    str(direction).strip().lower(): str(label).strip()
+    for direction, label in _raw_direction_short_labels.items()
+    if str(direction).strip() and str(label).strip()
 }
 DIRECTION_SORT_ORDER = {
-    **_DEFAULT_DIRECTION_SORT_ORDER,
-    **{
-        str(direction).strip().lower(): int(order)
-        for direction, order in dict(_DIRECTIONS.get("sort_order", {})).items()
-        if str(direction).strip()
-    },
+    str(direction).strip().lower(): int(order)
+    for direction, order in _raw_direction_sort_order.items()
+    if str(direction).strip()
 }
 DIRECTION_ALIASES = {
-    **_DEFAULT_DIRECTION_ALIASES,
-    **{
-        str(alias).strip().lower(): str(target).strip().lower()
-        for alias, target in dict(_DIRECTIONS.get("aliases", {})).items()
-        if str(alias).strip() and str(target).strip()
-    },
+    str(alias).strip().lower(): str(target).strip().lower()
+    for alias, target in _raw_direction_aliases.items()
+    if str(alias).strip() and str(target).strip()
 }
 
-_raw_health_condition_bands = _HEALTH_CONDITIONS.get("bands", _DEFAULT_HEALTH_CONDITION_BANDS)
+_raw_health_condition_bands = _HEALTH_CONDITIONS.get("bands")
 if not isinstance(_raw_health_condition_bands, list) or not _raw_health_condition_bands:
-    _raw_health_condition_bands = list(_DEFAULT_HEALTH_CONDITION_BANDS)
+    raise ValueError("Health conditions config must define a non-empty 'bands' array.")
 
 HEALTH_CONDITION_BANDS = sorted([
     {
@@ -144,8 +105,28 @@ HEALTH_CONDITION_BANDS = sorted([
     }
     for band in _raw_health_condition_bands
     if isinstance(band, dict)
-], key=lambda band: float(band.get("max_ratio", 1.0))) or list(_DEFAULT_HEALTH_CONDITION_BANDS)
+], key=lambda band: float(band.get("max_ratio", 1.0)))
+if not HEALTH_CONDITION_BANDS:
+    raise ValueError("Health conditions config must define at least one valid band.")
 
+_raw_display_feedback_merchant_quotes = _DISPLAY_FEEDBACK.get("merchant_quotes")
+if not isinstance(_raw_display_feedback_merchant_quotes, dict) or not _raw_display_feedback_merchant_quotes:
+    raise ValueError("Display feedback config must define a non-empty 'merchant_quotes' object.")
+
+_raw_display_feedback_simple_messages = _DISPLAY_FEEDBACK.get("simple_messages")
+if not isinstance(_raw_display_feedback_simple_messages, dict) or not _raw_display_feedback_simple_messages:
+    raise ValueError("Display feedback config must define a non-empty 'simple_messages' object.")
+
+DISPLAY_FEEDBACK_MERCHANT_QUOTES = {
+    str(code).strip().lower(): str(message).strip()
+    for code, message in _raw_display_feedback_merchant_quotes.items()
+    if str(code).strip() and str(message).strip()
+}
+DISPLAY_FEEDBACK_SIMPLE_MESSAGES = {
+    str(code).strip().lower(): str(message).strip()
+    for code, message in _raw_display_feedback_simple_messages.items()
+    if str(code).strip() and str(message).strip()
+}
 
 SERVER_HOST = str(_NETWORK.get("host", "localhost")).strip() or "localhost"
 SERVER_PORT = int(_NETWORK.get("port", 8765))

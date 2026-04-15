@@ -7,7 +7,7 @@ from display_feedback import display_command_result, display_error
 from display_room import display_room
 from models import ClientSession
 from room_exits import can_traverse_exit
-from settings import FLEE_SUCCESS_CHANCE
+from settings import DIRECTION_ALIASES, FLEE_SUCCESS_CHANCE
 import world as _world
 
 from .types import OutboundMessage, OutboundResult
@@ -15,26 +15,6 @@ from .types import OutboundMessage, OutboundResult
 
 get_room = getattr(_world, "get_room")
 HandledResult = OutboundResult | None
-DIRECTION_ALIASES = {
-    "n": "north",
-    "no": "north",
-    "nor": "north",
-    "nort": "north",
-    "s": "south",
-    "so": "south",
-    "sou": "south",
-    "sout": "south",
-    "e": "east",
-    "ea": "east",
-    "eas": "east",
-    "w": "west",
-    "we": "west",
-    "wes": "west",
-    "u": "up",
-    "d": "down",
-    "do": "down",
-    "dow": "down",
-}
 
 ALONE_SUFFIXES = {"al", "alo", "alon", "alone"}
 
