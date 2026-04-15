@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.13",
-  "generated_at_utc": "2026-04-15T04:15:10.540223+00:00",
+  "generated_at_utc": "2026-04-15T05:12:45.756610+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -153,6 +153,7 @@
     "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
     "Only reference assets that exist in the base game or in this same payload.",
     "Do not create new consumable items, spells, or skills that are only cosmetic or lore reskins of existing mechanics. If the gameplay is materially the same, reuse or intentionally override the existing asset instead of adding a near-duplicate.",
+    "You may create fully new spells and skills when they are flavorful, mechanically appropriate, and strongly matched to the theme, lore, and tone of the zone and the broader MudProto world.",
     "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
     "Preserve MudProto's existing fantasy tone and naming style.",
     "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
@@ -198,6 +199,7 @@
     "Combat/support context strings should be perspective-safe for both 'you' and named targets, avoiding recipient-relative nouns like 'your foe'.",
     "Include optional flavor-only interaction hooks (for example room or NPC keyword actions with noop-style output text) when they naturally fit the scene.",
     "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
+    "New spells and skills should feel vivid, flavorful, and lore-native to the zone or encounter set they belong to rather than generic filler abilities.",
     "Merchant inventories should be sensible for the NPC role.",
     "Avoid redundant consumables, spells, and skills that duplicate existing mechanics under a new name unless the user explicitly requests a distinct variant or override.",
     "Avoid overpowered numbers unless explicitly requested."
@@ -1706,7 +1708,7 @@
       "items": 6,
       "npcs": 6,
       "rooms": 13,
-      "skills": 8,
+      "skills": 9,
       "spells": 6,
       "zones": 4,
       "asset_payload_files": 4
@@ -2994,6 +2996,27 @@
           "lag_rounds": 0,
           "cooldown_rounds": 0,
           "cooldown_hours": 2
+        },
+        {
+          "skill_id": "skill.rescue",
+          "name": "Rescue",
+          "description": "You dive into the press of battle and drag a companion clear of the worst blow.",
+          "skill_type": "support",
+          "element": "physical",
+          "cast_type": "target",
+          "vigor_cost": 8,
+          "usable_out_of_combat": false,
+          "scaling_attribute_id": "",
+          "scaling_multiplier": 0.0,
+          "level_scaling_multiplier": 0.0,
+          "support_effect": "",
+          "support_amount": 0,
+          "support_mode": "instant",
+          "support_context": "You hurl yourself into danger and draw the enemy's fury away.",
+          "observer_action": "[actor_name] lunges into the melee to rescue an ally.",
+          "observer_context": "[actor_name] throws [actor_possessive] body between an ally and danger.",
+          "lag_rounds": 3,
+          "cooldown_rounds": 2
         }
       ],
       "spells": [
@@ -4485,13 +4508,6 @@
                   "message": "A scarred woman on the tower platform grins without warmth. \"Climb all this way just to die at my boots? Good. Saves me the walk.\""
                 }
               ],
-              "inventory_items": [
-                {
-                  "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1,
-                  "spawn_chance": 100
-                }
-              ],
               "main_hand_weapon": {
                 "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
                 "spawn_chance": 100,
@@ -4539,13 +4555,6 @@
                   "message": "A thin man by the signal brazier laughs through broken teeth. \"You smell rain-soaked. Let me fix that with fire.\""
                 }
               ],
-              "inventory_items": [
-                {
-                  "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1,
-                  "spawn_chance": 100
-                }
-              ],
               "main_hand_weapon": {
                 "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
                 "spawn_chance": 100,
@@ -4589,13 +4598,6 @@
                   "trigger": "player_enter",
                   "audience": "private",
                   "message": "A hooded killer rises from the crenels as if he had been nailed there by shadow. \"Too slow,\" he says, already moving."
-                }
-              ],
-              "inventory_items": [
-                {
-                  "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1,
-                  "spawn_chance": 100
                 }
               ],
               "main_hand_weapon": {
@@ -4642,14 +4644,7 @@
                 {
                   "trigger": "player_enter",
                   "audience": "private",
-                  "message": "A broad priest in split vestments lifts his maul from the chapel stones. \"Mercy has left this fort. Only weight remains.\""
-                }
-              ],
-              "inventory_items": [
-                {
-                  "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-                  "quantity": 1,
-                  "spawn_chance": 100
+                  "message": "A broad priest in split vestments lifts a massive maul from the chapel stones. \"Mercy has left this fort. Only weight remains.\""
                 }
               ],
               "main_hand_weapon": {

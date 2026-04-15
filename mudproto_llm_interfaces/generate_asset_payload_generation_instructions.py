@@ -238,6 +238,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
             "Only reference assets that exist in the base game or in this same payload.",
             "Do not create new consumable items, spells, or skills that are only cosmetic or lore reskins of existing mechanics. If the gameplay is materially the same, reuse or intentionally override the existing asset instead of adding a near-duplicate.",
+            "You may create fully new spells and skills when they are flavorful, mechanically appropriate, and strongly matched to the theme, lore, and tone of the zone and the broader MudProto world.",
             "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
             "Preserve MudProto's existing fantasy tone and naming style.",
             "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
@@ -283,6 +284,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Combat/support context strings should be perspective-safe for both 'you' and named targets, avoiding recipient-relative nouns like 'your foe'.",
             "Include optional flavor-only interaction hooks (for example room or NPC keyword actions with noop-style output text) when they naturally fit the scene.",
             "Lore, atmosphere, and thematic flair are strongly encouraged whenever they fit within the schema-defined fields.",
+            "New spells and skills should feel vivid, flavorful, and lore-native to the zone or encounter set they belong to rather than generic filler abilities.",
             "Merchant inventories should be sensible for the NPC role.",
             "Avoid redundant consumables, spells, and skills that duplicate existing mechanics under a new name unless the user explicitly requests a distinct variant or override.",
             "Avoid overpowered numbers unless explicitly requested."
