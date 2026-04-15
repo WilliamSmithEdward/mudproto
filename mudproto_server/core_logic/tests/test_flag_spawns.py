@@ -4,9 +4,9 @@ Exercises the full path from apply_entity_defeat_flags → process_zone_flag_spa
 Path setup is handled by conftest.py.
 """
 import asyncio
-from typing import Any, cast
 
 import pytest
+from websockets.asyncio.server import ServerConnection
 
 import world_population
 from combat_state import apply_entity_defeat_flags
@@ -20,9 +20,14 @@ from world_population import process_zone_flag_spawns
 _ROOM_ID = next(iter(WORLD.rooms))  # first real room in the world
 
 
+class _StubServerConnection(ServerConnection):
+    def __init__(self) -> None:
+        pass
+
+
 def _make_session() -> ClientSession:
     from protocol import utc_now_iso
-    session = ClientSession(client_id="test-client", websocket=None, connected_at=utc_now_iso())  # type: ignore[arg-type]
+    session = ClientSession(client_id="test-client", websocket=_StubServerConnection(), connected_at=utc_now_iso())
     session.entities = shared_world_entities
     session.is_authenticated = True
     session.is_connected = True
@@ -217,7 +222,7 @@ def test_flag_spawn_announcement_notifies_zone_players(monkeypatch) -> None:
 
     session = _make_session()
     session.client_id = "test-zone-player"
-    session.websocket = cast(Any, object())
+    session.websocket = _StubServerConnection()
     connected_clients[session.client_id] = session
 
     notifications: list[tuple[object, dict | list[dict]]] = []
