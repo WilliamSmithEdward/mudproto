@@ -1,6 +1,6 @@
 from display_core import build_part
-from display_feedback import display_combat_round_result
-from models import ClientSession
+from display_feedback import display_combat_round_result, display_error
+from models import ClientSession, EntityState
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -30,3 +30,63 @@ def test_display_combat_round_result_does_not_prepend_blank_line() -> None:
 
     first_line_text = "".join(str(part.get("text", "")) for part in lines[0] if isinstance(part, dict))
     assert first_line_text == "You strike true."
+
+
+def test_display_error_rewrites_usage_to_lore_text() -> None:
+    session = _make_session("client-display-error", "Lucia")
+
+    outbound = display_error("Usage: cast 'spark' <target>", session)
+
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    assert isinstance(payload, dict)
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    rendered = "\n".join(
+        "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+        for line in lines
+        if isinstance(line, list)
+    )
+    assert "You pause, trying to recall the proper form:" in rendered
+
+
+def test_display_error_uses_merchant_quote_for_shop_errors() -> None:
+    session = _make_session("client-display-merchant", "Lucia")
+    session.entities["merchant-1"] = EntityState(
+        entity_id="merchant-1",
+        name="Quartermaster Vessa",
+        room_id="start",
+        hit_points=10,
+        max_hit_points=10,
+        is_alive=True,
+        is_merchant=True,
+    )
+
+    outbound = display_error("Item not sold here.", session)
+
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    assert isinstance(payload, dict)
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    rendered = "\n".join(
+        "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+        for line in lines
+        if isinstance(line, list)
+    )
+    assert 'Quartermaster Vessa says, "I\'m sorry, I don\'t have that item."' in rendered
+
+
+def test_display_error_rewrites_missing_direction_targets() -> None:
+    session = _make_session("client-display-direction", "Lucia")
+
+    outbound = display_error("No target named 'north' is here.", session)
+
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    assert isinstance(payload, dict)
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    rendered = "\n".join(
+        "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+        for line in lines
+        if isinstance(line, list)
+    )
+    assert "You peer to the north, but nothing there draws your eye." in rendered

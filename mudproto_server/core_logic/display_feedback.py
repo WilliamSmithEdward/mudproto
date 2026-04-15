@@ -201,65 +201,6 @@ def display_connected(session: ClientSession) -> dict:
     return build_display(parts)
 
 
-def display_hello(name: str, session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt_default(session, True)
-    return build_display(with_leading_blank_lines([
-        build_part("Hello, ", "bright_green"),
-        build_part(str(name), "bright_white", True),
-    ]), prompt_after=prompt_after, prompt_parts=prompt_parts)
-
-
-def display_pong(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt_default(session, True)
-    return build_display(with_leading_blank_lines([
-        build_part("Ping received.", "bright_cyan"),
-    ]), prompt_after=prompt_after, prompt_parts=prompt_parts)
-
-
-def display_whoami(session: ClientSession) -> dict:
-    prompt_after, prompt_parts = resolve_prompt_default(session, True)
-    caps = get_player_resource_caps(session)
-    me_condition, me_condition_color = get_health_condition(session.status.hit_points, caps["hit_points"])
-    engaged_entity = get_engaged_entity(session)
-
-    parts = [
-        build_part("You are in ", "bright_white"),
-        build_part(session.player.current_room_id, "bright_green", True),
-        build_part(". Class: ", "bright_white"),
-        build_part(session.player.class_id or "unassigned", "bright_cyan", True),
-        build_part(". Level: ", "bright_white"),
-        build_part(str(max(1, int(session.player.level))), "bright_magenta", True),
-        build_part(". XP: ", "bright_white"),
-        build_part(str(max(0, int(session.player.experience_points))), "bright_cyan", True),
-        build_part(" (to next ", "bright_white"),
-        build_part(str(get_xp_to_next_level(session.player.experience_points)), "bright_cyan", True),
-        build_part(")", "bright_white"),
-        build_part(". Attributes: ", "bright_white"),
-        build_part(
-            ", ".join(
-                f"{attribute_id.upper()} {value}"
-                for attribute_id, value in sorted(session.player.attributes.items())
-            ) or "none",
-            "bright_yellow",
-            True,
-        ),
-        build_part(". Condition: ", "bright_white"),
-        build_part(me_condition, me_condition_color, True),
-    ]
-
-    if engaged_entity is not None:
-        npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
-        parts.extend([
-            build_part(". Engaged with ", "bright_white"),
-            build_part(engaged_entity.name, bold=True),
-            build_part(" (", "bright_white"),
-            build_part(npc_condition, npc_condition_color, True),
-            build_part(").", "bright_white"),
-        ])
-
-    return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
-
-
 def _find_room_merchant(session: ClientSession | None):
     if session is None:
         return None
@@ -286,77 +227,113 @@ def _merchant_quote_parts(merchant_name: str, quote: str) -> list[dict]:
     ]
 
 
+def _message_contains_all(lowered: str, fragments: tuple[str, ...]) -> bool:
+    return all(fragment in lowered for fragment in fragments)
+
+
+_MERCHANT_LORE_QUOTES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("not sold here",), "I'm sorry, I don't have that item."),
+    (("no longer available",), "I'm sorry, I don't have that item."),
+    (("out of stock",), "I'm afraid we've sold the last of that for now."),
+    (("need ", " coins"), "You'll need a heavier purse for that one."),
+    (("doesn't exist in your inventory",), "I can only bargain for what you are actually carrying."),
+)
+
+_SIMPLE_LORE_MESSAGES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("unknown command",), "Those words carry no meaning here."),
+    (("not enough mana",), "Your inner reserves are too thin for that spell."),
+    (("not enough vigor",), "Your body lacks the vigor for that effort just now."),
+    (("you are not engaged with anything",), "No foe presently presses you."),
+    (("already fighting",), "You are already locked in battle."),
+    (("no exact target named",), "No foe by that exact name is here."),
+    (("no exact player named",), "No ally by that exact name is here."),
+    (("more than one target matches",), "More than one foe matches that name. Be more specific."),
+    (("doesn't exist in your inventory",), "You search your belongings, but find nothing of the sort."),
+    (("cannot be used",), "That would not serve you in that way."),
+    (("cannot be equipped",), "That would not serve you in that way."),
+    (("cannot be worn",), "That would not serve you in that way."),
+    (("cannot be wielded",), "That would not serve you in that way."),
+    (("cannot be held",), "That would not serve you in that way."),
+    (("there are no coins on the ground",), "Not a single coin glints at your feet."),
+    (("no corpse matching",), "Nothing of that sort can be found here."),
+    (("there are no corpses here",), "Nothing of that sort can be found here."),
+    (("cannot go",), "The way does not open for you there."),
+    (("destination room not found",), "The way does not open for you there."),
+    (("current room not found",), "The world around you wavers strangely for a moment."),
+)
+
+
+def _build_merchant_lore_error_parts(lowered: str, merchant_name: str) -> list[dict] | None:
+    for fragments, quote in _MERCHANT_LORE_QUOTES:
+        if _message_contains_all(lowered, fragments):
+            return _merchant_quote_parts(merchant_name, quote)
+    return None
+
+
+def _build_usage_lore_error_parts(cleaned: str, lowered: str) -> list[dict] | None:
+    if not lowered.startswith("usage:"):
+        return None
+
+    usage_text = cleaned.split(":", 1)[1].strip() if ":" in cleaned else cleaned
+    return [
+        build_part("You pause, trying to recall the proper form: ", "bright_white"),
+        build_part(usage_text, "bright_white", False),
+    ]
+
+
+def _build_missing_target_lore_parts(lowered: str) -> list[dict] | None:
+    if "no target named" not in lowered:
+        return None
+
+    target_match = re.search(r"no target named '([^']+)' is here", lowered)
+    normalized_target = DIRECTION_ALIASES.get(str(target_match.group(1)).strip().lower()) if target_match else None
+    if normalized_target == "up":
+        return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "bright_white", False)]
+    if normalized_target == "down":
+        return [build_part("You glance below, but nothing there reveals itself.", "bright_white", False)]
+    if normalized_target in {"north", "south", "east", "west"}:
+        return [build_part(f"You peer to the {normalized_target}, but nothing there draws your eye.", "bright_white", False)]
+    return [build_part("Nothing of note answers that search here.", "bright_white", False)]
+
+
+def _build_simple_lore_error_parts(lowered: str) -> list[dict] | None:
+    for fragments, lore_text in _SIMPLE_LORE_MESSAGES:
+        if _message_contains_all(lowered, fragments):
+            return [build_part(lore_text, "bright_white", False)]
+    return None
+
+
+def _build_fallback_lore_error_parts(cleaned: str) -> list[dict]:
+    fallback_text = cleaned or "Something feels amiss."
+    if fallback_text[-1] not in ".!?":
+        fallback_text += "."
+    return [build_part(fallback_text, "bright_white", False)]
+
+
 def _build_lore_error_parts(message: str, session: ClientSession | None = None) -> list[dict]:
     cleaned = str(message).strip()
     lowered = cleaned.lower()
-    merchant = _find_room_merchant(session)
 
+    merchant = _find_room_merchant(session)
     if merchant is not None:
         merchant_name = str(getattr(merchant, "name", "Merchant")).strip() or "Merchant"
-        if "not sold here" in lowered or "no longer available" in lowered:
-            return _merchant_quote_parts(merchant_name, "I'm sorry, I don't have that item.")
-        if "out of stock" in lowered:
-            return _merchant_quote_parts(merchant_name, "I'm afraid we've sold the last of that for now.")
-        if "need " in lowered and " coins" in lowered:
-            return _merchant_quote_parts(merchant_name, "You'll need a heavier purse for that one.")
-        if "doesn't exist in your inventory" in lowered:
-            return _merchant_quote_parts(merchant_name, "I can only bargain for what you are actually carrying.")
+        merchant_parts = _build_merchant_lore_error_parts(lowered, merchant_name)
+        if merchant_parts is not None:
+            return merchant_parts
 
-    if lowered.startswith("usage:"):
-        usage_text = cleaned.split(":", 1)[1].strip() if ":" in cleaned else cleaned
-        return [
-            build_part("You pause, trying to recall the proper form: ", "bright_white"),
-            build_part(usage_text, "bright_white", False),
-        ]
+    usage_parts = _build_usage_lore_error_parts(cleaned, lowered)
+    if usage_parts is not None:
+        return usage_parts
 
-    if "unknown command" in lowered:
-        return [build_part("Those words carry no meaning here.", "bright_white", False)]
-    if "not enough mana" in lowered:
-        return [build_part("Your inner reserves are too thin for that working.", "bright_white", False)]
-    if "not enough vigor" in lowered:
-        return [build_part("Your body lacks the vigor for that effort just now.", "bright_white", False)]
-    if "you are not engaged with anything" in lowered:
-        return [build_part("No foe presently presses you.", "bright_white", False)]
-    if "already fighting" in lowered:
-        return [build_part("You are already locked in battle.", "bright_white", False)]
-    if "no exact target named" in lowered:
-        return [build_part("No foe by that exact name is here.", "bright_white", False)]
-    if "no exact player named" in lowered:
-        return [build_part("No ally by that exact name is here.", "bright_white", False)]
-    if "more than one target matches" in lowered:
-        return [build_part("More than one foe matches that name. Be more specific.", "bright_white", False)]
-    if "no target named" in lowered:
-        target_match = re.search(r"no target named '([^']+)' is here", lowered)
-        normalized_target = DIRECTION_ALIASES.get(str(target_match.group(1)).strip().lower()) if target_match else None
-        if normalized_target == "up":
-            return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "bright_white", False)]
-        if normalized_target == "down":
-            return [build_part("You glance below, but nothing there reveals itself.", "bright_white", False)]
-        if normalized_target in {"north", "south", "east", "west"}:
-            return [build_part(f"You peer to the {normalized_target}, but nothing there draws your eye.", "bright_white", False)]
-        return [build_part("Nothing of note answers that search here.", "bright_white", False)]
-    if "doesn't exist in your inventory" in lowered:
-        return [build_part("You search your belongings, but find nothing of the sort.", "bright_white", False)]
-    if "cannot be used" in lowered or "cannot be equipped" in lowered or "cannot be worn" in lowered or "cannot be wielded" in lowered or "cannot be held" in lowered:
-        return [build_part("That would not serve you in that way.", "bright_white", False)]
-    if "there are no coins on the ground" in lowered:
-        return [build_part("Not a single coin glints at your feet.", "bright_white", False)]
-    if "no corpse matching" in lowered or "there are no corpses here" in lowered:
-        return [build_part("Nothing of that sort can be found here.", "bright_white", False)]
-    if "cannot go" in lowered or "destination room not found" in lowered:
-        return [build_part("The way does not open for you there.", "bright_white", False)]
-    if "current room not found" in lowered:
-        return [build_part("The world around you wavers strangely for a moment.", "bright_white", False)]
+    target_parts = _build_missing_target_lore_parts(lowered)
+    if target_parts is not None:
+        return target_parts
 
-    if not cleaned:
-        cleaned = "Something feels amiss."
+    simple_parts = _build_simple_lore_error_parts(lowered)
+    if simple_parts is not None:
+        return simple_parts
 
-    if cleaned[-1] not in ".!?":
-        cleaned += "."
-
-    return [
-        build_part(cleaned, "bright_white", False),
-    ]
+    return _build_fallback_lore_error_parts(cleaned)
 
 
 def display_error(message: str, session: ClientSession | None = None) -> dict:
@@ -372,20 +349,6 @@ def display_error(message: str, session: ClientSession | None = None) -> dict:
         prompt_parts=prompt_parts,
         is_error=True,
     )
-
-
-def display_system(message: str) -> dict:
-    return build_display(with_leading_blank_lines([
-        build_part(message, "bright_cyan"),
-    ]))
-
-
-def display_queue_ack(session: ClientSession, command_text: str) -> dict:
-    mark_prompt_pending(session)
-    return build_display(with_leading_blank_lines([
-        build_part("Queued: ", "bright_yellow", True),
-        build_part(f'"{command_text}"', "bright_white"),
-    ]))
 
 
 def display_command_result(
