@@ -39,13 +39,23 @@ def handle_equipment_command(
 
         hand, selector, parse_error = _parse_hand_and_selector(args)
         if parse_error is not None or selector is None:
-            return display_error(parse_error or "Usage: equip <selector> [main|off|both]", session)
+            return display_error(
+                parse_error or "Usage: equip <selector> [main|off|both]",
+                session,
+                error_code="usage",
+                error_context={"usage": "equip <selector> [main|off|both]"},
+            )
 
         item, resolve_error = resolve_equipment_selector(session, selector)
         if item is None:
             inventory_item, _inventory_error = _resolve_inventory_selector(session, selector)
             if inventory_item is not None:
-                return display_error(f"{inventory_item.name} cannot be equipped.", session)
+                return display_error(
+                    f"{inventory_item.name} cannot be equipped.",
+                    session,
+                    error_code="item-not-equippable",
+                    error_context={"item": inventory_item.name},
+                )
             return display_error(resolve_error or "Unable to resolve equipment selector.", session)
 
         equipped, equip_result = equip_item(session, item, hand)
@@ -70,11 +80,21 @@ def handle_equipment_command(
 
     if verb in {"wield", "wiel", "wie", "wi"}:
         if not args:
-            return display_error("Usage: wield <selector> [main|both]", session)
+            return display_error(
+                "Usage: wield <selector> [main|both]",
+                session,
+                error_code="usage",
+                error_context={"usage": "wield <selector> [main|both]"},
+            )
 
         hand, selector, parse_error = _parse_hand_and_selector(args)
         if parse_error is not None or selector is None:
-            return display_error("Usage: wield <selector> [main|both]", session)
+            return display_error(
+                "Usage: wield <selector> [main|both]",
+                session,
+                error_code="usage",
+                error_context={"usage": "wield <selector> [main|both]"},
+            )
         if hand == HAND_OFF:
             return display_error("Use hold <selector> for your off hand.", session)
 
@@ -83,7 +103,12 @@ def handle_equipment_command(
             inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
             if inventory_item is None:
                 return display_error(resolve_error or inventory_error or "Unable to resolve equipment selector.", session)
-            return display_error(f"{inventory_item.name} cannot be wielded.", session)
+            return display_error(
+                f"{inventory_item.name} cannot be wielded.",
+                session,
+                error_code="item-not-wieldable",
+                error_context={"item": inventory_item.name},
+            )
 
         current_main = get_equipped_main_hand(session)
         current_off = get_equipped_off_hand(session)
@@ -124,7 +149,12 @@ def handle_equipment_command(
 
     if verb in {"hold", "hol", "ho"}:
         if not args:
-            return display_error("Usage: hold <selector>", session)
+            return display_error(
+                "Usage: hold <selector>",
+                session,
+                error_code="usage",
+                error_context={"usage": "hold <selector>"},
+            )
 
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         item, resolve_error = resolve_equipment_selector(session, selector)
@@ -132,7 +162,12 @@ def handle_equipment_command(
             inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
             if inventory_item is None:
                 return display_error(resolve_error or inventory_error or "Unable to resolve equipment selector.", session)
-            return display_error(f"{inventory_item.name} cannot be held.", session)
+            return display_error(
+                f"{inventory_item.name} cannot be held.",
+                session,
+                error_code="item-not-holdable",
+                error_context={"item": inventory_item.name},
+            )
 
         current_off = get_equipped_off_hand(session)
         if current_off is not None:
@@ -153,17 +188,32 @@ def handle_equipment_command(
 
     if verb in {"wear", "wea", "puton"}:
         if not args:
-            return display_error("Usage: wear <selector> [location]", session)
+            return display_error(
+                "Usage: wear <selector> [location]",
+                session,
+                error_code="usage",
+                error_context={"usage": "wear <selector> [location]"},
+            )
 
         selector, wear_location, parse_error = _parse_wear_selector_and_location(args)
         if parse_error is not None or selector is None:
-            return display_error(parse_error or "Usage: wear <selector> [location]", session)
+            return display_error(
+                parse_error or "Usage: wear <selector> [location]",
+                session,
+                error_code="usage",
+                error_context={"usage": "wear <selector> [location]"},
+            )
 
         if selector.startswith("all.") and len(selector) > 4:
             item_selector = selector[4:]
             selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
             if not selector_tokens:
-                return display_error("Usage: wear all.<item>", session)
+                return display_error(
+                    "Usage: wear all.<item>",
+                    session,
+                    error_code="usage",
+                    error_context={"usage": "wear all.<item>"},
+                )
 
             wearable_items = []
 
@@ -245,7 +295,12 @@ def handle_equipment_command(
             return display_error(resolve_error or "Unable to resolve inventory selector.", session)
 
         if item.slot.strip().lower() != "armor":
-            return display_error(f"{item.name} cannot be worn.", session)
+            return display_error(
+                f"{item.name} cannot be worn.",
+                session,
+                error_code="item-not-wearable",
+                error_context={"item": item.name},
+            )
 
         worn, wear_result = wear_item(session, item, wear_location)
         if not worn:
@@ -261,14 +316,24 @@ def handle_equipment_command(
 
     if verb in {"remove", "rem"}:
         if not args:
-            return display_error("Usage: rem <selector>", session)
+            return display_error(
+                "Usage: rem <selector>",
+                session,
+                error_code="usage",
+                error_context={"usage": "rem <selector>"},
+            )
 
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         if selector.startswith("all.") and len(selector) > 4:
             item_selector = selector[4:]
             selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
             if not selector_tokens:
-                return display_error("Usage: rem all.<item>", session)
+                return display_error(
+                    "Usage: rem all.<item>",
+                    session,
+                    error_code="usage",
+                    error_context={"usage": "rem all.<item>"},
+                )
 
             worn_items = list_worn_items(session)
             matches = []

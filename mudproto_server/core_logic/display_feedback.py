@@ -1,5 +1,4 @@
 import asyncio
-import re
 
 from command_handlers.types import ErrorCode, ErrorContext
 from attribute_config import player_class_uses_mana
@@ -228,40 +227,6 @@ def _merchant_quote_parts(merchant_name: str, quote: str) -> list[dict]:
     ]
 
 
-def _message_contains_all(lowered: str, fragments: tuple[str, ...]) -> bool:
-    return all(fragment in lowered for fragment in fragments)
-
-
-_MERCHANT_LORE_QUOTES: tuple[tuple[tuple[str, ...], str], ...] = (
-    (("not sold here",), "I'm sorry, I don't have that item."),
-    (("no longer available",), "I'm sorry, I don't have that item."),
-    (("out of stock",), "I'm afraid we've sold the last of that for now."),
-    (("need ", " coins"), "You'll need a heavier purse for that one."),
-    (("doesn't exist in your inventory",), "I can only bargain for what you are actually carrying."),
-)
-
-_SIMPLE_LORE_MESSAGES: tuple[tuple[tuple[str, ...], str], ...] = (
-    (("unknown command",), "Those words carry no meaning here."),
-    (("not enough mana",), "Your inner reserves are too thin for that spell."),
-    (("not enough vigor",), "Your body lacks the vigor for that effort just now."),
-    (("you are not engaged with anything",), "No foe presently presses you."),
-    (("already fighting",), "You are already locked in battle."),
-    (("no exact target named",), "No foe by that exact name is here."),
-    (("no exact player named",), "No ally by that exact name is here."),
-    (("more than one target matches",), "More than one foe matches that name. Be more specific."),
-    (("doesn't exist in your inventory",), "You search your belongings, but find nothing of the sort."),
-    (("cannot be used",), "That would not serve you in that way."),
-    (("cannot be equipped",), "That would not serve you in that way."),
-    (("cannot be worn",), "That would not serve you in that way."),
-    (("cannot be wielded",), "That would not serve you in that way."),
-    (("cannot be held",), "That would not serve you in that way."),
-    (("there are no coins on the ground",), "Not a single coin glints at your feet."),
-    (("no corpse matching",), "Nothing of that sort can be found here."),
-    (("there are no corpses here",), "Nothing of that sort can be found here."),
-    (("cannot go",), "The way does not open for you there."),
-    (("destination room not found",), "The way does not open for you there."),
-    (("current room not found",), "The world around you wavers strangely for a moment."),
-)
 
 _CODED_MERCHANT_LORE_QUOTES: dict[str, str] = {
     "no-merchant-here": "The marketplace is empty of any willing trader.",
@@ -273,44 +238,32 @@ _CODED_MERCHANT_LORE_QUOTES: dict[str, str] = {
 
 _CODED_SIMPLE_LORE_MESSAGES: dict[str, str] = {
     "unknown-command": "Those words carry no meaning here.",
+    "player-not-found": "No ally by that exact name is here.",
+    "already-fighting": "You are already locked in battle.",
     "not-enough-mana": "Your inner reserves are too thin for that spell.",
     "not-enough-vigor": "Your body lacks the vigor for that effort just now.",
     "not-engaged": "No foe presently presses you.",
     "cannot-go": "The way does not open for you there.",
     "current-room-not-found": "The world around you wavers strangely for a moment.",
+    "item-not-usable": "That would not serve you in that way.",
+    "item-not-equippable": "That would not serve you in that way.",
+    "item-not-wearable": "That would not serve you in that way.",
+    "item-not-wieldable": "That would not serve you in that way.",
+    "item-not-holdable": "That would not serve you in that way.",
+    "no-ground-coins": "Not a single coin glints at your feet.",
 }
 
 
-def _build_merchant_lore_error_parts(lowered: str, merchant_name: str) -> list[dict] | None:
-    for fragments, quote in _MERCHANT_LORE_QUOTES:
-        if _message_contains_all(lowered, fragments):
-            return _merchant_quote_parts(merchant_name, quote)
-    return None
-
-
-def _build_usage_lore_error_parts(cleaned: str, lowered: str) -> list[dict] | None:
-    if not lowered.startswith("usage:"):
-        return None
-
-    usage_text = cleaned.split(":", 1)[1].strip() if ":" in cleaned else cleaned
+def _build_usage_lore_error_parts(usage_text: str) -> list[dict]:
+    cleaned_usage = str(usage_text).strip() or "that command"
     return [
         build_part("You pause, trying to recall the proper form: ", "bright_white"),
-        build_part(usage_text, "bright_white", False),
+        build_part(cleaned_usage, "bright_white", False),
     ]
 
 
-def _build_missing_target_lore_parts(
-    lowered: str,
-    *,
-    target_name: str | None = None,
-) -> list[dict] | None:
+def _build_missing_target_lore_parts(target_name: str | None = None) -> list[dict]:
     normalized_target_name = str(target_name or "").strip().lower()
-    if not normalized_target_name:
-        if "no target named" not in lowered:
-            return None
-        target_match = re.search(r"no target named '([^']+)' is here", lowered)
-        normalized_target_name = str(target_match.group(1)).strip().lower() if target_match else ""
-
     normalized_target = DIRECTION_ALIASES.get(normalized_target_name)
     if normalized_target == "up":
         return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "bright_white", False)]
@@ -321,14 +274,7 @@ def _build_missing_target_lore_parts(
     return [build_part("Nothing of note answers that search here.", "bright_white", False)]
 
 
-def _build_simple_lore_error_parts(lowered: str) -> list[dict] | None:
-    for fragments, lore_text in _SIMPLE_LORE_MESSAGES:
-        if _message_contains_all(lowered, fragments):
-            return [build_part(lore_text, "bright_white", False)]
-    return None
-
-
-def _build_fallback_lore_error_parts(cleaned: str) -> list[dict]:
+def _build_raw_error_parts(cleaned: str) -> list[dict]:
     fallback_text = cleaned or "Something feels amiss."
     if fallback_text[-1] not in ".!?":
         fallback_text += "."
@@ -346,12 +292,12 @@ def _build_coded_lore_error_parts(
     if normalized_code == "usage":
         usage_text = str(context.get("usage", "")).strip()
         if usage_text:
-            return _build_usage_lore_error_parts(f"Usage: {usage_text}", "usage:")
+            return _build_usage_lore_error_parts(usage_text)
         return None
 
     if normalized_code == "target-not-found":
         target_name = str(context.get("target", "")).strip()
-        return _build_missing_target_lore_parts("", target_name=target_name or None)
+        return _build_missing_target_lore_parts(target_name or None)
 
     if normalized_code == "corpse-not-found":
         return [build_part("Nothing of that sort can be found here.", "bright_white", False)]
@@ -378,33 +324,13 @@ def _build_lore_error_parts(
     error_context: ErrorContext | None = None,
 ) -> list[dict]:
     cleaned = str(message).strip()
-    lowered = cleaned.lower()
 
     if error_code is not None:
         coded_parts = _build_coded_lore_error_parts(error_code, session, error_context)
         if coded_parts is not None:
             return coded_parts
 
-    merchant = _find_room_merchant(session)
-    if merchant is not None:
-        merchant_name = str(getattr(merchant, "name", "Merchant")).strip() or "Merchant"
-        merchant_parts = _build_merchant_lore_error_parts(lowered, merchant_name)
-        if merchant_parts is not None:
-            return merchant_parts
-
-    usage_parts = _build_usage_lore_error_parts(cleaned, lowered)
-    if usage_parts is not None:
-        return usage_parts
-
-    target_parts = _build_missing_target_lore_parts(lowered)
-    if target_parts is not None:
-        return target_parts
-
-    simple_parts = _build_simple_lore_error_parts(lowered)
-    if simple_parts is not None:
-        return simple_parts
-
-    return _build_fallback_lore_error_parts(cleaned)
+    return _build_raw_error_parts(cleaned)
 
 
 def display_error(

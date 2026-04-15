@@ -51,7 +51,12 @@ def handle_skill_command(
 
         skill_name, target_name, parse_error = _parse_skill_use(args)
         if parse_error is not None or skill_name is None:
-            return display_error(parse_error or "Usage: <skill> [target]", session)
+            return display_error(
+                parse_error or "Usage: <skill> [target]",
+                session,
+                error_code="usage",
+                error_context={"usage": "<skill> [target]"},
+            )
 
         if target_name is None and len(args) > 1:
             for cut in range(len(args), 0, -1):

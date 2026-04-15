@@ -111,7 +111,11 @@ def handle_loot_command(
     if len(args) == 1 and args[0].strip().lower() in {"coin", "coins"}:
         room_coin_pile = max(0, int(session.room_coin_piles.get(room_id, 0)))
         if room_coin_pile <= 0:
-            return display_error("There are no coins on the ground.", session)
+            return display_error(
+                "There are no coins on the ground.",
+                session,
+                error_code="no-ground-coins",
+            )
 
         session.room_coin_piles[room_id] = 0
         session.status.coins += room_coin_pile
@@ -172,6 +176,11 @@ def handle_loot_command(
         return display_command_result(session, parts)
 
     if len(args) < 2:
-        return display_error("Usage: get <item|all|coins> [container]", session)
+        return display_error(
+            "Usage: get <item|all|coins> [container]",
+            session,
+            error_code="usage",
+            error_context={"usage": "get <item|all|coins> [container]"},
+        )
 
     return display_error("No accessible container matches that command.", session)

@@ -47,7 +47,12 @@ def handle_spell_command(
     if verb in _CAST_VERBS:
         spell_name, target_name, parse_error = _parse_cast_spell(command_text, args, verb)
         if parse_error is not None or spell_name is None:
-            return display_error(parse_error or "Usage: cast 'spell name' [target]", session)
+            return display_error(
+                parse_error or "Usage: cast 'spell name' [target]",
+                session,
+                error_code="usage",
+                error_context={"usage": "cast 'spell name' [target]"},
+            )
 
         known_spells = _list_known_spells(session)
         if not known_spells:

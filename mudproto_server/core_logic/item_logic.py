@@ -167,7 +167,12 @@ def _get_potion_cooldown_rounds() -> int:
 
 def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     if not selector.strip():
-        return display_error("Usage: use <item>", session)
+        return display_error(
+            "Usage: use <item>",
+            session,
+            error_code="usage",
+            error_context={"usage": "use <item>"},
+        )
 
     misc_item, resolve_error = _resolve_misc_inventory_selector(session, selector)
     if misc_item is None:
@@ -175,7 +180,12 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
 
     template = _find_item_template_for_misc_item(misc_item)
     if template is None:
-        return display_error(f"{misc_item.name} cannot be used.", session)
+        return display_error(
+            f"{misc_item.name} cannot be used.",
+            session,
+            error_code="item-not-usable",
+            error_context={"item": misc_item.name},
+        )
 
     hydrate_misc_item_from_template(misc_item, template)
     effect_type = str(template.get("effect_type", "restore")).strip().lower() or "restore"
@@ -187,7 +197,12 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     has_restore = effect_type == "restore" and effect_amount > 0
     has_affects = bool(affect_ids)
     if not has_restore and not has_affects:
-        return display_error(f"{misc_item.name} cannot be used.", session)
+        return display_error(
+            f"{misc_item.name} cannot be used.",
+            session,
+            error_code="item-not-usable",
+            error_context={"item": misc_item.name},
+        )
 
     is_potion = _is_potion_template(template)
     if is_potion:
@@ -218,7 +233,12 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
             max_value = caps["vigor"]
             effect_label = "Vigor"
         else:
-            return display_error(f"{misc_item.name} cannot be used.", session)
+            return display_error(
+                f"{misc_item.name} cannot be used.",
+                session,
+                error_code="item-not-usable",
+                error_context={"item": misc_item.name},
+            )
 
         if current_value >= max_value and not has_affects:
             return display_error(f"Your {effect_label.lower()} is already full.", session)
