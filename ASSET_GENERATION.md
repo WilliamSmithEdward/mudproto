@@ -443,7 +443,7 @@ Optional life-steal style fields on damage spells:
 - `duration_hours` — required when `support_mode` is `timed`
 - `duration_rounds` — required when `support_mode` is `battle_rounds`
 - `support_context` — **required for support spells**
-- `affect_ids` — optional array of affect overrides (see [Affects](#affects) below)
+- `affect_ids` — optional array of affect template ids from configuration/attributes/affects.json (see [Affects](#affects) below)
 
 Optional presentation fields:
 - `observer_action`
@@ -487,22 +487,7 @@ Optional presentation fields:
   "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
   "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
   "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle.",
-  "affect_ids": [
-    {
-      "affect_id": "affect.regeneration",
-      "name": "Regeneration Ward",
-      "target": "self",
-      "affect_mode": "battle_rounds",
-      "target_resource": "hit_points",
-      "amount": 0,
-      "dice_count": 1,
-      "dice_sides": 21,
-      "roll_modifier": 39,
-      "scaling_attribute_id": "wis",
-      "scaling_multiplier": 1.0,
-      "duration_rounds": 3
-    }
-  ]
+  "affect_ids": ["affect.regeneration"]
 }
 ```
 
@@ -545,7 +530,7 @@ Optional on damage skills:
 - `support_context` — **required for support skills**
 - `observer_action`
 - `observer_context`
-- `affect_ids` — optional array of affect overrides (see [Affects](#affects) below)
+- `affect_ids` — optional array of affect template ids from configuration/attributes/affects.json (see [Affects](#affects) below)
 
 ### Example damage skill
 ```json
@@ -587,19 +572,7 @@ Optional on damage skills:
   "level_scaling_multiplier": 0.5,
   "support_effect": "",
   "support_amount": 0,
-  "affect_ids": [
-    {
-      "affect_id": "affect.damage-reduction",
-      "name": "Centered Guard",
-      "target": "self",
-      "affect_mode": "battle_rounds",
-      "amount": 2,
-      "scaling_attribute_id": "con",
-      "scaling_multiplier": 0.5,
-      "level_scaling_multiplier": 0.5,
-      "duration_rounds": 3
-    }
-  ],
+  "affect_ids": ["affect.damage-reduction"],
   "support_mode": "battle_rounds",
   "duration_rounds": 3,
   "support_context": "You settle into a centered guard, turning the worst of each blow aside.",
@@ -614,7 +587,7 @@ Optional on damage skills:
 
 ## 6. Affects
 
-Skills and spells can reference affect templates defined in `configuration/attributes/affects.json` via the `affect_ids` array. Each entry overrides template defaults with skill/spell-specific values.
+Skills and spells can reference affect templates defined in `configuration/attributes/affects.json` via the `affect_ids` array. Each entry must be a string affect id. Inline affect payloads and per-skill or per-spell override objects are no longer supported.
 
 ### Available affect templates
 
@@ -625,13 +598,11 @@ Skills and spells can reference affect templates defined in `configuration/attri
 | `affect.extra-hits` | `extra_hits` | Grants extra attacks per round. Specify base counts via `extra_main_hand_hits`, `extra_off_hand_hits`, `extra_unarmed_hits`. Level scaling adds bonus hits to types with base > 0 via `hits_per_level_step` / `level_step`. |
 | `affect.damage-reduction` | `damage_reduction` | Flat damage subtracted from each incoming hit. Strongest active reduction wins. |
 
-### Override fields
+### Referencing affects
 
-Each `affect_ids` entry must include `affect_id` plus any of:
+Each `affect_ids` entry must be a string like `"affect.regeneration"` or `"affect.damage-reduction"`.
 
-`name`, `target` (self/target), `affect_mode` (instant/timed/battle_rounds), `amount`, `dice_count`, `dice_sides`, `roll_modifier`, `scaling_attribute_id`, `scaling_multiplier`, `level_scaling_multiplier`, `power_scaling_multiplier`, `duration_hours`, `duration_rounds`, `damage_elements`, `target_resource`, `extra_main_hand_hits`, `extra_off_hand_hits`, `extra_unarmed_hits`, `hits_per_level_step`, `level_step`.
-
-See `mudproto_server/documentation/affects.md` for full documentation and examples.
+Define all affect behavior centrally in `configuration/attributes/affects.json`. See that file for the supported templates and their shared behavior.
 
 ---
 

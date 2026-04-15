@@ -310,6 +310,11 @@ def load_affect_templates() -> list[dict]:
 
     normalized_affects: list[dict] = []
     seen_affect_ids: set[str] = set()
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
     for raw_affect in raw_affects:
         if not isinstance(raw_affect, dict):
             raise ValueError("Affect templates must be objects.")
@@ -352,11 +357,61 @@ def load_affect_templates() -> list[dict]:
                 f"Affect '{affect_id}' damage element filters are only supported for damage_received_multiplier."
             )
 
+        name = str(raw_affect.get("name", "")).strip() or affect_id
+        target = str(raw_affect.get("target", "target")).strip().lower() or "target"
+        affect_mode = str(raw_affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
+        target_resource = str(raw_affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
+        amount = float(raw_affect.get("amount", 0.0))
+        dice_count = max(0, int(raw_affect.get("dice_count", 0)))
+        dice_sides = max(0, int(raw_affect.get("dice_sides", 0)))
+        roll_modifier = float(raw_affect.get("roll_modifier", 0.0))
+        scaling_attribute_id = str(raw_affect.get("scaling_attribute_id", "")).strip().lower()
+        scaling_multiplier = max(0.0, float(raw_affect.get("scaling_multiplier", 0.0)))
+        level_scaling_multiplier = max(0.0, float(raw_affect.get("level_scaling_multiplier", 0.0)))
+        power_scaling_multiplier = max(0.0, float(raw_affect.get("power_scaling_multiplier", 0.0)))
+        duration_hours = max(0, int(raw_affect.get("duration_hours", 0)))
+        duration_rounds = max(0, int(raw_affect.get("duration_rounds", 0)))
+        extra_main_hand_hits = max(0, int(raw_affect.get("extra_main_hand_hits", 0)))
+        extra_off_hand_hits = max(0, int(raw_affect.get("extra_off_hand_hits", 0)))
+        extra_unarmed_hits = max(0, int(raw_affect.get("extra_unarmed_hits", 0)))
+        hits_per_level_step = max(0, int(raw_affect.get("hits_per_level_step", 0)))
+        level_step = max(0, int(raw_affect.get("level_step", 0)))
+
+        if target not in {"self", "target"}:
+            raise ValueError(f"Affect '{affect_id}' target must be 'self' or 'target'.")
+        if affect_mode not in {"instant", "timed", "battle_rounds"}:
+            raise ValueError(f"Affect '{affect_id}' affect_mode must be instant, timed, or battle_rounds.")
+        if target_resource not in {"hit_points", "mana", "vigor"}:
+            raise ValueError(f"Affect '{affect_id}' target_resource must be hit_points, mana, or vigor.")
+        if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
+            raise ValueError(
+                f"Affect '{affect_id}' scaling_attribute_id references unknown attribute '{scaling_attribute_id}'."
+            )
+
         seen_affect_ids.add(affect_id)
         normalized_affects.append({
             "affect_id": affect_id,
+            "name": name,
+            "target": target,
+            "affect_mode": affect_mode,
             "affect_type": affect_type,
             "damage_elements": damage_elements,
+            "target_resource": target_resource,
+            "amount": amount,
+            "dice_count": dice_count,
+            "dice_sides": dice_sides,
+            "roll_modifier": roll_modifier,
+            "scaling_attribute_id": scaling_attribute_id,
+            "scaling_multiplier": scaling_multiplier,
+            "level_scaling_multiplier": level_scaling_multiplier,
+            "power_scaling_multiplier": power_scaling_multiplier,
+            "duration_hours": duration_hours,
+            "duration_rounds": duration_rounds,
+            "extra_main_hand_hits": extra_main_hand_hits,
+            "extra_off_hand_hits": extra_off_hand_hits,
+            "extra_unarmed_hits": extra_unarmed_hits,
+            "hits_per_level_step": hits_per_level_step,
+            "level_step": level_step,
         })
 
     return normalized_affects

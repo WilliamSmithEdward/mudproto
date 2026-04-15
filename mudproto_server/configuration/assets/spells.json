@@ -69,22 +69,7 @@
     "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
     "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
     "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle.",
-    "affect_ids": [
-      {
-        "affect_id": "affect.regeneration",
-        "name": "Regeneration Ward",
-        "target": "self",
-        "affect_mode": "battle_rounds",
-        "target_resource": "hit_points",
-        "amount": 0,
-        "dice_count": 1,
-        "dice_sides": 21,
-        "roll_modifier": 39,
-        "scaling_attribute_id": "wis",
-        "scaling_multiplier": 1.0,
-        "duration_rounds": 3
-      }
-    ]
+    "affect_ids": ["affect.regeneration"]
   },
   {
     "spell_id": "spell.arc-bolt",

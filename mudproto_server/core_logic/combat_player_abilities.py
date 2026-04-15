@@ -134,7 +134,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         ])
 
     if skill_type == "support":
-        has_affect_payload = bool(skill.get("affects", [])) if isinstance(skill.get("affects", []), list) else False
+        has_affect_payload = bool(skill.get("affect_ids", [])) if isinstance(skill.get("affect_ids", []), list) else False
         if cast_type != "self":
             return display_error(f"Support skill '{skill_name}' must be cast_type 'self'.", session), False
         if support_effect and support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
@@ -144,7 +144,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             ), False
         if not support_effect and not has_affect_payload:
             return display_error(
-                f"Support skill '{skill_name}' must define support_effect or affects.",
+                f"Support skill '{skill_name}' must define support_effect or affect_ids.",
                 session,
             ), False
         if support_mode not in {"instant", "timed", "battle_rounds"}:

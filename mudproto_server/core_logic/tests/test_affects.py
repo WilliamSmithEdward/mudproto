@@ -6,6 +6,7 @@ import item_logic
 import json
 from pathlib import Path
 import pytest
+from attribute_config import get_affect_template_by_id
 from assets import _resolve_asset_affects, get_skill_by_id
 from combat_ability_effects import _preview_entity_damage_with_reduction
 from game_hour_ticks import process_game_hour_tick
@@ -37,24 +38,17 @@ def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
     skill = get_skill_by_id("skill.pressure-point")
 
     assert isinstance(skill, dict)
-    assert "affect.increase-received-damage" in [
+    assert [
         str(affect_id).strip().lower()
         for affect_id in skill.get("affect_ids", [])
         if str(affect_id).strip()
-    ]
-    affects = skill.get("affects", [])
-    assert isinstance(affects, list)
-    assert any(
-        isinstance(affect, dict)
-        and affect.get("affect_type") == "damage_received_multiplier"
-        and affect.get("target") == "target"
-        for affect in affects
-    )
-    pressure_point_affect = next(
-        affect
-        for affect in affects
-        if isinstance(affect, dict) and affect.get("affect_id") == "affect.increase-received-damage"
-    )
+    ] == ["affect.increase-received-damage"]
+    assert "affects" not in skill
+
+    pressure_point_affect = get_affect_template_by_id("affect.increase-received-damage")
+    assert isinstance(pressure_point_affect, dict)
+    assert pressure_point_affect.get("affect_type") == "damage_received_multiplier"
+    assert pressure_point_affect.get("target") == "target"
     assert pressure_point_affect.get("name") == "Pressure Point"
     assert pressure_point_affect.get("duration_rounds") == 3
     assert pressure_point_affect.get("damage_elements") == ["physical"]
@@ -70,31 +64,20 @@ def test_asset_loader_rejects_inline_affects_payloads() -> None:
         )
 
 
-def test_asset_loader_allows_affect_override_objects() -> None:
-    affects = _resolve_asset_affects(
-        affect_ids=[
-            {
-                "affect_id": "affect.increase-received-damage",
-                "name": "Pressure Point",
-                "target": "target",
-                "affect_mode": "battle_rounds",
-                "damage_elements": ["physical", "fire"],
-                "amount": 1.2,
-                "duration_rounds": 2,
-            }
-        ],
-        affects=[],
-        context="Skill asset 'skill.test-override'",
-        configured_attribute_ids={"dex", "wis", "int", "str", "con"},
-    )
-
-    assert len(affects) == 1
-    assert affects[0]["affect_id"] == "affect.increase-received-damage"
-    assert affects[0]["affect_type"] == "damage_received_multiplier"
-    assert affects[0]["name"] == "Pressure Point"
-    assert affects[0]["damage_elements"] == ["physical", "fire"]
-    assert affects[0]["amount"] == 1.2
-    assert affects[0]["duration_rounds"] == 2
+def test_asset_loader_rejects_affect_override_objects() -> None:
+    with pytest.raises(ValueError, match="affect_ids entries must be strings"):
+        _resolve_asset_affects(
+            affect_ids=[
+                {
+                    "affect_id": "affect.increase-received-damage",
+                    "name": "Pressure Point",
+                    "amount": 1.2,
+                }
+            ],
+            affects=[],
+            context="Skill asset 'skill.test-override'",
+            configured_attribute_ids={"dex", "wis", "int", "str", "con"},
+        )
 
 
 def test_damage_received_multiplier_can_be_element_scoped() -> None:
@@ -152,6 +135,7 @@ def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch
     )
     session.entities[target.entity_id] = target
 
+    session.player.attributes["dex"] = 10
     skill = {
         "skill_id": "skill.pressure-point",
         "name": "Pressure Point",
@@ -166,16 +150,7 @@ def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch
         "damage_dice_count": 1,
         "damage_dice_sides": 1,
         "damage_modifier": 0,
-        "affects": [
-            {
-                "affect_id": "affect.pressure-point-vulnerability",
-                "affect_type": "damage_received_multiplier",
-                "target": "target",
-                "affect_mode": "battle_rounds",
-                "amount": 1.25,
-                "duration_rounds": 2,
-            }
-        ],
+        "affect_ids": ["affect.increase-received-damage"],
     }
 
     monkeypatch.setattr(player_abilities, "roll_skill_damage", lambda _skill: 1)
@@ -203,19 +178,7 @@ def test_item_affect_can_store_dice_payload(monkeypatch) -> None:
         "effect_target": "",
         "effect_amount": 0,
         "use_lag_seconds": 0,
-        "affects": [
-            {
-                "affect_id": "affect.regen-tonic",
-                "name": "Regeneration",
-                "affect_type": "regeneration",
-                "target": "self",
-                "affect_mode": "timed",
-                "amount": 0,
-                "dice_count": 1,
-                "dice_sides": 3,
-                "duration_hours": 2,
-            }
-        ],
+        "affect_ids": ["affect.regeneration"],
     }
 
     monkeypatch.setattr(item_logic, "_resolve_misc_inventory_selector", lambda _session, _selector: (item, None))
@@ -227,7 +190,7 @@ def test_item_affect_can_store_dice_payload(monkeypatch) -> None:
     assert isinstance(result, dict)
     assert len(session.active_affects) == 1
     assert session.active_affects[0].affect_dice_count == 1
-    assert session.active_affects[0].affect_dice_sides == 3
+    assert session.active_affects[0].affect_dice_sides == 21
 
 
 def test_timed_regeneration_affect_ticks_and_expires(monkeypatch) -> None:
@@ -270,23 +233,27 @@ def test_timed_regeneration_affect_ticks_and_expires(monkeypatch) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_affect_inherits_duration_rounds_from_parent_ability() -> None:
-    """When an affect entry omits duration_rounds, it inherits from the parent ability."""
+def test_affect_inherits_duration_rounds_from_parent_ability(monkeypatch) -> None:
+    """When an affect template omits duration_rounds, it inherits from the parent ability."""
     from combat_ability_effects import _apply_ability_affects
 
     session = _make_session("client-inherit-dur", "Tester")
     ability = {
         "duration_rounds": 5,
-        "affects": [
-            {
-                "affect_id": "affect.damage-reduction",
-                "affect_type": "damage_reduction",
-                "target": "self",
-                "affect_mode": "battle_rounds",
-                "amount": 3,
-            }
-        ],
+        "affect_ids": ["affect.damage-reduction"],
     }
+    monkeypatch.setattr(
+        combat_ability_effects,
+        "get_affect_template_by_id",
+        lambda affect_id: {
+            "affect_id": affect_id,
+            "name": "Guard",
+            "affect_type": "damage_reduction",
+            "target": "self",
+            "affect_mode": "battle_rounds",
+            "amount": 3,
+        },
+    )
 
     _apply_ability_affects(actor=session, target=session, ability=ability, affect_target="self")
 
@@ -294,24 +261,28 @@ def test_affect_inherits_duration_rounds_from_parent_ability() -> None:
     assert session.active_affects[0].remaining_rounds == 5
 
 
-def test_affect_inherits_duration_hours_from_parent_ability() -> None:
-    """When an affect entry omits duration_hours, it inherits from the parent ability."""
+def test_affect_inherits_duration_hours_from_parent_ability(monkeypatch) -> None:
+    """When an affect template omits duration_hours, it inherits from the parent ability."""
     from combat_ability_effects import _apply_ability_affects
 
     session = _make_session("client-inherit-hours", "Tester")
     ability = {
         "duration_hours": 4,
-        "affects": [
-            {
-                "affect_id": "affect.regeneration",
-                "affect_type": "regeneration",
-                "target": "self",
-                "affect_mode": "timed",
-                "target_resource": "hit_points",
-                "amount": 5,
-            }
-        ],
+        "affect_ids": ["affect.regeneration"],
     }
+    monkeypatch.setattr(
+        combat_ability_effects,
+        "get_affect_template_by_id",
+        lambda affect_id: {
+            "affect_id": affect_id,
+            "name": "Regeneration",
+            "affect_type": "regeneration",
+            "target": "self",
+            "affect_mode": "timed",
+            "target_resource": "hit_points",
+            "amount": 5,
+        },
+    )
 
     _apply_ability_affects(actor=session, target=session, ability=ability, affect_target="self")
 
@@ -319,24 +290,28 @@ def test_affect_inherits_duration_hours_from_parent_ability() -> None:
     assert session.active_affects[0].remaining_hours == 4
 
 
-def test_affect_explicit_duration_overrides_parent() -> None:
-    """An affect with its own duration_rounds takes priority over the parent's."""
+def test_affect_explicit_duration_overrides_parent(monkeypatch) -> None:
+    """An affect template with its own duration_rounds takes priority over the parent's."""
     from combat_ability_effects import _apply_ability_affects
 
     session = _make_session("client-override-dur", "Tester")
     ability = {
         "duration_rounds": 5,
-        "affects": [
-            {
-                "affect_id": "affect.damage-reduction",
-                "affect_type": "damage_reduction",
-                "target": "self",
-                "affect_mode": "battle_rounds",
-                "amount": 2,
-                "duration_rounds": 7,
-            }
-        ],
+        "affect_ids": ["affect.damage-reduction"],
     }
+    monkeypatch.setattr(
+        combat_ability_effects,
+        "get_affect_template_by_id",
+        lambda affect_id: {
+            "affect_id": affect_id,
+            "name": "Guard",
+            "affect_type": "damage_reduction",
+            "target": "self",
+            "affect_mode": "battle_rounds",
+            "amount": 2,
+            "duration_rounds": 7,
+        },
+    )
 
     _apply_ability_affects(actor=session, target=session, ability=ability, affect_target="self")
 
@@ -414,8 +389,7 @@ def test_fist_flurry_affect_inherits_skill_duration() -> None:
     skill = get_skill_by_id("skill.fist-flurry")
     assert isinstance(skill, dict)
     assert skill.get("duration_rounds") == 3
-    assert len(skill.get("affects", [])) == 1
-    assert skill["affects"][0].get("duration_rounds") == 0
+    assert "affects" not in skill
 
     # Verify runtime: applying the skill should produce an affect with duration 3.
     session = _make_session("client-flurry-inherit", "Tester")
@@ -437,8 +411,7 @@ def test_centered_guard_affect_inherits_skill_duration() -> None:
     skill = get_skill_by_id("skill.centered-guard")
     assert isinstance(skill, dict)
     assert skill.get("duration_rounds") == 3
-    assert len(skill.get("affects", [])) == 1
-    assert skill["affects"][0].get("duration_rounds") == 0
+    assert "affects" not in skill
 
     session = _make_session("client-guard-inherit", "Tester")
     _apply_ability_affects(actor=session, target=session, ability=skill, affect_target="self")

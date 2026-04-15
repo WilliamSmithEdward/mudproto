@@ -181,11 +181,11 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
     effect_type = str(template.get("effect_type", "restore")).strip().lower() or "restore"
     effect_target = str(template.get("effect_target", "")).strip().lower()
     effect_amount = max(0, int(template.get("effect_amount", 0)))
-    affects = template.get("affects", []) if isinstance(template.get("affects", []), list) else []
+    affect_ids = template.get("affect_ids", []) if isinstance(template.get("affect_ids", []), list) else []
     use_lag_seconds = max(0.0, float(template.get("use_lag_seconds", 0.0)))
 
     has_restore = effect_type == "restore" and effect_amount > 0
-    has_affects = bool(affects)
+    has_affects = bool(affect_ids)
     if not has_restore and not has_affects:
         return display_error(f"{misc_item.name} cannot be used.", session)
 

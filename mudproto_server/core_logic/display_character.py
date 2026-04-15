@@ -47,14 +47,28 @@ def _resolve_posture_label(session: ClientSession) -> str:
     return "Standing"
 
 
+def _resolve_effect_name(effect) -> str:
+    spell_name = str(getattr(effect, "spell_name", "")).strip()
+    if spell_name:
+        return spell_name
+
+    affect_name = str(getattr(effect, "affect_name", "")).strip()
+    if affect_name:
+        return affect_name
+
+    return "Effect"
+
+
 def _format_effect_remaining_duration(effect) -> str:
-    support_mode = str(getattr(effect, "support_mode", "timed")).strip().lower() or "timed"
-    if support_mode == "battle_rounds":
+    effect_mode = str(
+        getattr(effect, "support_mode", getattr(effect, "affect_mode", "timed"))
+    ).strip().lower() or "timed"
+    if effect_mode == "battle_rounds":
         rounds = max(0, int(getattr(effect, "remaining_rounds", 0)))
         label = "round" if rounds == 1 else "rounds"
         return f"{rounds} {label}"
 
-    if support_mode == "timed":
+    if effect_mode == "timed":
         hours = max(0, int(getattr(effect, "remaining_hours", 0)))
         label = "hour" if hours == 1 else "hours"
         return f"{hours} {label}"
@@ -104,15 +118,15 @@ def display_score(session: ClientSession) -> dict:
         attribute_line_texts.append(f" - {attribute_name} ({attribute_id.upper()}): {value}")
 
     active_effects = sorted(
-        list(session.active_support_effects),
-        key=lambda effect: str(getattr(effect, "spell_name", "")).lower(),
+        list(session.active_support_effects) + list(session.active_affects),
+        key=lambda effect: _resolve_effect_name(effect).lower(),
     )
     effect_line_texts: list[str] = []
     if not active_effects:
         effect_line_texts.append(" - None")
     else:
         for effect in active_effects:
-            effect_name = str(getattr(effect, "spell_name", "Effect")).strip() or "Effect"
+            effect_name = _resolve_effect_name(effect)
             duration_text = _format_effect_remaining_duration(effect)
             effect_line_texts.append(f" - {effect_name} ({duration_text} remaining)")
 
@@ -210,7 +224,7 @@ def display_score(session: ClientSession) -> dict:
         ])
     else:
         for effect in active_effects:
-            effect_name = str(getattr(effect, "spell_name", "Effect")).strip() or "Effect"
+            effect_name = _resolve_effect_name(effect)
             duration_text = _format_effect_remaining_duration(effect)
             parts.extend([
                 newline_part(),

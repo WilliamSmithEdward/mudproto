@@ -131,7 +131,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         duration_rounds = max(0, int(skill.get("duration_rounds", 0)))
         support_context = str(skill.get("support_context", "")).strip()
         total_support_amount = max(0, support_amount + scaling_bonus)
-        has_affect_payload = bool(skill.get("affects", [])) if isinstance(skill.get("affects", []), list) else False
+        has_affect_payload = bool(skill.get("affect_ids", [])) if isinstance(skill.get("affect_ids", []), list) else False
 
         if support_effect:
             if support_mode == "instant":
@@ -320,7 +320,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
         duration_hours = max(0, int(spell.get("duration_hours", 0)))
         duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
         support_context = str(spell.get("support_context", "")).strip()
-        has_affect_payload = bool(spell.get("affects", [])) if isinstance(spell.get("affects", []), list) else False
+        has_affect_payload = bool(spell.get("affect_ids", [])) if isinstance(spell.get("affect_ids", []), list) else False
 
         if support_effect:
             if support_amount <= 0 and support_dice_count <= 0:

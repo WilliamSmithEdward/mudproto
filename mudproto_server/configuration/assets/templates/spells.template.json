@@ -156,10 +156,10 @@
         "notes": "Use empty string when the spell is affect-only (all behavior defined by affect_ids)."
       },
       "affect_ids": {
-        "type": "array[object]",
+        "type": "array[string]",
         "required": false,
         "default": [],
-        "notes": "Array of affect override objects. Each entry must include an affect_id matching a template in affects.json. Available templates: affect.increase-received-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction. Override fields per entry: name, target (self/target), affect_mode (instant/timed/battle_rounds), amount, dice_count, dice_sides, roll_modifier, scaling_attribute_id, scaling_multiplier, level_scaling_multiplier, power_scaling_multiplier, duration_hours, duration_rounds, damage_elements (array, for damage_received_multiplier only), target_resource (hit_points/mana/vigor, for regeneration only), extra_main_hand_hits, extra_off_hand_hits, extra_unarmed_hits, hits_per_level_step, level_step (for extra_hits only)."
+        "notes": "Array of affect template ids defined in configuration/attributes/affects.json. Only string references are supported. Available templates: affect.increase-received-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction."
       },
       "support_amount": {
         "type": "integer",

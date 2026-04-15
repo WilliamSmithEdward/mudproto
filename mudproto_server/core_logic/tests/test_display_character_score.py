@@ -1,5 +1,5 @@
 import display_character
-from models import ClientSession
+from models import ActiveAffectState, ActiveSupportEffectState, ClientSession
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -70,3 +70,28 @@ def test_score_displays_sleeping_posture() -> None:
     rendered = _extract_display_text(outbound)
 
     assert "Posture: Sleeping" in rendered
+
+
+def test_score_displays_active_affects_and_support_effects() -> None:
+    session = _make_session("client-score-effects", "Lucia")
+    session.active_support_effects.append(ActiveSupportEffectState(
+        spell_id="spell.regeneration-ward",
+        spell_name="Regeneration Ward",
+        support_mode="timed",
+        support_effect="heal",
+        support_amount=12,
+        remaining_hours=2,
+    ))
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.fist-flurry",
+        affect_name="Fist Flurry",
+        affect_mode="battle_rounds",
+        affect_type="extra_unarmed_hits",
+        remaining_rounds=3,
+    ))
+
+    outbound = display_character.display_score(session)
+    rendered = _extract_display_text(outbound)
+
+    assert "Regeneration Ward (2 hours remaining)" in rendered
+    assert "Fist Flurry (3 rounds remaining)" in rendered

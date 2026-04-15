@@ -2,7 +2,7 @@
 
 import random
 
-from attribute_config import get_posture_dealt_damage_multiplier, get_posture_received_damage_multiplier
+from attribute_config import get_affect_template_by_id, get_posture_dealt_damage_multiplier, get_posture_received_damage_multiplier
 from models import ActiveAffectState, ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 
@@ -34,10 +34,23 @@ def _resolve_secondary_restore_fields(ability: dict) -> tuple[str, float, str, s
 
 
 def _resolve_ability_affects(ability: dict) -> list[dict]:
-    raw_affects = ability.get("affects", [])
-    if not isinstance(raw_affects, list):
+    raw_affect_ids = ability.get("affect_ids", [])
+    if not isinstance(raw_affect_ids, list):
         return []
-    return [entry for entry in raw_affects if isinstance(entry, dict)]
+
+    resolved_affects: list[dict] = []
+    seen_affect_ids: set[str] = set()
+    for raw_affect_id in raw_affect_ids:
+        affect_id = str(raw_affect_id).strip().lower()
+        if not affect_id or affect_id in seen_affect_ids:
+            continue
+        affect = get_affect_template_by_id(affect_id)
+        if not isinstance(affect, dict):
+            continue
+        seen_affect_ids.add(affect_id)
+        resolved_affects.append(dict(affect))
+
+    return resolved_affects
 
 
 def _resolve_affect_scaling_bonus(actor: object, affect: dict) -> float:

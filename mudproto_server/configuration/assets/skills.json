@@ -73,18 +73,7 @@
     "level_scaling_multiplier": 0.5,
     "support_effect": "",
     "support_amount": 0,
-    "affect_ids": [
-      {
-        "affect_id": "affect.damage-reduction",
-        "name": "Centered Guard",
-        "target": "self",
-        "affect_mode": "battle_rounds",
-        "amount": 2,
-        "scaling_attribute_id": "con",
-        "scaling_multiplier": 0.5,
-        "level_scaling_multiplier": 0.5
-      }
-    ],
+    "affect_ids": ["affect.damage-reduction"],
     "support_mode": "battle_rounds",
     "duration_rounds": 3,
     "support_context": "You settle into a centered guard, turning the worst of each blow aside.",
@@ -134,19 +123,7 @@
     "observer_action": "[actor_name] snaps a precise strike at a vulnerable nerve cluster.",
     "lag_rounds": 1,
     "cooldown_rounds": 3,
-    "affect_ids": [
-      {
-        "affect_id": "affect.increase-received-damage",
-        "name": "Pressure Point",
-        "target": "target",
-        "affect_mode": "battle_rounds",
-        "damage_elements": ["physical"],
-        "amount": 1.1,
-        "scaling_attribute_id": "dex",
-        "scaling_multiplier": 0.01,
-        "duration_rounds": 3
-      }
-    ]
+    "affect_ids": ["affect.increase-received-damage"]
   },
   {
     "skill_id": "skill.roundhouse-kick",
@@ -182,19 +159,7 @@
     "level_scaling_multiplier": 0.0,
     "support_effect": "",
     "support_amount": 0,
-    "affect_ids": [
-      {
-        "affect_id": "affect.extra-hits",
-        "name": "Fist Flurry",
-        "target": "self",
-        "affect_mode": "battle_rounds",
-        "extra_main_hand_hits": 0,
-        "extra_off_hand_hits": 0,
-        "extra_unarmed_hits": 2,
-        "hits_per_level_step": 1,
-        "level_step": 5
-      }
-    ],
+    "affect_ids": ["affect.extra-hits"],
     "support_mode": "battle_rounds",
     "duration_rounds": 3,
     "support_context": "Your fists blur into a relentless flurry.",

@@ -208,71 +208,37 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
     }
 
 
-def _resolve_affect_ids(raw_affect_ids: object, *, context: str, configured_attribute_ids: set[str]) -> list[dict]:
+def _resolve_affect_ids(raw_affect_ids: object, *, context: str, configured_attribute_ids: set[str]) -> list[str]:
     if raw_affect_ids is None:
         raw_affect_ids = []
     if not isinstance(raw_affect_ids, list):
         raise ValueError(f"{context} affect_ids must be a list.")
 
-    override_fields = {
-        "name",
-        "target",
-        "affect_mode",
-        "damage_element",
-        "damage_elements",
-        "target_resource",
-        "amount",
-        "dice_count",
-        "dice_sides",
-        "roll_modifier",
-        "scaling_attribute_id",
-        "scaling_multiplier",
-        "level_scaling_multiplier",
-        "power_scaling_multiplier",
-        "duration_hours",
-        "duration_rounds",
-        "extra_main_hand_hits",
-        "extra_off_hand_hits",
-        "extra_unarmed_hits",
-        "hits_per_level_step",
-        "level_step",
-    }
-
-    resolved_affects: list[dict] = []
+    resolved_affect_ids: list[str] = []
     seen_affect_ids: set[str] = set()
     for raw_affect_ref in raw_affect_ids:
-        if isinstance(raw_affect_ref, str):
-            affect_id = str(raw_affect_ref).strip().lower()
-            overrides: dict[str, object] = {}
-        elif isinstance(raw_affect_ref, dict):
-            affect_id = str(raw_affect_ref.get("affect_id", "")).strip().lower()
-            invalid_fields = set(raw_affect_ref.keys()) - ({"affect_id"} | override_fields)
-            if invalid_fields:
-                invalid_list = ", ".join(sorted(invalid_fields))
-                raise ValueError(f"{context} affect_ids entries contain unsupported fields: {invalid_list}.")
-            overrides = {field: raw_affect_ref[field] for field in override_fields if field in raw_affect_ref}
-        else:
-            raise ValueError(f"{context} affect_ids entries must be strings or objects.")
+        if not isinstance(raw_affect_ref, str):
+            raise ValueError(f"{context} affect_ids entries must be strings.")
 
+        affect_id = str(raw_affect_ref).strip().lower()
         if not affect_id or affect_id in seen_affect_ids:
             continue
         affect_template = get_affect_template_by_id(affect_id)
         if affect_template is None:
             raise ValueError(f"{context} affect_ids references unknown affect_id '{affect_id}'.")
 
-        merged_affect = dict(affect_template)
-        merged_affect.update(overrides)
-        resolved_affects.append(_normalize_resolved_affect(
-            merged_affect,
+        _normalize_resolved_affect(
+            dict(affect_template),
             context=context,
             configured_attribute_ids=configured_attribute_ids,
-        ))
+        )
+        resolved_affect_ids.append(affect_id)
         seen_affect_ids.add(affect_id)
 
-    return resolved_affects
+    return resolved_affect_ids
 
 
-def _resolve_asset_affects(*, affect_ids: object, affects: object, context: str, configured_attribute_ids: set[str]) -> list[dict]:
+def _resolve_asset_affects(*, affect_ids: object, affects: object, context: str, configured_attribute_ids: set[str]) -> list[str]:
     if affects is None:
         affects = []
     if not isinstance(affects, list):
@@ -488,17 +454,12 @@ def load_item_templates() -> list[dict]:
                 "quantity": max(1, int(raw_content.get("quantity", 1))),
             })
         lock_id = str(raw_template.get("lock_id", "")).strip().lower()
-        affects = _resolve_asset_affects(
+        affect_ids = _resolve_asset_affects(
             affect_ids=raw_template.get("affect_ids", []),
             affects=raw_template.get("affects", []),
             context=f"Item asset '{template_id}'",
             configured_attribute_ids=configured_attribute_ids,
         )
-        affect_ids = [
-            str(affect.get("affect_id", "")).strip().lower()
-            for affect in affects
-            if str(affect.get("affect_id", "")).strip()
-        ]
         can_close = bool(raw_template.get("can_close", raw_item_type == "container"))
         can_lock = bool(raw_template.get("can_lock", bool(lock_id)))
         is_closed = bool(raw_template.get("is_closed", False))
@@ -507,7 +468,7 @@ def load_item_templates() -> list[dict]:
         if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate item template_id: {template_id}")
         if raw_item_type == "consumable":
-            if effect_type != "restore" and not affects:
+            if effect_type != "restore" and not affect_ids:
                 raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
             if effect_type == "restore" and effect_target not in allowed_effect_targets:
                 raise ValueError(
@@ -566,7 +527,6 @@ def load_item_templates() -> list[dict]:
             "observer_action": str(raw_template.get("observer_action", "")).strip(),
             "observer_context": str(raw_template.get("observer_context", "")).strip(),
             "affect_ids": affect_ids,
-            "affects": affects,
         }
 
     return [normalized_templates_by_id[template_id] for template_id in ordered_template_ids]
@@ -1633,17 +1593,12 @@ def load_spells() -> list[dict]:
         support_context = str(raw_spell.get("support_context", "")).strip()
         observer_action = str(raw_spell.get("observer_action", "")).strip()
         observer_context = str(raw_spell.get("observer_context", "")).strip()
-        affects = _resolve_asset_affects(
+        affect_ids = _resolve_asset_affects(
             affect_ids=raw_spell.get("affect_ids", []),
             affects=raw_spell.get("affects", []),
             context=f"Spell asset '{spell_id}'",
             configured_attribute_ids=configured_attribute_ids,
         )
-        affect_ids = [
-            str(affect.get("affect_id", "")).strip().lower()
-            for affect in affects
-            if str(affect.get("affect_id", "")).strip()
-        ]
 
         if not cast_type:
             cast_type = "self" if spell_type == "support" else "target"
@@ -1753,7 +1708,6 @@ def load_spells() -> list[dict]:
             "observer_action": observer_action,
             "observer_context": observer_context,
             "affect_ids": affect_ids,
-            "affects": affects,
         }
 
     return [normalized_spells_by_id[spell_id] for spell_id in ordered_spell_ids]
@@ -1843,17 +1797,12 @@ def load_skills() -> list[dict]:
         lag_rounds = int(raw_skill.get("lag_rounds", 0))
         target_lag_rounds = int(raw_skill.get("target_lag_rounds", 0))
         target_posture = str(raw_skill.get("target_posture", "")).strip().lower()
-        affects = _resolve_asset_affects(
+        affect_ids = _resolve_asset_affects(
             affect_ids=raw_skill.get("affect_ids", []),
             affects=raw_skill.get("affects", []),
             context=f"Skill asset '{skill_id}'",
             configured_attribute_ids=configured_attribute_ids,
         )
-        affect_ids = [
-            str(affect.get("affect_id", "")).strip().lower()
-            for affect in affects
-            if str(affect.get("affect_id", "")).strip()
-        ]
         cooldown_rounds = int(raw_skill.get("cooldown_rounds", 0))
         cooldown_hours = int(raw_skill.get("cooldown_hours", 0))
         support_level_step = int(raw_skill.get("support_level_step", 0))
@@ -1913,7 +1862,7 @@ def load_skills() -> list[dict]:
             raise ValueError(f"Skill asset '{skill_id}' restore_ratio is only supported on damage skills.")
 
         if skill_type == "support":
-            has_affect_payload = bool(affects)
+            has_affect_payload = bool(affect_ids)
             if support_effect and support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
                 raise ValueError(
                     f"Skill asset '{skill_id}' support_effect must be one of: heal, vigor, mana, damage_reduction, extra_unarmed_hits."
@@ -1972,7 +1921,6 @@ def load_skills() -> list[dict]:
             "target_lag_rounds": target_lag_rounds,
             "target_posture": target_posture,
             "affect_ids": affect_ids,
-            "affects": affects,
             "cooldown_rounds": cooldown_rounds,
             "cooldown_hours": cooldown_hours,
             "support_level_step": support_level_step,

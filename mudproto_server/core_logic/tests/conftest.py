@@ -74,7 +74,6 @@ def _build_generated_test_spell(spell_id: str) -> dict:
 		"level_scaling_multiplier": 0.0,
 		"damage_context": "[a/an] [verb] hit by a generated test spell.",
 		"affect_ids": [],
-		"affects": [],
 	}
 
 
@@ -96,7 +95,6 @@ def _build_generated_test_skill(skill_id: str) -> dict:
 		"damage_modifier": 0,
 		"damage_context": "[a/an] [verb] clipped by a generated test skill.",
 		"affect_ids": [],
-		"affects": [],
 	}
 
 
@@ -176,7 +174,6 @@ def _build_generated_test_item(template_id: str) -> dict:
 		"observer_action": "",
 		"observer_context": "",
 		"affect_ids": [],
-		"affects": [],
 	}
 
 
