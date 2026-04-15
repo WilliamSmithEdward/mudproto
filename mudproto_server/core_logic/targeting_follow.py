@@ -104,7 +104,7 @@ def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
 
     resolved_name = str(followed_name).strip() or "them"
     notification = display_command_result(session, [
-        build_part("You no longer follow ", "bright_white"),
+        build_part("You stop following ", "bright_white"),
         build_part(resolved_name, "bright_cyan", True),
         build_part(".", "bright_white"),
     ])
@@ -228,13 +228,30 @@ def _is_following_group_member(member_session: ClientSession, leader_session: Cl
     }
 
 
-def _remove_session_from_group(session: ClientSession, *, clear_follow: bool = True) -> None:
+def _remove_session_from_group(
+    session: ClientSession,
+    *,
+    clear_follow: bool = True,
+    notify_session: bool = False,
+) -> None:
+    previous_followed_name = ""
+    if clear_follow:
+        previous_followed_name = (session.following_player_name or "").strip()
+        if not previous_followed_name:
+            previous_followed_session = _find_followed_player_session(session)
+            if previous_followed_session is not None:
+                previous_followed_name = (
+                    previous_followed_session.authenticated_character_name or ""
+                ).strip()
+
     member_key = _session_identity_key(session)
     leader_key = (session.group_leader_key or "").strip().lower()
     if not leader_key or not member_key or leader_key == member_key:
         session.group_leader_key = ""
         if clear_follow:
             _clear_follow_state(session)
+            if notify_session:
+                _notify_follow_stopped(session, previous_followed_name or "them")
         return
 
     leader_session = _find_session_by_identity_key(leader_key)
@@ -243,9 +260,11 @@ def _remove_session_from_group(session: ClientSession, *, clear_follow: bool = T
     session.group_leader_key = ""
     if clear_follow:
         _clear_follow_state(session)
+        if notify_session:
+            _notify_follow_stopped(session, previous_followed_name or "them")
 
 
-def _disband_group(leader_session: ClientSession) -> list[ClientSession]:
+def _disband_group(leader_session: ClientSession, *, notify_members: bool = False) -> list[ClientSession]:
     removed_members: list[ClientSession] = []
     leader_key = _session_identity_key(leader_session)
     if not leader_key:
@@ -256,8 +275,17 @@ def _disband_group(leader_session: ClientSession) -> list[ClientSession]:
     for member_key in list(leader_session.group_member_keys):
         member_session = _find_session_by_identity_key(member_key)
         if member_session is not None and (member_session.group_leader_key or "").strip().lower() == leader_key:
+            previous_followed_name = (member_session.following_player_name or "").strip()
+            if not previous_followed_name:
+                previous_followed_session = _find_followed_player_session(member_session)
+                if previous_followed_session is not None:
+                    previous_followed_name = (
+                        previous_followed_session.authenticated_character_name or ""
+                    ).strip()
             member_session.group_leader_key = ""
             _clear_follow_state(member_session)
+            if notify_members:
+                _notify_follow_stopped(member_session, previous_followed_name or "them")
             removed_members.append(member_session)
 
     leader_session.group_member_keys.clear()

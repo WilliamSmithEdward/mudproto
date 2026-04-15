@@ -59,4 +59,8 @@ def dispatch_command(session: ClientSession, command_text: str) -> OutboundResul
     if fallback_result is not None:
         return fallback_result
 
-    return display_error(f"Unknown command: {verb}", session)
+    return display_error(
+        f"Unknown command: {verb}",
+        session,
+        error_code="unknown-command",
+    )

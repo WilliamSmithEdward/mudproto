@@ -53,7 +53,12 @@ def handle_observation_command(
     if verb in {"look", "lo", "loo"}:
         room = get_room(session.player.current_room_id)
         if room is None:
-            return display_error(f"Current room not found: {session.player.current_room_id}", session)
+            return display_error(
+                f"Current room not found: {session.player.current_room_id}",
+                session,
+                error_code="current-room-not-found",
+                error_context={"room_id": session.player.current_room_id},
+            )
 
         if args:
             target_text = " ".join(args).strip()
@@ -126,25 +131,45 @@ def handle_observation_command(
             if corpse_target is not None:
                 return display_container_examination(session, corpse_target)
 
-            return display_error(entity_error or f"No target named '{normalized_selector}' is here.", session)
+            return display_error(
+                entity_error or f"No target named '{normalized_selector}' is here.",
+                session,
+                error_code="target-not-found",
+                error_context={"target": normalized_selector},
+            )
 
         return display_room(session, room)
 
     if verb in {"sc", "sca", "scan"}:
         room = get_room(session.player.current_room_id)
         if room is None:
-            return display_error(f"Current room not found: {session.player.current_room_id}", session)
+            return display_error(
+                f"Current room not found: {session.player.current_room_id}",
+                session,
+                error_code="current-room-not-found",
+                error_context={"room_id": session.player.current_room_id},
+            )
 
         return display_exits(session, room)
 
     if verb in {"ex", "exa", "exam", "exami", "examin", "examine"}:
         selector_text = " ".join(args).strip()
         if not selector_text:
-            return display_error("Usage: examine <item|corpse selector> [in room]", session)
+            return display_error(
+                "Usage: examine <item|corpse selector> [in room]",
+                session,
+                error_code="usage",
+                error_context={"usage": "examine <item|corpse selector> [in room]"},
+            )
 
         normalized_selector, search_room_item = _normalize_item_look_selector(selector_text)
         if not normalized_selector:
-            return display_error("Usage: examine <item|corpse selector> [in room]", session)
+            return display_error(
+                "Usage: examine <item|corpse selector> [in room]",
+                session,
+                error_code="usage",
+                error_context={"usage": "examine <item|corpse selector> [in room]"},
+            )
 
         room = get_room(session.player.current_room_id)
 
@@ -195,7 +220,12 @@ def handle_observation_command(
             normalized_selector,
         )
         if corpse is None:
-            return display_error(resolve_error or f"No corpse matching '{normalized_selector}' is here.", session)
+            return display_error(
+                resolve_error or f"No corpse matching '{normalized_selector}' is here.",
+                session,
+                error_code="corpse-not-found",
+                error_context={"target": normalized_selector},
+            )
 
         return display_container_examination(session, corpse)
 

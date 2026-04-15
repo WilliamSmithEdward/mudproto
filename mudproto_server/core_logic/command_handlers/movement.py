@@ -97,11 +97,20 @@ def _attach_movement_metadata(
 def flee(session: ClientSession) -> OutboundResult:
     entity = get_engaged_entity(session)
     if entity is None:
-        return display_error("You are not engaged with anything.", session)
+        return display_error(
+            "You are not engaged with anything.",
+            session,
+            error_code="not-engaged",
+        )
 
     current_room = get_room(session.player.current_room_id)
     if current_room is None:
-        return display_error(f"Current room not found: {session.player.current_room_id}", session)
+        return display_error(
+            f"Current room not found: {session.player.current_room_id}",
+            session,
+            error_code="current-room-not-found",
+            error_context={"room_id": session.player.current_room_id},
+        )
 
     exits = [
         (direction, room_id)
@@ -121,7 +130,12 @@ def flee(session: ClientSession) -> OutboundResult:
     flee_direction, next_room_id = random.choice(exits)
     next_room = get_room(next_room_id)
     if next_room is None:
-        return display_error(f"Destination room not found: {next_room_id}", session)
+        return display_error(
+            f"Destination room not found: {next_room_id}",
+            session,
+            error_code="cannot-go",
+            error_context={"direction": normalize_direction(flee_direction), "room_id": next_room_id},
+        )
 
     session.player.current_room_id = next_room.room_id
     end_combat(session)
@@ -162,20 +176,40 @@ def try_move(session: ClientSession, direction: str) -> OutboundResult:
 
     current_room = get_room(session.player.current_room_id)
     if current_room is None:
-        return display_error(f"Current room not found: {session.player.current_room_id}", session)
+        return display_error(
+            f"Current room not found: {session.player.current_room_id}",
+            session,
+            error_code="current-room-not-found",
+            error_context={"room_id": session.player.current_room_id},
+        )
 
     normalized_direction = normalize_direction(direction)
     next_room_id = current_room.exits.get(normalized_direction)
     if next_room_id is None:
-        return display_error(f"You cannot go {normalized_direction} from here.", session)
+        return display_error(
+            f"You cannot go {normalized_direction} from here.",
+            session,
+            error_code="cannot-go",
+            error_context={"direction": normalized_direction},
+        )
 
     can_traverse, blocked_message = can_traverse_exit(current_room, normalized_direction)
     if not can_traverse:
-        return display_error(blocked_message or f"You cannot go {normalized_direction} from here.", session)
+        return display_error(
+            blocked_message or f"You cannot go {normalized_direction} from here.",
+            session,
+            error_code="cannot-go",
+            error_context={"direction": normalized_direction},
+        )
 
     next_room = get_room(next_room_id)
     if next_room is None:
-        return display_error(f"Destination room not found: {next_room_id}", session)
+        return display_error(
+            f"Destination room not found: {next_room_id}",
+            session,
+            error_code="cannot-go",
+            error_context={"direction": normalized_direction, "room_id": next_room_id},
+        )
 
     session.player.current_room_id = next_room.room_id
     end_combat(session)

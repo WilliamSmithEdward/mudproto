@@ -1,6 +1,7 @@
 import asyncio
 import re
 
+from command_handlers.types import ErrorCode, ErrorContext
 from attribute_config import player_class_uses_mana
 from combat_state import get_engaged_entity, get_entity_condition, get_health_condition
 from experience import get_xp_to_next_level
@@ -262,6 +263,23 @@ _SIMPLE_LORE_MESSAGES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("current room not found",), "The world around you wavers strangely for a moment."),
 )
 
+_CODED_MERCHANT_LORE_QUOTES: dict[str, str] = {
+    "no-merchant-here": "The marketplace is empty of any willing trader.",
+    "merchant-item-unavailable": "I'm sorry, I don't have that item.",
+    "merchant-out-of-stock": "I'm afraid we've sold the last of that for now.",
+    "merchant-insufficient-coins": "You'll need a heavier purse for that one.",
+    "merchant-not-carrying": "I can only bargain for what you are actually carrying.",
+}
+
+_CODED_SIMPLE_LORE_MESSAGES: dict[str, str] = {
+    "unknown-command": "Those words carry no meaning here.",
+    "not-enough-mana": "Your inner reserves are too thin for that spell.",
+    "not-enough-vigor": "Your body lacks the vigor for that effort just now.",
+    "not-engaged": "No foe presently presses you.",
+    "cannot-go": "The way does not open for you there.",
+    "current-room-not-found": "The world around you wavers strangely for a moment.",
+}
+
 
 def _build_merchant_lore_error_parts(lowered: str, merchant_name: str) -> list[dict] | None:
     for fragments, quote in _MERCHANT_LORE_QUOTES:
@@ -281,12 +299,19 @@ def _build_usage_lore_error_parts(cleaned: str, lowered: str) -> list[dict] | No
     ]
 
 
-def _build_missing_target_lore_parts(lowered: str) -> list[dict] | None:
-    if "no target named" not in lowered:
-        return None
+def _build_missing_target_lore_parts(
+    lowered: str,
+    *,
+    target_name: str | None = None,
+) -> list[dict] | None:
+    normalized_target_name = str(target_name or "").strip().lower()
+    if not normalized_target_name:
+        if "no target named" not in lowered:
+            return None
+        target_match = re.search(r"no target named '([^']+)' is here", lowered)
+        normalized_target_name = str(target_match.group(1)).strip().lower() if target_match else ""
 
-    target_match = re.search(r"no target named '([^']+)' is here", lowered)
-    normalized_target = DIRECTION_ALIASES.get(str(target_match.group(1)).strip().lower()) if target_match else None
+    normalized_target = DIRECTION_ALIASES.get(normalized_target_name)
     if normalized_target == "up":
         return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "bright_white", False)]
     if normalized_target == "down":
@@ -310,9 +335,55 @@ def _build_fallback_lore_error_parts(cleaned: str) -> list[dict]:
     return [build_part(fallback_text, "bright_white", False)]
 
 
-def _build_lore_error_parts(message: str, session: ClientSession | None = None) -> list[dict]:
+def _build_coded_lore_error_parts(
+    error_code: ErrorCode,
+    session: ClientSession | None = None,
+    error_context: ErrorContext | None = None,
+) -> list[dict] | None:
+    normalized_code = str(error_code).strip().lower()
+    context = error_context or {}
+
+    if normalized_code == "usage":
+        usage_text = str(context.get("usage", "")).strip()
+        if usage_text:
+            return _build_usage_lore_error_parts(f"Usage: {usage_text}", "usage:")
+        return None
+
+    if normalized_code == "target-not-found":
+        target_name = str(context.get("target", "")).strip()
+        return _build_missing_target_lore_parts("", target_name=target_name or None)
+
+    if normalized_code == "corpse-not-found":
+        return [build_part("Nothing of that sort can be found here.", "bright_white", False)]
+
+    if normalized_code in _CODED_SIMPLE_LORE_MESSAGES:
+        return [build_part(_CODED_SIMPLE_LORE_MESSAGES[normalized_code], "bright_white", False)]
+
+    if normalized_code == "no-merchant-here":
+        return [build_part(_CODED_MERCHANT_LORE_QUOTES[normalized_code], "bright_white", False)]
+
+    merchant = _find_room_merchant(session)
+    if merchant is not None and normalized_code in _CODED_MERCHANT_LORE_QUOTES:
+        merchant_name = str(getattr(merchant, "name", "Merchant")).strip() or "Merchant"
+        return _merchant_quote_parts(merchant_name, _CODED_MERCHANT_LORE_QUOTES[normalized_code])
+
+    return None
+
+
+def _build_lore_error_parts(
+    message: str,
+    session: ClientSession | None = None,
+    *,
+    error_code: ErrorCode | None = None,
+    error_context: ErrorContext | None = None,
+) -> list[dict]:
     cleaned = str(message).strip()
     lowered = cleaned.lower()
+
+    if error_code is not None:
+        coded_parts = _build_coded_lore_error_parts(error_code, session, error_context)
+        if coded_parts is not None:
+            return coded_parts
 
     merchant = _find_room_merchant(session)
     if merchant is not None:
@@ -336,7 +407,13 @@ def _build_lore_error_parts(message: str, session: ClientSession | None = None) 
     return _build_fallback_lore_error_parts(cleaned)
 
 
-def display_error(message: str, session: ClientSession | None = None) -> dict:
+def display_error(
+    message: str,
+    session: ClientSession | None = None,
+    *,
+    error_code: ErrorCode | None = None,
+    error_context: ErrorContext | None = None,
+) -> dict:
     prompt_after = False
     prompt_parts: list[dict] | None = None
 
@@ -344,7 +421,14 @@ def display_error(message: str, session: ClientSession | None = None) -> dict:
         prompt_after, prompt_parts = resolve_prompt_default(session, True)
 
     return build_display(
-        with_leading_blank_lines(_build_lore_error_parts(message, session)),
+        with_leading_blank_lines(
+            _build_lore_error_parts(
+                message,
+                session,
+                error_code=error_code,
+                error_context=error_context,
+            )
+        ),
         prompt_after=prompt_after,
         prompt_parts=prompt_parts,
         is_error=True,

@@ -354,11 +354,21 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 require_exact_name=True,
             )
             if entity is None:
-                return display_error(resolve_error or f"No target named '{target_name}' is here.", session), False
+                return display_error(
+                    resolve_error or f"No target named '{target_name}' is here.",
+                    session,
+                    error_code="target-not-found",
+                    error_context={"target": target_name},
+                ), False
         else:
             entity = get_engaged_entity(session)
             if entity is None:
-                return display_error("Target skill requires a target: skill <name> <target>", session), False
+                return display_error(
+                    "Target skill requires a target: skill <name> <target>",
+                    session,
+                    error_code="usage",
+                    error_context={"usage": "skill <name> <target>"},
+                ), False
 
         # Targeted skills explicitly engage the caster, even if the target is
         # already fighting someone else. Existing target focus is preserved by
@@ -389,6 +399,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         return display_error(
             f"Not enough vigor for {skill_name}. Need {vigor_cost}V, have {session.status.vigor}V.",
             session,
+            error_code="not-enough-vigor",
+            error_context={"ability": skill_name, "cost": vigor_cost},
         ), False
 
     session.status.vigor -= vigor_cost
@@ -565,6 +577,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         return display_error(
             f"Not enough mana for {spell_name}. Need {mana_cost}M, have {status.mana}M.",
             session,
+            error_code="not-enough-mana",
+            error_context={"ability": spell_name, "cost": mana_cost},
         ), False
 
     if cast_type not in {"self", "target", "aoe"}:
@@ -821,11 +835,21 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 require_exact_name=True,
             )
             if entity is None:
-                return display_error(resolve_error or f"No target named '{target_name}' is here.", session), False
+                return display_error(
+                    resolve_error or f"No target named '{target_name}' is here.",
+                    session,
+                    error_code="target-not-found",
+                    error_context={"target": target_name},
+                ), False
         else:
             entity = get_engaged_entity(session)
             if entity is None:
-                return display_error("Target spell requires a target: cast 'spell' <target>", session), False
+                return display_error(
+                    "Target spell requires a target: cast 'spell' <target>",
+                    session,
+                    error_code="usage",
+                    error_context={"usage": "cast <spell> <target>"},
+                ), False
         if bool(getattr(entity, "is_peaceful", False)):
             peaceful_targets_for_feedback.append(entity)
         else:

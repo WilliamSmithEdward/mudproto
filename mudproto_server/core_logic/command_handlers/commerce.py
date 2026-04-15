@@ -28,38 +28,71 @@ def handle_commerce_command(
     if verb in {"list", "li", "lis"}:
         merchant, resolve_error = _resolve_room_merchant(session)
         if merchant is None:
-            return display_error(resolve_error or "There is no merchant here.", session)
+            return display_error(
+                resolve_error or "There is no merchant here.",
+                session,
+                error_code="no-merchant-here",
+            )
         return _display_merchant_stock(session, merchant)
 
     if verb == "buy":
         merchant, resolve_error = _resolve_room_merchant(session)
         if merchant is None:
-            return display_error(resolve_error or "There is no merchant here.", session)
+            return display_error(
+                resolve_error or "There is no merchant here.",
+                session,
+                error_code="no-merchant-here",
+            )
 
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         if not selector:
-            return display_error("Usage: buy <item>", session)
+            return display_error(
+                "Usage: buy <item>",
+                session,
+                error_code="usage",
+                error_context={"usage": "buy <item>"},
+            )
 
         stock_entry, stock_error = _resolve_merchant_stock_selector(merchant, selector)
         if stock_entry is None:
-            return display_error(stock_error or f"{selector} is not sold here.", session)
+            return display_error(
+                stock_error or f"{selector} is not sold here.",
+                session,
+                error_code="merchant-item-unavailable",
+                error_context={"target": selector},
+            )
 
         item_name = str(stock_entry["name"]).strip() or "Item"
         price = int(stock_entry["price"])
         if session.status.coins < price:
-            return display_error(f"You need {price} coins to buy {item_name}.", session)
+            return display_error(
+                f"You need {price} coins to buy {item_name}.",
+                session,
+                error_code="merchant-insufficient-coins",
+                error_context={"item": item_name, "price": price},
+            )
 
         if str(stock_entry.get("source", "template")).strip().lower() == "resale":
             resale_items = getattr(merchant, "merchant_resale_items", {}) or {}
             stack_key = str(stock_entry.get("stack_key", "")).strip()
             resale_stack = resale_items.get(stack_key)
             if not isinstance(resale_stack, dict):
-                return display_error(f"{item_name} is no longer available.", session)
+                return display_error(
+                    f"{item_name} is no longer available.",
+                    session,
+                    error_code="merchant-item-unavailable",
+                    error_context={"item": item_name},
+                )
 
             stack_items = resale_stack.get("items", [])
             if not isinstance(stack_items, list) or not stack_items:
                 resale_items.pop(stack_key, None)
-                return display_error(f"{item_name} is no longer available.", session)
+                return display_error(
+                    f"{item_name} is no longer available.",
+                    session,
+                    error_code="merchant-item-unavailable",
+                    error_context={"item": item_name},
+                )
 
             purchased_item = stack_items.pop(0)
             if not stack_items:
@@ -67,12 +100,22 @@ def handle_commerce_command(
         else:
             stock_entry_ref = stock_entry.get("stock_entry")
             if not isinstance(stock_entry_ref, dict):
-                return display_error(f"{item_name} is no longer available.", session)
+                return display_error(
+                    f"{item_name} is no longer available.",
+                    session,
+                    error_code="merchant-item-unavailable",
+                    error_context={"item": item_name},
+                )
 
             if not bool(stock_entry_ref.get("infinite", False)):
                 available_quantity = max(0, int(stock_entry_ref.get("quantity", 0)))
                 if available_quantity <= 0:
-                    return display_error(f"{item_name} is out of stock.", session)
+                    return display_error(
+                        f"{item_name} is out of stock.",
+                        session,
+                        error_code="merchant-out-of-stock",
+                        error_context={"item": item_name},
+                    )
                 stock_entry_ref["quantity"] = available_quantity - 1
 
             purchased_item = _build_inventory_item_from_template(stock_entry["template"])
@@ -91,15 +134,29 @@ def handle_commerce_command(
     if verb == "sell":
         merchant, resolve_error = _resolve_room_merchant(session)
         if merchant is None:
-            return display_error(resolve_error or "There is no merchant here.", session)
+            return display_error(
+                resolve_error or "There is no merchant here.",
+                session,
+                error_code="no-merchant-here",
+            )
 
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         if not selector:
-            return display_error("Usage: sell <item>", session)
+            return display_error(
+                "Usage: sell <item>",
+                session,
+                error_code="usage",
+                error_context={"usage": "sell <item>"},
+            )
 
         owned_item, item_error = _resolve_owned_trade_item(session, selector)
         if owned_item is None:
-            return display_error(item_error or f"{selector} doesn't exist in your inventory.", session)
+            return display_error(
+                item_error or f"{selector} doesn't exist in your inventory.",
+                session,
+                error_code="merchant-not-carrying",
+                error_context={"target": selector},
+            )
 
         offer = _get_merchant_sale_offer(merchant, owned_item)
         _remove_owned_trade_item(session, owned_item)
@@ -118,15 +175,29 @@ def handle_commerce_command(
     if verb in {"val", "value"}:
         merchant, resolve_error = _resolve_room_merchant(session)
         if merchant is None:
-            return display_error(resolve_error or "There is no merchant here.", session)
+            return display_error(
+                resolve_error or "There is no merchant here.",
+                session,
+                error_code="no-merchant-here",
+            )
 
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         if not selector:
-            return display_error("Usage: val <item>", session)
+            return display_error(
+                "Usage: val <item>",
+                session,
+                error_code="usage",
+                error_context={"usage": "val <item>"},
+            )
 
         owned_item, item_error = _resolve_owned_trade_item(session, selector)
         if owned_item is None:
-            return display_error(item_error or f"{selector} doesn't exist in your inventory.", session)
+            return display_error(
+                item_error or f"{selector} doesn't exist in your inventory.",
+                session,
+                error_code="merchant-not-carrying",
+                error_context={"target": selector},
+            )
 
         offer = _get_merchant_sale_offer(merchant, owned_item)
         return display_command_result(session, [

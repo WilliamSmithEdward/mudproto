@@ -71,7 +71,7 @@ def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
 
     resolved_name = str(followed_name).strip() or "them"
     notification = display_command_result(session, [
-        build_part("You no longer follow ", "bright_white"),
+        build_part("You stop following ", "bright_white"),
         build_part(resolved_name, "bright_cyan", True),
         build_part(".", "bright_white"),
     ])
@@ -180,7 +180,7 @@ def handle_social_command(
             if target_key not in session.group_member_keys or (target_session.group_leader_key or "").strip().lower() != leader_key:
                 return display_error(f"{_display_name(target_session)} is not in your group.", session)
 
-            _remove_session_from_group(target_session)
+            _remove_session_from_group(target_session, notify_session=True)
             return display_command_result(session, [
                 build_part("You remove ", "bright_white"),
                 build_part(_display_name(target_session), "bright_cyan", True),
@@ -219,7 +219,7 @@ def handle_social_command(
                 return display_error("Only the group leader can disband the group.", session)
 
             _leader, group_members = _list_group_member_sessions(session)
-            removed_members = _disband_group(session)
+            removed_members = _disband_group(session, notify_members=True)
             if not removed_members:
                 return display_command_result(session, [
                     build_part("Your group has only you.", "bright_white"),

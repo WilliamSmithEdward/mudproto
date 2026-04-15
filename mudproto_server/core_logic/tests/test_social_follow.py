@@ -145,6 +145,7 @@ def test_ungroup_suppresses_unfollow_notifications(monkeypatch) -> None:
         return True
 
     monkeypatch.setattr(social, "send_outbound", fake_send_outbound)
+    monkeypatch.setattr(targeting_follow, "send_outbound", fake_send_outbound)
 
     async def _scenario() -> None:
         response = social.handle_social_command(leader, "ungroup", ["Orlandu"], "ungroup Orlandu")
@@ -155,7 +156,10 @@ def test_ungroup_suppresses_unfollow_notifications(monkeypatch) -> None:
     asyncio.run(_scenario())
 
     assert member.following_player_key == ""
-    assert notifications == []
+    assert len(notifications) == 1
+    assert notifications[0][0] is member.websocket
+    assert "You stop following Ragnar." in _extract_display_text(notifications[0][1])
+    assert "stops following you" not in _extract_display_text(notifications[0][1])
 
     _clear_session_registries()
 
@@ -186,6 +190,7 @@ def test_group_disband_suppresses_unfollow_notifications(monkeypatch) -> None:
         return True
 
     monkeypatch.setattr(social, "send_outbound", fake_send_outbound)
+    monkeypatch.setattr(targeting_follow, "send_outbound", fake_send_outbound)
 
     async def _scenario() -> None:
         response = social.handle_social_command(leader, "group", ["disband"], "group disband")
@@ -195,7 +200,12 @@ def test_group_disband_suppresses_unfollow_notifications(monkeypatch) -> None:
 
     asyncio.run(_scenario())
 
-    assert notifications == []
+    notification_texts = [_extract_display_text(outbound) for _websocket, outbound in notifications]
+    notified_websockets = {websocket for websocket, _outbound in notifications}
+    assert notified_websockets == {member.websocket, follower.websocket}
+    assert any("You stop following Ragnar." in text for text in notification_texts)
+    assert any("You stop following Orlandu." in text for text in notification_texts)
+    assert all("stops following you" not in text for text in notification_texts)
 
     _clear_session_registries()
 
@@ -534,6 +544,6 @@ def test_follower_is_notified_when_followed_player_dies(monkeypatch) -> None:
     assert follower.following_player_key == ""
     assert len(notifications) == 1
     assert notifications[0][0] is follower.websocket
-    assert "You no longer follow Orlandu." in _extract_display_text(notifications[0][1])
+    assert "You stop following Orlandu." in _extract_display_text(notifications[0][1])
 
     _clear_session_registries()

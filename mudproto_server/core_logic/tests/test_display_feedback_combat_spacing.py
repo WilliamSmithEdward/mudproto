@@ -90,3 +90,55 @@ def test_display_error_rewrites_missing_direction_targets() -> None:
         if isinstance(line, list)
     )
     assert "You peer to the north, but nothing there draws your eye." in rendered
+
+
+def test_display_error_uses_explicit_error_code_for_target_lookup() -> None:
+    session = _make_session("client-display-coded-target", "Lucia")
+
+    outbound = display_error(
+        "unused raw target error",
+        session,
+        error_code="target-not-found",
+        error_context={"target": "north"},
+    )
+
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    assert isinstance(payload, dict)
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    rendered = "\n".join(
+        "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+        for line in lines
+        if isinstance(line, list)
+    )
+    assert "You peer to the north, but nothing there draws your eye." in rendered
+
+
+def test_display_error_uses_explicit_error_code_for_merchant_quote() -> None:
+    session = _make_session("client-display-coded-merchant", "Lucia")
+    session.entities["merchant-1"] = EntityState(
+        entity_id="merchant-1",
+        name="Quartermaster Vessa",
+        room_id="start",
+        hit_points=10,
+        max_hit_points=10,
+        is_alive=True,
+        is_merchant=True,
+    )
+
+    outbound = display_error(
+        "unused raw merchant error",
+        session,
+        error_code="merchant-item-unavailable",
+    )
+
+    payload = outbound.get("payload") if isinstance(outbound, dict) else None
+    assert isinstance(payload, dict)
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    rendered = "\n".join(
+        "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+        for line in lines
+        if isinstance(line, list)
+    )
+    assert 'Quartermaster Vessa says, "I\'m sorry, I don\'t have that item."' in rendered
