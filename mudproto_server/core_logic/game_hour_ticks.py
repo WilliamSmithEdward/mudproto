@@ -4,6 +4,7 @@ from attribute_config import get_posture_regeneration_bonus_multiplier, load_reg
 from combat_ability_effects import _process_player_game_hour_affects
 from inventory import tick_item_decay_map
 from models import ClientSession
+from equipment_logic import get_player_effective_attribute
 from player_resources import get_player_resource_caps
 
 
@@ -60,7 +61,7 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
         if not attribute_id:
             continue
 
-        attribute_score = int(session.player.attributes.get(attribute_id, 0))
+        attribute_score = get_player_effective_attribute(session, attribute_id)
         mapping = resource_config.get("percent_by_attribute", [])
         if not isinstance(mapping, list):
             continue

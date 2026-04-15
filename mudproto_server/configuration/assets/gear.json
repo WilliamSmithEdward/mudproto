@@ -236,6 +236,83 @@
     "armor_class_bonus": 0
   },
   {
+    "template_id": "armor.roadstrider-boots",
+    "name": "Roadstrider Boots",
+    "slot": "armor",
+    "wear_slots": ["feet"],
+    "description": "Supple dark boots reinforced with ridgehide and weighted for perfect balance over loose roadstone.",
+    "keywords": ["roadstrider", "boots", "road"],
+    "weight": 4,
+    "coin_value": 240,
+    "armor_class_bonus": 2,
+    "equipment_effects": [
+      { "effect_type": "dex", "amount": 3 },
+      { "effect_type": "vigor", "amount": 46 },
+      { "effect_type": "hitroll", "amount": 6 }
+    ]
+  },
+  {
+    "template_id": "armor.stoneheart-cloak",
+    "name": "Stoneheart Cloak",
+    "slot": "armor",
+    "wear_slots": ["back"],
+    "description": "A heavy mantle lined with kiln-dried plates that steady the breath and harden the body against fatigue.",
+    "keywords": ["stoneheart", "cloak", "mantle"],
+    "weight": 5,
+    "coin_value": 260,
+    "armor_class_bonus": 3,
+    "equipment_effects": [
+      { "effect_type": "con", "amount": 3 },
+      { "effect_type": "hit_points", "amount": 40 }
+    ]
+  },
+  {
+    "template_id": "armor.waywarden-bracers",
+    "name": "Waywarden Bracers",
+    "slot": "armor",
+    "wear_slots": ["hands"],
+    "description": "Lacquered travel bracers etched with mile-marks that guide every strike into the surest opening.",
+    "keywords": ["waywarden", "bracers"],
+    "weight": 3,
+    "coin_value": 220,
+    "armor_class_bonus": 2,
+    "equipment_effects": [
+      { "effect_type": "dex", "amount": 3 },
+      { "effect_type": "hitroll", "amount": 6 }
+    ]
+  },
+  {
+    "template_id": "armor.ridgebreaker-harness",
+    "name": "Ridgebreaker Harness",
+    "slot": "armor",
+    "wear_slots": ["chest"],
+    "description": "A broad leather-and-iron harness built for caravan breakers who fought like battering rams.",
+    "keywords": ["ridgebreaker", "harness"],
+    "weight": 8,
+    "coin_value": 310,
+    "armor_class_bonus": 4,
+    "equipment_effects": [
+      { "effect_type": "con", "amount": 3 },
+      { "effect_type": "hit_points", "amount": 40 },
+      { "effect_type": "weapon_damage", "amount": 4 }
+    ]
+  },
+  {
+    "template_id": "armor.twinway-signet",
+    "name": "Twinway Signet",
+    "slot": "armor",
+    "wear_slots": ["ring"],
+    "description": "A roadwarden signet cut with two crossing trails, said to favor both quick feet and stubborn lungs.",
+    "keywords": ["twinway", "signet", "ring"],
+    "weight": 0,
+    "coin_value": 290,
+    "armor_class_bonus": 1,
+    "equipment_effects": [
+      { "effect_type": "dex", "amount": 3 },
+      { "effect_type": "con", "amount": 3 }
+    ]
+  },
+  {
     "template_id": "weapon.mercenary-scimitar",
     "name": "Wicked Curved Scimitar",
     "slot": "weapon",

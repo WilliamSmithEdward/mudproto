@@ -1,6 +1,7 @@
 import random
 
 from attribute_config import get_default_player_class, get_player_class_by_id
+from equipment_logic import get_player_effective_attribute, get_player_equipment_bonuses
 from models import ClientSession
 from settings import PLAYER_REFERENCE_MAX_HP, PLAYER_REFERENCE_MAX_MANA, PLAYER_REFERENCE_MAX_VIGOR
 
@@ -66,13 +67,14 @@ def _resolve_class_resource_rules(session: ClientSession) -> dict[str, dict]:
 
 
 def _attribute_modifier(session: ClientSession, attribute_id: str) -> int:
-    score = int(session.player.attributes.get(attribute_id, 0))
+    score = int(get_player_effective_attribute(session, attribute_id))
     return (score - 10) // 2
 
 
 def get_player_resource_caps(session: ClientSession) -> dict[str, int]:
     rules = _resolve_class_resource_rules(session)
     gains = dict(session.player.resource_level_gains or {})
+    equipment_bonuses = get_player_equipment_bonuses(session)
 
     caps: dict[str, int] = {}
     for resource_key in _RESOURCE_KEYS:
@@ -84,7 +86,8 @@ def get_player_resource_caps(session: ClientSession) -> dict[str, int]:
         base = int(rule["base"])
         attribute_bonus = int(_attribute_modifier(session, str(rule["attribute_id"])) * float(rule["attribute_multiplier"]))
         level_gain_total = int(gains.get(resource_key, 0))
-        caps[resource_key] = max(1, base + attribute_bonus + level_gain_total)
+        equipment_bonus = int(equipment_bonuses.get(resource_key, 0))
+        caps[resource_key] = max(1, base + attribute_bonus + level_gain_total + equipment_bonus)
 
     return caps
 

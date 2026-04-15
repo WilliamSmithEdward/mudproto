@@ -117,6 +117,10 @@
       {
         "npc_id": "npc.wandering-mercenary",
         "count": 1
+      },
+      {
+        "npc_id": "npc.west-road-merchant",
+        "count": 1
       }
     ],
     "room_objects": [

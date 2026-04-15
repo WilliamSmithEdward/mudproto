@@ -41,7 +41,14 @@ from damage import (
 )
 from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
 from display_core import build_part
-from equipment_logic import get_equipped_main_hand, get_equipped_off_hand, get_player_armor_class
+from equipment_logic import (
+    get_equipped_main_hand,
+    get_equipped_off_hand,
+    get_player_armor_class,
+    get_player_effective_attribute,
+    get_player_hitroll_bonus,
+    get_player_weapon_damage_bonus,
+)
 from grammar import with_article
 from models import ClientSession, EntityState, ItemState
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
@@ -65,7 +72,7 @@ def _get_player_unarmed_profile(session: ClientSession) -> tuple[int, int, bool]
         scaling_attribute_id = str(passive.get("unarmed_scaling_attribute_id", "")).strip().lower()
         scaling_multiplier = max(0.0, float(passive.get("unarmed_scaling_multiplier", 0.0)))
         if scaling_attribute_id and scaling_multiplier > 0.0:
-            attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
+            attribute_value = get_player_effective_attribute(session, scaling_attribute_id)
             attribute_modifier = (attribute_value - 10) // 2
             passive_damage_bonus += max(0, int(attribute_modifier * scaling_multiplier))
 
@@ -77,7 +84,7 @@ def _get_player_unarmed_profile(session: ClientSession) -> tuple[int, int, bool]
         hit_scaling_attribute_id = str(passive.get("unarmed_hit_scaling_attribute_id", "")).strip().lower()
         hit_scaling_multiplier = max(0.0, float(passive.get("unarmed_hit_scaling_multiplier", 0.0)))
         if hit_scaling_attribute_id and hit_scaling_multiplier > 0.0:
-            attribute_value = int(session.player.attributes.get(hit_scaling_attribute_id, 0))
+            attribute_value = get_player_effective_attribute(session, hit_scaling_attribute_id)
             attribute_modifier = (attribute_value - 10) // 2
             passive_hit_bonus += max(0, int(attribute_modifier * hit_scaling_multiplier))
 
@@ -300,6 +307,8 @@ def _apply_player_attacks(
 ) -> None:
     attack_sequence = _build_player_attack_sequence(session, allow_off_hand)
     unarmed_damage_bonus, unarmed_hit_bonus, _ = _get_player_unarmed_profile(session)
+    equipment_hit_bonus = get_player_hitroll_bonus(session)
+    equipment_damage_bonus = get_player_weapon_damage_bonus(session)
 
     for weapon in attack_sequence:
         if not entity.is_alive:
@@ -311,7 +320,7 @@ def _apply_player_attacks(
             weapon,
             player_level=session.player.level,
             unarmed_hit_bonus=unarmed_hit_bonus,
-        )
+        ) + equipment_hit_bonus
         if not roll_hit(hit_modifier, entity.armor_class):
             miss_verb = resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
             parts.extend(build_player_attack_parts(
@@ -329,6 +338,7 @@ def _apply_player_attacks(
             player_level=session.player.level,
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
+        rolled_damage += equipment_damage_bonus
         rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
         _mark_entity_contributor(session, entity)
         preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
@@ -375,7 +385,7 @@ def _apply_player_attacks(
             main_weapon,
             player_level=session.player.level,
             unarmed_hit_bonus=unarmed_hit_bonus,
-        )
+        ) + equipment_hit_bonus
         if not roll_hit(hit_modifier, entity.armor_class):
             miss_verb = resolve_weapon_verb(main_weapon.weapon_type) if main_weapon is not None else "hit"
             parts.extend(build_player_attack_parts(
@@ -391,6 +401,7 @@ def _apply_player_attacks(
             player_level=session.player.level,
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
+        rolled_damage += equipment_damage_bonus
         rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
         _mark_entity_contributor(session, entity)
         preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
@@ -412,7 +423,7 @@ def _apply_player_attacks(
             off_weapon,
             player_level=session.player.level,
             unarmed_hit_bonus=unarmed_hit_bonus,
-        )
+        ) + equipment_hit_bonus
         if not roll_hit(hit_modifier, entity.armor_class):
             miss_verb = resolve_weapon_verb(off_weapon.weapon_type) if off_weapon is not None else "hit"
             parts.extend(build_player_attack_parts(
@@ -428,6 +439,7 @@ def _apply_player_attacks(
             player_level=session.player.level,
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
+        rolled_damage += equipment_damage_bonus
         rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
         _mark_entity_contributor(session, entity)
         preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
@@ -449,7 +461,7 @@ def _apply_player_attacks(
             None,
             player_level=session.player.level,
             unarmed_hit_bonus=unarmed_hit_bonus,
-        )
+        ) + equipment_hit_bonus
         if not roll_hit(hit_modifier, entity.armor_class):
             parts.extend(build_player_attack_parts(
                 entity_name=entity.name,
@@ -465,6 +477,7 @@ def _apply_player_attacks(
             player_level=session.player.level,
             unarmed_damage_bonus=unarmed_damage_bonus,
         )
+        rolled_damage += equipment_damage_bonus
         rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
         _mark_entity_contributor(session, entity)
         preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)

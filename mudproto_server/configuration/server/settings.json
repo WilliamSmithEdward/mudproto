@@ -15,7 +15,8 @@
   "gameplay": {
     "debug_mode": true,
     "flee_success_chance": 0.5,
-    "base_player_armor_class": 10
+    "base_player_armor_class": 10,
+    "attribute_max_cap": 28
   },
   "session": {
     "max_queued_commands": 5

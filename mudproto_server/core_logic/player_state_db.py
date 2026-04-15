@@ -281,6 +281,14 @@ def _serialize_item(item: ItemState) -> dict:
         "on_hit_target_damage_message": str(getattr(item, "on_hit_target_damage_message", "")).strip(),
         "on_hit_target_damage_observer_message": str(getattr(item, "on_hit_target_damage_observer_message", "")).strip(),
         "armor_class_bonus": int(item.armor_class_bonus),
+        "equipment_effects": [
+            {
+                "effect_type": str(effect.get("effect_type", "")).strip().lower(),
+                "amount": int(effect.get("amount", 0)),
+            }
+            for effect in getattr(item, "equipment_effects", [])
+            if isinstance(effect, dict) and str(effect.get("effect_type", "")).strip()
+        ],
         "wear_slot": item.wear_slot,
         "wear_slots": list(item.wear_slots),
         "item_type": str(getattr(item, "item_type", "misc") or "misc"),
@@ -357,6 +365,18 @@ def _deserialize_item(raw: dict) -> ItemState:
         on_hit_target_damage_message=str(raw.get("on_hit_target_damage_message", "")).strip(),
         on_hit_target_damage_observer_message=str(raw.get("on_hit_target_damage_observer_message", "")).strip(),
         armor_class_bonus=int(raw.get("armor_class_bonus", 0)),
+        equipment_effects=[
+            {
+                "effect_type": str(effect.get("effect_type", "")).strip().lower(),
+                "amount": int(effect.get("amount", 0)),
+            }
+            for effect in (
+                raw.get("equipment_effects", [])
+                if isinstance(raw.get("equipment_effects", []), list)
+                else []
+            )
+            if isinstance(effect, dict) and str(effect.get("effect_type", "")).strip()
+        ],
         wear_slot=str(raw.get("wear_slot", "")).strip(),
         wear_slots=[str(slot).strip().lower() for slot in raw.get("wear_slots", []) if str(slot).strip()],
         item_type=str(raw.get("item_type", "misc")).strip().lower() or "misc",

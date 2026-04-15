@@ -1,11 +1,11 @@
 import re
 from math import ceil
 
-from attribute_config import load_hand_weight_config, load_wear_slot_config
+from attribute_config import load_attributes, load_hand_weight_config, load_wear_slot_config
 from grammar import with_article
 from inventory import get_item_keywords, is_item_equippable, parse_item_selector
 from models import ClientSession, ItemState
-from settings import BASE_PLAYER_ARMOR_CLASS
+from settings import ATTRIBUTE_MAX_CAP, BASE_PLAYER_ARMOR_CLASS
 
 
 HAND_MAIN = "main_hand"
@@ -17,6 +17,11 @@ _HAND_WEIGHT_CONFIG = load_hand_weight_config()
 DEFAULT_WEAR_SLOTS = set(_WEAR_SLOT_CONFIG.get("wear_slots", []))
 WEAR_SLOT_OPTIONS = dict(_WEAR_SLOT_CONFIG.get("slot_options", {}))
 WEAR_LOCATION_ALIASES = dict(_WEAR_SLOT_CONFIG.get("location_aliases", {}))
+_CONFIGURED_ATTRIBUTE_IDS = {
+    str(attribute.get("attribute_id", "")).strip().lower()
+    for attribute in load_attributes()
+    if str(attribute.get("attribute_id", "")).strip()
+}
 _STRENGTH_ATTRIBUTE_ID = str(_HAND_WEIGHT_CONFIG.get("strength_attribute_id", "str"))
 _HAND_REQUIREMENTS = dict(_HAND_WEIGHT_CONFIG.get("hand_requirements", {}))
 
@@ -152,6 +157,80 @@ def list_worn_items(session: ClientSession) -> list[tuple[str, ItemState]]:
     return worn
 
 
+def _iter_unique_equipped_items(session: ClientSession):
+    seen_item_ids: set[str] = set()
+    for _, item in list_worn_items(session):
+        if item.item_id in seen_item_ids:
+            continue
+        seen_item_ids.add(item.item_id)
+        yield item
+
+
+def get_player_equipment_bonuses(session: ClientSession) -> dict[str, int]:
+    bonuses = {attribute_id: 0 for attribute_id in _CONFIGURED_ATTRIBUTE_IDS}
+    bonuses.update({
+        "hit_points": 0,
+        "vigor": 0,
+        "mana": 0,
+        "weapon_damage": 0,
+        "hitroll": 0,
+    })
+
+    for item in _iter_unique_equipped_items(session):
+        for raw_effect in getattr(item, "equipment_effects", []) or []:
+            if not isinstance(raw_effect, dict):
+                continue
+
+            effect_type = str(raw_effect.get("effect_type", "")).strip().lower()
+            if not effect_type:
+                continue
+
+            amount = int(raw_effect.get("amount", 0))
+            if effect_type in _CONFIGURED_ATTRIBUTE_IDS:
+                bonuses[effect_type] = int(bonuses.get(effect_type, 0)) + amount
+            elif effect_type in bonuses:
+                bonuses[effect_type] = int(bonuses.get(effect_type, 0)) + amount
+
+    return bonuses
+
+
+def get_player_effective_attributes(session: ClientSession) -> dict[str, int]:
+    bonuses = get_player_equipment_bonuses(session)
+    attribute_ids = set(_CONFIGURED_ATTRIBUTE_IDS)
+    attribute_ids.update(
+        str(attribute_id).strip().lower()
+        for attribute_id in session.player.attributes.keys()
+        if str(attribute_id).strip()
+    )
+
+    effective: dict[str, int] = {}
+    for attribute_id in attribute_ids:
+        base_value = int(session.player.attributes.get(attribute_id, 0))
+        effective[attribute_id] = max(0, min(int(ATTRIBUTE_MAX_CAP), base_value + int(bonuses.get(attribute_id, 0))))
+
+    return effective
+
+
+def get_player_effective_attribute(session: ClientSession, attribute_id: str) -> int:
+    normalized_attribute_id = str(attribute_id).strip().lower()
+    if not normalized_attribute_id:
+        return 0
+
+    effective_attributes = get_player_effective_attributes(session)
+    if normalized_attribute_id in effective_attributes:
+        return int(effective_attributes[normalized_attribute_id])
+
+    return max(0, min(int(ATTRIBUTE_MAX_CAP), int(session.player.attributes.get(normalized_attribute_id, 0))))
+
+
+def get_player_hitroll_bonus(session: ClientSession) -> int:
+    return int(get_player_equipment_bonuses(session).get("hitroll", 0))
+
+
+def get_player_weapon_damage_bonus(session: ClientSession) -> int:
+    return int(get_player_equipment_bonuses(session).get("weapon_damage", 0))
+
+
 def get_player_armor_class(session: ClientSession) -> int:
     armor_bonus = 0
     for wear_slot, item_id in session.equipment.worn_item_ids.items():
@@ -235,7 +314,7 @@ def can_player_equip_hand(session: ClientSession, item: ItemState, hand: str) ->
         return False, f"{with_article(item.name, capitalize=True)} cannot be wielded with both hands."
 
     weight = max(0, item.weight)
-    player_strength = int(session.player.attributes.get(_STRENGTH_ATTRIBUTE_ID, 0))
+    player_strength = get_player_effective_attribute(session, _STRENGTH_ATTRIBUTE_ID)
     required_strength = _required_strength_for_hand(weight, hand)
     if player_strength >= required_strength:
         return True, ""

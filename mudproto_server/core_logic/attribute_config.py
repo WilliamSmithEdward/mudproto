@@ -18,6 +18,7 @@ EXPERIENCE_TABLE_FILE = ATTRIBUTE_CONFIG_ROOT / "experience.json"
 WEAPON_TYPES_FILE = ATTRIBUTE_CONFIG_ROOT / "weapon_types.json"
 POSTURE_FILE = ATTRIBUTE_CONFIG_ROOT / "posture.json"
 AFFECTS_FILE = ATTRIBUTE_CONFIG_ROOT / "affects.json"
+EQUIPMENT_EFFECTS_FILE = ATTRIBUTE_CONFIG_ROOT / "equipment_effects.json"
 
 
 def _read_json_attribute_config(path: Path) -> object:
@@ -157,6 +158,42 @@ def load_attributes() -> list[dict]:
         raise ValueError("At least one attribute must be configured.")
 
     return normalized_attributes
+
+
+@lru_cache(maxsize=1)
+def load_equipment_effects() -> list[str]:
+    raw_effects = _read_json_attribute_config(EQUIPMENT_EFFECTS_FILE)
+    if not isinstance(raw_effects, list):
+        raise ValueError(f"Equipment effects asset file must contain a list: {EQUIPMENT_EFFECTS_FILE}")
+
+    configured_attribute_ids = {
+        str(attribute.get("attribute_id", "")).strip().lower()
+        for attribute in load_attributes()
+        if str(attribute.get("attribute_id", "")).strip()
+    }
+
+    normalized_effect_types: list[str] = []
+    seen_effect_types: set[str] = set()
+
+    for raw_effect_type in raw_effects:
+        effect_type = str(raw_effect_type).strip().lower()
+        if not effect_type:
+            continue
+        if effect_type in seen_effect_types:
+            continue
+        seen_effect_types.add(effect_type)
+        normalized_effect_types.append(effect_type)
+
+    for attribute_id in sorted(configured_attribute_ids):
+        if attribute_id in seen_effect_types:
+            continue
+        seen_effect_types.add(attribute_id)
+        normalized_effect_types.append(attribute_id)
+
+    if not normalized_effect_types:
+        raise ValueError("Equipment effects config must define at least one supported effect type.")
+
+    return normalized_effect_types
 
 
 @lru_cache(maxsize=1)

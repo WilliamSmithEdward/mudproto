@@ -121,6 +121,7 @@ class ItemState:
     on_hit_target_damage_message: str = ""
     on_hit_target_damage_observer_message: str = ""
     armor_class_bonus: int = 0
+    equipment_effects: list[dict[str, object]] = field(default_factory=list)
     wear_slot: str = ""
     wear_slots: list[str] = field(default_factory=list)
     item_type: str = "misc"

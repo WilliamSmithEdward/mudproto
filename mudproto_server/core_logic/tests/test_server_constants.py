@@ -1,6 +1,6 @@
 from combat_state import get_health_condition
 from display_feedback import _direction_short_label, _direction_sort_key
-from settings import DIRECTION_ALIASES, DIRECTION_SHORT_LABELS, DIRECTION_SORT_ORDER, HEALTH_CONDITION_BANDS
+from settings import ATTRIBUTE_MAX_CAP, DIRECTION_ALIASES, DIRECTION_SHORT_LABELS, DIRECTION_SORT_ORDER, HEALTH_CONDITION_BANDS
 
 
 def test_direction_maps_are_loaded_and_used_by_prompt_helpers() -> None:
@@ -13,6 +13,10 @@ def test_direction_maps_are_loaded_and_used_by_prompt_helpers() -> None:
     assert _direction_short_label("west") == "W"
     assert _direction_sort_key("north") == (DIRECTION_SORT_ORDER["north"], "north")
     assert _direction_sort_key("down") == (DIRECTION_SORT_ORDER["down"], "down")
+
+
+def test_attribute_cap_is_loaded_from_server_settings() -> None:
+    assert ATTRIBUTE_MAX_CAP == 28
 
 
 def test_health_condition_thresholds_are_loaded_and_applied() -> None:

@@ -202,6 +202,78 @@
       }
     },
     {
+      "npc_id": "npc.west-road-merchant",
+      "name": "Marra the Milekeeper",
+      "is_named": true,
+      "hit_points": 220,
+      "max_hit_points": 220,
+      "power_level": 1,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 0,
+      "armor_class": 10,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 0,
+      "experience_reward": 0,
+      "is_aggro": false,
+      "is_ally": true,
+      "is_peaceful": true,
+      "respawn": true,
+      "is_merchant": true,
+      "merchant_inventory": [
+        {
+          "template_id": "armor.roadstrider-boots",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.stoneheart-cloak",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.waywarden-bracers",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.ridgebreaker-harness",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.twinway-signet",
+          "infinite": true
+        }
+      ],
+      "merchant_buy_markup": 1.0,
+      "merchant_sell_ratio": 0.55,
+      "pronoun_possessive": "her",
+      "vigor": 0,
+      "max_vigor": 0,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.0,
+      "skill_ids": [],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "wander_chance": 0.18,
+      "wander_room_ids": [
+        "west-road",
+        "west-road-curve",
+        "west-road-defile",
+        "west-road-ford",
+        "west-road-rise",
+        "west-road-clearing"
+      ],
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
       "npc_id": "npc.south-market-merchant",
       "name": "Quartermaster Vessa",
       "is_named": true,

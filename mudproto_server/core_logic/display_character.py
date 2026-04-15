@@ -1,5 +1,5 @@
 from attribute_config import get_player_class_by_id, load_attributes, player_class_uses_mana
-from equipment_logic import list_worn_items
+from equipment_logic import get_player_effective_attributes, list_worn_items
 from experience import get_xp_to_next_level
 from item_logic import _item_highlight_color
 from models import ClientSession
@@ -109,13 +109,17 @@ def display_score(session: ClientSession) -> dict:
 
     attribute_line_texts: list[str] = []
     configured_attributes = load_attributes()
+    effective_attributes = get_player_effective_attributes(session)
     for attribute in configured_attributes:
         attribute_id = str(attribute.get("attribute_id", "")).strip().lower()
         if not attribute_id:
             continue
         attribute_name = str(attribute.get("name", attribute_id)).strip() or attribute_id
-        value = int(session.player.attributes.get(attribute_id, 0))
-        attribute_line_texts.append(f" - {attribute_name} ({attribute_id.upper()}): {value}")
+        base_value = int(session.player.attributes.get(attribute_id, 0))
+        value = int(effective_attributes.get(attribute_id, base_value))
+        bonus = value - base_value
+        suffix = f" ({bonus:+d})" if bonus else ""
+        attribute_line_texts.append(f" - {attribute_name} ({attribute_id.upper()}): {value}{suffix}")
 
     active_effects = sorted(
         list(session.active_support_effects) + list(session.active_affects),
@@ -199,7 +203,9 @@ def display_score(session: ClientSession) -> dict:
         if not attribute_id:
             continue
         attribute_name = str(attribute.get("name", attribute_id)).strip() or attribute_id
-        value = int(session.player.attributes.get(attribute_id, 0))
+        base_value = int(session.player.attributes.get(attribute_id, 0))
+        value = int(effective_attributes.get(attribute_id, base_value))
+        bonus = value - base_value
         parts.extend([
             newline_part(),
             build_part(" - ", "bright_white"),
@@ -209,6 +215,12 @@ def display_score(session: ClientSession) -> dict:
             build_part("): ", "bright_white"),
             build_part(str(value), "bright_green", True),
         ])
+        if bonus:
+            parts.extend([
+                build_part(" (", "bright_white"),
+                build_part(f"{bonus:+d}", "bright_yellow", True),
+                build_part(")", "bright_white"),
+            ])
 
     parts.extend([
         newline_part(),

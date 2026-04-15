@@ -7,6 +7,7 @@ from equipment_logic import HAND_MAIN, HAND_OFF, equip_item, wear_item
 from inventory import build_equippable_item_from_template, build_misc_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 from player_resources import clamp_player_resources_to_caps, initialize_player_progression
+from settings import ATTRIBUTE_MAX_CAP
 
 
 def ensure_player_attributes(session: ClientSession) -> None:
@@ -33,7 +34,7 @@ def ensure_player_attributes(session: ClientSession) -> None:
     merged: dict[str, int] = {}
     for attribute_id in configured_attribute_ids:
         if attribute_id in session.player.attributes:
-            merged[attribute_id] = int(session.player.attributes[attribute_id])
+            merged[attribute_id] = max(0, min(int(ATTRIBUTE_MAX_CAP), int(session.player.attributes[attribute_id])))
             continue
 
         attribute_range = current_ranges.get(attribute_id)
@@ -46,7 +47,7 @@ def ensure_player_attributes(session: ClientSession) -> None:
     for attribute_id, value in session.player.attributes.items():
         if attribute_id in merged:
             continue
-        merged[attribute_id] = int(value)
+        merged[attribute_id] = max(0, min(int(ATTRIBUTE_MAX_CAP), int(value)))
 
     session.player.attributes = merged
 

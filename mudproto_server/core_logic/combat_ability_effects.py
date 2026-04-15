@@ -11,6 +11,7 @@ from attribute_config import (
     posture_prevents_skill_spell_use,
 )
 from assets import get_skill_by_id, get_spell_by_id
+from equipment_logic import get_player_effective_attribute
 from models import ActiveAffectState, ActiveSupportEffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 
@@ -88,7 +89,7 @@ def _resolve_affect_scaling_bonus(actor: object, affect: dict) -> float:
 
     scaling_bonus = 0.0
     if scaling_attribute_id and scaling_multiplier > 0.0 and isinstance(actor, ClientSession):
-        attribute_value = int(actor.player.attributes.get(scaling_attribute_id, 0))
+        attribute_value = get_player_effective_attribute(actor, scaling_attribute_id)
         scaling_bonus += float(attribute_value) * scaling_multiplier
 
     if level_scaling_multiplier > 0.0 and isinstance(actor, ClientSession):
@@ -445,7 +446,7 @@ def _resolve_player_support_scaling_bonus(session: ClientSession, spell: dict, s
     if scaling_attribute_id:
         scaling_multiplier = max(0.0, float(spell.get("support_scaling_multiplier", 1.0)))
         if scaling_multiplier > 0.0:
-            attribute_score = int(session.player.attributes.get(scaling_attribute_id, 0))
+            attribute_score = get_player_effective_attribute(session, scaling_attribute_id)
             attribute_modifier = (attribute_score - 10) // 2
             scaling_bonus += int(attribute_modifier * scaling_multiplier)
 
@@ -462,7 +463,7 @@ def _resolve_player_damage_scaling_bonus(session: ClientSession, spell: dict) ->
 
     scaling_bonus = 0
     if scaling_multiplier > 0.0:
-        attribute_score = int(session.player.attributes.get(scaling_attribute_id, 0))
+        attribute_score = get_player_effective_attribute(session, scaling_attribute_id)
         attribute_modifier = (attribute_score - 10) // 2
         scaling_bonus += int(attribute_modifier * scaling_multiplier)
 
@@ -1054,7 +1055,7 @@ def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> in
 
     scaling_bonus = 0
     if scaling_attribute_id and scaling_multiplier > 0.0:
-        attribute_value = int(session.player.attributes.get(scaling_attribute_id, 0))
+        attribute_value = get_player_effective_attribute(session, scaling_attribute_id)
         scaling_bonus += int(attribute_value * scaling_multiplier)
 
     if level_scaling_multiplier > 0.0:

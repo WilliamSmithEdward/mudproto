@@ -76,6 +76,14 @@ def build_equippable_item_from_template(template: dict, *, item_id: str | None =
         on_hit_target_damage_message=str(template.get("on_hit_target_damage_message", "")).strip(),
         on_hit_target_damage_observer_message=str(template.get("on_hit_target_damage_observer_message", "")).strip(),
         armor_class_bonus=int(template.get("armor_class_bonus", 0)),
+        equipment_effects=[
+            {
+                "effect_type": str(effect.get("effect_type", "")).strip().lower(),
+                "amount": int(effect.get("amount", 0)),
+            }
+            for effect in template.get("equipment_effects", [])
+            if isinstance(effect, dict) and str(effect.get("effect_type", "")).strip()
+        ],
         wear_slot=wear_slot,
         wear_slots=wear_slots,
         item_type="equipment",
@@ -331,6 +339,14 @@ def is_item_equippable(item: ItemState) -> bool:
     item.on_hit_target_damage_message = str(template.get("on_hit_target_damage_message", getattr(item, "on_hit_target_damage_message", ""))).strip()
     item.on_hit_target_damage_observer_message = str(template.get("on_hit_target_damage_observer_message", getattr(item, "on_hit_target_damage_observer_message", ""))).strip()
     item.armor_class_bonus = int(template.get("armor_class_bonus", item.armor_class_bonus))
+    item.equipment_effects = [
+        {
+            "effect_type": str(effect.get("effect_type", "")).strip().lower(),
+            "amount": int(effect.get("amount", 0)),
+        }
+        for effect in template.get("equipment_effects", getattr(item, "equipment_effects", []))
+        if isinstance(effect, dict) and str(effect.get("effect_type", "")).strip()
+    ]
     item.wear_slots = [str(slot).strip().lower() for slot in template.get("wear_slots", []) if str(slot).strip()]
     item.wear_slot = item.wear_slots[0] if item.wear_slots else ""
     if not item.description:

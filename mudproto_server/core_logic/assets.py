@@ -2,7 +2,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from attribute_config import get_affect_template_by_id, load_attributes, load_weapon_type_config
+from attribute_config import get_affect_template_by_id, load_attributes, load_equipment_effects, load_weapon_type_config
 from settings import CONFIGURABLE_ASSET_ROOT, DEBUG_MODE
 
 
@@ -250,6 +250,34 @@ def _resolve_asset_affects(*, affect_ids: object, affects: object, context: str,
     return _resolve_affect_ids(affect_ids, context=context, configured_attribute_ids=configured_attribute_ids)
 
 
+def _resolve_equipment_effects(raw_effects: object, *, context: str) -> list[dict]:
+    if raw_effects is None:
+        raw_effects = []
+    if not isinstance(raw_effects, list):
+        raise ValueError(f"{context} equipment_effects must be a list.")
+
+    supported_effect_types = set(load_equipment_effects())
+    resolved_effects: list[dict] = []
+    for raw_effect in raw_effects:
+        if not isinstance(raw_effect, dict):
+            raise ValueError(f"{context} equipment_effects entries must be objects.")
+
+        effect_type = str(raw_effect.get("effect_type", "")).strip().lower()
+        if not effect_type:
+            raise ValueError(f"{context} equipment_effects entries must include non-empty effect_type.")
+        if effect_type not in supported_effect_types:
+            raise ValueError(
+                f"{context} equipment_effect effect_type '{effect_type}' is not supported."
+            )
+
+        resolved_effects.append({
+            "effect_type": effect_type,
+            "amount": int(raw_effect.get("amount", 0)),
+        })
+
+    return resolved_effects
+
+
 @lru_cache(maxsize=1)
 def load_gear_templates() -> list[dict]:
     raw_templates = _read_json_asset(GEAR_FILE)
@@ -314,6 +342,10 @@ def load_gear_templates() -> list[dict]:
         on_hit_target_damage_observer_message = str(raw_template.get("on_hit_target_damage_observer_message", "")).strip()
 
         armor_class_bonus = int(raw_template.get("armor_class_bonus", 0))
+        equipment_effects = _resolve_equipment_effects(
+            raw_template.get("equipment_effects", []),
+            context=f"Gear asset '{template_id}'",
+        )
         if normalized_slot == "armor" and not wear_slots:
             raise ValueError(f"Gear asset '{template_id}' armor items must define wear_slots.")
         if normalized_slot == "weapon" and wear_slots:
@@ -364,6 +396,7 @@ def load_gear_templates() -> list[dict]:
             "on_hit_target_damage_message": on_hit_target_damage_message,
             "on_hit_target_damage_observer_message": on_hit_target_damage_observer_message,
             "armor_class_bonus": armor_class_bonus,
+            "equipment_effects": equipment_effects,
             "wear_slots": wear_slots,
         }
 
