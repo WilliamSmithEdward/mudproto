@@ -106,7 +106,7 @@ def test_assist_does_not_apply_lag_when_start_combat_fails(monkeypatch) -> None:
     assert lag_calls == []
 
 
-def test_npc_auto_aggro_applies_one_round_lag_on_success(monkeypatch) -> None:
+def test_npc_auto_aggro_does_not_apply_lag_to_engaged_player(monkeypatch) -> None:
     async def _run() -> None:
         session = _make_session("client-npc-aggro", name="Lucia")
         entity = _make_entity(entity_id="entity-auto", name="Auto Aggro Dummy")
@@ -125,7 +125,6 @@ def test_npc_auto_aggro_applies_one_round_lag_on_success(monkeypatch) -> None:
         monkeypatch.setattr(combat_state, "_list_valid_auto_aggro_targets_for_entity", lambda _entity: [session])
         monkeypatch.setattr(combat_state.random, "choice", lambda candidates: candidates[0])
         monkeypatch.setattr(combat_state, "start_combat", lambda _session, _entity_id, _opening: True)
-        monkeypatch.setattr(combat_state, "apply_lag", lambda _session, seconds: lag_calls.append(seconds))
 
         try:
             combat_state.process_pending_auto_aggro()
@@ -135,6 +134,6 @@ def test_npc_auto_aggro_applies_one_round_lag_on_success(monkeypatch) -> None:
             combat_state._pending_auto_aggro_due_monotonic.clear()
             combat_state._pending_auto_aggro_due_monotonic.update(previous_pending)
 
-        assert lag_calls == [COMBAT_ROUND_INTERVAL_SECONDS]
+        assert lag_calls == []
 
     asyncio.run(_run())
