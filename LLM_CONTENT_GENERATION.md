@@ -142,6 +142,7 @@ This makes it possible for multiple payloads to attach new paths to the same roo
 - **Named NPC corpse labels are possessive:** when `is_named: true`, the corpse should read as the full-name possessive form, such as `Brother Cleft's corpse`.
 - **Write ability narration in a target-safe format:** use placeholders such as `[a/an] [verb] thrown off balance by the strike!` so the same line reads correctly for both players and NPC victims. Avoid actor-POV lines like `You drive a knife into your foe!`.
 - **Room merges are special-case only for exits:** everything else on the room comes from the last loaded room payload.
+- **Room interconnections must be logical:** connected rooms should feel spatially and thematically adjacent, not randomly stitched together.
 
 ---
 
@@ -168,6 +169,7 @@ Before keeping a generated payload:
 - confirm the file is valid JSON
 - confirm the IDs follow the intended new-vs-override rule
 - confirm room exits point to real rooms
+- confirm room-to-room interconnections make spatial and thematic sense as a believable layout
 - confirm NPCs only reference valid spells, skills, and item/gear IDs
 - confirm every generated NPC sets `is_named` intentionally, with `true` only for real named/story NPCs
 - confirm named NPC corpses will read correctly as full-name possessives

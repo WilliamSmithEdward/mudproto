@@ -242,6 +242,7 @@ def build_instruction_payload() -> dict[str, object]:
             "You may borrow from, reuse, extend, or reference existing game assets when it helps the design, but you do not have to; you may also create fully new assets when appropriate.",
             "Preserve MudProto's existing fantasy tone and naming style.",
             "Room descriptions should be 3-4 sentences long and should clearly reinforce the atmosphere, story, and theme of the zone they belong to.",
+            "All room interconnections must be logical in-world and spatially coherent. Avoid random or immersion-breaking adjacency, and make connected rooms feel like they belong next to each other in a believable layout.",
             "Whenever appropriate, add at least one optional flavor interaction that is not required for progression or combat, such as a keyword action like 'look shrine' that returns atmospheric text.",
             "Flavor interactions should enrich worldbuilding and roleplay even when they have no mechanical reward.",
             "Be maximally creative with room names, spell names, skill names, item flavor, lore hooks, atmospheric details, and worldbuilding flair as long as every asset remains fully compliant with the provided schemas.",
@@ -281,6 +282,7 @@ def build_instruction_payload() -> dict[str, object]:
         "minimum_quality_bar": [
             "Descriptions should be concise, usable in-game, and support the intended fantasy atmosphere.",
             "Room descriptions should be 3-4 sentences in length and should tie directly into the theme of their zone.",
+            "Room interconnections should feel natural and navigationally believable, with adjacency that makes sense for the fiction and layout of the area.",
             "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
             "Combat/support context strings should be ready for player-facing text.",
             "Combat/support context strings should be perspective-safe for both 'you' and named targets, avoiding recipient-relative nouns like 'your foe'.",
