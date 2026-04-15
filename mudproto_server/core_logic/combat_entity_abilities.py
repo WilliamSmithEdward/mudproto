@@ -312,6 +312,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
     elif cast_type == "aoe":
         cast_target_text = " across the room!"
 
+    append_newline_if_needed(parts)
     parts.extend([
         build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))),
         build_part(" casts "),

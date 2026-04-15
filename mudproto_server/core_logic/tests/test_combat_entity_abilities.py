@@ -309,3 +309,32 @@ def test_entity_sleeping_does_not_cast_spell(monkeypatch) -> None:
     assert casted is False
     assert entity.mana == 100
     assert parts == []
+
+
+def test_entity_spell_announcement_starts_on_new_line(monkeypatch) -> None:
+    session = _make_session("client-player", "Lucia")
+    entity = _make_entity("entity-hexer", "Crowbanner Hexer")
+    entity.spell_ids = ["spell.coalburst"]
+    entity.spell_use_chance = 1.0
+    entity.mana = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_spell_damage", lambda _spell, _bonus=0: 12)
+    monkeypatch.setattr(entity_abilities, "get_spell_by_id", lambda _spell_id: {
+        "spell_id": "spell.coalburst",
+        "name": "Coalburst",
+        "spell_type": "damage",
+        "cast_type": "aoe",
+        "mana_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    parts: list[dict] = [{"text": "You annihilate a Crowbanner Hexer with your hit.", "fg": "bright_white", "bold": False}]
+    casted = entity_abilities._entity_try_cast_spell(session, entity, parts)
+
+    rendered = "".join(str(part.get("text", "")) for part in parts)
+    assert casted is True
+    assert "You annihilate a Crowbanner Hexer with your hit.\nA Crowbanner Hexer casts Coalburst across the room!" in rendered
