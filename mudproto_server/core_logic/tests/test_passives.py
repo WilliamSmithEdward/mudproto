@@ -212,6 +212,12 @@ def test_complete_login_shows_blank_line_above_welcome_back(monkeypatch) -> None
     assert _leading_blank_line_count(response) == 1
     assert "Welcome back, Orlandu." in _extract_display_text(response)
 
+    payload = response.get("payload") if isinstance(response, dict) else None
+    lines = payload.get("lines", []) if isinstance(payload, dict) else []
+    assert isinstance(lines, list)
+    assert len(lines) >= 3
+    assert isinstance(lines[2], list) and len(lines[2]) == 0
+
 
 def test_complete_login_preserves_loaded_passives_for_existing_character(monkeypatch) -> None:
     session = _make_session("client-login-passive-existing", "Lucia")

@@ -187,10 +187,11 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
                 build_part(character_name, "bright_green", True),
                 build_part(".", "bright_white"),
             )
+            blank_line: list[dict] = []
             if lines and isinstance(lines[0], list) and len(lines[0]) == 0:
-                payload["lines"] = [lines[0], greeting_line] + lines[1:]
+                payload["lines"] = [lines[0], greeting_line, blank_line] + lines[1:]
             else:
-                payload["lines"] = [greeting_line] + lines
+                payload["lines"] = [greeting_line, blank_line] + lines
     prepend_room_enter_communications(room_display, session, login_room.room_id)
 
     maybe_auto_engage_current_room(session)
