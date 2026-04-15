@@ -238,3 +238,22 @@ def test_flag_spawn_announcement_notifies_zone_players(monkeypatch) -> None:
 
     assert any(websocket is session.websocket for websocket, _outbound in notifications)
     assert any("The final foe is ready." in _extract_display_text(outbound) for _websocket, outbound in notifications)
+
+    display_messages = [
+        outbound
+        for _websocket, outbound in notifications
+        if isinstance(outbound, dict) and outbound.get("type") == "display"
+    ]
+    assert display_messages
+
+    payload = display_messages[0].get("payload")
+    assert isinstance(payload, dict)
+
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    assert lines[0] == []
+    assert "The final foe is ready." in _extract_display_text(display_messages[0])
+
+    prompt_lines = payload.get("prompt_lines")
+    assert isinstance(prompt_lines, list)
+    assert prompt_lines[0] == []

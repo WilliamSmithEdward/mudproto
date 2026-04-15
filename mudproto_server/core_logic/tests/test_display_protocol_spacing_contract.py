@@ -126,3 +126,20 @@ def test_display_room_and_score_start_with_explicit_blank_line() -> None:
     assert isinstance(score_prompt_lines, list)
     assert score_prompt_lines[0] == []
     assert _line_text(score_prompt_lines[1]).endswith("> ")
+
+
+def test_prepended_room_message_keeps_single_blank_before_room_title() -> None:
+    import room_actions
+
+    session = _make_session("client-room-prefix")
+    room = Room(room_id="custom-room", title="Custom Room", description="A test room.")
+
+    outbound = display_room(session, room)
+    room_actions._prepend_message(outbound, "The magic circle flares beneath your feet and whisks you away.")
+    payload = _extract_payload(outbound)
+
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    assert _line_text(lines[0]) == "The magic circle flares beneath your feet and whisks you away."
+    assert lines[1] == []
+    assert _line_text(lines[2]) == "Custom Room"

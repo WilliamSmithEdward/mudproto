@@ -161,10 +161,15 @@ def _prepend_message(outbound: dict, message: str) -> dict:
     if not isinstance(lines, list):
         return outbound
 
+    normalized_existing = [line for line in lines if isinstance(line, list)]
+    while normalized_existing and not normalized_existing[0]:
+        normalized_existing.pop(0)
+
     payload["lines"] = [
         build_line(build_part(message, "bright_white")),
         [],
-    ] + lines
+        *normalized_existing,
+    ]
     return outbound
 
 
