@@ -170,6 +170,49 @@ def test_complete_login_does_not_auto_add_class_kit_passives_for_loaded_characte
     assert session.known_passive_ids == []
 
 
+def test_complete_login_shows_blank_line_above_welcome_back(monkeypatch) -> None:
+    session = _make_session("client-login-spacing", "Orlandu")
+
+    def _fake_load_player_state(target_session, player_key=None) -> bool:
+        target_session.player.class_id = "class.monk"
+        return True
+
+    monkeypatch.setattr(session_lifecycle, "load_player_state", _fake_load_player_state)
+    monkeypatch.setattr(session_lifecycle, "hydrate_session_from_active_character", lambda _session, _character_key: False)
+    monkeypatch.setattr(session_lifecycle, "purge_nonpersistent_items", lambda _session, reason="": 0)
+    monkeypatch.setattr(session_lifecycle, "clear_transient_interaction_flags_for_session", lambda _session: 0)
+    monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
+    monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
+    monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: [])
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(
+        session_lifecycle,
+        "display_room",
+        lambda _session, _room: {
+            "type": "display",
+            "payload": {
+                "lines": [[], [{"text": "Room line", "fg": "bright_white", "bold": False}]],
+            },
+        },
+    )
+    monkeypatch.setattr(session_lifecycle, "prepend_room_enter_communications", lambda result, _session, _room_id: result)
+
+    response = session_lifecycle.complete_login(
+        session,
+        {
+            "character_key": "orlandu",
+            "character_name": "Orlandu",
+            "class_id": "class.monk",
+            "gender": "male",
+            "login_room_id": "start",
+        },
+        is_new_character=False,
+    )
+
+    assert _leading_blank_line_count(response) == 1
+    assert "Welcome back, Orlandu." in _extract_display_text(response)
+
+
 def test_complete_login_preserves_loaded_passives_for_existing_character(monkeypatch) -> None:
     session = _make_session("client-login-passive-existing", "Lucia")
 

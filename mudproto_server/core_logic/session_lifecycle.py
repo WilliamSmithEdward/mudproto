@@ -182,13 +182,15 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
         lines = payload.get("lines")
         if isinstance(lines, list):
             greeting = "Character created" if is_new_character else "Welcome back"
-            payload["lines"] = [
-                build_line(
-                    build_part(f"{greeting}, ", "bright_white"),
-                    build_part(character_name, "bright_green", True),
-                    build_part(".", "bright_white"),
-                )
-            ] + lines
+            greeting_line = build_line(
+                build_part(f"{greeting}, ", "bright_white"),
+                build_part(character_name, "bright_green", True),
+                build_part(".", "bright_white"),
+            )
+            if lines and isinstance(lines[0], list) and len(lines[0]) == 0:
+                payload["lines"] = [lines[0], greeting_line] + lines[1:]
+            else:
+                payload["lines"] = [greeting_line] + lines
     prepend_room_enter_communications(room_display, session, login_room.room_id)
 
     maybe_auto_engage_current_room(session)
