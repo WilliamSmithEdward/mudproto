@@ -199,6 +199,11 @@ def test_with_article_avoids_indefinite_article_for_brother_cleft_style_names() 
     assert with_article("goblin", capitalize=True) == "A goblin"
 
 
+def test_with_article_explicit_npc_named_flag_overrides_name_heuristics() -> None:
+    assert with_article("Brother Cleft", capitalize=True, is_named=True) == "Brother Cleft"
+    assert with_article("Brother Cleft", capitalize=True, is_named=False) == "A Brother Cleft"
+
+
 def test_item_affect_can_store_dice_payload(monkeypatch) -> None:
     session = _make_session("client-affect-item", "Lucia")
     item = ItemState(item_id="item-regen", name="Regeneration Tonic", equippable=False)

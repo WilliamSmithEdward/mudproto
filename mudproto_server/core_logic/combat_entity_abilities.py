@@ -110,7 +110,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
     append_newline_if_needed(parts)
     parts.extend([
-        build_part(with_article(entity.name, capitalize=True)),
+        build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))),
         build_part(" uses "),
         build_part(skill_name),
         build_part(cast_target_text),
@@ -180,7 +180,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             append_newline_if_needed(parts)
             parts.append(build_part(_render_observer_template(
                 rendered_support_context,
-                with_article(entity.name, capitalize=True),
+                with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)),
             )))
 
         _apply_ability_affects(actor=entity, target=entity, ability=skill, affect_target="self")
@@ -225,7 +225,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
             append_newline_if_needed(parts)
             rendered_restore_context = _render_observer_template(
                 observer_restore_context or _observer_restore_fallback(restore_effect),
-                with_article(entity.name, capitalize=True),
+                with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)),
             )
             parts.append(build_part(rendered_restore_context))
 
@@ -304,7 +304,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
         cast_target_text = " across the room!"
 
     parts.extend([
-        build_part(with_article(entity.name, capitalize=True)),
+        build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))),
         build_part(" casts "),
         build_part(spell_name),
         build_part(cast_target_text),
@@ -379,7 +379,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
             append_newline_if_needed(parts)
             parts.append(build_part(_render_observer_template(
                 rendered_support_context,
-                with_article(entity.name, capitalize=True),
+                with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)),
             )))
 
         _apply_ability_affects(actor=entity, target=entity, ability=spell, affect_target="self")
@@ -426,7 +426,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
             append_newline_if_needed(parts)
             rendered_restore_context = _render_observer_template(
                 observer_restore_context or _observer_restore_fallback(restore_effect),
-                with_article(entity.name, capitalize=True),
+                with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)),
             )
             parts.append(build_part(rendered_restore_context))
 

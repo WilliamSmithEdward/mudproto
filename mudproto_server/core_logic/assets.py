@@ -1465,6 +1465,7 @@ def load_npc_templates() -> list[dict]:
             "coin_reward": max(0, int(raw_npc.get("coin_reward", 0))),
             "experience_reward": max(0, int(raw_npc.get("experience_reward", 0))),
             "is_aggro": bool(raw_npc.get("is_aggro", False)),
+            "is_named": bool(raw_npc.get("is_named", False)),
             "aggro_player_flags": aggro_player_flags,
             "corpse_label_style": corpse_label_style,
             "set_player_flags_on_hostile_action": set_player_flags_on_hostile_action,

@@ -124,7 +124,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             require_exact_name=True,
         )
         if target_entity:
-            target_text = f" on {with_article(target_entity.name)}"
+            target_text = f" on {with_article(target_entity.name, is_named=getattr(target_entity, 'is_named', None))}"
         else:
             target_text = f" on {target_name}"
     elif cast_type == "self":
@@ -207,7 +207,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 build_part(f" on {support_target_name}."),
                 newline_part(),
                 build_part(
-                    f"You hurl yourself between {support_target_name} and {with_article(rescued_entity.name)}, drawing the foe onto yourself."
+                    f"You hurl yourself between {support_target_name} and {with_article(rescued_entity.name, is_named=getattr(rescued_entity, 'is_named', None))}, drawing the foe onto yourself."
                 ),
             ]
 
@@ -226,11 +226,11 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     target_label=support_target_name,
                     observer_action=observer_action,
                 ),
-                f"{actor_name} hurls into the melee, dragging {with_article(rescued_entity.name)} away from {support_target_name}.",
+                f"{actor_name} hurls into the melee, dragging {with_article(rescued_entity.name, is_named=getattr(rescued_entity, 'is_named', None))} away from {support_target_name}.",
             ]
             recipient_observer_lines = {
                 support_target_session.client_id: [
-                    f"{actor_name} rushes to your aid and draws {with_article(rescued_entity.name)} away from you."
+                    f"{actor_name} rushes to your aid and draws {with_article(rescued_entity.name, is_named=getattr(rescued_entity, 'is_named', None))} away from you."
                 ]
             }
 
@@ -397,12 +397,12 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     total_damage = _apply_player_dealt_damage_multiplier(session, total_damage)
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(skill)
     total_damage_dealt = 0
-    destroyed_entity_names: list[str] = []
+    destroyed_entity_labels: list[str] = []
     damage_observer_lines: list[str] = []
 
     for entity in damage_targets:
         parts.append(newline_part())
-        named_target = with_article(entity.name, capitalize=True)
+        named_target = with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))
         resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
@@ -446,10 +446,10 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             apply_entity_defeat_flags(session, entity)
             spawn_corpse_for_entity(session, entity)
             _award_shared_entity_experience(session, entity, parts, build_part)
-            destroyed_entity_names.append(entity.name)
+            destroyed_entity_labels.append(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)))
             parts.extend([
                 newline_part(),
-                build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+                build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
                 build_part(" is dead!", "bright_red", True),
             ])
 
@@ -460,7 +460,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     parts.extend([
                         newline_part(),
                         build_part("You turn to "),
-                        build_part(with_article(next_target.name)),
+                        build_part(with_article(next_target.name, is_named=getattr(next_target, "is_named", None))),
                         build_part("."),
                     ])
 
@@ -482,7 +482,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
     _set_player_skill_cooldown(session, skill)
     _apply_player_skill_lag(session, skill)
-    target_label = with_article(damage_targets[0].name) if damage_targets else None
+    target_label = with_article(damage_targets[0].name, is_named=getattr(damage_targets[0], "is_named", None)) if damage_targets else None
     observer_lines = [
         _resolve_observer_action_line(
             actor_name,
@@ -506,8 +506,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             observer_restore_context or _observer_restore_fallback(restore_effect),
             actor_name,
         ))
-    for destroyed_name in destroyed_entity_names:
-        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
+    for destroyed_label in destroyed_entity_labels:
+        observer_lines.append(f"{destroyed_label} is dead!")
 
     result = display_command_result(session, parts, compact=True)
     return _attach_room_broadcast_lines(result, observer_lines), True
@@ -852,7 +852,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     total_damage = _apply_player_dealt_damage_multiplier(session, total_damage)
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(spell)
     total_damage_dealt = 0
-    destroyed_entity_names: list[str] = []
+    destroyed_entity_labels: list[str] = []
 
     parts = [
         build_part("You cast "),
@@ -863,7 +863,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     for entity in damage_targets:
         parts.append(newline_part())
 
-        named_target = with_article(entity.name, capitalize=True)
+        named_target = with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))
         resolved_context = _resolve_combat_context(damage_context, target_text=named_target, verb="is")
 
         if total_damage > 0:
@@ -905,10 +905,10 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             apply_entity_defeat_flags(session, entity)
             spawn_corpse_for_entity(session, entity)
             _award_shared_entity_experience(session, entity, parts, build_part)
-            destroyed_entity_names.append(entity.name)
+            destroyed_entity_labels.append(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)))
             parts.extend([
                 newline_part(),
-                build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+                build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
                 build_part(" is dead!", "bright_red", True),
             ])
 
@@ -919,7 +919,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                     parts.extend([
                         newline_part(),
                         build_part("You turn to "),
-                        build_part(with_article(next_target.name)),
+                        build_part(with_article(next_target.name, is_named=getattr(next_target, "is_named", None))),
                         build_part("."),
                     ])
 
@@ -939,7 +939,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 build_part(restore_context or _player_restore_fallback(restore_effect)),
             ])
 
-    target_label = with_article(damage_targets[0].name) if damage_targets else None
+    target_label = with_article(damage_targets[0].name, is_named=getattr(damage_targets[0], "is_named", None)) if damage_targets else None
     observer_lines = [
         _resolve_observer_action_line(
             actor_name,
@@ -958,8 +958,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             observer_restore_context or _observer_restore_fallback(restore_effect),
             actor_name,
         ))
-    for destroyed_name in destroyed_entity_names:
-        observer_lines.append(f"{with_article(destroyed_name, capitalize=True)} is dead!")
+    for destroyed_label in destroyed_entity_labels:
+        observer_lines.append(f"{destroyed_label} is dead!")
 
     result = display_command_result(session, parts, compact=True)
     return _attach_room_broadcast_lines(result, observer_lines), True

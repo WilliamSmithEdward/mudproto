@@ -374,6 +374,7 @@
     {
       "npc_id": "npc.dark-priestess-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "name": "Dark Priestess Vael",
+      "is_named": true,
       "hit_points": 320,
       "max_hit_points": 320,
       "power_level": 6,

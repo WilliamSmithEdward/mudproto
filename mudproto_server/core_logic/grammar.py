@@ -65,7 +65,11 @@ def indefinite_article(name: str, *, capitalize: bool = False) -> str:
     return article
 
 
-def with_article(name: str, *, capitalize: bool = False) -> str:
+def with_article(name: str, *, capitalize: bool = False, is_named: bool | None = None) -> str:
+    if is_named is True:
+        return str(name)
+    if is_named is False:
+        return f"{indefinite_article(name, capitalize=capitalize)} {name}"
     if _looks_like_proper_name(name):
         return str(name)
     return f"{indefinite_article(name, capitalize=capitalize)} {name}"

@@ -100,7 +100,7 @@ async def _process_npc_wandering() -> None:
             if int(getattr(entity, "skill_lag_rounds_remaining", 0)) <= 0 and int(getattr(entity, "spell_lag_rounds_remaining", 0)) <= 0:
                 entity.is_sitting = False
                 stand_parts = [
-                    build_part(with_article(entity.name, capitalize=True), "bright_white"),
+                    build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_white"),
                     build_part(" stands up.", "bright_white"),
                 ]
                 for peer in _iter_room_sessions(entity.room_id):
@@ -133,7 +133,7 @@ async def _process_npc_wandering() -> None:
         dest_room_id = random.choice(candidates)
         entity.room_id = dest_room_id
 
-        entity_label = with_article(entity.name, capitalize=True)
+        entity_label = with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))
         leave_dir = _find_exit_direction(origin_room_id, dest_room_id)
         arrive_dir = DIRECTION_OPPOSITES.get(leave_dir, "") if leave_dir else ""
         if not arrive_dir:

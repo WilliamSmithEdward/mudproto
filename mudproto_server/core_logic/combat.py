@@ -173,7 +173,7 @@ def _resolve_entity_defeat(
 
     append_newline_if_needed(parts)
     parts.extend([
-        build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+        build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
         build_part(" is dead!", "bright_red", True),
     ])
 
@@ -189,7 +189,7 @@ def _resolve_entity_defeat(
                 append_newline_if_needed(parts)
                 parts.extend([
                     build_part("You turn to ", "bright_white"),
-                    build_part(with_article(next_target.name)),
+                    build_part(with_article(next_target.name, is_named=getattr(next_target, "is_named", None))),
                     build_part(".", "bright_white"),
                 ])
 
@@ -319,6 +319,7 @@ def _apply_player_attacks(
                 attack_verb=miss_verb,
                 damage=0,
                 target_max_hp=entity.max_hit_points,
+                target_is_named=getattr(entity, "is_named", None),
             ))
             continue
 
@@ -337,6 +338,7 @@ def _apply_player_attacks(
             attack_verb=attack_verb,
             damage=preview_damage,
             target_max_hp=entity.max_hit_points,
+            target_is_named=getattr(entity, "is_named", None),
         ))
         _apply_weapon_room_damage_proc(session, weapon, entity, parts, room_broadcast_lines)
         _apply_weapon_target_damage_proc(session, weapon, entity, parts)
@@ -454,6 +456,7 @@ def _apply_player_attacks(
                 attack_verb="hit",
                 damage=0,
                 target_max_hp=entity.max_hit_points,
+                target_is_named=getattr(entity, "is_named", None),
             ))
             continue
         rolled_damage, _, attack_verb = roll_player_damage(
@@ -471,6 +474,7 @@ def _apply_player_attacks(
             attack_verb=attack_verb,
             damage=preview_damage,
             target_max_hp=entity.max_hit_points,
+            target_is_named=getattr(entity, "is_named", None),
         ))
         if entity.hit_points <= 0:
             break
@@ -507,7 +511,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
         entity.is_sitting = False
         append_newline_if_needed(parts)
         parts.extend([
-            build_part(with_article(entity.name, capitalize=True)),
+            build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))),
             build_part(" stands up."),
         ])
         can_use_special_action = False
@@ -537,6 +541,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
                 entity_pronoun_possessive=entity.pronoun_possessive,
                 attack_verb=miss_verb,
                 damage=0,
+                entity_is_named=getattr(entity, "is_named", None),
             ))
             continue
 
@@ -548,6 +553,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
             entity_pronoun_possessive=entity.pronoun_possessive,
             attack_verb=attack_verb,
             damage=applied_damage,
+            entity_is_named=getattr(entity, "is_named", None),
         ))
         if status.hit_points <= 0:
             return
@@ -571,6 +577,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
                     entity_pronoun_possessive=entity.pronoun_possessive,
                     attack_verb=miss_verb,
                     damage=0,
+                    entity_is_named=getattr(entity, "is_named", None),
                 ))
                 continue
 
@@ -582,6 +589,7 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
                 entity_pronoun_possessive=entity.pronoun_possessive,
                 attack_verb=off_attack_verb,
                 damage=applied_damage,
+                entity_is_named=getattr(entity, "is_named", None),
             ))
             if status.hit_points <= 0:
                 return
@@ -678,7 +686,7 @@ def resolve_combat_round(
             death_broadcast_lines: list[list[dict]] = []
             if entity_died_this_round:
                 death_broadcast_lines.append([
-                    build_part(with_article(entity.name, capitalize=True), "bright_red", True),
+                    build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
                     build_part(" is dead!", "bright_red", True),
                 ])
             death_broadcast_lines.append(build_player_death_broadcast_parts(actor_name))

@@ -30,12 +30,12 @@ def build_player_attack_parts(
     attack_verb: str,
     damage: int,
     target_max_hp: int,
+    target_is_named: bool | None = None,
 ) -> list[dict]:
     from display_core import build_part
 
     severity = _choose_severity(damage, target_max_hp)
-    article = indefinite_article(entity_name)
-    named = f"{article} {entity_name}"
+    named = with_article(entity_name, is_named=target_is_named)
 
     parts: list[dict] = []
     if severity == "miss":
@@ -88,11 +88,12 @@ def build_entity_attack_parts(
     entity_pronoun_possessive: str,
     attack_verb: str,
     damage: int,
+    entity_is_named: bool | None = None,
 ) -> list[dict]:
     from display_core import build_part
 
     severity = _choose_severity(damage, PLAYER_REFERENCE_MAX_HP)
-    subject = with_article(entity_name, capitalize=True)
+    subject = with_article(entity_name, capitalize=True, is_named=entity_is_named)
 
     parts: list[dict] = []
     if severity == "miss":

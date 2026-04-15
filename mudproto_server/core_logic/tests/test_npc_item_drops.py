@@ -64,6 +64,17 @@ def test_entity_build_respects_spawn_chances(monkeypatch: pytest.MonkeyPatch) ->
     assert [item.template_id for item in entity.inventory_items] == ["item.potion.mending"]
 
 
+def test_entity_build_preserves_explicit_is_named_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(world_population.random, "random", lambda: 0.0)
+    template = _build_template()
+    template["name"] = "Brother Cleft"
+    template["is_named"] = True
+
+    entity = world_population._build_entity_from_template(template, ROOM_ID, 1)
+
+    assert entity.is_named is True
+
+
 def test_spawn_corpse_respects_drop_on_death(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(world_population.random, "random", lambda: 0.0)
     session = _make_session()

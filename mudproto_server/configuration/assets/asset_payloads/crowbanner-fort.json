@@ -551,6 +551,7 @@
     {
       "npc_id": "npc.ironhook-maela-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "name": "Ironhook Maela",
+      "is_named": true,
       "hit_points": 1450,
       "max_hit_points": 1450,
       "power_level": 14,
@@ -596,6 +597,7 @@
     {
       "npc_id": "npc.varo-cindersmile-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "name": "Varo Cindersmile",
+      "is_named": true,
       "hit_points": 1360,
       "max_hit_points": 1360,
       "power_level": 14,
@@ -643,6 +645,7 @@
     {
       "npc_id": "npc.seln-of-the-pins-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "name": "Seln of the Pins",
+      "is_named": true,
       "hit_points": 1390,
       "max_hit_points": 1390,
       "power_level": 14,
@@ -688,6 +691,7 @@
     {
       "npc_id": "npc.brother-cleft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "name": "Brother Cleft",
+      "is_named": true,
       "hit_points": 1510,
       "max_hit_points": 1510,
       "power_level": 14,
@@ -735,6 +739,7 @@
     {
       "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "name": "Hadrik Crowbanner",
+      "is_named": true,
       "hit_points": 2400,
       "max_hit_points": 2400,
       "power_level": 16,

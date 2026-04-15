@@ -409,6 +409,7 @@
     {
       "npc_id": "npc.lamp-keeper-sera-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "name": "Lamp-Keeper Sera",
+      "is_named": true,
       "hit_points": 190,
       "max_hit_points": 190,
       "power_level": 1,
@@ -490,6 +491,7 @@
     {
       "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "name": "Sunmarshal Aurek",
+      "is_named": true,
       "corpse_label_style": "possessive",
       "hit_points": 360,
       "max_hit_points": 360,
@@ -747,6 +749,7 @@
     {
       "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "name": "Prayer-Warden Samiel",
+      "is_named": true,
       "hit_points": 330,
       "max_hit_points": 330,
       "power_level": 6,
