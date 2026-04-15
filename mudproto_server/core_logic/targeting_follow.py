@@ -1,8 +1,10 @@
 """Player-targeting and follow-state helpers."""
 
+import asyncio
 import re
 
 from models import ClientSession
+from server_transport import send_outbound
 from session_registry import connected_clients, list_authenticated_room_players
 
 from targeting_parsing import _selector_prefix_matches_keywords
@@ -91,6 +93,26 @@ def _resolve_room_player_selector(
 def _clear_follow_state(session: ClientSession) -> None:
     session.following_player_key = ""
     session.following_player_name = ""
+
+
+def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
+    if not session.is_connected or session.disconnected_by_server:
+        return
+
+    from display_core import build_part
+    from display_feedback import display_command_result
+
+    resolved_name = str(followed_name).strip() or "them"
+    notification = display_command_result(session, [
+        build_part("You no longer follow ", "bright_white"),
+        build_part(resolved_name, "bright_cyan", True),
+        build_part(".", "bright_white"),
+    ])
+
+    try:
+        asyncio.get_running_loop().create_task(send_outbound(session.websocket, notification))
+    except RuntimeError:
+        return
 
 
 def _find_followed_player_session(session: ClientSession) -> ClientSession | None:
@@ -476,11 +498,14 @@ def _handle_player_death_follow_and_group(session: ClientSession) -> None:
         if candidate_follow_key != deceased_key:
             continue
 
+        previous_follow_name = candidate.following_player_name.strip() or (session.authenticated_character_name or "them")
         if successor_session is not None and candidate.client_id != successor_session.client_id and successor_key:
             candidate.following_player_key = successor_key
             candidate.following_player_name = successor_name or "Unknown"
         else:
             _clear_follow_state(candidate)
+
+        _notify_follow_stopped(candidate, previous_follow_name)
 
         if (candidate.watch_player_key or "").strip().lower() == deceased_key:
             candidate.watch_player_key = ""

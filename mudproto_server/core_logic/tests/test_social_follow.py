@@ -1,6 +1,7 @@
 import asyncio
 
 import command_handlers.social as social
+import targeting_follow
 from models import ClientSession
 from session_registry import active_character_sessions, connected_clients
 
@@ -482,5 +483,33 @@ def test_swap_two_targets_outside_party_shows_non_party_guidance() -> None:
     response = social.handle_social_command(leader, "swap", ["Orlandu", "Beatrix"], "swap Orlandu Beatrix")
     assert isinstance(response, dict)
     assert "You are not in a group. Use swap self <player> for direct follower swaps." in _extract_display_text(response)
+
+    _clear_session_registries()
+
+
+def test_follower_is_notified_when_followed_player_dies(monkeypatch) -> None:
+    _clear_session_registries()
+    follower, target = _register_room_pair("Ragnar", "Orlandu")
+    follower.following_player_key = target.player_state_key
+    follower.following_player_name = target.authenticated_character_name
+
+    notifications: list[tuple[object, dict | list[dict]]] = []
+
+    async def fake_send_outbound(websocket, outbound):
+        notifications.append((websocket, outbound))
+        return True
+
+    monkeypatch.setattr(targeting_follow, "send_outbound", fake_send_outbound)
+
+    async def _scenario() -> None:
+        targeting_follow._handle_player_death_follow_and_group(target)
+        await asyncio.sleep(0)
+
+    asyncio.run(_scenario())
+
+    assert follower.following_player_key == ""
+    assert len(notifications) == 1
+    assert notifications[0][0] is follower.websocket
+    assert "You no longer follow Orlandu." in _extract_display_text(notifications[0][1])
 
     _clear_session_registries()
