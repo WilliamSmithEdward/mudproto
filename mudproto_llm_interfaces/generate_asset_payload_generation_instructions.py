@@ -229,6 +229,9 @@ def build_instruction_payload() -> dict[str, object]:
             "If multiple asset payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
             "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
             "Use lowercase IDs and keywords to match project conventions.",
+            "When defining gear bonuses, use direct `equipment_effects` entries with only `effect_type` and `amount`.",
+            "For gear bonus effect_type values, prefer broad reusable stat names such as `str`, `dex`, `con`, `wis`, `hit_points`, `vigor`, `mana`, `weapon_damage`, and `hitroll`.",
+            "Do not invent lore-only gear effect identifiers or unnecessary naming layers for equipment bonuses.",
             "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
             "Every asset section must be present and must be a JSON array, even when empty.",
             "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto_server/configuration/assets/asset_payloads/`.",
@@ -291,6 +294,7 @@ def build_instruction_payload() -> dict[str, object]:
             "New spells and skills should feel vivid, flavorful, and lore-native to the zone or encounter set they belong to rather than generic filler abilities.",
             "Merchant inventories should be sensible for the NPC role.",
             "Avoid redundant consumables, spells, and skills that duplicate existing mechanics under a new name unless the user explicitly requests a distinct variant or override.",
+            "Gear bonus authoring should also stay broad and reusable: prefer direct stat bonuses over bespoke one-off effect labels.",
             "Avoid overpowered numbers unless explicitly requested."
         ],
         "asset_schemas": asset_schemas,

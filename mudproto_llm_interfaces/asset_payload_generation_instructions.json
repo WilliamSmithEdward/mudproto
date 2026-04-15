@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.15",
-  "generated_at_utc": "2026-04-15T06:47:44.515885+00:00",
+  "generated_at_utc": "2026-04-15T07:30:01.546335+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -144,6 +144,9 @@
     "If multiple asset payloads target the same room, their exits should accumulate while the most recently loaded room definition supplies the other room fields.",
     "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
     "Use lowercase IDs and keywords to match project conventions.",
+    "When defining gear bonuses, use direct `equipment_effects` entries with only `effect_type` and `amount`.",
+    "For gear bonus effect_type values, prefer broad reusable stat names such as `str`, `dex`, `con`, `wis`, `hit_points`, `vigor`, `mana`, `weapon_damage`, and `hitroll`.",
+    "Do not invent lore-only gear effect identifiers or unnecessary naming layers for equipment bonuses.",
     "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
     "Every asset section must be present and must be a JSON array, even when empty.",
     "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto_server/configuration/assets/asset_payloads/`.",
@@ -206,6 +209,7 @@
     "New spells and skills should feel vivid, flavorful, and lore-native to the zone or encounter set they belong to rather than generic filler abilities.",
     "Merchant inventories should be sensible for the NPC role.",
     "Avoid redundant consumables, spells, and skills that duplicate existing mechanics under a new name unless the user explicitly requests a distinct variant or override.",
+    "Gear bonus authoring should also stay broad and reusable: prefer direct stat bonuses over bespoke one-off effect labels.",
     "Avoid overpowered numbers unless explicitly requested."
   ],
   "asset_schemas": {
@@ -387,6 +391,12 @@
           "required": false,
           "default": 0,
           "minimum": 0
+        },
+        "equipment_effects": {
+          "type": "array[object]",
+          "required": false,
+          "default": [],
+          "notes": "Optional direct gear bonuses. Each entry should include `effect_type` and `amount`. `effect_type` can be any configured attribute id such as `str`, `dex`, `con`, `wis`, or a general stat type from configuration/attributes/equipment_effects.json such as `hit_points`, `vigor`, `mana`, `weapon_damage`, or `hitroll`."
         },
         "wear_slots": {
           "type": "array[string]",
@@ -1714,9 +1724,9 @@
   ],
   "current_game_assets": {
     "counts": {
-      "gear": 17,
+      "gear": 22,
       "items": 6,
-      "npcs": 6,
+      "npcs": 7,
       "rooms": 13,
       "skills": 9,
       "spells": 6,
@@ -2032,6 +2042,147 @@
           ],
           "weight": 2,
           "armor_class_bonus": 0
+        },
+        {
+          "template_id": "armor.roadstrider-boots",
+          "name": "Roadstrider Boots",
+          "slot": "armor",
+          "wear_slots": [
+            "feet"
+          ],
+          "description": "Supple dark boots reinforced with ridgehide and weighted for perfect balance over loose roadstone.",
+          "keywords": [
+            "roadstrider",
+            "boots",
+            "road"
+          ],
+          "weight": 4,
+          "coin_value": 240,
+          "armor_class_bonus": 2,
+          "equipment_effects": [
+            {
+              "effect_type": "dex",
+              "amount": 3
+            },
+            {
+              "effect_type": "vigor",
+              "amount": 46
+            },
+            {
+              "effect_type": "hitroll",
+              "amount": 6
+            }
+          ]
+        },
+        {
+          "template_id": "armor.stoneheart-cloak",
+          "name": "Stoneheart Cloak",
+          "slot": "armor",
+          "wear_slots": [
+            "back"
+          ],
+          "description": "A heavy mantle lined with kiln-dried plates that steady the breath and harden the body against fatigue.",
+          "keywords": [
+            "stoneheart",
+            "cloak",
+            "mantle"
+          ],
+          "weight": 5,
+          "coin_value": 260,
+          "armor_class_bonus": 3,
+          "equipment_effects": [
+            {
+              "effect_type": "con",
+              "amount": 3
+            },
+            {
+              "effect_type": "hit_points",
+              "amount": 40
+            }
+          ]
+        },
+        {
+          "template_id": "armor.waywarden-bracers",
+          "name": "Waywarden Bracers",
+          "slot": "armor",
+          "wear_slots": [
+            "hands"
+          ],
+          "description": "Lacquered travel bracers etched with mile-marks that guide every strike into the surest opening.",
+          "keywords": [
+            "waywarden",
+            "bracers"
+          ],
+          "weight": 3,
+          "coin_value": 220,
+          "armor_class_bonus": 2,
+          "equipment_effects": [
+            {
+              "effect_type": "dex",
+              "amount": 3
+            },
+            {
+              "effect_type": "hitroll",
+              "amount": 6
+            }
+          ]
+        },
+        {
+          "template_id": "armor.ridgebreaker-harness",
+          "name": "Ridgebreaker Harness",
+          "slot": "armor",
+          "wear_slots": [
+            "chest"
+          ],
+          "description": "A broad leather-and-iron harness built for caravan breakers who fought like battering rams.",
+          "keywords": [
+            "ridgebreaker",
+            "harness"
+          ],
+          "weight": 8,
+          "coin_value": 310,
+          "armor_class_bonus": 4,
+          "equipment_effects": [
+            {
+              "effect_type": "con",
+              "amount": 3
+            },
+            {
+              "effect_type": "hit_points",
+              "amount": 40
+            },
+            {
+              "effect_type": "weapon_damage",
+              "amount": 4
+            }
+          ]
+        },
+        {
+          "template_id": "armor.twinway-signet",
+          "name": "Twinway Signet",
+          "slot": "armor",
+          "wear_slots": [
+            "ring"
+          ],
+          "description": "A roadwarden signet cut with two crossing trails, said to favor both quick feet and stubborn lungs.",
+          "keywords": [
+            "twinway",
+            "signet",
+            "ring"
+          ],
+          "weight": 0,
+          "coin_value": 290,
+          "armor_class_bonus": 1,
+          "equipment_effects": [
+            {
+              "effect_type": "dex",
+              "amount": 3
+            },
+            {
+              "effect_type": "con",
+              "amount": 3
+            }
+          ]
         },
         {
           "template_id": "weapon.mercenary-scimitar",
@@ -2382,6 +2533,78 @@
             }
           },
           {
+            "npc_id": "npc.west-road-merchant",
+            "name": "Marra the Milekeeper",
+            "is_named": true,
+            "hit_points": 220,
+            "max_hit_points": 220,
+            "power_level": 1,
+            "attacks_per_round": 1,
+            "hit_roll_modifier": 0,
+            "armor_class": 10,
+            "off_hand_attacks_per_round": 0,
+            "off_hand_hit_roll_modifier": 0,
+            "coin_reward": 0,
+            "experience_reward": 0,
+            "is_aggro": false,
+            "is_ally": true,
+            "is_peaceful": true,
+            "respawn": true,
+            "is_merchant": true,
+            "merchant_inventory": [
+              {
+                "template_id": "armor.roadstrider-boots",
+                "infinite": true
+              },
+              {
+                "template_id": "armor.stoneheart-cloak",
+                "infinite": true
+              },
+              {
+                "template_id": "armor.waywarden-bracers",
+                "infinite": true
+              },
+              {
+                "template_id": "armor.ridgebreaker-harness",
+                "infinite": true
+              },
+              {
+                "template_id": "armor.twinway-signet",
+                "infinite": true
+              }
+            ],
+            "merchant_buy_markup": 1.0,
+            "merchant_sell_ratio": 0.55,
+            "pronoun_possessive": "her",
+            "vigor": 0,
+            "max_vigor": 0,
+            "mana": 0,
+            "max_mana": 0,
+            "skill_use_chance": 0.0,
+            "skill_ids": [],
+            "spell_use_chance": 0.0,
+            "spell_ids": [],
+            "wander_chance": 0.18,
+            "wander_room_ids": [
+              "west-road",
+              "west-road-curve",
+              "west-road-defile",
+              "west-road-ford",
+              "west-road-rise",
+              "west-road-clearing"
+            ],
+            "main_hand_weapon": {
+              "template_id": "",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            },
+            "off_hand_weapon": {
+              "template_id": "",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
+          },
+          {
             "npc_id": "npc.south-market-merchant",
             "name": "Quartermaster Vessa",
             "is_named": true,
@@ -2618,6 +2841,10 @@
           "npcs": [
             {
               "npc_id": "npc.wandering-mercenary",
+              "count": 1
+            },
+            {
+              "npc_id": "npc.west-road-merchant",
               "count": 1
             }
           ],

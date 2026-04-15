@@ -138,6 +138,7 @@ This makes it possible for multiple payloads to attach new paths to the same roo
 - **New spells and skills are welcome when warranted:** the LLM may create fully new spells and skills as long as they feel flavorful, distinct, and well-matched to the theme, lore, and tone of the zone and the broader game.
 - **Avoid redundant reskins:** do not create new consumable items, spells, or skills that are functionally just renamed copies of existing mechanics unless a distinct variant or direct override is explicitly desired.
 - **Use the affect artifact correctly:** support and lingering status behavior should reference the centralized affect templates in `mudproto_server/configuration/attributes/affects.json` via `affect_ids`; do not invent inline affect payloads.
+- **Use direct equipment effects for gear bonuses:** gear should define bonus stats inline via `equipment_effects`, using broad `effect_type` values such as `str`, `dex`, `con`, `wis`, `hit_points`, `vigor`, `mana`, `weapon_damage`, or `hitroll`. Avoid lore-only bonus IDs or unnecessary naming layers.
 - **Set NPC naming explicitly:** generated NPCs should include `is_named` deliberately. Use `true` for unique named characters (for example bosses, officers, priestesses, or story NPCs with personal names/titles) and `false` for ordinary generic enemies.
 - **Named NPC corpse labels are possessive:** when `is_named: true`, the corpse should read as the full-name possessive form, such as `Brother Cleft's corpse`.
 - **Write ability narration in a target-safe format:** use placeholders such as `[a/an] [verb] thrown off balance by the strike!` so the same line reads correctly for both players and NPC victims. Avoid actor-POV lines like `You drive a knife into your foe!`.
@@ -186,4 +187,5 @@ Before keeping a generated payload:
 - `mudproto_server/configuration/assets/templates/`
 - `mudproto_server/configuration/attributes/templates/`
 - `ASSET_GENERATION.md`
+- `EQUIPMENT_EFFECTS.md`
 
