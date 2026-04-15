@@ -132,3 +132,34 @@ def test_send_room_broadcast_applies_single_prompt_gap_with_private_lines() -> N
     prompt_lines = payload.get("prompt_lines")
     assert isinstance(prompt_lines, list)
     assert _line_text(prompt_lines[0]).endswith("> ")
+
+
+def test_room_broadcast_keeps_fatal_attack_before_death_announcement() -> None:
+    origin = _make_session("client-origin-death-order", name="Lucia")
+    outbound = {
+        "type": "display",
+        "payload": {
+            "lines": [
+                [build_part("A Crowbanner Reaver stabs you extremely hard.")],
+                [build_part("You are dead!", "bright_red", True)],
+                [],
+            ],
+            "room_broadcast_lines": [
+                [build_part("Lucia is dead!", "bright_red", True)],
+            ],
+        },
+    }
+
+    broadcast_messages = _build_room_broadcast_messages(origin, outbound)
+
+    assert len(broadcast_messages) == 1
+    payload = broadcast_messages[0].get("payload")
+    assert isinstance(payload, dict)
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+
+    rendered_lines = [text for text in (_line_text(line).strip() for line in lines) if text]
+    assert rendered_lines[:2] == [
+        "A Crowbanner Reaver stabs Lucia extremely hard.",
+        "Lucia is dead!",
+    ]

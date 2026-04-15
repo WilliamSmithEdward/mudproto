@@ -55,6 +55,14 @@ def _normalized_line_lists(raw_lines: object) -> list[list[dict]]:
     return [line for line in raw_lines if isinstance(line, list)]
 
 
+def _contains_player_death_line(lines: list[list[dict]]) -> bool:
+    for line in lines:
+        normalized = _line_text(line).strip().lower()
+        if normalized == "you are dead!" or "mourn your death" in normalized:
+            return True
+    return False
+
+
 def _ensure_leading_blank_lines(lines: list[list[dict]], desired_count: int) -> list[list[dict]]:
     leading_blank_count = 0
     while leading_blank_count < len(lines) and not lines[leading_blank_count]:
@@ -219,18 +227,21 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
             if bool(copied_payload.get("is_error", False)):
                 continue
 
+            copied_lines = _normalized_line_lists(copied_payload.get("lines"))
+            contains_player_death = _contains_player_death_line(copied_lines)
+
             observer_lines = copied_payload.get("room_broadcast_lines")
-            if isinstance(observer_lines, list) and observer_lines:
+            if isinstance(observer_lines, list) and observer_lines and not contains_player_death:
                 copied_payload["lines"] = observer_lines
             else:
-                copied_lines = _normalized_line_lists(copied_payload.get("lines"))
                 copied_payload["lines"] = _transform_observer_lines(
                     copied_lines,
                     actor_name=actor_name,
                     actor_gender=origin_session.player.gender,
                 )
+
             additional_observer_lines = copied_payload.get("additional_room_broadcast_lines")
-            if isinstance(additional_observer_lines, list) and additional_observer_lines:
+            if isinstance(additional_observer_lines, list) and additional_observer_lines and not contains_player_death:
                 normalized_additional_lines = _normalized_line_lists(additional_observer_lines)
                 normalized_lines = _normalized_line_lists(copied_payload.get("lines"))
                 if normalized_lines and normalized_lines[-1]:
