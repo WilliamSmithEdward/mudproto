@@ -1,6 +1,7 @@
 import asyncio
 
 import command_handlers.social as social
+import death
 import targeting_follow
 from models import ClientSession
 from session_registry import active_character_sessions, connected_clients
@@ -206,6 +207,33 @@ def test_group_disband_suppresses_unfollow_notifications(monkeypatch) -> None:
     assert any("You stop following Ragnar." in text for text in notification_texts)
     assert any("You stop following Orlandu." in text for text in notification_texts)
     assert all("stops following you" not in text for text in notification_texts)
+
+    _clear_session_registries()
+
+
+def test_follower_death_notifies_follow_target(monkeypatch) -> None:
+    _clear_session_registries()
+    follower, target = _register_room_pair(follower_name="Lucia", target_name="Ragnar")
+    follower.following_player_key = target.player_state_key
+    follower.following_player_name = target.authenticated_character_name
+
+    notifications: list[tuple[object, dict | list[dict]]] = []
+
+    async def fake_send_outbound(websocket, outbound):
+        notifications.append((websocket, outbound))
+        return True
+
+    monkeypatch.setattr(targeting_follow, "send_outbound", fake_send_outbound)
+    monkeypatch.setattr(death, "save_player_state", lambda _session: None)
+
+    async def _scenario() -> None:
+        death.handle_player_death(follower)
+        await asyncio.sleep(0)
+
+    asyncio.run(_scenario())
+
+    assert any(websocket is target.websocket for websocket, _outbound in notifications)
+    assert any("Lucia stops following you." in _extract_display_text(outbound) for _websocket, outbound in notifications)
 
     _clear_session_registries()
 

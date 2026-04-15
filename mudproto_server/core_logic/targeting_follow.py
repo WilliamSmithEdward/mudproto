@@ -95,6 +95,25 @@ def _clear_follow_state(session: ClientSession) -> None:
     session.following_player_name = ""
 
 
+def _notify_unfollow_target(target_session: ClientSession, follower_name: str) -> None:
+    if not target_session.is_connected or target_session.disconnected_by_server:
+        return
+
+    from display_core import build_part
+    from display_feedback import display_command_result
+
+    resolved_name = str(follower_name).strip() or "Someone"
+    notification = display_command_result(target_session, [
+        build_part(resolved_name, "bright_cyan", True),
+        build_part(" stops following you.", "bright_white"),
+    ])
+
+    try:
+        asyncio.get_running_loop().create_task(send_outbound(target_session.websocket, notification))
+    except RuntimeError:
+        return
+
+
 def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
     if not session.is_connected or session.disconnected_by_server:
         return
@@ -496,6 +515,9 @@ def _handle_player_death_follow_and_group(session: ClientSession) -> None:
     if not deceased_key:
         return
 
+    followed_session = _find_followed_player_session(session)
+    deceased_name = (session.authenticated_character_name or "").strip() or "Someone"
+
     successor_session: ClientSession | None = None
     if session.group_member_keys:
         _, group_members = _list_group_member_sessions(session)
@@ -547,6 +569,9 @@ def _handle_player_death_follow_and_group(session: ClientSession) -> None:
             continue
         candidate.watch_player_key = ""
         candidate.watch_player_name = ""
+
+    if followed_session is not None:
+        _notify_unfollow_target(followed_session, deceased_name)
 
     # If the dead player was a member in another group, remove them from that roster.
     former_leader_key = (session.group_leader_key or "").strip().lower()
