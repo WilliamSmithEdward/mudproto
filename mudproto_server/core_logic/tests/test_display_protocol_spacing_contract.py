@@ -83,6 +83,17 @@ def test_display_command_result_compact_skips_leading_blank() -> None:
     assert _line_text(lines[0]) == "Ready"
 
 
+def test_display_command_result_compact_without_prompt_has_trailing_blank_line() -> None:
+    session = _make_session("client-command-compact-no-prompt")
+    outbound = display_command_result(session, [build_part("ready")], compact=True, prompt_after=False)
+    payload = _extract_payload(outbound)
+
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    assert _line_text(lines[0]) == "Ready"
+    assert lines[-1] == []
+
+
 def test_display_combat_round_result_has_trailing_blank_line() -> None:
     session = _make_session("client-combat")
     outbound = display_combat_round_result(session, [build_part("You strike true.")])

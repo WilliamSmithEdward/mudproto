@@ -9,6 +9,7 @@ import pytest
 from attribute_config import get_affect_template_by_id
 from assets import _resolve_asset_affects, get_skill_by_id
 from combat_ability_effects import _preview_entity_damage_with_reduction
+from grammar import with_article
 from game_hour_ticks import process_game_hour_tick
 from models import ActiveAffectState, ClientSession, EntityState, ItemState
 
@@ -164,6 +165,38 @@ def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch
 
     preview_damage = _preview_entity_damage_with_reduction(target, 10)
     assert preview_damage == 12
+
+
+def test_pressure_point_increases_physical_damage_from_any_source() -> None:
+    target = EntityState(
+        entity_id="entity-ogre",
+        name="Ogre",
+        room_id="start",
+        hit_points=200,
+        max_hit_points=200,
+    )
+    target.active_affects.append(ActiveAffectState(
+        affect_id="affect.increase-received-damage",
+        affect_name="Pressure Point",
+        affect_mode="battle_rounds",
+        affect_type="damage_received_multiplier",
+        affect_damage_elements=["physical"],
+        affect_amount=1.2,
+        remaining_rounds=2,
+    ))
+
+    player_followup_damage = _preview_entity_damage_with_reduction(target, 10, damage_element="physical")
+    npc_followup_damage = _preview_entity_damage_with_reduction(target, 10, damage_element="physical")
+    spell_damage = _preview_entity_damage_with_reduction(target, 10, damage_element="fire")
+
+    assert player_followup_damage == 12
+    assert npc_followup_damage == 12
+    assert spell_damage == 10
+
+
+def test_with_article_avoids_indefinite_article_for_brother_cleft_style_names() -> None:
+    assert with_article("Brother Cleft", capitalize=True) == "Brother Cleft"
+    assert with_article("goblin", capitalize=True) == "A goblin"
 
 
 def test_item_affect_can_store_dice_payload(monkeypatch) -> None:

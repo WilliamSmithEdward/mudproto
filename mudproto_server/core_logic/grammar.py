@@ -1,6 +1,63 @@
 import re
 
 
+_PROPER_NAME_TITLES = {
+    "brother",
+    "sister",
+    "father",
+    "mother",
+    "lord",
+    "lady",
+    "sir",
+    "dame",
+    "king",
+    "queen",
+    "prince",
+    "princess",
+}
+
+_GENERIC_ROLE_WORDS = {
+    "reaver",
+    "hexer",
+    "bulwark",
+    "knifeman",
+    "mercenary",
+    "guard",
+    "raider",
+    "bandit",
+    "scout",
+    "soldier",
+    "captain",
+    "priest",
+    "mage",
+    "warrior",
+    "hunter",
+    "goblin",
+    "orc",
+    "wolf",
+}
+
+
+def _looks_like_proper_name(name: str) -> bool:
+    tokens = [token for token in str(name).strip().split() if token]
+    if len(tokens) < 2:
+        return False
+
+    first_token = tokens[0].strip(".,!?;:'\"")
+    if first_token.lower() in _PROPER_NAME_TITLES:
+        return True
+
+    lowered_tokens = {token.strip(".,!?;:'\"").lower() for token in tokens}
+    if {"of", "the"} & lowered_tokens:
+        return True
+
+    cleaned_last = tokens[-1].strip(".,!?;:'\"")
+    if cleaned_last and cleaned_last[0].isupper() and cleaned_last.lower() not in _GENERIC_ROLE_WORDS:
+        return True
+
+    return False
+
+
 def indefinite_article(name: str, *, capitalize: bool = False) -> str:
     article = "an" if name.strip().lower()[:1] in "aeiou" else "a"
     if capitalize:
@@ -9,6 +66,8 @@ def indefinite_article(name: str, *, capitalize: bool = False) -> str:
 
 
 def with_article(name: str, *, capitalize: bool = False) -> str:
+    if _looks_like_proper_name(name):
+        return str(name)
     return f"{indefinite_article(name, capitalize=capitalize)} {name}"
 
 

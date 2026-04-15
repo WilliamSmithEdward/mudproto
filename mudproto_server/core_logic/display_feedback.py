@@ -399,6 +399,14 @@ def display_command_result(
     content_parts = list(parts)
     if not compact:
         content_parts = with_leading_blank_lines(content_parts)
+    elif not prompt_after:
+        compact_lines = parts_to_lines(content_parts)
+        compact_lines.append([])
+        return build_display_lines(
+            compact_lines,
+            prompt_after=prompt_after,
+            prompt_parts=prompt_parts,
+        )
 
     return build_display(
         content_parts,
