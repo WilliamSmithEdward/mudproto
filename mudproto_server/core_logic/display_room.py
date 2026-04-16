@@ -455,7 +455,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
         if normalized not in ground_item_counts:
             ground_item_counts[normalized] = 0
             ground_item_names[normalized] = corpse_name
-            ground_item_colors[normalized] = "item_logic.highlight.item"
+            ground_item_colors[normalized] = "display_room.corpse"
             ground_item_order.append(normalized)
         ground_item_counts[normalized] += 1
 

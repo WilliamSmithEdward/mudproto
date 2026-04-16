@@ -34,6 +34,28 @@ def _extract_display_text(outbound: dict | list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _find_part_color(outbound: dict | list[dict], snippet: str) -> str | None:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    for message in messages:
+        if not isinstance(message, dict) or message.get("type") != "display":
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        raw_lines = payload.get("lines", [])
+        if not isinstance(raw_lines, list):
+            continue
+        for line in raw_lines:
+            if not isinstance(line, list):
+                continue
+            for part in line:
+                if not isinstance(part, dict):
+                    continue
+                if snippet in str(part.get("text", "")):
+                    return str(part.get("fg", ""))
+    return None
+
+
 def test_display_room_shows_npc_posture_labels(monkeypatch) -> None:
     viewer = _make_session("client-viewer", "Lucia")
     room = Room(room_id="start", title="Start", description="A room.")
@@ -141,3 +163,4 @@ def test_display_room_groups_corpses_with_ground_items(monkeypatch) -> None:
     assert "Bandit corpse" in rendered
     assert "Supply Chest" in rendered
     assert "Corpses:" not in rendered
+    assert _find_part_color(outbound, "Bandit corpse") == "bright_black"

@@ -85,6 +85,7 @@
   "display_room.player.name": "bright_cyan",
   "display_room.coin.amount": "bright_cyan",
   "display_room.item.count": "bright_cyan",
+  "display_room.corpse": "bright_black",
 
   "containers.label_column": "bright_cyan",
   "containers.type_value": "bright_yellow",
