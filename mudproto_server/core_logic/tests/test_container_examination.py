@@ -78,6 +78,7 @@ def test_corpse_examination_uses_standard_container_rules() -> None:
     corpse_colors = _display_text_colors(corpse_response)
     chest_colors = _display_text_colors(chest_response)
 
+    assert corpse_colors["Item"] == chest_colors["Item"] == "bright_yellow"
     assert corpse_colors["Blackwatch Cuirass"] == chest_colors["Blackwatch Cuirass"] == "bright_magenta"
     assert corpse_colors["Shadow Balm"] == chest_colors["Shadow Balm"] == "bright_yellow"
     assert corpse_colors["Container"] == "bright_yellow"

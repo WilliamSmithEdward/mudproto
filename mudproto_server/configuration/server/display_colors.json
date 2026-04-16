@@ -103,7 +103,7 @@
   "containers.status.closed": "bright_yellow",
   "containers.status.locked": "bright_yellow",
   "containers.coins_value": "bright_cyan",
-  "containers.item.label": "bright_magenta",
+  "containers.item.label": "bright_yellow",
   "containers.item.empty": "bright_black",
   "containers.contents.hidden": "bright_black",
   "containers.description.heading": "bright_white",
