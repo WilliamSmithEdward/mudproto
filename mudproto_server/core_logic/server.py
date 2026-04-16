@@ -26,6 +26,8 @@ from server_movement import _handle_movement_side_effects
 from server_transport import send_json, send_outbound
 from settings import (
     GAME_TICK_INTERVAL_SECONDS,
+    MAX_CONNECTION_COUNT,
+    MAX_MESSAGE_SIZE_BYTES,
     SERVER_HOST,
     SERVER_PORT,
     SERVER_TLS_CERTFILE,
@@ -103,9 +105,32 @@ def _build_server_ssl_context() -> ssl.SSLContext | None:
     return context
 
 
+def _validate_inbound_message_size(message_text: str) -> str | None:
+    raw_text = str(message_text)
+    byte_count = len(raw_text.encode("utf-8"))
+    if byte_count <= MAX_MESSAGE_SIZE_BYTES:
+        return None
+    return f"Message exceeds the {MAX_MESSAGE_SIZE_BYTES}-byte limit."
+
+
+async def _reject_full_server_connection(websocket: ServerConnection) -> None:
+    await send_json(websocket, display_error(
+        f"Server is full. The connection limit is {MAX_CONNECTION_COUNT}. Please try again later."
+    ))
+    try:
+        await websocket.close(code=1013, reason="Server full")
+    except Exception:
+        pass
+
+
 async def handle_connection(websocket: ServerConnection) -> None:
     client_id = str(uuid.uuid4())
     session = register_client(client_id, websocket)
+    if session is None:
+        await _reject_full_server_connection(websocket)
+        print(f"Rejected connection due to max_connection_count={MAX_CONNECTION_COUNT}")
+        return
+
     session.next_game_tick_monotonic = get_next_game_tick_monotonic()
     if session.next_game_tick_monotonic is None:
         session.next_game_tick_monotonic = asyncio.get_running_loop().time() + GAME_TICK_INTERVAL_SECONDS
@@ -120,6 +145,17 @@ async def handle_connection(websocket: ServerConnection) -> None:
         await send_json(session.websocket, initial_auth_prompt(session))
 
         async for message_text in session.websocket:
+            size_error = _validate_inbound_message_size(message_text)
+            if size_error is not None:
+                await send_json(session.websocket, display_error(size_error, session))
+                session.disconnected_by_server = True
+                session.is_connected = False
+                try:
+                    await session.websocket.close(code=1009, reason="Message too large")
+                except Exception:
+                    pass
+                break
+
             touch_session(session)
 
             print(f"Raw message from {session.client_id}: {message_text}")
@@ -193,6 +229,7 @@ async def main():
             SERVER_PORT,
             ssl=ssl_context,
             logger=websocket_logger,
+            max_size=MAX_MESSAGE_SIZE_BYTES,
         ):
             print(f"Server listening on {scheme}://{SERVER_HOST}:{SERVER_PORT}")
             await asyncio.Future()

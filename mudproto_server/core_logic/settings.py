@@ -142,6 +142,8 @@ DISPLAY_FEEDBACK_SIMPLE_MESSAGES = {
 
 SERVER_HOST = str(_NETWORK.get("host", "localhost")).strip() or "localhost"
 SERVER_PORT = int(_NETWORK.get("port", 8765))
+MAX_CONNECTION_COUNT = max(1, int(_NETWORK.get("max_connection_count", 200)))
+MAX_MESSAGE_SIZE_BYTES = max(1024, int(_NETWORK.get("max_message_size_bytes", 16384)))
 SERVER_TLS_ENABLED = bool(_NETWORK.get("tls_enabled", False))
 SERVER_TLS_CERTFILE = _resolve_optional_path(_NETWORK.get("tls_certfile", ""))
 SERVER_TLS_KEYFILE = _resolve_optional_path(_NETWORK.get("tls_keyfile", ""))

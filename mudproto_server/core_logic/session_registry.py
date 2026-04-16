@@ -44,8 +44,12 @@ def attach_session_to_shared_world(session: ClientSession) -> None:
     session.room_ground_items = shared_world_room_ground_items
 
 
-def register_client(client_id: str, websocket) -> ClientSession:
+def register_client(client_id: str, websocket) -> ClientSession | None:
     from protocol import utc_now_iso
+    from settings import MAX_CONNECTION_COUNT
+
+    if get_connection_count() >= MAX_CONNECTION_COUNT:
+        return None
 
     session = ClientSession(
         client_id=client_id,

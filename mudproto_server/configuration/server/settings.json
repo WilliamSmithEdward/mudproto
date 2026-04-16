@@ -2,6 +2,8 @@
   "network": {
     "host": "0.0.0.0",
     "port": 8765,
+    "max_connection_count": 200,
+    "max_message_size_bytes": 16384,
     "tls_enabled": true,
     "tls_certfile": "configuration/server/encryption/server-cert.pem",
     "tls_keyfile": "configuration/server/encryption/server-key.pem",
