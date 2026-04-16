@@ -41,20 +41,32 @@ RECONNECT_INTERVAL_MS = 5000
 OUTPUT_RIGHT_MARGIN_PX = 80
 CLIENT_ROOT = Path(__file__).resolve().parent.parent
 SERVER_ROOT = CLIENT_ROOT / "mudproto_server"
+GUI_CONFIGURATION_ROOT = CLIENT_ROOT / "mudproto_client_gui" / "gui-configuration"
+CLIENT_GUI_SETTINGS_FILE = GUI_CONFIGURATION_ROOT / "server_info.json"
 SERVER_SETTINGS_FILE = SERVER_ROOT / "configuration" / "server" / "settings.json"
 
 
-def _load_network_settings() -> dict[str, Any]:
+def _load_json_object(path: Path) -> dict[str, Any]:
     try:
-        with SERVER_SETTINGS_FILE.open("r", encoding="utf-8") as handle:
+        with path.open("r", encoding="utf-8") as handle:
             raw = json.load(handle)
     except Exception:
         return {}
 
-    if not isinstance(raw, dict):
-        return {}
-    network = raw.get("network", {})
-    return network if isinstance(network, dict) else {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _load_network_settings() -> dict[str, Any]:
+    server_settings = _load_json_object(SERVER_SETTINGS_FILE)
+    server_network = server_settings.get("network", {})
+    network = dict(server_network) if isinstance(server_network, dict) else {}
+
+    client_settings = _load_json_object(CLIENT_GUI_SETTINGS_FILE)
+    client_network = client_settings.get("network", {})
+    if isinstance(client_network, dict):
+        network.update(client_network)
+
+    return network
 
 
 def _resolve_network_path(raw_path: str) -> Path:

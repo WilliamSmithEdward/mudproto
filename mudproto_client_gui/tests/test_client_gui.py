@@ -1,4 +1,5 @@
 import asyncio
+import json
 import ssl
 from typing import Any, cast
 
@@ -215,6 +216,25 @@ def test_render_display_long_line_then_prompt_has_single_boundary_newline() -> N
     })
 
     assert fake_output.content == f"> \n{long_text}\n526H 311V 1531C 0X> "
+
+
+def test_load_network_settings_prefers_client_gui_config(tmp_path, monkeypatch) -> None:
+    gui_settings = tmp_path / "server_info.json"
+    gui_settings.write_text(
+        json.dumps({
+            "network": {
+                "host": "172.233.152.179",
+                "port": 8765,
+                "tls_enabled": True,
+                "tls_verify_server": False,
+            }
+        }),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(client_gui, "CLIENT_GUI_SETTINGS_FILE", gui_settings)
+    monkeypatch.setattr(client_gui, "SERVER_SETTINGS_FILE", tmp_path / "missing-server-settings.json")
+
+    assert client_gui._load_network_settings()["host"] == "172.233.152.179"
 
 
 def test_default_server_uri_switches_to_wss_when_tls_enabled(monkeypatch) -> None:

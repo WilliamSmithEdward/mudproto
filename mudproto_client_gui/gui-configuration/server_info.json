@@ -1,0 +1,8 @@
+{
+  "network": {
+    "host": "172.233.152.179",
+    "port": 8765,
+    "tls_enabled": true,
+    "tls_verify_server": false
+  }
+}
