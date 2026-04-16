@@ -34,6 +34,9 @@
 
     body {
       padding: 14px;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     .app {
@@ -152,6 +155,8 @@
       overflow: auto;
       scrollbar-gutter: stable;
       scrollbar-color: #3a3a3a #070707;
+      overscroll-behavior: contain;
+      contain: content;
       padding: 16px 72px 18px 18px;
       white-space: pre-wrap;
       word-break: break-word;
@@ -295,6 +300,9 @@
         this.historyIndex = null;
         this.historyStash = "";
         this.outputEndsWithNewline = true;
+        this.renderQueue = [];
+        this.renderScheduled = false;
+        this.autoScrollThresholdPx = 24;
 
         this.outputEl = document.getElementById("output");
         this.inputEl = document.getElementById("commandInput");
@@ -538,7 +546,12 @@
         this.historyStash = "";
       }
 
-      appendPart(part) {
+      isNearBottom() {
+        const remaining = this.outputEl.scrollHeight - this.outputEl.scrollTop - this.outputEl.clientHeight;
+        return remaining <= this.autoScrollThresholdPx;
+      }
+
+      appendPart(fragment, part) {
         if (!part || typeof part !== "object") {
           return;
         }
@@ -555,7 +568,45 @@
         if (part.bold) {
           span.style.fontWeight = "700";
         }
-        this.outputEl.appendChild(span);
+        fragment.appendChild(span);
+      }
+
+      flushRenderQueue() {
+        this.renderScheduled = false;
+        if (!this.renderQueue.length) {
+          return;
+        }
+
+        const shouldStickToBottom = this.isNearBottom();
+        const fragment = document.createDocumentFragment();
+
+        while (this.renderQueue.length) {
+          const lines = this.renderQueue.shift();
+          if (!Array.isArray(lines) || !lines.length) {
+            continue;
+          }
+
+          if (!this.outputEndsWithNewline) {
+            fragment.appendChild(document.createTextNode("\n"));
+          }
+
+          lines.forEach((line, index) => {
+            if (index > 0) {
+              fragment.appendChild(document.createTextNode("\n"));
+            }
+            if (!Array.isArray(line)) {
+              return;
+            }
+            line.forEach((part) => this.appendPart(fragment, part));
+          });
+
+          this.outputEndsWithNewline = Array.isArray(lines[lines.length - 1]) && lines[lines.length - 1].length === 0;
+        }
+
+        this.outputEl.appendChild(fragment);
+        if (shouldStickToBottom) {
+          this.outputEl.scrollTop = this.outputEl.scrollHeight;
+        }
       }
 
       appendLineGroup(lines) {
@@ -563,22 +614,13 @@
           return;
         }
 
-        if (!this.outputEndsWithNewline) {
-          this.outputEl.appendChild(document.createTextNode("\n"));
+        this.renderQueue.push(lines);
+        if (this.renderScheduled) {
+          return;
         }
 
-        lines.forEach((line, index) => {
-          if (index > 0) {
-            this.outputEl.appendChild(document.createTextNode("\n"));
-          }
-          if (!Array.isArray(line)) {
-            return;
-          }
-          line.forEach((part) => this.appendPart(part));
-        });
-
-        this.outputEndsWithNewline = Array.isArray(lines[lines.length - 1]) && lines[lines.length - 1].length === 0;
-        this.outputEl.scrollTop = this.outputEl.scrollHeight;
+        this.renderScheduled = true;
+        window.requestAnimationFrame(() => this.flushRenderQueue());
       }
 
       appendSystemMessage(text, fg = "bright_white") {
@@ -613,6 +655,7 @@
       }
 
       clearOutput() {
+        this.renderQueue = [];
         this.outputEl.textContent = "";
         this.outputEndsWithNewline = true;
         this.focusInput();

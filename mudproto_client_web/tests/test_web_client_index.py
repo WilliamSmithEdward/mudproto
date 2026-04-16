@@ -22,5 +22,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "scrollbar-gutter: stable;" in content
     assert "::-webkit-scrollbar" in content
     assert "scrollbar-color: #3a3a3a #070707;" in content
+    assert "requestAnimationFrame" in content
+    assert "createDocumentFragment" in content
+    assert "text-rendering: optimizeLegibility;" in content
     assert "/clear" in content
     assert "/quit" in content
