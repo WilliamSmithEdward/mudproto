@@ -1,6 +1,6 @@
 {
   "network": {
-    "host": "localhost",
+    "host": "0.0.0.0",
     "port": 8765,
     "tls_enabled": true,
     "tls_certfile": "configuration/server/encryption/server-cert.pem",
