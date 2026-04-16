@@ -24,7 +24,9 @@
 
     html, body {
       margin: 0;
+      height: 100%;
       min-height: 100%;
+      overflow: hidden;
       background: var(--bg);
       color: var(--text);
       font-family: Consolas, "Courier New", monospace;
@@ -38,7 +40,9 @@
       display: grid;
       grid-template-rows: auto 1fr auto;
       gap: 12px;
-      min-height: calc(100vh - 28px);
+      height: calc(100vh - 28px);
+      max-height: calc(100vh - 28px);
+      overflow: hidden;
     }
 
     .toolbar,
@@ -54,13 +58,6 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 10px;
-    }
-
-    .title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent);
-      margin-right: 8px;
     }
 
     .status {
@@ -135,6 +132,7 @@
       border-radius: 10px;
       overflow: hidden;
       min-height: 0;
+      max-height: 100%;
     }
 
     .output-header {
@@ -152,7 +150,8 @@
     #output {
       flex: 1 1 auto;
       overflow-y: auto;
-      padding: 14px 28px 16px 14px;
+      scrollbar-gutter: stable;
+      padding: 16px 72px 18px 18px;
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.35;
@@ -189,7 +188,6 @@
 <body>
   <div class="app">
     <div class="toolbar">
-      <div class="title">MudProto Web Client</div>
       <label for="serverUri">Server</label>
       <input id="serverUri" type="text" spellcheck="false" aria-label="Server URI" />
       <button id="connectBtn" type="button">Connect</button>

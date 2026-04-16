@@ -244,7 +244,7 @@ def test_default_server_uri_switches_to_wss_when_tls_enabled(monkeypatch) -> Non
         "tls_enabled": True,
     })
 
-    assert client_gui.default_server_uri() == "wss://example.com:9443"
+    assert client_gui.default_server_uri() == "wss://example.com:9443/"
 
 
 def test_build_client_ssl_context_for_wss_can_disable_verification(monkeypatch) -> None:

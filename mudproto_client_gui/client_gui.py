@@ -88,7 +88,7 @@ def default_server_uri() -> str:
     host = str(network.get("host", "localhost")).strip() or "localhost"
     port = int(network.get("port", 8765))
     scheme = "wss" if bool(network.get("tls_enabled", False)) else "ws"
-    return f"{scheme}://{host}:{port}"
+    return f"{scheme}://{host}:{port}/"
 
 
 def build_client_ssl_context(uri: str) -> ssl.SSLContext | None:
