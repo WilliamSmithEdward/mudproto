@@ -256,13 +256,6 @@ def display_container_examination(
     if isinstance(container, ItemState):
         hydrate_misc_item_from_template(container)
 
-    container_type = str(getattr(container, "item_type", "container")).strip().replace("_", " ").title() or "Container"
-    rows.append(["Type", container_type])
-    row_cell_colors.append(["containers.label_column", "containers.type_value"])
-    rows.append(["Location", str(default_location or "Room")])
-    row_cell_colors.append(["containers.label_column", "containers.location_value"])
-    rows.append(["Carryable", "Yes" if bool(getattr(container, "portable", True)) else "No"])
-    row_cell_colors.append(["containers.label_column", "containers.location_value"])
     status_text = "Open"
     status_color = "containers.status.open"
     if _container_is_locked(container):
