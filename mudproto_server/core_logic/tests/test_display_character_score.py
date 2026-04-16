@@ -141,7 +141,7 @@ def test_score_displays_targeted_support_spell_affect_from_another_player(monkey
 
     assert applied is True
     assert "Regeneration Ward" in rendered
-    assert "Regeneration Ward (Regeneration, 3 rounds remaining)" in score_rendered
+    assert "Regeneration Ward (Health Regeneration, 3 rounds remaining)" in score_rendered
 
 
 def test_score_displays_damage_affect_labels() -> None:
@@ -159,6 +159,23 @@ def test_score_displays_damage_affect_labels() -> None:
     rendered = _extract_display_text(display_character.display_score(session))
 
     assert "Battle Focus (Dealt Damage, 2 rounds remaining)" in rendered
+
+
+def test_score_displays_specific_resource_regeneration_label() -> None:
+    session = _make_session("client-score-mana-regen-label", "Lucia")
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.regeneration",
+        affect_name="Clarity Ward",
+        affect_mode="battle_rounds",
+        affect_type="regeneration",
+        affect_template_name="Regeneration",
+        target_resource="mana",
+        remaining_rounds=2,
+    ))
+
+    rendered = _extract_display_text(display_character.display_score(session))
+
+    assert "Clarity Ward (Mana Regeneration, 2 rounds remaining)" in rendered
 
 
 def test_score_uses_template_name_dynamically_for_affect_label() -> None:

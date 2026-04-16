@@ -68,6 +68,19 @@ def _resolve_effect_label(effect) -> str:
             affect_template = get_affect_template_by_id(affect_id)
             if isinstance(affect_template, dict):
                 template_name = str(affect_template.get("name", "")).strip()
+
+    affect_type = str(getattr(effect, "affect_type", "")).strip().lower()
+    normalized_template_name = template_name.lower()
+    if template_name and affect_type == "regeneration":
+        resource = str(getattr(effect, "target_resource", "hit_points")).strip().lower() or "hit_points"
+        resource_label = {
+            "hit_points": "Health",
+            "mana": "Mana",
+            "vigor": "Vigor",
+        }.get(resource, resource.replace("_", " ").title())
+        if resource_label.lower() not in normalized_template_name:
+            template_name = f"{resource_label} {template_name}"
+
     if template_name and template_name.strip().lower() != effect_name:
         return template_name
     return ""
