@@ -26,15 +26,121 @@ from targeting_follow import (
 )
 
 from .types import OutboundResult
+from world import get_room
 
 
 HandledResult = OutboundResult | None
 
 _WHO_VERBS = {"wh", "who"}
+_SAY_VERBS = {"sa", "say"}
+_YELL_VERBS = {"ye", "yel", "yell"}
+_TELL_VERBS = {"te", "tel", "tell"}
+_GROUP_TELL_VERBS = {"gt"}
+_SHOUT_VERBS = {"sh", "sho", "shou", "shout"}
 
 
 def _display_name(session: ClientSession) -> str:
     return (session.authenticated_character_name or "").strip() or "Unknown"
+
+
+def _iter_online_sessions() -> list[ClientSession]:
+    return [
+        candidate
+        for candidate in _list_online_player_sessions()
+        if candidate.is_connected and not candidate.disconnected_by_server and candidate.is_authenticated
+    ]
+
+
+def _send_realtime_notification(target_session: ClientSession, outbound: dict | list[dict]) -> None:
+    if not target_session.is_connected or target_session.disconnected_by_server:
+        return
+
+    try:
+        asyncio.get_running_loop().create_task(send_outbound(target_session.websocket, outbound))
+    except RuntimeError:
+        return
+
+
+def _build_quote_parts(prefix: str, spoken_text: str) -> list[dict]:
+    return [
+        build_part(prefix, "bright_white"),
+        build_part(f'"{spoken_text}"', "bright_magenta", True),
+    ]
+
+
+def _build_actor_quote_parts(actor_name: str, verb_text: str, spoken_text: str) -> list[dict]:
+    return [
+        build_part(actor_name, "bright_cyan", True),
+        build_part(f" {verb_text}, ", "bright_white"),
+        build_part(f'"{spoken_text}"', "bright_magenta", True),
+    ]
+
+
+def _resolve_online_player_session(selector_text: str) -> tuple[ClientSession | None, str | None]:
+    normalized_selector = str(selector_text).strip().lower()
+    if not normalized_selector:
+        return None, "Provide a player name."
+
+    sessions = _iter_online_sessions()
+    for candidate in sessions:
+        candidate_name = _display_name(candidate).strip().lower()
+        if candidate_name == normalized_selector:
+            return candidate, None
+
+    for candidate in sessions:
+        candidate_name = _display_name(candidate).strip().lower()
+        if candidate_name.startswith(normalized_selector):
+            return candidate, None
+
+    return None, f"No online player named '{selector_text}' was found."
+
+
+def _room_peer_sessions(origin_session: ClientSession) -> list[ClientSession]:
+    return [
+        candidate
+        for candidate in _iter_online_sessions()
+        if candidate.client_id != origin_session.client_id and candidate.player.current_room_id == origin_session.player.current_room_id
+    ]
+
+
+def _zone_peer_sessions(origin_session: ClientSession) -> list[ClientSession]:
+    current_room = get_room(origin_session.player.current_room_id)
+    if current_room is None:
+        return []
+
+    origin_zone_id = str(current_room.zone_id).strip().lower()
+    if not origin_zone_id:
+        return []
+
+    peers: list[ClientSession] = []
+    for candidate in _iter_online_sessions():
+        if candidate.client_id == origin_session.client_id:
+            continue
+        candidate_room = get_room(candidate.player.current_room_id)
+        if candidate_room is None:
+            continue
+        if str(candidate_room.zone_id).strip().lower() != origin_zone_id:
+            continue
+        peers.append(candidate)
+    return peers
+
+
+def _server_peer_sessions(origin_session: ClientSession) -> list[ClientSession]:
+    return [candidate for candidate in _iter_online_sessions() if candidate.client_id != origin_session.client_id]
+
+
+def _handle_group_tell(session: ClientSession, spoken_text: str) -> dict:
+    _leader, group_sessions = _list_group_member_sessions(session)
+    targets = [candidate for candidate in group_sessions if candidate.client_id != session.client_id]
+    if not targets:
+        return display_error("You have no group members to tell.", session)
+
+    actor_name = _display_name(session)
+    for target_session in targets:
+        notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "tells your group", spoken_text))
+        _send_realtime_notification(target_session, notification)
+
+    return display_command_result(session, _build_quote_parts("You tell your group, ", spoken_text))
 
 
 def _notify_follow_target(target_session: ClientSession, follower_name: str) -> None:
@@ -213,6 +319,12 @@ def handle_social_command(
         return _display_online_players(session)
 
     if verb in {"group", "grp", "g", "gr", "gro", "grou", "ungroup"}:
+        if verb != "ungroup" and args and str(args[0]).strip().lower() == "tell":
+            spoken_text = " ".join(args[1:]).strip()
+            if not spoken_text:
+                return display_error("Usage: group tell <text>", session)
+            return _handle_group_tell(session, spoken_text)
+
         if verb == "ungroup":
             selector_text = " ".join(args).strip()
             if not selector_text:
@@ -564,14 +676,72 @@ def handle_social_command(
             build_part(".", "bright_white"),
         ])
 
-    if verb == "say":
+    if verb in _SAY_VERBS:
         spoken_text = " ".join(args).strip()
         if not spoken_text:
             return display_error("Usage: say <text>", session)
 
+        actor_name = _display_name(session)
+        for target_session in _room_peer_sessions(session):
+            notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "says", spoken_text))
+            _send_realtime_notification(target_session, notification)
+
+        return display_command_result(session, _build_quote_parts("You say, ", spoken_text))
+
+    if verb in _YELL_VERBS:
+        spoken_text = " ".join(args).strip()
+        if not spoken_text:
+            return display_error("Usage: yell <text>", session)
+
+        actor_name = _display_name(session)
+        for target_session in _zone_peer_sessions(session):
+            notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "yells", spoken_text))
+            _send_realtime_notification(target_session, notification)
+
+        return display_command_result(session, _build_quote_parts("You yell, ", spoken_text))
+
+    if verb in _TELL_VERBS:
+        if len(args) < 2:
+            return display_error("Usage: tell <player> <text>", session)
+
+        target_selector = str(args[0]).strip()
+        spoken_text = " ".join(args[1:]).strip()
+        if not spoken_text:
+            return display_error("Usage: tell <player> <text>", session)
+
+        target_session, target_error = _resolve_online_player_session(target_selector)
+        if target_session is None:
+            return display_error(target_error or f"No online player named '{target_selector}' was found.", session)
+        if target_session.client_id == session.client_id:
+            return display_error("You cannot tell yourself.", session)
+
+        actor_name = _display_name(session)
+        notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "tells you", spoken_text))
+        _send_realtime_notification(target_session, notification)
+
         return display_command_result(session, [
-            build_part("You say, ", "bright_white"),
+            build_part("You tell ", "bright_white"),
+            build_part(_display_name(target_session), "bright_cyan", True),
+            build_part(", ", "bright_white"),
             build_part(f'"{spoken_text}"', "bright_magenta", True),
         ])
+
+    if verb in _GROUP_TELL_VERBS:
+        spoken_text = " ".join(args).strip()
+        if not spoken_text:
+            return display_error("Usage: gt <text>", session)
+        return _handle_group_tell(session, spoken_text)
+
+    if verb in _SHOUT_VERBS:
+        spoken_text = " ".join(args).strip()
+        if not spoken_text:
+            return display_error("Usage: shout <text>", session)
+
+        actor_name = _display_name(session)
+        for target_session in _server_peer_sessions(session):
+            notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "shouts", spoken_text))
+            _send_realtime_notification(target_session, notification)
+
+        return display_command_result(session, _build_quote_parts("You shout, ", spoken_text))
 
     return None

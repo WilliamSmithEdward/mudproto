@@ -7,7 +7,7 @@ from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None
-_SAVE_ALIASES = {"sa", "sav", "save"}
+_SAVE_ALIASES = {"sav", "save"}
 
 
 def handle_save_command(

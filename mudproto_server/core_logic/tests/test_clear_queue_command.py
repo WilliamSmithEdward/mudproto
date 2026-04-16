@@ -89,7 +89,7 @@ def test_cl_is_not_treated_as_clear_while_lagged() -> None:
 
 
 def test_save_aliases_trigger_immediate_player_state_write(monkeypatch) -> None:
-    for alias in ("sa", "sav", "save"):
+    for alias in ("sav", "save"):
         session = _make_session(f"client-{alias}-save", "Lucia")
         save_calls: list[str] = []
         monkeypatch.setattr(save_handler, "save_player_state", lambda target_session: save_calls.append(target_session.player_state_key))
