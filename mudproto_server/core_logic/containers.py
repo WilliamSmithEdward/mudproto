@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Generic container helpers for item containers and corpses."""
+"""Shared container helpers for all container-like objects."""
 
 import re
 from typing import Literal
@@ -33,12 +33,6 @@ def can_pick_up_item(item: ItemState) -> tuple[bool, str | None]:
 
 
 def _container_label(container: ContainerTarget) -> str:
-    if isinstance(container, CorpseState):
-        return _build_corpse_label(
-            container.source_name,
-            getattr(container, "corpse_label_style", "generic"),
-            is_named=bool(getattr(container, "is_named", False)),
-        )
     return str(getattr(container, "name", "container")).strip() or "container"
 
 
@@ -50,10 +44,7 @@ def _container_definite_label(container: ContainerTarget) -> str:
 
 
 def _container_reference_text(container: ContainerTarget) -> str:
-    label = _container_label(container)
-    if isinstance(container, CorpseState):
-        return label
-    return with_article(label)
+    return with_article(_container_label(container))
 
 
 def _sentence_case(text: str) -> str:
@@ -94,55 +85,49 @@ def _default_container_message(container: ContainerTarget, message_kind: str) ->
 
 
 def _container_item_map(container: ContainerTarget) -> dict[str, ItemState]:
-    if isinstance(container, CorpseState):
-        return container.loot_items
-    return container.container_items
+    return getattr(container, "container_items", {})
 
 
 def _container_coin_amount(container: ContainerTarget) -> int:
-    if isinstance(container, CorpseState):
-        return max(0, int(container.coins))
-    return 0
+    return max(0, int(getattr(container, "coins", 0) or 0))
+
+
+def _set_container_coin_amount(container: ContainerTarget, amount: int) -> None:
+    if hasattr(container, "coins"):
+        setattr(container, "coins", max(0, int(amount)))
 
 
 def _container_can_close(container: ContainerTarget) -> bool:
-    if isinstance(container, CorpseState):
-        return False
-    hydrate_misc_item_from_template(container)
-    return bool(getattr(container, "can_close", True))
+    if isinstance(container, ItemState):
+        hydrate_misc_item_from_template(container)
+    return bool(getattr(container, "can_close", False))
 
 
 def _container_can_lock(container: ContainerTarget) -> bool:
-    if isinstance(container, CorpseState):
-        return False
-    hydrate_misc_item_from_template(container)
+    if isinstance(container, ItemState):
+        hydrate_misc_item_from_template(container)
     return bool(getattr(container, "can_lock", bool(str(getattr(container, "lock_id", "")).strip())))
 
 
 def _container_lock_id(container: ContainerTarget) -> str:
-    if isinstance(container, CorpseState):
-        return ""
-    hydrate_misc_item_from_template(container)
+    if isinstance(container, ItemState):
+        hydrate_misc_item_from_template(container)
     return str(getattr(container, "lock_id", "")).strip().lower()
 
 
 def _container_is_closed(container: ContainerTarget) -> bool:
-    if isinstance(container, CorpseState):
-        return False
-    hydrate_misc_item_from_template(container)
+    if isinstance(container, ItemState):
+        hydrate_misc_item_from_template(container)
     return bool(getattr(container, "is_closed", False))
 
 
 def _container_is_locked(container: ContainerTarget) -> bool:
-    if isinstance(container, CorpseState):
-        return False
-    hydrate_misc_item_from_template(container)
+    if isinstance(container, ItemState):
+        hydrate_misc_item_from_template(container)
     return bool(getattr(container, "is_locked", False))
 
 
 def _container_contents_visible(container: ContainerTarget) -> bool:
-    if isinstance(container, CorpseState):
-        return True
     if _container_is_locked(container):
         return False
     if _container_can_close(container) and _container_is_closed(container):
@@ -151,8 +136,6 @@ def _container_contents_visible(container: ContainerTarget) -> bool:
 
 
 def _container_access_message(container: ContainerTarget) -> str | None:
-    if isinstance(container, CorpseState):
-        return None
     if _container_is_locked(container):
         locked_message = str(getattr(container, "locked_message", "")).strip()
         return locked_message or _default_container_message(container, "locked")
@@ -270,27 +253,26 @@ def display_container_examination(
     rows: list[list[str]] = []
     row_cell_colors: list[list[str]] = []
 
-    if isinstance(container, CorpseState):
-        rows.append(["Type", "Corpse"])
-        row_cell_colors.append(["containers.label_column", "containers.type_value"])
-    else:
+    if isinstance(container, ItemState):
         hydrate_misc_item_from_template(container)
-        rows.append(["Type", "Container"])
-        row_cell_colors.append(["containers.label_column", "containers.type_value"])
-        rows.append(["Location", str(default_location or "Room")])
-        row_cell_colors.append(["containers.label_column", "containers.location_value"])
-        rows.append(["Carryable", "Yes" if bool(getattr(container, "portable", True)) else "No"])
-        row_cell_colors.append(["containers.label_column", "containers.location_value"])
-        status_text = "Open"
-        status_color = "containers.status.open"
-        if _container_is_locked(container):
-            status_text = "Locked"
-            status_color = "containers.status.locked"
-        elif _container_can_close(container) and _container_is_closed(container):
-            status_text = "Closed"
-            status_color = "containers.status.closed"
-        rows.append(["Status", status_text])
-        row_cell_colors.append(["containers.label_column", status_color])
+
+    container_type = str(getattr(container, "item_type", "container")).strip().replace("_", " ").title() or "Container"
+    rows.append(["Type", container_type])
+    row_cell_colors.append(["containers.label_column", "containers.type_value"])
+    rows.append(["Location", str(default_location or "Room")])
+    row_cell_colors.append(["containers.label_column", "containers.location_value"])
+    rows.append(["Carryable", "Yes" if bool(getattr(container, "portable", True)) else "No"])
+    row_cell_colors.append(["containers.label_column", "containers.location_value"])
+    status_text = "Open"
+    status_color = "containers.status.open"
+    if _container_is_locked(container):
+        status_text = "Locked"
+        status_color = "containers.status.locked"
+    elif _container_can_close(container) and _container_is_closed(container):
+        status_text = "Closed"
+        status_color = "containers.status.closed"
+    rows.append(["Status", status_text])
+    row_cell_colors.append(["containers.label_column", status_color])
 
     if _container_contents_visible(container):
         rows.append(["Coins", str(_container_coin_amount(container))])
@@ -319,8 +301,7 @@ def display_container_examination(
                 count = item_counts[item_key]
                 item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
                 rows.append(["Item", item_label])
-                item_color = "containers.item.label" if isinstance(container, CorpseState) else item_colors[item_key]
-                row_cell_colors.append(["containers.item.label", item_color])
+                row_cell_colors.append(["containers.item.label", item_colors[item_key]])
         else:
             rows.append(["Items", "None"])
             row_cell_colors.append(["containers.item.label", "containers.item.empty"])
@@ -337,15 +318,14 @@ def display_container_examination(
         column_alignments=["left", "left"],
     )
 
-    if not isinstance(container, CorpseState):
-        description = str(getattr(container, "description", "")).strip()
-        if description:
-            parts.extend([
-                newline_part(),
-                build_part("Description", "containers.description.heading", True),
-                newline_part(),
-                build_part(description, "containers.description.text"),
-            ])
+    description = str(getattr(container, "description", "")).strip()
+    if description:
+        parts.extend([
+            newline_part(),
+            build_part("Description", "containers.description.heading", True),
+            newline_part(),
+            build_part(description, "containers.description.text"),
+        ])
 
     return display_command_result(session, parts)
 
@@ -365,9 +345,8 @@ def take_all_from_container(session: ClientSession, container: ContainerTarget):
     if not taken_items and taken_coins <= 0:
         return display_error(f"{_sentence_case(_container_reference_text(container))} is empty.", session)
 
-    if isinstance(container, CorpseState):
-        container.coins = 0
     if taken_coins > 0:
+        _set_container_coin_amount(container, 0)
         session.status.coins += taken_coins
 
     for item in taken_items:
@@ -410,8 +389,7 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
         taken_coins = _container_coin_amount(container)
         if taken_coins <= 0:
             return display_error(f"{_container_label(container).title()} has no coins to take.", session)
-        if isinstance(container, CorpseState):
-            container.coins = 0
+        _set_container_coin_amount(container, 0)
         session.status.coins += taken_coins
         return display_command_result(session, [
             build_part("You take ", "bright_white"),
@@ -526,16 +504,8 @@ def handle_container_command(
         return display_error(container_error or f"No container matching '{selector_text}' is here.", session)
 
     container_label = _container_label(container)
-    if isinstance(container, CorpseState):
-        if normalized_verb in {"open", "ope", "op", "close", "clos", "clo", "cl"}:
-            return display_command_result(session, [
-                build_part(f"The {container_label} cannot be opened or closed.", "bright_white"),
-            ])
-        return display_command_result(session, [
-            build_part(f"The {container_label} cannot be locked or unlocked.", "bright_white"),
-        ])
-
-    hydrate_misc_item_from_template(container)
+    if isinstance(container, ItemState):
+        hydrate_misc_item_from_template(container)
     can_close = _container_can_close(container)
     can_lock = _container_can_lock(container)
     lock_id = _container_lock_id(container)

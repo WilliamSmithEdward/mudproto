@@ -29,7 +29,7 @@ def _display_text_colors(outbound: dict) -> dict[str, str]:
     return colors
 
 
-def test_corpse_examination_uses_consistent_item_colors() -> None:
+def test_corpse_examination_uses_standard_container_rules() -> None:
     session = _make_session()
     corpse = CorpseState(
         corpse_id="corpse-1",
@@ -52,9 +52,34 @@ def test_corpse_examination_uses_consistent_item_colors() -> None:
             ),
         },
     )
+    chest = ItemState(
+        item_id="chest-1",
+        name="Travel Chest",
+        item_type="container",
+        portable=False,
+        container_items={
+            "armor-2": ItemState(
+                item_id="armor-2",
+                name="Blackwatch Cuirass",
+                equippable=True,
+                slot="armor",
+                wear_slot="chest",
+            ),
+            "item-2": ItemState(
+                item_id="item-2",
+                name="Shadow Balm",
+                item_type="misc",
+            ),
+        },
+    )
 
-    response = display_container_examination(session, corpse)
-    text_colors = _display_text_colors(response)
+    corpse_response = display_container_examination(session, corpse)
+    chest_response = display_container_examination(session, chest)
+    corpse_colors = _display_text_colors(corpse_response)
+    chest_colors = _display_text_colors(chest_response)
 
-    assert text_colors["Blackwatch Cuirass"] == "bright_magenta"
-    assert text_colors["Shadow Balm"] == "bright_magenta"
+    assert corpse_colors["Blackwatch Cuirass"] == chest_colors["Blackwatch Cuirass"] == "bright_magenta"
+    assert corpse_colors["Shadow Balm"] == chest_colors["Shadow Balm"] == "bright_yellow"
+    assert corpse_colors["Container"] == "bright_yellow"
+    assert corpse_colors["No"] == "bright_white"
+    assert corpse_colors["Open"] == "bright_green"

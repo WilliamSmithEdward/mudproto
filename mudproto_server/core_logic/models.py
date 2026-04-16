@@ -175,6 +175,28 @@ class CorpseState:
     coins: int = 0
     loot_items: dict[str, ItemState] = field(default_factory=dict)
     spawn_sequence: int = 0
+    description: str = ""
+    item_type: str = "container"
+    portable: bool = False
+    can_close: bool = False
+    can_lock: bool = False
+    lock_id: str = ""
+    is_closed: bool = False
+    is_locked: bool = False
+
+    @property
+    def name(self) -> str:
+        from corpse_labels import build_corpse_label
+
+        return build_corpse_label(
+            self.source_name,
+            self.corpse_label_style,
+            is_named=bool(self.is_named),
+        )
+
+    @property
+    def container_items(self) -> dict[str, ItemState]:
+        return self.loot_items
 
 
 @dataclass
