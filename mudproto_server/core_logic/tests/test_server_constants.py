@@ -1,6 +1,6 @@
 from combat_state import get_health_condition
 from display_feedback import _direction_short_label, _direction_sort_key
-from settings import ATTRIBUTE_MAX_CAP, DIRECTION_ALIASES, DIRECTION_SHORT_LABELS, DIRECTION_SORT_ORDER, HEALTH_CONDITION_BANDS, SERVER_TLS_CA_FILE, SERVER_TLS_CERTFILE, SERVER_TLS_ENABLED, SERVER_TLS_KEYFILE
+from settings import ATTRIBUTE_MAX_CAP, DIRECTION_ALIASES, DIRECTION_SHORT_LABELS, DIRECTION_SORT_ORDER, HEALTH_CONDITION_BANDS, PAGINATE_TO, SERVER_TLS_CA_FILE, SERVER_TLS_CERTFILE, SERVER_TLS_ENABLED, SERVER_TLS_KEYFILE
 
 
 def test_direction_maps_are_loaded_and_used_by_prompt_helpers() -> None:
@@ -17,6 +17,7 @@ def test_direction_maps_are_loaded_and_used_by_prompt_helpers() -> None:
 
 def test_attribute_cap_is_loaded_from_server_settings() -> None:
     assert ATTRIBUTE_MAX_CAP == 28
+    assert PAGINATE_TO == 10
 
 
 def test_tls_defaults_are_loaded_from_server_settings() -> None:

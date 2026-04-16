@@ -23,6 +23,9 @@
     "base_player_armor_class": 10,
     "attribute_max_cap": 28
   },
+  "generic": {
+    "paginate_to": 10
+  },
   "session": {
     "max_queued_commands": 5
   },

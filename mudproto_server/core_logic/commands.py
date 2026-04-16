@@ -9,6 +9,14 @@ OutboundMessage = dict[str, object]
 OutboundResult = OutboundMessage | list[OutboundMessage]
 
 
+def _consume_pending_paged_display(session: ClientSession) -> OutboundMessage | None:
+    if not session.pending_paged_displays:
+        return None
+
+    next_page = session.pending_paged_displays.pop(0)
+    return next_page if isinstance(next_page, dict) else None
+
+
 async def process_input_message(message: dict, session: ClientSession) -> OutboundResult:
     payload = message["payload"]
     input_text = payload.get("text")
@@ -21,7 +29,14 @@ async def process_input_message(message: dict, session: ClientSession) -> Outbou
 
     input_text = input_text.strip()
     if not input_text:
+        if session.is_authenticated:
+            next_page = _consume_pending_paged_display(session)
+            if next_page is not None:
+                return next_page
         return display_prompt(session)
+
+    if session.is_authenticated:
+        session.pending_paged_displays.clear()
 
     if not session.is_authenticated:
         from command_handlers.auth import process_auth_input

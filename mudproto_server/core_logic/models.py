@@ -295,3 +295,4 @@ class ClientSession:
     is_connected: bool = True
     disconnected_by_server: bool = False
     pending_death_logout: bool = False
+    pending_paged_displays: list[dict[str, object]] = field(default_factory=list)

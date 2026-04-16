@@ -1,12 +1,14 @@
 import asyncio
 
+import settings
 from attribute_config import player_class_uses_mana
 from combat_state import get_health_condition
-from display_core import build_menu_table_parts, build_part
+from display_core import build_menu_table_parts, build_part, newline_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession
 from player_resources import get_player_resource_caps
 from server_transport import send_outbound
+from session_registry import connected_clients
 from targeting_follow import (
     _add_group_member,
     _clear_follow_state,
@@ -27,6 +29,8 @@ from .types import OutboundResult
 
 
 HandledResult = OutboundResult | None
+
+_WHO_VERBS = {"wh", "who"}
 
 
 def _display_name(session: ClientSession) -> str:
@@ -100,6 +104,54 @@ def _swap_self_with_direct_follower(session: ClientSession, target_session: Clie
     return True, ""
 
 
+def _list_online_player_sessions() -> list[ClientSession]:
+    sessions = [
+        candidate
+        for candidate in connected_clients.values()
+        if candidate.is_connected and not candidate.disconnected_by_server and candidate.is_authenticated
+    ]
+    sessions.sort(key=lambda candidate: (_display_name(candidate).lower(), candidate.client_id))
+    return sessions
+
+
+def _display_online_players(session: ClientSession) -> dict:
+    online_sessions = _list_online_player_sessions()
+    if not online_sessions:
+        session.pending_paged_displays.clear()
+        return display_command_result(session, [
+            build_part("No players are currently online.", "bright_white"),
+        ])
+
+    rows = [[_display_name(candidate)] for candidate in online_sessions]
+    page_size = max(1, int(getattr(settings, "PAGINATE_TO", 10) or 10))
+    page_count = (len(rows) + page_size - 1) // page_size
+    page_messages: list[dict] = []
+
+    for page_index, start in enumerate(range(0, len(rows), page_size), start=1):
+        chunk = rows[start:start + page_size]
+        parts = build_menu_table_parts(
+            f"Players Online ({len(rows)})",
+            ["Name"],
+            chunk,
+            column_colors=["bright_cyan"],
+        )
+        if page_count > 1:
+            parts.extend([
+                newline_part(),
+                build_part(f"Showing {start + 1}-{start + len(chunk)} of {len(rows)}.", "bright_white"),
+            ])
+            if page_index < page_count:
+                parts.extend([
+                    newline_part(),
+                    build_part("Press Enter for more.", "bright_yellow", True),
+                ])
+
+        page_messages.append(display_command_result(session, parts))
+
+    session.pending_paged_displays = page_messages[1:]
+    return page_messages[0]
+
+
 def _build_group_status_parts(session: ClientSession) -> list[dict]:
     leader_session, member_sessions = _list_group_member_sessions(session)
     leader_key = _session_identity_key(leader_session)
@@ -157,6 +209,9 @@ def handle_social_command(
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
+    if verb in _WHO_VERBS:
+        return _display_online_players(session)
+
     if verb in {"group", "grp", "g", "gr", "gro", "grou", "ungroup"}:
         if verb == "ungroup":
             selector_text = " ".join(args).strip()
