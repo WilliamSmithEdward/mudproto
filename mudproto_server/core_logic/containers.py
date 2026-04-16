@@ -57,6 +57,16 @@ def _sentence_case(text: str) -> str:
     return f"{cleaned[:1].upper()}{cleaned[1:]}"
 
 
+def _split_bulk_item_selector(selector_text: str) -> tuple[bool, str]:
+    cleaned = " ".join(str(selector_text).strip().split())
+    lowered = cleaned.lower()
+    if lowered.startswith("all."):
+        return True, cleaned[4:].strip()
+    if lowered.startswith("all "):
+        return True, cleaned[4:].strip()
+    return False, cleaned
+
+
 def _default_container_message(container: ContainerTarget, message_kind: str) -> str:
     container_label = _container_definite_label(container)
 
@@ -315,9 +325,9 @@ def display_container_examination(
         column_alignments=["left", "left"],
     )
 
-    detail_rows: list[tuple[str, list[str], str, str]] = [
-        ("Status", [status_text], "containers.label_column", status_color),
-    ]
+    detail_rows: list[tuple[str, list[str], str, str]] = []
+    if _container_can_close(container):
+        detail_rows.append(("Status", [status_text], "containers.label_column", status_color))
 
     description = str(getattr(container, "description", "")).strip()
     if description:
@@ -426,7 +436,11 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
             build_part(".", "feedback.text"),
         ])
 
-    requested_index, keywords, parse_error = parse_item_selector(item_selector)
+    take_all_matching, filtered_selector = _split_bulk_item_selector(item_selector)
+    if take_all_matching and not filtered_selector:
+        return display_error("Usage: get all.<item> <container>", session)
+
+    requested_index, keywords, parse_error = parse_item_selector(filtered_selector if take_all_matching else item_selector)
     if parse_error is not None:
         return display_error(parse_error, session)
 
@@ -435,6 +449,25 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
     matches = [item for item in container_items if all(keyword in get_item_keywords(item) for keyword in keywords)]
     if not matches:
         return display_error(f"No item matching '{item_selector}' is in {_container_label(container)}.", session)
+
+    if take_all_matching:
+        for matched_item in matches:
+            _container_item_map(container).pop(matched_item.item_id, None)
+            session.inventory_items[matched_item.item_id] = matched_item
+
+        parts = [
+            build_part("You take all matching items from ", "feedback.text"),
+            build_part(_container_reference_text(container), "containers.item.label", True),
+            build_part(".", "feedback.text"),
+        ]
+        for matched_item in matches:
+            parts.extend([
+                newline_part(),
+                build_part("You take ", "feedback.text"),
+                *_build_item_reference_parts(matched_item),
+                build_part(".", "feedback.text"),
+            ])
+        return display_command_result(session, parts)
 
     selected_item = matches[0]
     if requested_index is not None:

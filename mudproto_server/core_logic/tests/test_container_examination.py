@@ -1,4 +1,4 @@
-from containers import display_container_examination
+from containers import display_container_examination, take_item_from_container
 from models import ClientSession, CorpseState, ItemState
 from protocol import utc_now_iso
 
@@ -108,7 +108,8 @@ def test_corpse_examination_uses_standard_container_rules() -> None:
     assert corpse_colors["Item"] == chest_colors["Item"] == "bright_yellow"
     assert corpse_colors["Blackwatch Cuirass"] == chest_colors["Blackwatch Cuirass"] == "bright_magenta"
     assert corpse_colors["Shadow Balm"] == chest_colors["Shadow Balm"] == "bright_yellow"
-    assert corpse_colors["Open"] == "bright_green"
+    assert "Open" not in corpse_colors
+    assert "Status" not in corpse_colors
     assert "Container" not in corpse_colors
     assert "Room" not in corpse_colors
     assert "No" not in corpse_colors
@@ -147,6 +148,8 @@ def test_container_status_and_description_render_below_contents_divider() -> Non
         item_id="chest-3",
         name="Supply Chest",
         item_type="container",
+        can_close=True,
+        is_closed=False,
         description="A broad training chest with neatly sorted supplies.",
         container_items={
             "item-3": ItemState(item_id="item-3", name="Potion of Mending", item_type="potion"),
@@ -164,6 +167,25 @@ def test_container_status_and_description_render_below_contents_divider() -> Non
     assert any("Potion of Mending" in line for line in lines[:divider_indices[-1]])
     assert status_index > divider_indices[-1]
     assert description_index > status_index
+
+
+def test_corpse_examination_omits_status_row_for_non_closable_containers() -> None:
+    session = _make_session()
+    corpse = CorpseState(
+        corpse_id="corpse-2",
+        source_entity_id="npc-2",
+        source_name="Ashen Guard",
+        room_id="start",
+        coins=5,
+        loot_items={},
+    )
+
+    response = display_container_examination(session, corpse)
+    lines = _display_lines(response)
+    text = "\n".join(lines)
+
+    assert "Status" not in text
+    assert "Open" not in text
 
 
 def test_container_wrapped_description_lines_keep_same_style() -> None:
@@ -186,3 +208,25 @@ def test_container_wrapped_description_lines_keep_same_style() -> None:
     assert first_style is not None
     assert second_style == first_style
     assert third_style == first_style
+
+
+def test_take_item_from_container_supports_all_matching_selectors() -> None:
+    for selector in ("all.potion", "all potion"):
+        session = _make_session()
+        chest = ItemState(
+            item_id="chest-bulk",
+            name="Supply Chest",
+            item_type="container",
+            container_items={
+                "item-1": ItemState(item_id="item-1", name="Potion of Mana", item_type="potion", keywords=["potion", "mana"]),
+                "item-2": ItemState(item_id="item-2", name="Potion of Mending", item_type="potion", keywords=["potion", "mending"]),
+                "item-3": ItemState(item_id="item-3", name="Brass Gate Key", item_type="key", keywords=["key", "brass"]),
+            },
+        )
+
+        response = take_item_from_container(session, chest, selector)
+        text = "\n".join(_display_lines(response))
+
+        assert "You take all matching items from" in text
+        assert sorted(item.name for item in session.inventory_items.values()) == ["Potion of Mana", "Potion of Mending"]
+        assert sorted(item.name for item in chest.container_items.values()) == ["Brass Gate Key"]
