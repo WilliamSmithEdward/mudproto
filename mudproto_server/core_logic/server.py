@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import ssl
 import uuid
 
@@ -35,6 +36,55 @@ from session_lifecycle import handle_client_disconnect, reset_session_to_login
 from session_registry import get_connection_count, register_client
 from session_timing import touch_session
 from world_population import initialize_session_entities
+
+
+WEBSOCKET_SERVER_LOGGER_NAME = "mudproto.websocket"
+
+
+def _is_expected_handshake_disconnect(exc: BaseException | None) -> bool:
+    pending = [exc]
+    seen: set[int] = set()
+
+    while pending:
+        current = pending.pop()
+        if current is None:
+            continue
+        marker = id(current)
+        if marker in seen:
+            continue
+        seen.add(marker)
+
+        if isinstance(current, EOFError):
+            return True
+        if isinstance(current, websockets.exceptions.InvalidMessage) and "did not receive a valid HTTP request" in str(current):
+            return True
+
+        pending.append(current.__cause__)
+        pending.append(current.__context__)
+
+    return False
+
+
+class _SuppressExpectedHandshakeNoise(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.getMessage() != "opening handshake failed":
+            return True
+
+        exc_info = record.exc_info
+        exception = exc_info[1] if exc_info is not None and len(exc_info) >= 2 else None
+        if isinstance(exception, BaseException) and _is_expected_handshake_disconnect(exception):
+            record.msg = "WebSocket handshake closed before a valid request was received."
+            record.args = ()
+            record.exc_info = None
+
+        return True
+
+
+def _build_websocket_logger() -> logging.Logger:
+    logger = logging.getLogger(WEBSOCKET_SERVER_LOGGER_NAME)
+    if not any(isinstance(existing_filter, _SuppressExpectedHandshakeNoise) for existing_filter in logger.filters):
+        logger.addFilter(_SuppressExpectedHandshakeNoise())
+    return logger
 
 
 def _build_server_ssl_context() -> ssl.SSLContext | None:
@@ -126,8 +176,16 @@ async def main():
     ssl_context = _build_server_ssl_context()
     scheme = "wss" if ssl_context is not None else "ws"
 
+    websocket_logger = _build_websocket_logger()
+
     try:
-        async with websockets.serve(handle_connection, SERVER_HOST, SERVER_PORT, ssl=ssl_context):
+        async with websockets.serve(
+            handle_connection,
+            SERVER_HOST,
+            SERVER_PORT,
+            ssl=ssl_context,
+            logger=websocket_logger,
+        ):
             print(f"Server listening on {scheme}://{SERVER_HOST}:{SERVER_PORT}")
             await asyncio.Future()
     finally:
