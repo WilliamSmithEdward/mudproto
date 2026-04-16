@@ -14,6 +14,20 @@ An easily customizable and extendable, server-authoritative MUD framework built 
 
 ![MudProto gameplay screenshot](/images/mudproto_01.png)
 
+<div align="center">
+
+## 🎮 Play MudProto Live
+
+### Hey, you can play the game here right now:
+
+## [Enter the live web client](https://williamsmithedward.github.io/mudproto/mudproto_client_web/)
+
+No install required — just open the link and jump in.
+
+</div>
+
+> Tip: for the smoothest experience, use the live web client above or the desktop GUI client from this repo.
+
 ## Quick Start
 
 ```bash
