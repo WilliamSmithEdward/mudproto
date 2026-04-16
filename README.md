@@ -1,20 +1,20 @@
-<div align="center">
+<h1 align="center">MudProto</h1>
 
-# MudProto
+<p align="center">
+  A customizable, extensible, server-authoritative MUD framework built in Python.
+</p>
 
-A customizable, extensible, server-authoritative MUD framework built in Python.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white" alt="Python 3.12+" /></a>
+  <a href="https://websockets.readthedocs.io"><img src="https://img.shields.io/badge/WebSockets-async-4B8BBE" alt="WebSockets" /></a>
+  <a href="https://sqlite.org"><img src="https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite&logoColor=white" alt="SQLite" /></a>
+  <a href="https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml"><img src="https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
-[![WebSockets](https://img.shields.io/badge/WebSockets-async-4B8BBE)](https://websockets.readthedocs.io)
-[![SQLite](https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
-[![CI](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml)
+<p align="center"><strong>Play MudProto live in your browser</strong></p>
 
-<br>
-
-<strong>Play MudProto live in your browser</strong>
-
-<p>
+<p align="center">
   <a href="https://williamsmithedward.github.io/mudproto/mudproto_client_web/">
     <img
       src="https://img.shields.io/badge/Play-Live%20Web%20Client-2ea44f?style=for-the-badge"
@@ -28,13 +28,9 @@ A customizable, extensible, server-authoritative MUD framework built in Python.
   <strong>Live demo.</strong> No install required.
 </p>
 
-<br>
-
 <p align="center">
   <img src="images/mudproto_01.png" alt="MudProto gameplay screenshot" />
 </p>
-
-</div>
 
 ## Quick Start
 
@@ -136,29 +132,29 @@ Full process details: [LLM_CONTENT_GENERATION.md](LLM_CONTENT_GENERATION.md).
 
 ```text
 mudproto/
-|- ARCHITECTURE.md
-|- ASSET_GENERATION.md
-|- LLM_CONTENT_GENERATION.md
-|- mudproto_client_gui/
-|  |- client_gui.py
-|- mudproto_llm_interfaces/
-|  |- generate_asset_payload_generation_instructions.py
-|  |- asset_payload_generation_instructions.json
-|- mudproto_server/
-|  |- configuration/
-|  |  |- server/
-|  |  |  |- settings.json
-|  |  |  |- directions.json
-|  |  |  |- health_conditions.json
-|  |  |  |- display_feedback.json
-|  |  |- assets/
-|  |  |- attributes/
-|  |- core_logic/
-|     |- server.py
-|     |- command_handlers/
-|     |- tests/
-|- images/
-|- README.md
+├── ARCHITECTURE.md
+├── ASSET_GENERATION.md
+├── LLM_CONTENT_GENERATION.md
+├── mudproto_client_gui/
+│   └── client_gui.py
+├── mudproto_llm_interfaces/
+│   ├── generate_asset_payload_generation_instructions.py
+│   └── asset_payload_generation_instructions.json
+├── mudproto_server/
+│   ├── configuration/
+│   │   ├── server/
+│   │   │   ├── settings.json
+│   │   │   ├── directions.json
+│   │   │   ├── health_conditions.json
+│   │   │   └── display_feedback.json
+│   │   ├── assets/
+│   │   └── attributes/
+│   └── core_logic/
+│       ├── server.py
+│       ├── command_handlers/
+│       └── tests/
+├── images/
+└── README.md
 ```
 
 ## Development Notes
@@ -192,14 +188,6 @@ python -m pytest
 
 MudProto is designed to be practical to run, straightforward to read, and easy to extend.
 
-<div align="center">
+<p align="center"><sub>────────────</sub></p>
 
-<sub>────────────</sub>
-
-</div>
-
-<div align="center">
-
-*Roll for initiative.* 🎲
-
-</div>
+<p align="center"><em>Roll for initiative.</em> 🎲</p>

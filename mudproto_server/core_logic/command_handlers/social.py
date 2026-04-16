@@ -64,15 +64,15 @@ def _send_realtime_notification(target_session: ClientSession, outbound: dict | 
 def _build_quote_parts(prefix: str, spoken_text: str) -> list[dict]:
     return [
         build_part(prefix, "bright_white"),
-        build_part(f'"{spoken_text}"', "bright_magenta", True),
+        build_part(f'"{spoken_text}"', "bright_white"),
     ]
 
 
 def _build_actor_quote_parts(actor_name: str, verb_text: str, spoken_text: str) -> list[dict]:
     return [
-        build_part(actor_name, "bright_cyan", True),
+        build_part(actor_name, "bright_white"),
         build_part(f" {verb_text}, ", "bright_white"),
-        build_part(f'"{spoken_text}"', "bright_magenta", True),
+        build_part(f'"{spoken_text}"', "bright_white"),
     ]
 
 

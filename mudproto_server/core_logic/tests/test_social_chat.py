@@ -26,6 +26,29 @@ def _extract_display_text(outbound: dict | list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _extract_display_colors(outbound: dict | list[dict]) -> set[str]:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    colors: set[str] = set()
+    for message in messages:
+        if not isinstance(message, dict) or message.get("type") != "display":
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        raw_lines = payload.get("lines", [])
+        if not isinstance(raw_lines, list):
+            continue
+        for line in raw_lines:
+            if not isinstance(line, list):
+                continue
+            for part in line:
+                if isinstance(part, dict):
+                    color = str(part.get("fg", "")).strip()
+                    if color:
+                        colors.add(color)
+    return colors
+
+
 def _make_session(client_id: str, name: str, room_id: str) -> ClientSession:
     from protocol import utc_now_iso
 
@@ -50,6 +73,36 @@ def _install_room_map(monkeypatch) -> None:
         "room-c": Room(room_id="room-c", title="Room C", description="", zone_id="zone-beta"),
     }
     monkeypatch.setattr(social, "get_room", lambda room_id: room_map.get(room_id))
+
+
+def test_chat_messages_use_neutral_colors(monkeypatch) -> None:
+    _clear_session_registries()
+    _install_room_map(monkeypatch)
+
+    speaker = _make_session("client-speaker", "Ragnar", "start")
+    peer = _make_session("client-peer", "Orlandu", "start")
+    connected_clients[speaker.client_id] = speaker
+    connected_clients[peer.client_id] = peer
+
+    notifications: list[tuple[object, dict | list[dict]]] = []
+
+    async def fake_send_outbound(websocket, outbound):
+        notifications.append((websocket, outbound))
+        return True
+
+    monkeypatch.setattr(social, "send_outbound", fake_send_outbound)
+
+    async def _scenario() -> None:
+        response = dispatch_command(speaker, "sa hello there")
+        assert _extract_display_colors(response) == {"bright_white"}
+        await asyncio.sleep(0)
+
+    asyncio.run(_scenario())
+
+    assert len(notifications) == 1
+    assert _extract_display_colors(notifications[0][1]) == {"bright_white"}
+
+    _clear_session_registries()
 
 
 def test_say_alias_broadcasts_to_room_peers(monkeypatch) -> None:
