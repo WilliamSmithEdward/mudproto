@@ -14,6 +14,7 @@ from session_bootstrap import apply_player_class, ensure_player_attributes
 from session_registry import (
     active_character_sessions,
     attach_session_to_shared_world,
+    connected_clients,
     offline_character_tasks,
     unregister_client,
 )
@@ -106,6 +107,78 @@ def hydrate_session_from_active_character(target_session: ClientSession, charact
     return True
 
 
+def _invalidate_replaced_session(session: ClientSession) -> None:
+    session.is_authenticated = False
+    session.auth_stage = "awaiting_character_or_start"
+    session.authenticated_character_name = ""
+    session.player_state_key = ""
+    session.pending_character_name = ""
+    session.pending_password = ""
+    session.pending_gender = ""
+    session.following_player_key = ""
+    session.following_player_name = ""
+    session.watch_player_key = ""
+    session.watch_player_name = ""
+    session.group_leader_key = ""
+    session.group_member_keys.clear()
+    session.pending_private_lines = []
+    session.pending_paged_displays = []
+    session.command_queue.clear()
+    session.lag_until_monotonic = None
+    session.prompt_pending_after_lag = False
+    session.pending_death_logout = False
+    session.is_connected = False
+    session.disconnected_by_server = True
+
+
+async def _close_replaced_session_websocket(session: ClientSession) -> None:
+    websocket = getattr(session, "websocket", None)
+    close_method = getattr(websocket, "close", None)
+    if not callable(close_method):
+        return
+
+    try:
+        await close_method(code=4002, reason="Logged in from another session")
+    except Exception:
+        pass
+
+
+def disconnect_other_character_sessions(session: ClientSession, character_key: str) -> None:
+    normalized_key = character_key.strip().lower()
+    if not normalized_key:
+        return
+
+    stop_offline_character_processing(normalized_key)
+
+    candidates: list[ClientSession] = []
+    seen_ids: set[int] = set()
+    for candidate in list(connected_clients.values()) + list(active_character_sessions.values()):
+        if candidate is session:
+            continue
+        marker = id(candidate)
+        if marker in seen_ids:
+            continue
+        seen_ids.add(marker)
+
+        if candidate.player_state_key.strip().lower() != normalized_key:
+            continue
+        candidates.append(candidate)
+
+    for candidate in candidates:
+        if candidate.scheduler_task is not None:
+            candidate.scheduler_task.cancel()
+
+        if active_character_sessions.get(normalized_key) is candidate:
+            active_character_sessions.pop(normalized_key, None)
+
+        _invalidate_replaced_session(candidate)
+
+        try:
+            asyncio.create_task(_close_replaced_session_websocket(candidate))
+        except RuntimeError:
+            pass
+
+
 def register_authenticated_character_session(session: ClientSession) -> None:
     normalized_key = session.player_state_key.strip().lower()
     if not normalized_key:
@@ -159,6 +232,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     session.disconnected_by_server = False
     session.auth_stage = "authenticated"
     register_authenticated_character_session(session)
+    disconnect_other_character_sessions(session, character_key)
 
     if (
         (not resumed_from_active and not loaded_state)
