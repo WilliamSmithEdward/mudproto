@@ -29,6 +29,17 @@ def _display_text_colors(outbound: dict) -> dict[str, str]:
     return colors
 
 
+def _display_lines(outbound: dict) -> list[str]:
+    payload = outbound.get("payload", {})
+    lines = payload.get("lines", [])
+    rendered_lines: list[str] = []
+    for line in lines:
+        if not isinstance(line, list):
+            continue
+        rendered_lines.append("".join(str(part.get("text", "")) for part in line if isinstance(part, dict)))
+    return rendered_lines
+
+
 def test_corpse_examination_uses_standard_container_rules() -> None:
     session = _make_session()
     corpse = CorpseState(
@@ -86,3 +97,30 @@ def test_corpse_examination_uses_standard_container_rules() -> None:
     assert "Container" not in corpse_colors
     assert "Room" not in corpse_colors
     assert "No" not in corpse_colors
+
+
+def test_container_description_wraps_within_contents_column() -> None:
+    session = _make_session()
+    long_description = (
+        "A weathered cedar chest bound in dark iron bands rests beneath the loft rafters, "
+        "sturdy and too awkward to carry off whole."
+    )
+    chest = ItemState(
+        item_id="chest-2",
+        name="Weathered Chest",
+        item_type="container",
+        can_close=True,
+        is_closed=True,
+        is_locked=True,
+        description=long_description,
+    )
+
+    response = display_container_examination(session, chest)
+    lines = _display_lines(response)
+    text = "\n".join(lines)
+
+    assert "Description" in text
+    assert not any(line.strip() == long_description for line in lines)
+    assert any("A weathered cedar chest bound in dark iron bands rests" in line for line in lines)
+    assert any("beneath the loft rafters, sturdy and too awkward to carry" in line for line in lines)
+    assert any("off whole." in line for line in lines)

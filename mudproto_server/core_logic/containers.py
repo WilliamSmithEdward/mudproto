@@ -3,6 +3,7 @@ from __future__ import annotations
 """Shared container helpers for all container-like objects."""
 
 import re
+from textwrap import wrap
 from typing import Literal
 
 from display_core import build_menu_table_parts, build_part, newline_part
@@ -17,6 +18,8 @@ from targeting_items import _list_room_ground_items, _resolve_inventory_selector
 
 ContainerLocation = Literal["room", "inventory", "corpse"]
 ContainerTarget = CorpseState | ItemState
+
+_CONTAINER_DESCRIPTION_COLUMN_WIDTH = 58
 
 
 def is_item_container(item: ItemState) -> bool:
@@ -305,6 +308,15 @@ def display_container_examination(
         rows.append(["Contents", "Hidden while closed"])
         row_cell_colors.append(["containers.item.label", "containers.contents.hidden"])
 
+    description = str(getattr(container, "description", "")).strip()
+    if description:
+        wrapped_description = wrap(description, width=_CONTAINER_DESCRIPTION_COLUMN_WIDTH) or [description]
+        rows.append(["Description", wrapped_description[0]])
+        row_cell_colors.append(["containers.description.heading", "containers.description.text"])
+        for continuation_line in wrapped_description[1:]:
+            rows.append(["", continuation_line])
+            row_cell_colors.append(["containers.description.heading", "containers.description.text"])
+
     parts = build_menu_table_parts(
         title,
         ["Loot", "Contents"],
@@ -313,15 +325,6 @@ def display_container_examination(
         row_cell_colors=row_cell_colors,
         column_alignments=["left", "left"],
     )
-
-    description = str(getattr(container, "description", "")).strip()
-    if description:
-        parts.extend([
-            newline_part(),
-            build_part("Description", "containers.description.heading", True),
-            newline_part(),
-            build_part(description, "containers.description.text"),
-        ])
 
     return display_command_result(session, parts)
 
