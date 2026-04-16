@@ -319,7 +319,8 @@ def display_container_examination(
                 count = item_counts[item_key]
                 item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
                 rows.append(["Item", item_label])
-                row_cell_colors.append(["bright_magenta", item_colors[item_key]])
+                item_color = "bright_magenta" if isinstance(container, CorpseState) else item_colors[item_key]
+                row_cell_colors.append(["bright_magenta", item_color])
         else:
             rows.append(["Items", "None"])
             row_cell_colors.append(["bright_magenta", "bright_black"])

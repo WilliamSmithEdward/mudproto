@@ -421,7 +421,7 @@ def load_item_templates() -> list[dict]:
     normalized_templates_by_id: dict[str, dict] = {}
     ordered_template_ids: list[str] = []
     allowed_effect_targets = {"hit_points", "mana", "vigor"}
-    allowed_item_types = {"consumable", "key", "misc", "container"}
+    allowed_item_types = {"consumable", "potion", "key", "misc", "container"}
     configured_attribute_ids = {
         str(attribute.get("attribute_id", "")).strip().lower()
         for attribute in load_attributes()
@@ -445,7 +445,7 @@ def load_item_templates() -> list[dict]:
             raw_item_type = "consumable" if effect_type else "misc"
         if raw_item_type not in allowed_item_types:
             raise ValueError(
-                f"Item asset '{template_id}' item_type must be one of: consumable, key, misc, container."
+                f"Item asset '{template_id}' item_type must be one of: consumable, potion, key, misc, container."
             )
 
         raw_persistent = raw_template.get("persistent")
@@ -500,7 +500,7 @@ def load_item_templates() -> list[dict]:
 
         if normalized_template_id in normalized_templates_by_id and not is_payload_override:
             raise ValueError(f"Duplicate item template_id: {template_id}")
-        if raw_item_type == "consumable":
+        if raw_item_type in {"consumable", "potion"}:
             if effect_type != "restore" and not affect_ids:
                 raise ValueError(f"Item asset '{template_id}' effect_type must be 'restore'.")
             if effect_type == "restore" and effect_target not in allowed_effect_targets:

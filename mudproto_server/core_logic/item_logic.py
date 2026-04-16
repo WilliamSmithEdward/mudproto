@@ -71,6 +71,8 @@ def _resolve_item_kind_label(item: ItemState) -> str:
     item_type = str(getattr(item, "item_type", "misc")).strip().lower()
     if item_type == "key":
         return "Key"
+    if item_type == "potion":
+        return "Potion"
     if item_type == "consumable":
         return "Consumable"
     if item_type == "container":
@@ -147,14 +149,26 @@ def _find_item_template_for_misc_item(misc_item) -> dict | None:
     return None
 
 
-def _is_potion_template(template: dict) -> bool:
-    template_name = str(template.get("name", "")).strip().lower()
-    keywords = {
-        str(keyword).strip().lower()
-        for keyword in template.get("keywords", [])
-        if str(keyword).strip()
-    }
-    return "potion" in keywords or "potion" in template_name
+def _resolve_template_item_type(item: ItemState | None = None, template: dict | None = None) -> str:
+    item_type = ""
+    if item is not None:
+        item_type = str(getattr(item, "item_type", "")).strip().lower()
+        if item_type and item_type != "misc":
+            return item_type
+
+    if isinstance(template, dict):
+        template_item_type = str(template.get("item_type", "")).strip().lower()
+        if template_item_type:
+            return template_item_type
+
+        if str(template.get("effect_type", "")).strip():
+            return "consumable"
+
+    return item_type
+
+
+def _is_potion_template(template: dict, item: ItemState | None = None) -> bool:
+    return _resolve_template_item_type(item, template) == "potion"
 
 
 def _get_potion_cooldown_rounds() -> int:
@@ -165,13 +179,17 @@ def _get_potion_cooldown_rounds() -> int:
     return max(0, int(potion_config.get("cooldown_rounds", 0)))
 
 
-def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
+def _use_misc_item(session: ClientSession, selector: str, *, verb: str = "use") -> OutboundResult:
+    normalized_verb = str(verb or "use").strip().lower() or "use"
+    is_quaff = normalized_verb in {"qu", "qua", "quaf", "quaff"}
+
     if not selector.strip():
+        usage_text = "Usage: quaff <potion>" if is_quaff else "Usage: use <item>"
         return display_error(
-            "Usage: use <item>",
+            usage_text,
             session,
             error_code="usage",
-            error_context={"usage": "use <item>"},
+            error_context={"usage": usage_text},
         )
 
     misc_item, resolve_error = _resolve_misc_inventory_selector(session, selector)
@@ -188,6 +206,15 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
         )
 
     hydrate_misc_item_from_template(misc_item, template)
+    is_potion = _is_potion_template(template, misc_item)
+    if is_quaff and not is_potion:
+        return display_error(
+            "You can only quaff potions.",
+            session,
+            error_code="item-not-potion",
+            error_context={"item": misc_item.name},
+        )
+
     effect_type = str(template.get("effect_type", "restore")).strip().lower() or "restore"
     effect_target = str(template.get("effect_target", "")).strip().lower()
     effect_amount = max(0, int(template.get("effect_amount", 0)))
@@ -204,7 +231,6 @@ def _use_misc_item(session: ClientSession, selector: str) -> OutboundResult:
             error_context={"item": misc_item.name},
         )
 
-    is_potion = _is_potion_template(template)
     if is_potion:
         import time
         remaining = session.combat.potion_cooldown_until - time.monotonic()

@@ -33,10 +33,12 @@
         "default": "consumable",
         "allowed_values": [
           "consumable",
+          "potion",
           "key",
           "misc",
           "container"
-        ]
+        ],
+        "notes": "Use potion directly for potion items instead of a separate subtype field."
       },
       "effect_type": {
         "type": "string",

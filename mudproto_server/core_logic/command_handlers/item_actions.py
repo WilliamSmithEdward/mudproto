@@ -128,14 +128,17 @@ def handle_item_drop_command(
     return display_error(inventory_error or "Unable to resolve inventory selector.", session)
 
 
+_QUAFF_VERBS = {"qu", "qua", "quaf", "quaff"}
+
+
 def handle_item_use_command(
     session: ClientSession,
     verb: str,
     args: list[str],
     _command_text: str,
 ) -> HandledResult:
-    if verb != "use":
+    if verb not in ({"use"} | _QUAFF_VERBS):
         return None
 
     selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
-    return _use_misc_item(session, selector)
+    return _use_misc_item(session, selector, verb=verb)
