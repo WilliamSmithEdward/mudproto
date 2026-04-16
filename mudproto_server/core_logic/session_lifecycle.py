@@ -2,7 +2,7 @@ import asyncio
 
 from combat_state import maybe_auto_engage_current_room
 from display_core import build_line, build_part
-from display_feedback import display_error
+from display_feedback import display_command_result, display_error
 from display_room import display_room
 from grammar import normalize_player_gender
 from inventory import hydrate_misc_item_from_template
@@ -10,6 +10,7 @@ from models import ClientSession
 from room_actions import prepend_room_enter_communications
 from player_resources import clamp_player_resources_to_caps
 from player_state_db import clear_transient_interaction_flags_for_session, load_player_state, save_player_state
+from server_transport import send_outbound
 from session_bootstrap import apply_player_class, ensure_player_attributes
 from session_registry import (
     active_character_sessions,
@@ -191,6 +192,39 @@ def register_authenticated_character_session(session: ClientSession) -> None:
     active_character_sessions[normalized_key] = session
 
 
+def _iter_authenticated_room_peers(origin_session: ClientSession) -> list[ClientSession]:
+    room_id = str(origin_session.player.current_room_id).strip()
+    if not room_id:
+        return []
+
+    peers: list[ClientSession] = []
+    for candidate in connected_clients.values():
+        if candidate.client_id == origin_session.client_id:
+            continue
+        if not candidate.is_authenticated or not candidate.is_connected or candidate.disconnected_by_server:
+            continue
+        if str(candidate.player.current_room_id).strip() != room_id:
+            continue
+        peers.append(candidate)
+    return peers
+
+
+def _announce_room_connection_state(origin_session: ClientSession, state_text: str) -> None:
+    actor_name = (origin_session.authenticated_character_name or "").strip() or "Someone"
+    if not actor_name or not origin_session.is_authenticated:
+        return
+
+    for peer in _iter_authenticated_room_peers(origin_session):
+        outbound = display_command_result(peer, [
+            build_part(actor_name, "bright_white", True),
+            build_part(f" has {state_text}.", "bright_white"),
+        ], compact=True)
+        try:
+            asyncio.get_running_loop().create_task(send_outbound(peer.websocket, outbound))
+        except RuntimeError:
+            return
+
+
 def complete_login(session: ClientSession, character_record: dict, *, is_new_character: bool) -> dict | list[dict]:
     character_key = str(character_record.get("character_key", "")).strip()
     character_name = str(character_record.get("character_name", "")).strip()
@@ -267,6 +301,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
             else:
                 payload["lines"] = [greeting_line, blank_line] + lines
     prepend_room_enter_communications(room_display, session, login_room.room_id)
+    _announce_room_connection_state(session, "connected")
 
     maybe_auto_engage_current_room(session)
     return room_display
@@ -356,6 +391,8 @@ def start_offline_character_processing(session: ClientSession) -> None:
 
 
 def handle_client_disconnect(session: ClientSession) -> None:
+    if session.is_authenticated:
+        _announce_room_connection_state(session, "disconnected")
     unregister_client(session.client_id)
     if session.is_authenticated:
         clear_transient_interaction_flags_for_session(session)
