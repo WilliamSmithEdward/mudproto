@@ -114,7 +114,18 @@ def test_score_displays_targeted_support_spell_affect_from_another_player(monkey
         "support_amount": 1,
         "support_mode": "instant",
         "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
-        "affect_ids": ["affect.regeneration"],
+        "affect_ids": [{
+            "affect_id": "affect.regeneration",
+            "name": "Regeneration Ward",
+            "target": "target",
+            "affect_mode": "battle_rounds",
+            "target_resource": "hit_points",
+            "amount": 0,
+            "dice_count": 1,
+            "dice_sides": 21,
+            "roll_modifier": 39,
+            "duration_rounds": 3,
+        }],
     }
 
     monkeypatch.setattr(

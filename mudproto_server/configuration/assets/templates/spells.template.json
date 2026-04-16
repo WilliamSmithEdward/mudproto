@@ -159,7 +159,7 @@
         "type": "array[string]",
         "required": false,
         "default": [],
-        "notes": "Array of affect template ids defined in configuration/attributes/affects.json. Only string references are supported. Available templates: affect.increase-received-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction."
+        "notes": "Array of affect references defined in configuration/attributes/affects.json. Entries may be strings or objects with affect_id plus override fields. Common templates: affect.received-damage, affect.dealt-damage, affect.regeneration, affect.extra-hits."
       },
       "support_amount": {
         "type": "integer",

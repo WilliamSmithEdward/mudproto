@@ -1,52 +1,26 @@
 [
   {
-    "affect_id": "affect.increase-received-damage",
-    "name": "Pressure Point",
-    "target": "target",
+    "affect_id": "affect.received-damage",
+    "name": "Received Damage",
     "affect_mode": "battle_rounds",
-    "affect_type": "damage_received_multiplier",
-    "damage_elements": ["physical"],
-    "amount": 1.1,
-    "scaling_attribute_id": "dex",
-    "scaling_multiplier": 0.01,
-    "duration_rounds": 3
+    "affect_type": "damage_received_multiplier"
+  },
+  {
+    "affect_id": "affect.dealt-damage",
+    "name": "Dealt Damage",
+    "affect_mode": "battle_rounds",
+    "affect_type": "damage_dealt_multiplier"
   },
   {
     "affect_id": "affect.regeneration",
-    "name": "Regeneration Ward",
-    "target": "self",
+    "name": "Regeneration",
     "affect_mode": "battle_rounds",
-    "affect_type": "regeneration",
-    "target_resource": "hit_points",
-    "amount": 0,
-    "dice_count": 1,
-    "dice_sides": 21,
-    "roll_modifier": 39,
-    "scaling_attribute_id": "wis",
-    "scaling_multiplier": 1.0,
-    "duration_rounds": 3
+    "affect_type": "regeneration"
   },
   {
     "affect_id": "affect.extra-hits",
-    "name": "Fist Flurry",
-    "target": "self",
+    "name": "Extra Hits",
     "affect_mode": "battle_rounds",
-    "affect_type": "extra_hits",
-    "extra_main_hand_hits": 0,
-    "extra_off_hand_hits": 0,
-    "extra_unarmed_hits": 2,
-    "hits_per_level_step": 1,
-    "level_step": 5
-  },
-  {
-    "affect_id": "affect.damage-reduction",
-    "name": "Centered Guard",
-    "target": "self",
-    "affect_mode": "battle_rounds",
-    "affect_type": "damage_reduction",
-    "amount": 2,
-    "scaling_attribute_id": "con",
-    "scaling_multiplier": 0.5,
-    "level_scaling_multiplier": 0.5
+    "affect_type": "extra_hits"
   }
 ]

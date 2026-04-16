@@ -18,12 +18,14 @@ from player_resources import get_player_resource_caps
 
 _AFFECT_TYPE_REGENERATION = "regeneration"
 _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER = "damage_received_multiplier"
+_AFFECT_TYPE_DAMAGE_DEALT_MULTIPLIER = "damage_dealt_multiplier"
 _AFFECT_TYPE_EXTRA_HITS = "extra_hits"
 _AFFECT_TYPE_DAMAGE_REDUCTION = "damage_reduction"
 _AFFECT_MODES = {"instant", "timed", "battle_rounds"}
 _AFFECT_TYPES = {
     _AFFECT_TYPE_REGENERATION,
     _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER,
+    _AFFECT_TYPE_DAMAGE_DEALT_MULTIPLIER,
     _AFFECT_TYPE_EXTRA_HITS,
     _AFFECT_TYPE_DAMAGE_REDUCTION,
 }
@@ -68,15 +70,28 @@ def _resolve_ability_affects(ability: dict) -> list[dict]:
 
     resolved_affects: list[dict] = []
     seen_affect_ids: set[str] = set()
-    for raw_affect_id in raw_affect_ids:
-        affect_id = str(raw_affect_id).strip().lower()
+    for raw_affect_ref in raw_affect_ids:
+        override_payload: dict = {}
+        if isinstance(raw_affect_ref, str):
+            affect_id = str(raw_affect_ref).strip().lower()
+        elif isinstance(raw_affect_ref, dict):
+            override_payload = dict(raw_affect_ref)
+            affect_id = str(override_payload.get("affect_id", "")).strip().lower()
+        else:
+            continue
+
         if not affect_id or affect_id in seen_affect_ids:
             continue
-        affect = get_affect_template_by_id(affect_id)
-        if not isinstance(affect, dict):
+
+        affect_template = get_affect_template_by_id(affect_id)
+        if not isinstance(affect_template, dict):
             continue
+
+        resolved_affect = dict(affect_template)
+        resolved_affect.update(override_payload)
+        resolved_affect["affect_id"] = affect_id
         seen_affect_ids.add(affect_id)
-        resolved_affects.append(dict(affect))
+        resolved_affects.append(resolved_affect)
 
     return resolved_affects
 
@@ -88,17 +103,17 @@ def _resolve_affect_scaling_bonus(actor: object, affect: dict) -> float:
     power_scaling_multiplier = float(affect.get("power_scaling_multiplier", 0.0))
 
     scaling_bonus = 0.0
-    if scaling_attribute_id and scaling_multiplier > 0.0 and isinstance(actor, ClientSession):
+    if scaling_attribute_id and scaling_multiplier != 0.0 and isinstance(actor, ClientSession):
         attribute_value = get_player_effective_attribute(actor, scaling_attribute_id)
         scaling_bonus += float(attribute_value) * scaling_multiplier
 
-    if level_scaling_multiplier > 0.0 and isinstance(actor, ClientSession):
+    if level_scaling_multiplier != 0.0 and isinstance(actor, ClientSession):
         scaling_bonus += float(max(1, int(actor.player.level))) * level_scaling_multiplier
 
-    if power_scaling_multiplier > 0.0 and isinstance(actor, EntityState):
+    if power_scaling_multiplier != 0.0 and isinstance(actor, EntityState):
         scaling_bonus += float(max(0, int(actor.power_level))) * power_scaling_multiplier
 
-    return max(0.0, scaling_bonus)
+    return float(scaling_bonus)
 
 
 def _ensure_affect_list(target: object) -> list[ActiveAffectState] | None:
@@ -118,12 +133,19 @@ def _roll_affect_amount(effect: ActiveAffectState) -> float:
     if dice_count > 0 and dice_sides > 0:
         rolled_amount += sum(random.randint(1, dice_sides) for _ in range(dice_count))
 
-    return max(0.0, float(rolled_amount))
+    return float(rolled_amount)
+
+
+def _coerce_affect_multiplier(raw_amount: float) -> float:
+    amount = float(raw_amount)
+    if -1.0 < amount < 1.0:
+        return max(0.0, 1.0 + amount)
+    return max(0.0, amount)
 
 
 def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState], *, damage_element: str) -> float:
     normalized_damage_element = str(damage_element).strip().lower()
-    strongest_multiplier = 1.0
+    resolved_multiplier = 1.0
     for effect in active_affects:
         if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER:
             continue
@@ -136,18 +158,35 @@ def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState],
         if effect_damage_elements and normalized_damage_element not in effect_damage_elements:
             continue
 
-        affect_mode = str(getattr(effect, "affect_mode", "instant")).strip().lower() or "instant"
-        if affect_mode == "timed" and int(getattr(effect, "remaining_hours", 0)) <= 0:
-            continue
-        if affect_mode == "battle_rounds" and int(getattr(effect, "remaining_rounds", 0)) <= 0:
+        if not _is_affect_active(effect):
             continue
 
-        multiplier = _roll_affect_amount(effect)
-        if multiplier <= 1.0:
-            continue
-        strongest_multiplier = max(strongest_multiplier, multiplier)
+        resolved_multiplier *= _coerce_affect_multiplier(_roll_affect_amount(effect))
 
-    return max(1.0, strongest_multiplier)
+    return max(0.0, resolved_multiplier)
+
+
+def _resolve_damage_dealt_multiplier(active_affects: list[ActiveAffectState], *, damage_element: str) -> float:
+    normalized_damage_element = str(damage_element).strip().lower()
+    resolved_multiplier = 1.0
+    for effect in active_affects:
+        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_DEALT_MULTIPLIER:
+            continue
+
+        effect_damage_elements = [
+            str(element).strip().lower()
+            for element in list(getattr(effect, "affect_damage_elements", []) or [])
+            if str(element).strip()
+        ]
+        if effect_damage_elements and normalized_damage_element not in effect_damage_elements:
+            continue
+
+        if not _is_affect_active(effect):
+            continue
+
+        resolved_multiplier *= _coerce_affect_multiplier(_roll_affect_amount(effect))
+
+    return max(0.0, resolved_multiplier)
 
 
 def _is_affect_active(effect: ActiveAffectState) -> bool:
@@ -265,6 +304,9 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
         affect_dice_sides = max(0, int(affect.get("dice_sides", 0)))
         affect_roll_modifier = float(affect.get("roll_modifier", 0.0))
         affect_scaling_bonus = _resolve_affect_scaling_bonus(actor, affect)
+        amount_per_level_step = float(affect.get("amount_per_level_step", 0.0))
+        hits_per_level_step = max(0, int(affect.get("hits_per_level_step", 0)))
+        level_step = max(0, int(affect.get("level_step", 0)))
         remaining_hours = max(0, int(affect.get("duration_hours", 0)))
         if remaining_hours <= 0:
             remaining_hours = max(0, int(ability.get("duration_hours", 0)))
@@ -272,11 +314,21 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
         if remaining_rounds <= 0:
             remaining_rounds = max(0, int(ability.get("duration_rounds", 0)))
 
+        duration_rounds_per_level_step = max(0, int(affect.get("duration_rounds_per_level_step", 0)))
+        duration_level_step = max(0, int(affect.get("duration_level_step", 0)))
+        actor_level = 0
+        if isinstance(actor, ClientSession):
+            actor_level = max(1, int(actor.player.level))
+        elif isinstance(actor, EntityState):
+            actor_level = max(0, int(getattr(actor, "power_level", 0)))
+        if remaining_rounds > 0 and duration_rounds_per_level_step > 0 and duration_level_step > 0 and actor_level > 0:
+            remaining_rounds += (actor_level // duration_level_step) * duration_rounds_per_level_step
+        if amount_per_level_step != 0.0 and level_step > 0 and actor_level > 0:
+            affect_scaling_bonus += (actor_level // level_step) * amount_per_level_step
+
         extra_main_hand_hits = max(0, int(affect.get("extra_main_hand_hits", 0)))
         extra_off_hand_hits = max(0, int(affect.get("extra_off_hand_hits", 0)))
         extra_unarmed_hits = max(0, int(affect.get("extra_unarmed_hits", 0)))
-        hits_per_level_step = max(0, int(affect.get("hits_per_level_step", 0)))
-        level_step = max(0, int(affect.get("level_step", 0)))
 
         if affect_mode == "instant":
             instant_effect = ActiveAffectState(
@@ -638,7 +690,12 @@ def _resolve_entity_damage_values(entity: EntityState, amount: int, *, damage_el
     return incoming_damage, reduced_damage
 
 
-def _apply_player_dealt_damage_multiplier(session: ClientSession, amount: int) -> int:
+def _apply_player_dealt_damage_multiplier(
+    session: ClientSession,
+    amount: int,
+    *,
+    damage_element: str = "physical",
+) -> int:
     outgoing_damage = max(0, int(amount))
     if outgoing_damage <= 0:
         return 0
@@ -648,10 +705,19 @@ def _apply_player_dealt_damage_multiplier(session: ClientSession, amount: int) -
         is_resting=bool(getattr(session, "is_resting", False)),
         is_sleeping=bool(getattr(session, "is_sleeping", False)),
     )
-    return max(0, int(outgoing_damage * posture_damage_multiplier))
+    affect_damage_multiplier = _resolve_damage_dealt_multiplier(
+        list(session.active_affects),
+        damage_element=damage_element,
+    )
+    return max(0, int(outgoing_damage * posture_damage_multiplier * affect_damage_multiplier))
 
 
-def _apply_entity_dealt_damage_multiplier(entity: EntityState, amount: int) -> int:
+def _apply_entity_dealt_damage_multiplier(
+    entity: EntityState,
+    amount: int,
+    *,
+    damage_element: str = "physical",
+) -> int:
     outgoing_damage = max(0, int(amount))
     if outgoing_damage <= 0:
         return 0
@@ -661,7 +727,11 @@ def _apply_entity_dealt_damage_multiplier(entity: EntityState, amount: int) -> i
         is_resting=bool(getattr(entity, "is_resting", False)),
         is_sleeping=bool(getattr(entity, "is_sleeping", False)),
     )
-    return max(0, int(outgoing_damage * posture_damage_multiplier))
+    affect_damage_multiplier = _resolve_damage_dealt_multiplier(
+        list(entity.active_affects),
+        damage_element=damage_element,
+    )
+    return max(0, int(outgoing_damage * posture_damage_multiplier * affect_damage_multiplier))
 
 
 def _resolve_posture_received_damage_multiplier(*, is_sitting: bool, is_resting: bool, is_sleeping: bool) -> float:

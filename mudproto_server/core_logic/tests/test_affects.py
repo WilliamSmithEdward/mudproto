@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 import pytest
 from attribute_config import get_affect_template_by_id
-from assets import _resolve_asset_affects, get_skill_by_id
-from combat_ability_effects import _preview_entity_damage_with_reduction
+from assets import _resolve_asset_affects, get_skill_by_id, get_spell_by_id
+from combat_ability_effects import _apply_entity_dealt_damage_multiplier, _preview_entity_damage_with_reduction
 from grammar import with_article
 from game_hour_ticks import process_game_hour_tick
 from models import ActiveAffectState, ClientSession, EntityState, ItemState
@@ -35,50 +35,105 @@ def _read_raw_skill(skill_id: str) -> dict:
     )
 
 
+def _read_raw_affect(affect_id: str) -> dict:
+    affects_path = Path(__file__).resolve().parents[2] / "configuration" / "attributes" / "affects.json"
+    payload = json.loads(affects_path.read_text(encoding="utf-8"))
+    return next(
+        affect for affect in payload
+        if str(affect.get("affect_id", "")).strip().lower() == affect_id.strip().lower()
+    )
+
+
 def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
     skill = get_skill_by_id("skill.pressure-point")
 
     assert isinstance(skill, dict)
-    assert [
-        str(affect_id).strip().lower()
-        for affect_id in skill.get("affect_ids", [])
-        if str(affect_id).strip()
-    ] == ["affect.increase-received-damage"]
     assert "affects" not in skill
+    assert len(skill.get("affect_ids", [])) == 1
+    pressure_point_entry = skill.get("affect_ids", [])[0]
+    assert isinstance(pressure_point_entry, dict)
+    assert pressure_point_entry.get("affect_id") == "affect.received-damage"
+    assert pressure_point_entry.get("name") == "Pressure Point"
+    assert pressure_point_entry.get("target") == "target"
+    assert pressure_point_entry.get("duration_rounds") == 3
+    assert pressure_point_entry.get("damage_elements") == ["physical"]
+    assert pressure_point_entry.get("amount") > 0.0
 
-    pressure_point_affect = get_affect_template_by_id("affect.increase-received-damage")
+    pressure_point_affect = get_affect_template_by_id("affect.received-damage")
     assert isinstance(pressure_point_affect, dict)
     assert pressure_point_affect.get("affect_type") == "damage_received_multiplier"
-    assert pressure_point_affect.get("target") == "target"
-    assert pressure_point_affect.get("name") == "Pressure Point"
-    assert pressure_point_affect.get("duration_rounds") == 3
-    assert pressure_point_affect.get("damage_elements") == ["physical"]
+    assert pressure_point_affect.get("name") == "Received Damage"
+
+
+def test_shared_affect_templates_stay_generic() -> None:
+    received_damage = _read_raw_affect("affect.received-damage")
+    regeneration = _read_raw_affect("affect.regeneration")
+
+    assert "target" not in received_damage
+    assert "target" not in regeneration
+    assert "target_resource" not in regeneration
+
+
+def test_ice_storm_asset_has_aoe_damage_and_damage_dealt_debuff() -> None:
+    ember_lance = get_spell_by_id("spell.ember-lance")
+    ice_storm = get_spell_by_id("spell.ice-storm")
+
+    assert isinstance(ember_lance, dict)
+    assert isinstance(ice_storm, dict)
+    assert ice_storm.get("name") == "Ice Storm"
+    assert ice_storm.get("cast_type") == "aoe"
+    assert 40 <= int(ice_storm.get("mana_cost", 0)) <= 50
+    assert int(ice_storm.get("damage_dice_count", 0)) * int(ice_storm.get("damage_dice_sides", 0)) + int(ice_storm.get("damage_modifier", 0)) > (
+        int(ember_lance.get("damage_dice_count", 0)) * int(ember_lance.get("damage_dice_sides", 0)) + int(ember_lance.get("damage_modifier", 0))
+    )
+    assert len(ice_storm.get("affect_ids", [])) == 1
+    ice_storm_entry = ice_storm.get("affect_ids", [])[0]
+    assert isinstance(ice_storm_entry, dict)
+    assert ice_storm_entry.get("affect_id") == "affect.dealt-damage"
+    assert ice_storm_entry.get("damage_elements") == ["physical"]
+    assert float(ice_storm_entry.get("amount", 0.0)) < 0.0
+
+    ice_storm_affect = get_affect_template_by_id("affect.dealt-damage")
+    assert isinstance(ice_storm_affect, dict)
+    assert ice_storm_affect.get("affect_type") == "damage_dealt_multiplier"
+    assert ice_storm_affect.get("name") == "Dealt Damage"
 
 
 def test_asset_loader_rejects_inline_affects_payloads() -> None:
     with pytest.raises(ValueError, match="inline affects are no longer supported"):
         _resolve_asset_affects(
-            affect_ids=["affect.increase-received-damage"],
+            affect_ids=["affect.received-damage"],
             affects=[{"affect_id": "affect.legacy-inline"}],
             context="Skill asset 'skill.test-inline'",
             configured_attribute_ids={"dex", "wis", "int", "str", "con"},
         )
 
 
-def test_asset_loader_rejects_affect_override_objects() -> None:
-    with pytest.raises(ValueError, match="affect_ids entries must be strings"):
-        _resolve_asset_affects(
-            affect_ids=[
-                {
-                    "affect_id": "affect.increase-received-damage",
-                    "name": "Pressure Point",
-                    "amount": 1.2,
-                }
-            ],
-            affects=[],
-            context="Skill asset 'skill.test-override'",
-            configured_attribute_ids={"dex", "wis", "int", "str", "con"},
-        )
+def test_asset_loader_allows_affect_override_objects() -> None:
+    resolved = _resolve_asset_affects(
+        affect_ids=[
+            {
+                "affect_id": "affect.received-damage",
+                "name": "Ice Storm",
+                "target": "target",
+                "affect_mode": "battle_rounds",
+                "damage_elements": ["physical"],
+                "amount": -0.2,
+                "duration_rounds": 3,
+                "duration_rounds_per_level_step": 1,
+                "duration_level_step": 10,
+            }
+        ],
+        affects=[],
+        context="Spell asset 'spell.test-override'",
+        configured_attribute_ids={"dex", "wis", "int", "str", "con"},
+    )
+
+    assert len(resolved) == 1
+    assert resolved[0]["affect_id"] == "affect.received-damage"
+    assert resolved[0]["name"] == "Ice Storm"
+    assert resolved[0]["amount"] == -0.2
+    assert resolved[0]["duration_rounds_per_level_step"] == 1
 
 
 def test_damage_received_multiplier_can_be_element_scoped() -> None:
@@ -90,12 +145,12 @@ def test_damage_received_multiplier_can_be_element_scoped() -> None:
         max_hit_points=200,
     )
     target.active_affects.append(ActiveAffectState(
-        affect_id="affect.increase-received-damage",
+        affect_id="affect.received-damage",
         affect_name="Pressure Point",
         affect_mode="battle_rounds",
         affect_type="damage_received_multiplier",
         affect_damage_elements=["physical"],
-        affect_amount=1.2,
+        affect_amount=0.2,
         remaining_rounds=2,
     ))
 
@@ -112,17 +167,60 @@ def test_damage_received_multiplier_without_elements_affects_all_damage() -> Non
         max_hit_points=200,
     )
     target.active_affects.append(ActiveAffectState(
-        affect_id="affect.increase-received-damage",
+        affect_id="affect.received-damage",
         affect_name="Expose",
         affect_mode="battle_rounds",
         affect_type="damage_received_multiplier",
         affect_damage_elements=[],
-        affect_amount=1.3,
+        affect_amount=0.3,
         remaining_rounds=2,
     ))
 
     assert _preview_entity_damage_with_reduction(target, 10, damage_element="physical") == 13
     assert _preview_entity_damage_with_reduction(target, 10, damage_element="fire") == 13
+
+
+def test_damage_dealt_multiplier_can_be_element_scoped() -> None:
+    attacker = EntityState(
+        entity_id="entity-raider",
+        name="Raider",
+        room_id="start",
+        hit_points=200,
+        max_hit_points=200,
+    )
+    attacker.active_affects.append(ActiveAffectState(
+        affect_id="affect.dealt-damage",
+        affect_name="Icebound",
+        affect_mode="battle_rounds",
+        affect_type="damage_dealt_multiplier",
+        affect_damage_elements=["physical"],
+        affect_amount=-0.25,
+        remaining_rounds=2,
+    ))
+
+    assert _apply_entity_dealt_damage_multiplier(attacker, 20, damage_element="physical") == 15
+    assert _apply_entity_dealt_damage_multiplier(attacker, 20, damage_element="fire") == 20
+
+
+def test_damage_dealt_multiplier_supports_positive_bonus_values() -> None:
+    attacker = EntityState(
+        entity_id="entity-champion",
+        name="Champion",
+        room_id="start",
+        hit_points=200,
+        max_hit_points=200,
+    )
+    attacker.active_affects.append(ActiveAffectState(
+        affect_id="affect.dealt-damage",
+        affect_name="Battle Focus",
+        affect_mode="battle_rounds",
+        affect_type="damage_dealt_multiplier",
+        affect_damage_elements=["physical"],
+        affect_amount=0.25,
+        remaining_rounds=2,
+    ))
+
+    assert _apply_entity_dealt_damage_multiplier(attacker, 20, damage_element="physical") == 25
 
 
 def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch) -> None:
@@ -151,7 +249,17 @@ def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch
         "damage_dice_count": 1,
         "damage_dice_sides": 1,
         "damage_modifier": 0,
-        "affect_ids": ["affect.increase-received-damage"],
+        "affect_ids": [{
+            "affect_id": "affect.received-damage",
+            "name": "Pressure Point",
+            "target": "target",
+            "affect_mode": "battle_rounds",
+            "damage_elements": ["physical"],
+            "amount": 0.1,
+            "scaling_attribute_id": "dex",
+            "scaling_multiplier": 0.01,
+            "duration_rounds": 3,
+        }],
     }
 
     monkeypatch.setattr(player_abilities, "roll_skill_damage", lambda _skill: 1)
@@ -176,12 +284,12 @@ def test_pressure_point_increases_physical_damage_from_any_source() -> None:
         max_hit_points=200,
     )
     target.active_affects.append(ActiveAffectState(
-        affect_id="affect.increase-received-damage",
+        affect_id="affect.received-damage",
         affect_name="Pressure Point",
         affect_mode="battle_rounds",
         affect_type="damage_received_multiplier",
         affect_damage_elements=["physical"],
-        affect_amount=1.2,
+        affect_amount=0.2,
         remaining_rounds=2,
     ))
 
@@ -192,6 +300,30 @@ def test_pressure_point_increases_physical_damage_from_any_source() -> None:
     assert player_followup_damage == 12
     assert npc_followup_damage == 12
     assert spell_damage == 10
+
+
+def test_ice_storm_applies_round_scaled_physical_damage_dealt_debuff(monkeypatch) -> None:
+    session = _make_session("client-ice-storm", "Lucia")
+    session.player.level = 12
+    target_one = EntityState(entity_id="entity-one", name="Raider", room_id="start", hit_points=200, max_hit_points=200)
+    target_two = EntityState(entity_id="entity-two", name="Marauder", room_id="start", hit_points=200, max_hit_points=200)
+    session.entities[target_one.entity_id] = target_one
+    session.entities[target_two.entity_id] = target_two
+
+    spell = get_spell_by_id("spell.ice-storm")
+    assert isinstance(spell, dict)
+
+    monkeypatch.setattr(player_abilities, "roll_spell_damage", lambda _spell, _bonus: 24)
+    monkeypatch.setattr(display_feedback, "display_command_result", lambda *_args, **_kwargs: {})
+
+    _, applied = player_abilities.cast_spell(session, spell)
+
+    assert applied is True
+    assert len(target_one.active_affects) == 1
+    assert len(target_two.active_affects) == 1
+    assert target_one.active_affects[0].affect_type == "damage_dealt_multiplier"
+    assert target_one.active_affects[0].remaining_rounds == 4
+    assert target_two.active_affects[0].remaining_rounds == 4
 
 
 def test_with_article_requires_explicit_named_flag_for_named_npcs() -> None:
@@ -216,7 +348,18 @@ def test_item_affect_can_store_dice_payload(monkeypatch) -> None:
         "effect_target": "",
         "effect_amount": 0,
         "use_lag_seconds": 0,
-        "affect_ids": ["affect.regeneration"],
+        "affect_ids": [{
+            "affect_id": "affect.regeneration",
+            "name": "Regeneration Tonic",
+            "target": "self",
+            "affect_mode": "battle_rounds",
+            "target_resource": "hit_points",
+            "amount": 0,
+            "dice_count": 1,
+            "dice_sides": 21,
+            "roll_modifier": 39,
+            "duration_rounds": 3,
+        }],
     }
 
     monkeypatch.setattr(item_logic, "_resolve_misc_inventory_selector", lambda _session, _selector: (item, None))
@@ -278,7 +421,7 @@ def test_affect_inherits_duration_rounds_from_parent_ability(monkeypatch) -> Non
     session = _make_session("client-inherit-dur", "Tester")
     ability = {
         "duration_rounds": 5,
-        "affect_ids": ["affect.damage-reduction"],
+        "affect_ids": ["affect.received-damage"],
     }
     monkeypatch.setattr(
         combat_ability_effects,
@@ -286,10 +429,10 @@ def test_affect_inherits_duration_rounds_from_parent_ability(monkeypatch) -> Non
         lambda affect_id: {
             "affect_id": affect_id,
             "name": "Guard",
-            "affect_type": "damage_reduction",
+            "affect_type": "damage_received_multiplier",
             "target": "self",
             "affect_mode": "battle_rounds",
-            "amount": 3,
+            "amount": -0.1,
         },
     )
 
@@ -335,7 +478,7 @@ def test_affect_explicit_duration_overrides_parent(monkeypatch) -> None:
     session = _make_session("client-override-dur", "Tester")
     ability = {
         "duration_rounds": 5,
-        "affect_ids": ["affect.damage-reduction"],
+        "affect_ids": ["affect.received-damage"],
     }
     monkeypatch.setattr(
         combat_ability_effects,
@@ -343,10 +486,10 @@ def test_affect_explicit_duration_overrides_parent(monkeypatch) -> None:
         lambda affect_id: {
             "affect_id": affect_id,
             "name": "Guard",
-            "affect_type": "damage_reduction",
+            "affect_type": "damage_received_multiplier",
             "target": "self",
             "affect_mode": "battle_rounds",
-            "amount": 2,
+            "amount": -0.1,
             "duration_rounds": 7,
         },
     )
@@ -369,11 +512,11 @@ def test_battle_round_affect_active_for_full_duration() -> None:
 
     session = _make_session("client-tick-dur", "Tester")
     session.active_affects.append(ActiveAffectState(
-        affect_id="affect.damage-reduction",
+        affect_id="affect.received-damage",
         affect_name="Guard",
         affect_mode="battle_rounds",
-        affect_type="damage_reduction",
-        affect_amount=5,
+        affect_type="damage_received_multiplier",
+        affect_amount=-0.1,
         remaining_rounds=3,
     ))
 
@@ -415,21 +558,22 @@ def test_battle_round_affect_not_consumed_before_attacks() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_fist_flurry_affect_inherits_skill_duration() -> None:
-    """Fist Flurry affect entry has no duration_rounds; it inherits from the skill."""
+def test_fist_flurry_affect_uses_skill_side_override_details() -> None:
+    """Fist Flurry now carries its affect details on the skill entry itself."""
     from combat_ability_effects import _apply_ability_affects
 
     raw_skill = _read_raw_skill("skill.fist-flurry")
     raw_affects = raw_skill.get("affect_ids", [])
     assert len(raw_affects) >= 1
-    assert "duration_rounds" not in raw_affects[0]
+    assert raw_affects[0]["affect_id"] == "affect.extra-hits"
+    assert raw_affects[0]["duration_rounds"] == 3
+    assert raw_affects[0]["extra_unarmed_hits"] == 2
 
     skill = get_skill_by_id("skill.fist-flurry")
     assert isinstance(skill, dict)
     assert skill.get("duration_rounds") == 3
     assert "affects" not in skill
 
-    # Verify runtime: applying the skill should produce an affect with duration 3.
     session = _make_session("client-flurry-inherit", "Tester")
     _apply_ability_affects(actor=session, target=session, ability=skill, affect_target="self")
 
@@ -437,14 +581,16 @@ def test_fist_flurry_affect_inherits_skill_duration() -> None:
     assert session.active_affects[0].remaining_rounds == 3
 
 
-def test_centered_guard_affect_inherits_skill_duration() -> None:
-    """Centered Guard affect entry has no duration_rounds; it inherits from the skill."""
+def test_centered_guard_affect_uses_skill_side_override_details() -> None:
+    """Centered Guard now carries its affect details on the skill entry itself."""
     from combat_ability_effects import _apply_ability_affects
 
     raw_skill = _read_raw_skill("skill.centered-guard")
     raw_affects = raw_skill.get("affect_ids", [])
     assert len(raw_affects) >= 1
-    assert "duration_rounds" not in raw_affects[0]
+    assert raw_affects[0]["affect_id"] == "affect.received-damage"
+    assert raw_affects[0]["duration_rounds"] == 3
+    assert raw_affects[0]["amount_per_level_step"] == -0.02
 
     skill = get_skill_by_id("skill.centered-guard")
     assert isinstance(skill, dict)

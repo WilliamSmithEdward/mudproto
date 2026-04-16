@@ -141,6 +141,9 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
     power_scaling_multiplier = float(raw_affect.get("power_scaling_multiplier", 0.0))
     duration_hours = max(0, int(raw_affect.get("duration_hours", 0)))
     duration_rounds = max(0, int(raw_affect.get("duration_rounds", 0)))
+    duration_rounds_per_level_step = max(0, int(raw_affect.get("duration_rounds_per_level_step", 0)))
+    duration_level_step = max(0, int(raw_affect.get("duration_level_step", 0)))
+    amount_per_level_step = float(raw_affect.get("amount_per_level_step", 0.0))
 
     extra_main_hand_hits = max(0, int(raw_affect.get("extra_main_hand_hits", 0)))
     extra_off_hand_hits = max(0, int(raw_affect.get("extra_off_hand_hits", 0)))
@@ -150,32 +153,38 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
 
     if not affect_id:
         raise ValueError(f"{context} affects must define affect_id.")
-    if affect_type not in {"regeneration", "damage_received_multiplier", "extra_hits", "damage_reduction"}:
+    if affect_type not in {
+        "regeneration",
+        "damage_received_multiplier",
+        "damage_dealt_multiplier",
+        "extra_hits",
+        "damage_reduction",
+    }:
         raise ValueError(
-            f"{context} affect_type must be one of: regeneration, damage_received_multiplier, extra_hits, damage_reduction."
+            f"{context} affect_type must be one of: regeneration, damage_received_multiplier, damage_dealt_multiplier, extra_hits, damage_reduction."
         )
     if affect_target not in {"self", "target"}:
         raise ValueError(f"{context} affect target must be one of: self, target.")
     if affect_mode not in {"instant", "timed", "battle_rounds"}:
         raise ValueError(f"{context} affect_mode must be one of: instant, timed, battle_rounds.")
-    if affect_damage_elements and affect_type != "damage_received_multiplier":
-        raise ValueError(f"{context} damage element filters are only supported on damage_received_multiplier affects.")
+    if affect_damage_elements and affect_type not in {"damage_received_multiplier", "damage_dealt_multiplier"}:
+        raise ValueError(
+            f"{context} damage element filters are only supported on damage_received_multiplier and damage_dealt_multiplier affects."
+        )
     if target_resource not in {"hit_points", "mana", "vigor"}:
         raise ValueError(f"{context} target_resource must be one of: hit_points, mana, vigor.")
-    if amount < 0.0:
-        raise ValueError(f"{context} affect amount must be zero or greater.")
     if dice_count > 0 and dice_sides <= 0:
         raise ValueError(f"{context} affect dice_sides must be > 0 when dice_count is set.")
-    if scaling_multiplier < 0.0:
-        raise ValueError(f"{context} affect scaling_multiplier must be zero or greater.")
-    if level_scaling_multiplier < 0.0:
-        raise ValueError(f"{context} affect level_scaling_multiplier must be zero or greater.")
-    if power_scaling_multiplier < 0.0:
-        raise ValueError(f"{context} affect power_scaling_multiplier must be zero or greater.")
     if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
         raise ValueError(
             f"{context} affect scaling_attribute_id '{scaling_attribute_id}' is unknown."
         )
+    if duration_rounds_per_level_step > 0 and duration_level_step <= 0:
+        raise ValueError(
+            f"{context} affects with duration_rounds_per_level_step must define duration_level_step > 0."
+        )
+    if amount_per_level_step != 0.0 and level_step <= 0:
+        raise ValueError(f"{context} affects with amount_per_level_step must define level_step > 0.")
     if affect_type == "extra_hits":
         if extra_main_hand_hits <= 0 and extra_off_hand_hits <= 0 and extra_unarmed_hits <= 0:
             raise ValueError(f"{context} extra_hits affects must define at least one hit type > 0.")
@@ -200,6 +209,9 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         "power_scaling_multiplier": power_scaling_multiplier,
         "duration_hours": duration_hours,
         "duration_rounds": duration_rounds,
+        "duration_rounds_per_level_step": duration_rounds_per_level_step,
+        "duration_level_step": duration_level_step,
+        "amount_per_level_step": amount_per_level_step,
         "extra_main_hand_hits": extra_main_hand_hits,
         "extra_off_hand_hits": extra_off_hand_hits,
         "extra_unarmed_hits": extra_unarmed_hits,
@@ -208,37 +220,46 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
     }
 
 
-def _resolve_affect_ids(raw_affect_ids: object, *, context: str, configured_attribute_ids: set[str]) -> list[str]:
+def _resolve_affect_ids(raw_affect_ids: object, *, context: str, configured_attribute_ids: set[str]) -> list[dict]:
     if raw_affect_ids is None:
         raw_affect_ids = []
     if not isinstance(raw_affect_ids, list):
         raise ValueError(f"{context} affect_ids must be a list.")
 
-    resolved_affect_ids: list[str] = []
+    resolved_affects: list[dict] = []
     seen_affect_ids: set[str] = set()
     for raw_affect_ref in raw_affect_ids:
-        if not isinstance(raw_affect_ref, str):
-            raise ValueError(f"{context} affect_ids entries must be strings.")
+        override_payload: dict = {}
+        if isinstance(raw_affect_ref, str):
+            affect_id = str(raw_affect_ref).strip().lower()
+        elif isinstance(raw_affect_ref, dict):
+            override_payload = dict(raw_affect_ref)
+            affect_id = str(override_payload.get("affect_id", "")).strip().lower()
+        else:
+            raise ValueError(f"{context} affect_ids entries must be strings or objects with affect_id.")
 
-        affect_id = str(raw_affect_ref).strip().lower()
         if not affect_id or affect_id in seen_affect_ids:
             continue
+
         affect_template = get_affect_template_by_id(affect_id)
         if affect_template is None:
             raise ValueError(f"{context} affect_ids references unknown affect_id '{affect_id}'.")
 
-        _normalize_resolved_affect(
-            dict(affect_template),
+        merged_affect = dict(affect_template)
+        merged_affect.update(override_payload)
+        merged_affect["affect_id"] = affect_id
+
+        resolved_affects.append(_normalize_resolved_affect(
+            merged_affect,
             context=context,
             configured_attribute_ids=configured_attribute_ids,
-        )
-        resolved_affect_ids.append(affect_id)
+        ))
         seen_affect_ids.add(affect_id)
 
-    return resolved_affect_ids
+    return resolved_affects
 
 
-def _resolve_asset_affects(*, affect_ids: object, affects: object, context: str, configured_attribute_ids: set[str]) -> list[str]:
+def _resolve_asset_affects(*, affect_ids: object, affects: object, context: str, configured_attribute_ids: set[str]) -> list[dict]:
     if affects is None:
         affects = []
     if not isinstance(affects, list):

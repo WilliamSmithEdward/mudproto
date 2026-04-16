@@ -180,7 +180,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
 
     if skill_type == "damage" and cast_type in {"target", "aoe"}:
         total_damage = roll_skill_damage(skill) + scaling_bonus
-        total_damage = _apply_entity_dealt_damage_multiplier(entity, total_damage)
+        total_damage = _apply_entity_dealt_damage_multiplier(entity, total_damage, damage_element=element)
         damage_context = str(skill.get("damage_context", "")).strip()
         restore_effect, restore_ratio, _, observer_restore_context = _resolve_secondary_restore_fields(skill)
         damage_dealt = 0

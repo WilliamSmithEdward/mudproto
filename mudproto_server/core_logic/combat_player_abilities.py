@@ -308,7 +308,11 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 build_part(rendered_support_context),
             ])
 
-        _apply_ability_affects(actor=session, target=support_target_session, ability=skill, affect_target="self")
+        if cast_type == "target":
+            _apply_ability_affects(actor=session, target=session, ability=skill, affect_target="self")
+            _apply_ability_affects(actor=session, target=support_target_session, ability=skill, affect_target="target")
+        else:
+            _apply_ability_affects(actor=session, target=support_target_session, ability=skill, affect_target="self")
 
         _set_player_skill_cooldown(session, skill)
         cooldown_hours = max(0, int(skill.get("cooldown_hours", 0)))
@@ -410,7 +414,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     session.status.vigor -= vigor_cost
 
     total_damage = roll_skill_damage(skill) + scaling_bonus
-    total_damage = _apply_player_dealt_damage_multiplier(session, total_damage)
+    total_damage = _apply_player_dealt_damage_multiplier(session, total_damage, damage_element=element)
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(skill)
     total_damage_dealt = 0
     destroyed_entity_labels: list[str] = []
@@ -678,12 +682,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 newline_part(),
                 build_part(rendered_support_context),
             ])
-            _apply_ability_affects(
-                actor=session,
-                target=support_target_session,
-                ability=spell,
-                affect_target="self",
-            )
+            if support_cast_type == "target":
+                _apply_ability_affects(actor=session, target=session, ability=spell, affect_target="self")
+                _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
+            else:
+                _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="self")
             observer_lines = [
                 _resolve_observer_action_line(
                     actor_name,
@@ -772,12 +775,11 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             newline_part(),
             build_part(rendered_support_context),
         ]
-        _apply_ability_affects(
-            actor=session,
-            target=support_target_session,
-            ability=spell,
-            affect_target="self",
-        )
+        if support_cast_type == "target":
+            _apply_ability_affects(actor=session, target=session, ability=spell, affect_target="self")
+            _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
+        else:
+            _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="self")
         observer_lines = [
             _resolve_observer_action_line(
                 actor_name,
@@ -881,7 +883,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     status.mana -= mana_cost
 
     total_damage = roll_spell_damage(spell, _resolve_player_damage_scaling_bonus(session, spell))
-    total_damage = _apply_player_dealt_damage_multiplier(session, total_damage)
+    total_damage = _apply_player_dealt_damage_multiplier(session, total_damage, damage_element=element)
     restore_effect, restore_ratio, restore_context, observer_restore_context = _resolve_secondary_restore_fields(spell)
     total_damage_dealt = 0
     destroyed_entity_labels: list[str] = []

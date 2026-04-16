@@ -385,13 +385,19 @@ def load_affect_templates() -> list[dict]:
             raise ValueError("Affect templates must include a non-empty affect_id.")
         if affect_id in seen_affect_ids:
             raise ValueError(f"Duplicate affect_id in affects config: {affect_id}")
-        if affect_type not in {"regeneration", "damage_received_multiplier", "extra_hits", "damage_reduction"}:
+        if affect_type not in {
+            "regeneration",
+            "damage_received_multiplier",
+            "damage_dealt_multiplier",
+            "extra_hits",
+            "damage_reduction",
+        }:
             raise ValueError(
-                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier, extra_hits, damage_reduction."
+                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier, damage_dealt_multiplier, extra_hits, damage_reduction."
             )
-        if damage_elements and affect_type != "damage_received_multiplier":
+        if damage_elements and affect_type not in {"damage_received_multiplier", "damage_dealt_multiplier"}:
             raise ValueError(
-                f"Affect '{affect_id}' damage element filters are only supported for damage_received_multiplier."
+                f"Affect '{affect_id}' damage element filters are only supported for damage_received_multiplier and damage_dealt_multiplier."
             )
 
         name = str(raw_affect.get("name", "")).strip() or affect_id
@@ -403,11 +409,14 @@ def load_affect_templates() -> list[dict]:
         dice_sides = max(0, int(raw_affect.get("dice_sides", 0)))
         roll_modifier = float(raw_affect.get("roll_modifier", 0.0))
         scaling_attribute_id = str(raw_affect.get("scaling_attribute_id", "")).strip().lower()
-        scaling_multiplier = max(0.0, float(raw_affect.get("scaling_multiplier", 0.0)))
-        level_scaling_multiplier = max(0.0, float(raw_affect.get("level_scaling_multiplier", 0.0)))
-        power_scaling_multiplier = max(0.0, float(raw_affect.get("power_scaling_multiplier", 0.0)))
+        scaling_multiplier = float(raw_affect.get("scaling_multiplier", 0.0))
+        level_scaling_multiplier = float(raw_affect.get("level_scaling_multiplier", 0.0))
+        power_scaling_multiplier = float(raw_affect.get("power_scaling_multiplier", 0.0))
         duration_hours = max(0, int(raw_affect.get("duration_hours", 0)))
         duration_rounds = max(0, int(raw_affect.get("duration_rounds", 0)))
+        duration_rounds_per_level_step = max(0, int(raw_affect.get("duration_rounds_per_level_step", 0)))
+        duration_level_step = max(0, int(raw_affect.get("duration_level_step", 0)))
+        amount_per_level_step = float(raw_affect.get("amount_per_level_step", 0.0))
         extra_main_hand_hits = max(0, int(raw_affect.get("extra_main_hand_hits", 0)))
         extra_off_hand_hits = max(0, int(raw_affect.get("extra_off_hand_hits", 0)))
         extra_unarmed_hits = max(0, int(raw_affect.get("extra_unarmed_hits", 0)))
@@ -423,6 +432,15 @@ def load_affect_templates() -> list[dict]:
         if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
             raise ValueError(
                 f"Affect '{affect_id}' scaling_attribute_id references unknown attribute '{scaling_attribute_id}'."
+            )
+
+        if duration_rounds_per_level_step > 0 and duration_level_step <= 0:
+            raise ValueError(
+                f"Affect '{affect_id}' with duration_rounds_per_level_step must define duration_level_step > 0."
+            )
+        if amount_per_level_step != 0.0 and level_step <= 0:
+            raise ValueError(
+                f"Affect '{affect_id}' with amount_per_level_step must define level_step > 0."
             )
 
         seen_affect_ids.add(affect_id)
@@ -444,6 +462,9 @@ def load_affect_templates() -> list[dict]:
             "power_scaling_multiplier": power_scaling_multiplier,
             "duration_hours": duration_hours,
             "duration_rounds": duration_rounds,
+            "duration_rounds_per_level_step": duration_rounds_per_level_step,
+            "duration_level_step": duration_level_step,
+            "amount_per_level_step": amount_per_level_step,
             "extra_main_hand_hits": extra_main_hand_hits,
             "extra_off_hand_hits": extra_off_hand_hits,
             "extra_unarmed_hits": extra_unarmed_hits,
