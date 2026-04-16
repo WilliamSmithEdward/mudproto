@@ -120,7 +120,7 @@ HEALTH_CONDITION_BANDS = sorted([
     {
         "max_ratio": max(0.0, min(1.0, float(band.get("max_ratio", 1.0)))),
         "label": str(band.get("label", "perfect")).strip().lower() or "perfect",
-        "color": str(band.get("color", "bright_green")).strip() or "bright_green",
+        "color": str(band.get("color", "feedback.success")).strip() or "feedback.success",
     }
     for band in _raw_health_condition_bands
     if isinstance(band, dict)

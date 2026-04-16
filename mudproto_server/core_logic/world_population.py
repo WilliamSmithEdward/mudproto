@@ -543,7 +543,7 @@ def _broadcast_zone_flag_spawn_announcement(zone_id: str, message: str) -> None:
             continue
 
         notification = display_command_result(session, [
-            build_part(cleaned_message, "bright_yellow", True),
+            build_part(cleaned_message, "feedback.warning", True),
         ])
         loop.create_task(send_outbound(session.websocket, notification))
 
@@ -738,7 +738,7 @@ def spawn_dummy(session: ClientSession) -> dict:
     session.entities[entity_id] = entity
 
     return display_command_result(session, [
-        build_part("Spawned ", "bright_white"),
+        build_part("Spawned ", "feedback.text"),
         build_part(entity.name, bold=True),
-        build_part(" in this room.", "bright_white"),
+        build_part(" in this room.", "feedback.text"),
     ])

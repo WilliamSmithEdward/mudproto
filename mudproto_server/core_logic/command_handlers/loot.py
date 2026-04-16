@@ -163,9 +163,9 @@ def handle_loot_command(
         for item in looted_items:
             parts.extend([
                 newline_part(),
-                build_part("You take ", "bright_white"),
+                build_part("You take ", "feedback.text"),
                 *_build_item_reference_parts(item),
-                build_part(".", "bright_white"),
+                build_part(".", "feedback.text"),
             ])
         if blocked_errors:
             parts.extend([

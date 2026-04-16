@@ -145,4 +145,4 @@ def build_entity_attack_parts(
 
 def append_newline_if_needed(parts: list[dict]) -> None:
     if parts:
-        parts.append({"text": "\n", "fg": "bright_white", "bold": False})
+        parts.append({"text": "\n", "fg": "display_core.default_fg", "bold": False})

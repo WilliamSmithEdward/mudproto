@@ -83,7 +83,7 @@ def _message_lines(messages: list[dict] | list[str], *, audience_filter: set[str
             cleaned = str(message).strip()
         if not cleaned:
             continue
-        lines.append(build_line(build_part(cleaned, "bright_white")))
+        lines.append(build_line(build_part(cleaned, "feedback.text")))
     if lines:
         lines.append([])
     return lines
@@ -206,10 +206,10 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
         await _send_room_notice(
             from_room_id,
             [
-                build_part(actor_name, "bright_cyan", True),
-                build_part(f" {action} ", "bright_white"),
-                build_part(direction, "bright_yellow", True),
-                build_part(".", "bright_white"),
+                build_part(actor_name, "feedback.value", True),
+                build_part(f" {action} ", "feedback.text"),
+                build_part(direction, "feedback.warning", True),
+                build_part(".", "feedback.text"),
             ],
             send_outbound_fn,
             exclude_client_ids=moving_group_ids,
@@ -226,9 +226,9 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                 follower.websocket,
                 build_display(
                     [
-                        build_part("Combat keeps you from following ", "bright_white"),
-                        build_part(leader_name, "bright_cyan", True),
-                        build_part(".", "bright_white"),
+                        build_part("Combat keeps you from following ", "feedback.text"),
+                        build_part(leader_name, "feedback.value", True),
+                        build_part(".", "feedback.text"),
                     ],
                     prompt_after=True,
                     prompt_parts=build_prompt_parts_default(follower),
@@ -240,10 +240,10 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
         await _send_room_notice(
             to_room_id,
             [
-                build_part(actor_name, "bright_cyan", True),
-                build_part(" arrives from ", "bright_white"),
-                build_part(arrival_origin, "bright_yellow", True),
-                build_part(".", "bright_white"),
+                build_part(actor_name, "feedback.value", True),
+                build_part(" arrives from ", "feedback.text"),
+                build_part(arrival_origin, "feedback.warning", True),
+                build_part(".", "feedback.text"),
             ],
             send_outbound_fn,
             exclude_client_ids=moving_group_ids,
@@ -262,7 +262,7 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                 continue
             await _send_room_notice(
                 to_room_id,
-                [build_part(message, "bright_white")],
+                [build_part(message, "feedback.text")],
                 send_outbound_fn,
                 exclude_client_ids=moving_group_ids,
             )
@@ -276,12 +276,12 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             await _send_room_notice(
                 from_room_id,
                 [
-                    build_part(follower.authenticated_character_name.strip() or "Someone", "bright_cyan", True),
-                    build_part(" leaves ", "bright_white"),
-                    build_part(direction, "bright_yellow", True),
-                    build_part(", following ", "bright_white"),
-                    build_part(leader_name, "bright_cyan", True),
-                    build_part(".", "bright_white"),
+                    build_part(follower.authenticated_character_name.strip() or "Someone", "feedback.value", True),
+                    build_part(" leaves ", "feedback.text"),
+                    build_part(direction, "feedback.warning", True),
+                    build_part(", following ", "feedback.text"),
+                    build_part(leader_name, "feedback.value", True),
+                    build_part(".", "feedback.text"),
                 ],
                 send_outbound_fn,
                 exclude_client_ids=moving_group_ids,
@@ -290,12 +290,12 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             await _send_room_notice(
                 to_room_id,
                 [
-                    build_part(follower.authenticated_character_name.strip() or "Someone", "bright_cyan", True),
-                    build_part(" arrives from ", "bright_white"),
-                    build_part(arrival_origin, "bright_yellow", True),
-                    build_part(", following ", "bright_white"),
-                    build_part(leader_name, "bright_cyan", True),
-                    build_part(".", "bright_white"),
+                    build_part(follower.authenticated_character_name.strip() or "Someone", "feedback.value", True),
+                    build_part(" arrives from ", "feedback.text"),
+                    build_part(arrival_origin, "feedback.warning", True),
+                    build_part(", following ", "feedback.text"),
+                    build_part(leader_name, "feedback.value", True),
+                    build_part(".", "feedback.text"),
                 ],
                 send_outbound_fn,
                 exclude_client_ids=moving_group_ids,
@@ -309,11 +309,11 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
 
             follow_prefix_lines = [
                 build_line(
-                    build_part("You follow ", "bright_white"),
-                    build_part(leader_name, "bright_cyan", True),
-                    build_part(" ", "bright_white"),
-                    build_part(direction, "bright_yellow", True),
-                    build_part(".", "bright_white"),
+                    build_part("You follow ", "feedback.text"),
+                    build_part(leader_name, "feedback.value", True),
+                    build_part(" ", "feedback.text"),
+                    build_part(direction, "feedback.warning", True),
+                    build_part(".", "feedback.text"),
                 ),
                 [],
             ]
@@ -331,7 +331,7 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                     continue
                 await _send_room_notice(
                     to_room_id,
-                    [build_part(message, "bright_white")],
+                    [build_part(message, "feedback.text")],
                     send_outbound_fn,
                     exclude_client_ids=moving_group_ids,
                 )

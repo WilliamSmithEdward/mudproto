@@ -166,7 +166,7 @@ def _prepend_message(outbound: dict, message: str) -> dict:
         normalized_existing.pop(0)
 
     payload["lines"] = [
-        build_line(build_part(message, "bright_white")),
+        build_line(build_part(message, "feedback.text")),
         [],
         *normalized_existing,
     ]
@@ -246,21 +246,21 @@ def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int
     parts: list[dict] = []
     parts.append(newline_part())
     parts.extend([
-        build_part("You advance to level ", "bright_green", True),
-        build_part(str(new_level), "bright_green", True),
-        build_part("!", "bright_green", True),
+        build_part("You advance to level ", "combat_rewards.level_up", True),
+        build_part(str(new_level), "combat_rewards.level_up", True),
+        build_part("!", "combat_rewards.level_up", True),
     ])
     parts.append(newline_part())
     parts.extend([
-        build_part("Level gains: ", "bright_white"),
-        build_part(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
-        build_part(" ", "bright_white"),
-        build_part(f"+{int(resource_gains.get('vigor', 0))}V", "bright_yellow", True),
+        build_part("Level gains: ", "combat_rewards.text"),
+        build_part(f"+{int(resource_gains.get('hit_points', 0))}HP", "combat_rewards.gain.hp", True),
+        build_part(" ", "combat_rewards.text"),
+        build_part(f"+{int(resource_gains.get('vigor', 0))}V", "combat_rewards.gain.vigor", True),
     ])
     if show_mana:
         parts.extend([
-            build_part(" ", "bright_white"),
-            build_part(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
+            build_part(" ", "combat_rewards.text"),
+            build_part(f"+{int(resource_gains.get('mana', 0))}M", "combat_rewards.gain.mana", True),
         ])
     parts.append(newline_part())
     return parts_to_lines(parts)
@@ -380,7 +380,7 @@ def _build_room_keyword_outbound(
     refresh_view = str(keyword_action.get("refresh_view", "none")).strip().lower() or "none"
     if refresh_view == "none":
         return display_command_result(session, [
-            build_part(display_message, "bright_white"),
+            build_part(display_message, "feedback.text"),
         ])
 
     if refresh_view == "room":
@@ -480,7 +480,7 @@ def prepend_room_enter_communications(outbound: dict, session: ClientSession, ro
         return outbound
 
     communication_lines = [
-        build_line(build_part(str(entry.get("message", "")).strip(), "bright_white"))
+        build_line(build_part(str(entry.get("message", "")).strip(), "feedback.text"))
         for entry in communications
         if str(entry.get("message", "")).strip() and str(entry.get("audience", "both")).strip().lower() in {"private", "both"}
     ]

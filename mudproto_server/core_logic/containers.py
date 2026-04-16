@@ -360,7 +360,7 @@ def take_all_from_container(session: ClientSession, container: ContainerTarget):
     access_message = _container_access_message(container)
     if access_message is not None:
         return display_command_result(session, [
-            build_part(access_message, "bright_white"),
+            build_part(access_message, "feedback.text"),
         ])
 
     item_map = _container_item_map(container)
@@ -380,22 +380,22 @@ def take_all_from_container(session: ClientSession, container: ContainerTarget):
         item_map.pop(item.item_id, None)
 
     parts = [
-        build_part("You take everything from ", "bright_white"),
-        build_part(_container_reference_text(container), "bright_yellow", True),
-        build_part(".", "bright_white"),
+        build_part("You take everything from ", "feedback.text"),
+        build_part(_container_reference_text(container), "containers.item.label", True),
+        build_part(".", "feedback.text"),
     ]
     if taken_coins > 0:
         parts.extend([
             newline_part(),
-            build_part("Coins +", "bright_white"),
-            build_part(str(taken_coins), "bright_cyan", True),
+            build_part("Coins +", "feedback.text"),
+            build_part(str(taken_coins), "containers.coins_value", True),
         ])
     for item in taken_items:
         parts.extend([
             newline_part(),
-            build_part("You take ", "bright_white"),
+            build_part("You take ", "feedback.text"),
             *_build_item_reference_parts(item),
-            build_part(".", "bright_white"),
+            build_part(".", "feedback.text"),
         ])
 
     return display_command_result(session, parts)
@@ -405,7 +405,7 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
     access_message = _container_access_message(container)
     if access_message is not None:
         return display_command_result(session, [
-            build_part(access_message, "bright_white"),
+            build_part(access_message, "feedback.text"),
         ])
 
     normalized = str(item_selector).strip().lower()
@@ -418,11 +418,11 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
         _set_container_coin_amount(container, 0)
         session.status.coins += taken_coins
         return display_command_result(session, [
-            build_part("You take ", "bright_white"),
-            build_part(str(taken_coins), "bright_cyan", True),
-            build_part(" coins from ", "bright_white"),
-            build_part(_container_reference_text(container), "bright_yellow", True),
-            build_part(".", "bright_white"),
+            build_part("You take ", "feedback.text"),
+            build_part(str(taken_coins), "containers.coins_value", True),
+            build_part(" coins from ", "feedback.text"),
+            build_part(_container_reference_text(container), "containers.item.label", True),
+            build_part(".", "feedback.text"),
         ])
 
     requested_index, keywords, parse_error = parse_item_selector(item_selector)
@@ -444,11 +444,11 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
     _container_item_map(container).pop(selected_item.item_id, None)
     session.inventory_items[selected_item.item_id] = selected_item
     return display_command_result(session, [
-        build_part("You take ", "bright_white"),
+        build_part("You take ", "feedback.text"),
         *_build_item_reference_parts(selected_item),
-        build_part(" from ", "bright_white"),
-        build_part(_container_reference_text(container), "bright_yellow", True),
-        build_part(".", "bright_white"),
+        build_part(" from ", "feedback.text"),
+        build_part(_container_reference_text(container), "containers.item.label", True),
+        build_part(".", "feedback.text"),
     ])
 
 
@@ -456,7 +456,7 @@ def put_item_into_container(session: ClientSession, item_selector: str, containe
     access_message = _container_access_message(container)
     if access_message is not None:
         return display_command_result(session, [
-            build_part(access_message, "bright_white"),
+            build_part(access_message, "feedback.text"),
         ])
 
     item, resolve_error = _resolve_inventory_selector(session, item_selector)
@@ -469,11 +469,11 @@ def put_item_into_container(session: ClientSession, item_selector: str, containe
     session.inventory_items.pop(item.item_id, None)
     _container_item_map(container)[item.item_id] = item
     return display_command_result(session, [
-        build_part("You place ", "bright_white"),
+        build_part("You place ", "feedback.text"),
         *_build_item_reference_parts(item),
-        build_part(" into ", "bright_white"),
-        build_part(_container_reference_text(container), "bright_yellow", True),
-        build_part(".", "bright_white"),
+        build_part(" into ", "feedback.text"),
+        build_part(_container_reference_text(container), "containers.item.label", True),
+        build_part(".", "feedback.text"),
     ])
 
 
@@ -538,100 +538,100 @@ def handle_container_command(
 
     if normalized_verb in {"open", "ope", "op", "close", "clos", "clo", "cl"} and not can_close:
         return display_command_result(session, [
-            build_part(f"The {container_label} cannot be opened or closed.", "bright_white"),
+            build_part(f"The {container_label} cannot be opened or closed.", "feedback.text"),
         ])
 
     if normalized_verb in {"open", "ope", "op"}:
         if _container_is_locked(container):
             locked_message = str(getattr(container, "locked_message", "")).strip()
             return display_command_result(session, [
-                build_part(locked_message or _default_container_message(container, "locked"), "bright_white"),
+                build_part(locked_message or _default_container_message(container, "locked"), "feedback.text"),
             ])
         if not _container_is_closed(container):
             already_open_message = str(getattr(container, "already_open_message", "")).strip()
             return display_command_result(session, [
-                build_part(already_open_message or _default_container_message(container, "already_open"), "bright_white"),
+                build_part(already_open_message or _default_container_message(container, "already_open"), "feedback.text"),
             ])
 
         container.is_closed = False
         open_message = str(getattr(container, "open_message", "")).strip()
         return display_command_result(session, [
-            build_part(open_message or _default_container_message(container, "open"), "bright_white"),
+            build_part(open_message or _default_container_message(container, "open"), "feedback.text"),
         ])
 
     if normalized_verb in {"close", "clos", "clo", "cl"}:
         if _container_is_closed(container):
             already_closed_message = str(getattr(container, "already_closed_message", "")).strip()
             return display_command_result(session, [
-                build_part(already_closed_message or _default_container_message(container, "already_closed"), "bright_white"),
+                build_part(already_closed_message or _default_container_message(container, "already_closed"), "feedback.text"),
             ])
 
         container.is_closed = True
         close_message = str(getattr(container, "close_message", "")).strip()
         return display_command_result(session, [
-            build_part(close_message or _default_container_message(container, "close"), "bright_white"),
+            build_part(close_message or _default_container_message(container, "close"), "feedback.text"),
         ])
 
     if not can_lock or not lock_id:
         return display_command_result(session, [
-            build_part(f"The {container_label} cannot be locked or unlocked.", "bright_white"),
+            build_part(f"The {container_label} cannot be locked or unlocked.", "feedback.text"),
         ])
 
     if normalized_verb in {"unlock", "unl", "unlo", "unloc"}:
         if not _container_is_locked(container):
             already_unlocked_message = str(getattr(container, "already_unlocked_message", "")).strip()
             return display_command_result(session, [
-                build_part(already_unlocked_message or _default_container_message(container, "already_unlocked"), "bright_white"),
+                build_part(already_unlocked_message or _default_container_message(container, "already_unlocked"), "feedback.text"),
             ])
 
         key_item = _find_matching_key_item(session, lock_id, key_selector)
         if key_item is None:
             needs_key_message = str(getattr(container, "needs_key_message", "")).strip()
             return display_command_result(session, [
-                build_part(needs_key_message or _default_container_message(container, "needs_key"), "bright_white"),
+                build_part(needs_key_message or _default_container_message(container, "needs_key"), "feedback.text"),
             ])
 
         container.is_locked = False
         unlock_message = str(getattr(container, "unlock_message", "")).strip()
         parts = [
-            build_part(unlock_message or _default_container_message(container, "unlock"), "bright_white"),
+            build_part(unlock_message or _default_container_message(container, "unlock"), "feedback.text"),
         ]
         consume_message = consume_item_on_use(session, key_item)
         if consume_message:
             parts.extend([
                 newline_part(),
-                build_part(consume_message, "bright_white"),
+                build_part(consume_message, "feedback.text"),
             ])
         return display_command_result(session, parts)
 
     if _container_is_locked(container):
         already_locked_message = str(getattr(container, "already_locked_message", "")).strip()
         return display_command_result(session, [
-            build_part(already_locked_message or _default_container_message(container, "already_locked"), "bright_white"),
+            build_part(already_locked_message or _default_container_message(container, "already_locked"), "feedback.text"),
         ])
 
     if not _container_is_closed(container):
         must_close_message = str(getattr(container, "must_close_to_lock_message", "")).strip()
         return display_command_result(session, [
-            build_part(must_close_message or _default_container_message(container, "must_close_to_lock"), "bright_white"),
+            build_part(must_close_message or _default_container_message(container, "must_close_to_lock"), "feedback.text"),
         ])
 
     key_item = _find_matching_key_item(session, lock_id, key_selector)
     if key_item is None:
         needs_key_message = str(getattr(container, "needs_key_message", "")).strip()
         return display_command_result(session, [
-            build_part(needs_key_message or _default_container_message(container, "needs_key"), "bright_white"),
+            build_part(needs_key_message or _default_container_message(container, "needs_key"), "feedback.text"),
         ])
 
     container.is_locked = True
     lock_message = str(getattr(container, "lock_message", "")).strip()
     parts = [
-        build_part(lock_message or _default_container_message(container, "lock"), "bright_white"),
+        build_part(lock_message or _default_container_message(container, "lock"), "feedback.text"),
     ]
     consume_message = consume_item_on_use(session, key_item)
     if consume_message:
         parts.extend([
             newline_part(),
-            build_part(consume_message, "bright_white"),
+            build_part(consume_message, "feedback.text"),
         ])
     return display_command_result(session, parts)

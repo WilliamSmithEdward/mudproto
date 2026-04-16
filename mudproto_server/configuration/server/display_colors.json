@@ -13,16 +13,6 @@
   "feedback.error": "bright_red",
   "feedback.muted": "bright_black",
 
-  "bright_white": "bright_white",
-  "bright_cyan": "bright_cyan",
-  "bright_yellow": "bright_yellow",
-  "bright_green": "bright_green",
-  "bright_red": "bright_red",
-  "bright_black": "bright_black",
-  "bright_magenta": "bright_magenta",
-  "bright_blue": "bright_blue",
-  "orange": "orange",
-
   "display_feedback.prompt.guest": "bright_white",
   "display_feedback.prompt.vitals": "bright_white",
   "display_feedback.prompt.tick_value": "bright_yellow",

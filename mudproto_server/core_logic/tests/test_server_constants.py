@@ -32,9 +32,9 @@ def test_tls_defaults_are_loaded_from_server_settings() -> None:
 
 def test_health_condition_thresholds_are_loaded_and_applied() -> None:
     assert len(HEALTH_CONDITION_BANDS) >= 4
-    assert get_health_condition(15, 100) == ("awful", "bright_red")
-    assert get_health_condition(30, 100) == ("very poor", "bright_red")
-    assert get_health_condition(60, 100) == ("average", "bright_yellow")
-    assert get_health_condition(90, 100) == ("good", "bright_green")
-    assert get_health_condition(99, 100) == ("very good", "bright_green")
-    assert get_health_condition(100, 100) == ("perfect", "bright_green")
+    assert get_health_condition(15, 100) == ("awful", "feedback.error")
+    assert get_health_condition(30, 100) == ("very poor", "feedback.error")
+    assert get_health_condition(60, 100) == ("average", "feedback.warning")
+    assert get_health_condition(90, 100) == ("good", "feedback.success")
+    assert get_health_condition(99, 100) == ("very good", "feedback.success")
+    assert get_health_condition(100, 100) == ("perfect", "feedback.success")

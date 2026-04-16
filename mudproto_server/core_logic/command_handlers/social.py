@@ -353,9 +353,9 @@ def handle_social_command(
 
             _remove_session_from_group(target_session, notify_session=True)
             return display_command_result(session, [
-                build_part("You remove ", "bright_white"),
-                build_part(_display_name(target_session), "bright_cyan", True),
-                build_part(" from your group.", "bright_white"),
+                build_part("You remove ", "feedback.text"),
+                build_part(_display_name(target_session), "feedback.value", True),
+                build_part(" from your group.", "feedback.text"),
             ])
 
         if not args:
@@ -373,15 +373,15 @@ def handle_social_command(
 
             if len(added_members) == 1:
                 return display_command_result(session, [
-                    build_part("You add ", "bright_white"),
-                    build_part(_display_name(added_members[0]), "bright_cyan", True),
-                    build_part(" to your group.", "bright_white"),
+                    build_part("You add ", "feedback.text"),
+                    build_part(_display_name(added_members[0]), "feedback.value", True),
+                    build_part(" to your group.", "feedback.text"),
                 ])
 
             return display_command_result(session, [
-                build_part("You add ", "bright_white"),
-                build_part(str(len(added_members)), "bright_cyan", True),
-                build_part(" followers to your group.", "bright_white"),
+                build_part("You add ", "feedback.text"),
+                build_part(str(len(added_members)), "feedback.value", True),
+                build_part(" followers to your group.", "feedback.text"),
             ])
 
         if subcommand == "disband":
@@ -393,11 +393,11 @@ def handle_social_command(
             removed_members = _disband_group(session, notify_members=True)
             if not removed_members:
                 return display_command_result(session, [
-                    build_part("Your group has only you.", "bright_white"),
+                    build_part("Your group has only you.", "feedback.text"),
                 ])
 
             return display_command_result(session, [
-                build_part("You disband the group.", "bright_white"),
+                build_part("You disband the group.", "feedback.text"),
             ])
 
         selector_text = " ".join(args).strip()
@@ -424,9 +424,9 @@ def handle_social_command(
             return display_error(f"Could not add {_display_name(target_session)} to your group.", session)
 
         return display_command_result(session, [
-            build_part("You add ", "bright_white"),
-            build_part(_display_name(target_session), "bright_cyan", True),
-            build_part(" to your group.", "bright_white"),
+            build_part("You add ", "feedback.text"),
+            build_part(_display_name(target_session), "feedback.value", True),
+            build_part(" to your group.", "feedback.text"),
         ])
 
     if verb in {"swap", "swa", "sw"}:
@@ -468,9 +468,9 @@ def handle_social_command(
 
             target_name = _display_name(target_session)
             return display_command_result(session, [
-                build_part("You swap positions with ", "bright_white"),
-                build_part(target_name, "bright_cyan", True),
-                build_part(".", "bright_white"),
+                build_part("You swap positions with ", "feedback.text"),
+                build_part(target_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
             ])
 
         try:
@@ -503,9 +503,9 @@ def handle_social_command(
 
             target_name = _display_name(target_session)
             return display_command_result(session, [
-                build_part("You swap positions with ", "bright_white"),
-                build_part(target_name, "bright_cyan", True),
-                build_part(".", "bright_white"),
+                build_part("You swap positions with ", "feedback.text"),
+                build_part(target_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
             ])
 
         _leader, party_sessions = _list_group_member_sessions(session)
@@ -536,11 +536,11 @@ def handle_social_command(
         first_name = _display_name(first_session)
         second_name = _display_name(second_session)
         return display_command_result(session, [
-            build_part("You swap ", "bright_white"),
-            build_part(first_name, "bright_cyan", True),
-            build_part(" with ", "bright_white"),
-            build_part(second_name, "bright_cyan", True),
-            build_part(".", "bright_white"),
+            build_part("You swap ", "feedback.text"),
+            build_part(first_name, "feedback.value", True),
+            build_part(" with ", "feedback.text"),
+            build_part(second_name, "feedback.value", True),
+            build_part(".", "feedback.text"),
         ])
 
     if verb in {"watch", "unwatch"}:
@@ -553,9 +553,9 @@ def handle_social_command(
                 return display_error("Usage: watch <player> or watch off.", session)
             watched_name = session.watch_player_name.strip() or "someone"
             return display_command_result(session, [
-                build_part("You are watching ", "bright_white"),
-                build_part(watched_name, "bright_cyan", True),
-                build_part(".", "bright_white"),
+                build_part("You are watching ", "feedback.text"),
+                build_part(watched_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
             ])
 
         if selector_text.lower() in {"off", "stop", "none", "cancel", "clear", "me", "self", "myself"}:
@@ -565,9 +565,9 @@ def handle_social_command(
             session.watch_player_key = ""
             session.watch_player_name = ""
             return display_command_result(session, [
-                build_part("You stop watching ", "bright_white"),
-                build_part(watched_name, "bright_cyan", True),
-                build_part(".", "bright_white"),
+                build_part("You stop watching ", "feedback.text"),
+                build_part(watched_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
             ])
 
         target_session, target_error = _resolve_room_player_selector(session, selector_text)
@@ -584,9 +584,9 @@ def handle_social_command(
         session.watch_player_key = target_key
         session.watch_player_name = target_name
         return display_command_result(session, [
-            build_part("You begin watching ", "bright_white"),
-            build_part(target_name, "bright_cyan", True),
-            build_part(".", "bright_white"),
+            build_part("You begin watching ", "feedback.text"),
+            build_part(target_name, "feedback.value", True),
+            build_part(".", "feedback.text"),
         ])
 
     if verb in {"follow", "fol", "foll", "follo", "unfollow"}:
@@ -604,9 +604,9 @@ def handle_social_command(
                 followed_name = (followed_session.authenticated_character_name or "").strip() or followed_name
 
             return display_command_result(session, [
-                build_part("You are following ", "bright_white"),
-                build_part(followed_name, "bright_cyan", True),
-                build_part(".", "bright_white"),
+                build_part("You are following ", "feedback.text"),
+                build_part(followed_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
             ])
 
         if selector_text.lower() in {"off", "stop", "none", "cancel", "clear"}:
@@ -620,9 +620,9 @@ def handle_social_command(
             if followed_session is not None:
                 _notify_unfollow_target(followed_session, _display_name(session))
             return display_command_result(session, [
-                build_part("You stop following ", "bright_white"),
-                build_part(followed_name, "bright_cyan", True),
-                build_part(".", "bright_white"),
+                build_part("You stop following ", "feedback.text"),
+                build_part(followed_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
             ])
 
         if session.combat.engaged_entity_ids:
@@ -643,7 +643,7 @@ def handle_social_command(
                     _notify_unfollow_target(previous_followed_session, _display_name(session))
                 if had_group or had_follow:
                     return display_command_result(session, [
-                        build_part("You stop following and leave your group.", "bright_white"),
+                        build_part("You stop following and leave your group.", "feedback.text"),
                     ])
                 return display_error("You are already following yourself.", session)
             return display_error("You cannot follow yourself.", session)
@@ -675,9 +675,9 @@ def handle_social_command(
             _notify_unfollow_target(previous_followed_session, _display_name(session))
         _notify_follow_target(target_session, _display_name(session))
         return display_command_result(session, [
-            build_part("You start following ", "bright_white"),
-            build_part(target_name, "bright_cyan", True),
-            build_part(".", "bright_white"),
+            build_part("You start following ", "feedback.text"),
+            build_part(target_name, "feedback.value", True),
+            build_part(".", "feedback.text"),
         ])
 
     if verb in _SAY_VERBS:
@@ -724,10 +724,10 @@ def handle_social_command(
         _send_realtime_notification(target_session, notification)
 
         return _display_chat_message(session, [
-            build_part("You tell ", "bright_white"),
-            build_part(_display_name(target_session), "bright_white"),
-            build_part(", ", "bright_white"),
-            build_part(f'"{spoken_text}"', "bright_white"),
+            build_part("You tell ", "feedback.text"),
+            build_part(_display_name(target_session), "feedback.text"),
+            build_part(", ", "feedback.text"),
+            build_part(f'"{spoken_text}"', "feedback.text"),
         ])
 
     if verb in _GROUP_TELL_VERBS:

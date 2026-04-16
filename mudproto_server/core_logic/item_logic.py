@@ -31,7 +31,7 @@ def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
     article, _, item_name = with_article(item.name).partition(" ")
     item_color = fg or _item_highlight_color(item)
     return [
-        build_part(f"{article} ", "bright_white"),
+        build_part(f"{article} ", "feedback.text"),
         build_part(item_name or item.name, item_color, True),
     ]
 
@@ -329,11 +329,11 @@ def _use_misc_item(session: ClientSession, selector: str, *, verb: str = "use") 
 
     payload = result.get("payload")
     if isinstance(payload, dict):
-        room_parts = [build_part(observer_action, "bright_white")]
+        room_parts = [build_part(observer_action, "item_logic.use.text")]
         if observer_context:
             room_parts.extend([
                 newline_part(1),
-                build_part(observer_context, "bright_white"),
+                build_part(observer_context, "item_logic.use.text"),
             ])
         payload["room_broadcast_lines"] = parts_to_lines(room_parts)
 

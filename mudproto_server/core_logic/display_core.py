@@ -6,22 +6,22 @@ PANEL_INNER_WIDTH = 34
 
 
 def resolve_display_color(color_key_or_value: str | None, *, fallback: str = "display_core.default_fg") -> str:
-    raw_value = str(color_key_or_value or "").strip()
-    if raw_value:
-        resolved = str(DISPLAY_COLOR_MAP.get(raw_value, "")).strip()
+    color_key = str(color_key_or_value or "").strip()
+    if color_key:
+        resolved = str(DISPLAY_COLOR_MAP.get(color_key, "")).strip()
         if resolved:
             return resolved
-        return raw_value
 
-    fallback_value = str(fallback).strip()
-    if fallback_value:
-        resolved_fallback = str(DISPLAY_COLOR_MAP.get(fallback_value, "")).strip()
-        if resolved_fallback:
-            return resolved_fallback
-        return fallback_value
+    fallback_key = str(fallback or "display_core.default_fg").strip() or "display_core.default_fg"
+    resolved_fallback = str(DISPLAY_COLOR_MAP.get(fallback_key, "")).strip()
+    if resolved_fallback:
+        return resolved_fallback
 
-    resolved_default = str(DISPLAY_COLOR_MAP.get("display_core.default_fg", "bright_white")).strip()
-    return resolved_default or "bright_white"
+    resolved_default = str(DISPLAY_COLOR_MAP.get("display_core.default_fg", "")).strip()
+    if resolved_default:
+        return resolved_default
+
+    return "bright_white"
 
 
 def build_part(text: str, fg: str = "display_core.default_fg", bold: bool = False) -> dict:
@@ -156,9 +156,11 @@ def build_menu_table_parts(
 
 
 def _normalize_part(part: dict) -> dict:
+    fg_value = str(part.get("fg", "display_core.default_fg")).strip()
+    configured_palette_values = {str(value).strip() for value in DISPLAY_COLOR_MAP.values() if str(value).strip()}
     normalized = {
         "text": str(part.get("text", "")),
-        "fg": resolve_display_color(part.get("fg", "display_core.default_fg")),
+        "fg": fg_value if fg_value in configured_palette_values else resolve_display_color(fg_value),
         "bold": part.get("bold", False),
     }
     if bool(part.get("observer_plain", False)):

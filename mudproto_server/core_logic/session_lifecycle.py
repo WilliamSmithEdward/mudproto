@@ -216,8 +216,8 @@ def _announce_room_connection_state(origin_session: ClientSession, state_text: s
 
     for peer in _iter_authenticated_room_peers(origin_session):
         outbound = display_command_result(peer, [
-            build_part(actor_name, "bright_white", True),
-            build_part(f" has {state_text}.", "bright_white"),
+            build_part(actor_name, "feedback.text", True),
+            build_part(f" has {state_text}.", "feedback.text"),
         ], compact=True)
         try:
             asyncio.get_running_loop().create_task(send_outbound(peer.websocket, outbound))
@@ -291,9 +291,9 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
         if isinstance(lines, list):
             greeting = "Character created" if is_new_character else "Welcome back"
             greeting_line = build_line(
-                build_part(f"{greeting}, ", "bright_white"),
-                build_part(character_name, "bright_green", True),
-                build_part(".", "bright_white"),
+                build_part(f"{greeting}, ", "feedback.text"),
+                build_part(character_name, "feedback.success", True),
+                build_part(".", "feedback.text"),
             )
             blank_line: list[dict] = []
             if lines and isinstance(lines[0], list) and len(lines[0]) == 0:

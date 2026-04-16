@@ -100,8 +100,8 @@ async def _process_npc_wandering() -> None:
             if int(getattr(entity, "skill_lag_rounds_remaining", 0)) <= 0 and int(getattr(entity, "spell_lag_rounds_remaining", 0)) <= 0:
                 entity.is_sitting = False
                 stand_parts = [
-                    build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_white"),
-                    build_part(" stands up.", "bright_white"),
+                    build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "feedback.text"),
+                    build_part(" stands up.", "feedback.text"),
                 ]
                 for peer in _iter_room_sessions(entity.room_id):
                     await send_outbound(peer.websocket, _npc_wander_display(stand_parts, peer))
@@ -141,20 +141,20 @@ async def _process_npc_wandering() -> None:
 
         if leave_dir:
             leave_parts = [
-                build_part(entity_label, "bright_white"),
-                build_part(f" leaves {leave_dir}.", "bright_white"),
+                build_part(entity_label, "feedback.text"),
+                build_part(f" leaves {leave_dir}.", "feedback.text"),
             ]
         else:
-            leave_parts = [build_part(f"{entity_label} wanders off.", "bright_white")]
+            leave_parts = [build_part(f"{entity_label} wanders off.", "feedback.text")]
 
         if arrive_dir:
             arrival_origin = _format_arrival_origin(arrive_dir)
             arrive_parts = [
-                build_part(entity_label, "bright_white"),
-                build_part(f" arrives from {arrival_origin}.", "bright_white"),
+                build_part(entity_label, "feedback.text"),
+                build_part(f" arrives from {arrival_origin}.", "feedback.text"),
             ]
         else:
-            arrive_parts = [build_part(f"{entity_label} wanders in.", "bright_white")]
+            arrive_parts = [build_part(f"{entity_label} wanders in.", "feedback.text")]
 
         for peer in _iter_room_sessions(origin_room_id):
             await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))

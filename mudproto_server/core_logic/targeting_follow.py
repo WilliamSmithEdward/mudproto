@@ -104,8 +104,8 @@ def _notify_unfollow_target(target_session: ClientSession, follower_name: str) -
 
     resolved_name = str(follower_name).strip() or "Someone"
     notification = display_command_result(target_session, [
-        build_part(resolved_name, "bright_cyan", True),
-        build_part(" stops following you.", "bright_white"),
+        build_part(resolved_name, "feedback.value", True),
+        build_part(" stops following you.", "feedback.text"),
     ])
 
     try:
@@ -123,9 +123,9 @@ def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
 
     resolved_name = str(followed_name).strip() or "them"
     notification = display_command_result(session, [
-        build_part("You stop following ", "bright_white"),
-        build_part(resolved_name, "bright_cyan", True),
-        build_part(".", "bright_white"),
+        build_part("You stop following ", "feedback.text"),
+        build_part(resolved_name, "feedback.value", True),
+        build_part(".", "feedback.text"),
     ])
 
     try:

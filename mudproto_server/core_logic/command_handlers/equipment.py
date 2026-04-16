@@ -246,11 +246,11 @@ def handle_equipment_command(
             for item_name, slot_name in worn_results:
                 parts.extend([
                     newline_part(),
-                    build_part(" - ", "bright_white"),
-                    build_part(item_name, "bright_cyan", True),
-                    build_part(" on your ", "bright_white"),
-                    build_part(slot_name, "bright_yellow", True),
-                    build_part(".", "bright_white"),
+                    build_part(" - ", "feedback.text"),
+                    build_part(item_name, "feedback.value", True),
+                    build_part(" on your ", "feedback.text"),
+                    build_part(slot_name, "feedback.warning", True),
+                    build_part(".", "feedback.text"),
                 ])
 
             return display_command_result(session, parts)
@@ -281,11 +281,11 @@ def handle_equipment_command(
             for item_name, slot_name in worn_results:
                 parts.extend([
                     newline_part(),
-                    build_part(" - ", "bright_white"),
-                    build_part(item_name, "bright_cyan", True),
-                    build_part(" on your ", "bright_white"),
-                    build_part(slot_name, "bright_yellow", True),
-                    build_part(".", "bright_white"),
+                    build_part(" - ", "feedback.text"),
+                    build_part(item_name, "feedback.value", True),
+                    build_part(" on your ", "feedback.text"),
+                    build_part(slot_name, "feedback.warning", True),
+                    build_part(".", "feedback.text"),
                 ])
 
             return display_command_result(session, parts)
@@ -363,7 +363,7 @@ def handle_equipment_command(
             for item in removed_items:
                 parts.extend([
                     newline_part(),
-                    build_part(" - ", "bright_white"),
+                    build_part(" - ", "feedback.text"),
                     build_part(item.name, _item_highlight_color(item), True),
                 ])
             return display_command_result(session, parts)
@@ -391,7 +391,7 @@ def handle_equipment_command(
             for item in removed_items:
                 parts.extend([
                     newline_part(),
-                    build_part(" - ", "bright_white"),
+                    build_part(" - ", "feedback.text"),
                     build_part(item.name, _item_highlight_color(item), True),
                 ])
             return display_command_result(session, parts)
