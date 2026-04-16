@@ -102,9 +102,9 @@ def flee(session: ClientSession) -> OutboundResult:
 
     if random.random() >= FLEE_SUCCESS_CHANCE:
         return display_command_result(session, [
-            build_part("You try to flee from ", "bright_white"),
+            build_part("You try to flee from ", "feedback.text"),
             build_part(entity.name),
-            build_part(", but fail.", "bright_white"),
+            build_part(", but fail.", "feedback.text"),
         ])
 
     flee_direction, next_room_id = random.choice(exits)
@@ -127,9 +127,9 @@ def flee(session: ClientSession) -> OutboundResult:
         if isinstance(lines, list):
             payload["lines"] = [
                 build_line(
-                    build_part("You flee ", "bright_white"),
-                    build_part(flee_direction, "bright_yellow", True),
-                    build_part(".", "bright_white"),
+                    build_part("You flee ", "feedback.text"),
+                    build_part(flee_direction, "feedback.warning", True),
+                    build_part(".", "feedback.text"),
                 ),
             ] + lines
 

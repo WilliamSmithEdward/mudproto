@@ -24,7 +24,7 @@ def _build_corpse_label(source_name: str, corpse_label_style: str = "generic", *
 
 
 def _item_highlight_color(item) -> str:
-    return "bright_magenta" if is_item_equippable(item) else "bright_yellow"
+    return "item_logic.highlight.equipment" if is_item_equippable(item) else "item_logic.highlight.item"
 
 
 def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
@@ -110,16 +110,16 @@ def _display_item_examination(session: ClientSession, item: ItemState, *, defaul
         str(getattr(item, "name", "Item")).strip() or "Item",
         ["Field", "Details"],
         rows,
-        column_colors=["bright_cyan", "bright_white"],
+        column_colors=["item_logic.examination.field_column", "item_logic.examination.detail_column"],
         column_alignments=["left", "left"],
     )
 
     description = str(getattr(item, "description", "")).strip() or "No description is available for this item."
     parts.extend([
         newline_part(),
-        build_part("Description", "bright_white", True),
+        build_part("Description", "item_logic.examination.description.heading", True),
         newline_part(),
-        build_part(description, "bright_white"),
+        build_part(description, "item_logic.examination.description.text"),
     ])
 
     return display_command_result(session, parts)
@@ -322,9 +322,9 @@ def _use_misc_item(session: ClientSession, selector: str, *, verb: str = "use") 
         )
 
     result = display_command_result(session, [
-        build_part("You use ", "bright_white"),
-        build_part(f"{item_article} {item_name}", "bright_yellow", True),
-        build_part(".", "bright_white"),
+        build_part("You use ", "item_logic.use.text"),
+        build_part(f"{item_article} {item_name}", "item_logic.use.item", True),
+        build_part(".", "item_logic.use.text"),
     ])
 
     payload = result.get("payload")

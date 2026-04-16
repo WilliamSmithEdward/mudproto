@@ -461,8 +461,8 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
             destroyed_entity_labels.append(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)))
             parts.extend([
                 newline_part(),
-                build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
-                build_part(" is dead!", "bright_red", True),
+                build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "combat.death", True),
+                build_part(" is dead!", "combat.death", True),
             ])
 
             if entity.entity_id in session.combat.engaged_entity_ids:
@@ -932,8 +932,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             destroyed_entity_labels.append(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)))
             parts.extend([
                 newline_part(),
-                build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
-                build_part(" is dead!", "bright_red", True),
+                build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "combat.death", True),
+                build_part(" is dead!", "combat.death", True),
             ])
 
             if entity.entity_id in session.combat.engaged_entity_ids:

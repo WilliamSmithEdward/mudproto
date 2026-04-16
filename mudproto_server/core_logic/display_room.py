@@ -26,9 +26,9 @@ def _resolve_posture_label(*, is_sitting: bool, is_resting: bool, is_sleeping: b
 def _append_posture_parts(parts: list[dict], *, is_sitting: bool, is_resting: bool, is_sleeping: bool) -> None:
     posture_label = _resolve_posture_label(is_sitting=is_sitting, is_resting=is_resting, is_sleeping=is_sleeping)
     parts.extend([
-        build_part(" (", "bright_white"),
-        build_part(posture_label, "bright_white"),
-        build_part(")", "bright_white"),
+        build_part(" (", "display_room.summary.label"),
+        build_part(posture_label, "display_room.summary.label"),
+        build_part(")", "display_room.summary.label"),
     ])
 
 
@@ -64,7 +64,7 @@ def _append_scan_entity_summary(
     *,
     prefix: str,
     name_color: str,
-    count_color: str = "bright_cyan",
+    count_color: str = "display_room.scan.count",
 ) -> bool:
     if not entities:
         return False
@@ -83,11 +83,11 @@ def _append_scan_entity_summary(
         })
 
     if prefix:
-        parts.append(build_part(prefix, "bright_white", True))
+        parts.append(build_part(prefix, "feedback.text", True))
 
     for index, entry in enumerate(summarized):
         if index > 0:
-            parts.append(build_part(", ", "bright_white"))
+            parts.append(build_part(", ", "feedback.text"))
 
         parts.append(build_part(str(entry["name"]), name_color, True))
         count = int(entry["count"])
@@ -98,11 +98,11 @@ def _append_scan_entity_summary(
 
 
 def _append_scan_hostile_summary(parts: list[dict], entities: list, *, prefix: str = "Enemies: ") -> bool:
-    return _append_scan_entity_summary(parts, entities, prefix=prefix, name_color="bright_red")
+    return _append_scan_entity_summary(parts, entities, prefix=prefix, name_color="display_room.scan.hostile")
 
 
 def _append_scan_unhostile_summary(parts: list[dict], entities: list, *, prefix: str = "Unhostile: ") -> bool:
-    return _append_scan_entity_summary(parts, entities, prefix=prefix, name_color="bright_yellow")
+    return _append_scan_entity_summary(parts, entities, prefix=prefix, name_color="display_room.scan.neutral")
 
 
 def _append_scan_npc_summary(
@@ -116,17 +116,17 @@ def _append_scan_npc_summary(
         return False
 
     if prefix:
-        parts.append(build_part(prefix, "bright_white", True))
+        parts.append(build_part(prefix, "display_room.scan.prefix", True))
 
     appended = False
     if hostiles:
-        _append_scan_entity_summary(parts, hostiles, prefix="", name_color="bright_red")
+        _append_scan_entity_summary(parts, hostiles, prefix="", name_color="display_room.scan.hostile")
         appended = True
 
     if unhostiles:
         if appended:
-            parts.append(build_part(", ", "bright_white"))
-        _append_scan_entity_summary(parts, unhostiles, prefix="", name_color="bright_yellow")
+            parts.append(build_part(", ", "display_room.scan.separator"))
+        _append_scan_entity_summary(parts, unhostiles, prefix="", name_color="display_room.scan.neutral")
         appended = True
 
     return appended
@@ -151,16 +151,16 @@ def _append_scan_player_summary(parts: list[dict], players: list[ClientSession],
         })
 
     if prefix:
-        parts.append(build_part(prefix, "bright_white", True))
+        parts.append(build_part(prefix, "display_room.scan.prefix", True))
 
     for index, entry in enumerate(summarized):
         if index > 0:
-            parts.append(build_part(", ", "bright_white"))
+            parts.append(build_part(", ", "display_room.scan.separator"))
 
-        parts.append(build_part(str(entry["name"]), "bright_cyan", True))
+        parts.append(build_part(str(entry["name"]), "display_room.scan.player", True))
         count = int(entry["count"])
         if count > 1:
-            parts.append(build_part(f" [{count}]", "bright_yellow", True))
+            parts.append(build_part(f" [{count}]", "display_room.scan.player_count", True))
 
     return True
 
@@ -170,15 +170,15 @@ def display_exits(session: ClientSession, room: Room) -> dict:
     exit_items = sorted(room.exits.items(), key=lambda item: _direction_sort_key(item[0]))
 
     parts: list[dict] = [
-        build_part(_panel_title_line("Exits"), "bright_cyan", True),
+        build_part(_panel_title_line("Exits"), "display_room.exits.title", True),
         newline_part(),
-        build_part(_panel_divider(), "bright_black"),
+        build_part(_panel_divider(), "display_room.exits.divider"),
     ]
 
     if not exit_items:
         parts.extend([
             newline_part(),
-            build_part("No visible exits.", "bright_white"),
+            build_part("No visible exits.", "display_room.exits.empty"),
         ])
     else:
         direction_width = max(len(str(direction).strip().title()) for direction, _ in exit_items)
@@ -187,25 +187,25 @@ def display_exits(session: ClientSession, room: Room) -> dict:
             destination_label = destination_room.title if destination_room is not None else str(destination_room_id)
             parts.extend([
                 newline_part(),
-                build_part(f"[{_direction_short_label(direction)}]", "bright_yellow", True),
-                build_part(" ", "bright_white"),
-                build_part(str(direction).strip().title().ljust(direction_width), "bright_cyan", True),
-                build_part(" -> ", "bright_black"),
-                build_part(destination_label, "bright_green", True),
-                build_part(describe_exit_status(room, direction), "bright_black"),
+                build_part(f"[{_direction_short_label(direction)}]", "display_room.exits.direction_short", True),
+                build_part(" ", "display_room.summary.label"),
+                build_part(str(direction).strip().title().ljust(direction_width), "display_room.exits.direction_name", True),
+                build_part(" -> ", "display_room.exits.arrow"),
+                build_part(destination_label, "display_room.exits.destination", True),
+                build_part(describe_exit_status(room, direction), "display_room.exits.status"),
             ])
 
             nearby_hostiles = _scan_visible_hostiles(session, destination_room_id)
             nearby_unhostiles = _scan_visible_unhostiles(session, destination_room_id)
             nearby_players = _scan_visible_players(session, destination_room_id)
             if nearby_hostiles or nearby_unhostiles or nearby_players:
-                parts.append(build_part(" - ", "bright_black"))
+                parts.append(build_part(" - ", "display_room.exits.arrow"))
                 appended_summary = False
                 if nearby_hostiles or nearby_unhostiles:
                     appended_summary = _append_scan_npc_summary(parts, nearby_hostiles, nearby_unhostiles, prefix="NPCs: ")
                 if nearby_players:
                     if appended_summary:
-                        parts.append(build_part(" | ", "bright_black"))
+                        parts.append(build_part(" | ", "display_room.exits.arrow"))
                     _append_scan_player_summary(parts, nearby_players, prefix="Players: ")
 
     visible_enemies = _scan_visible_hostiles(session, room.room_id)
@@ -214,16 +214,16 @@ def display_exits(session: ClientSession, room: Room) -> dict:
     if visible_enemies or visible_unhostiles or visible_players:
         parts.extend([
             newline_part(),
-            build_part(_panel_divider(), "bright_black"),
+            build_part(_panel_divider(), "display_room.exits.divider"),
             newline_part(),
-            build_part("Here: ", "bright_white", True),
+            build_part("Here: ", "display_room.exits.here_label", True),
         ])
         appended_summary = False
         if visible_enemies or visible_unhostiles:
             appended_summary = _append_scan_npc_summary(parts, visible_enemies, visible_unhostiles, prefix="NPCs: ")
         if visible_players:
             if appended_summary:
-                parts.append(build_part(" | ", "bright_black"))
+                parts.append(build_part(" | ", "display_room.exits.arrow"))
             _append_scan_player_summary(parts, visible_players, prefix="Players: ")
 
     return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
@@ -264,25 +264,25 @@ def _display_look_summary(
     parts = [
         build_part(_panel_title_line(title), title_color, True),
         newline_part(),
-        build_part(_panel_divider(), "bright_black"),
+        build_part(_panel_divider(), "display_room.summary.divider"),
         newline_part(),
-        build_part("Condition: ", "bright_white", True),
+        build_part("Condition: ", "display_room.summary.label", True),
         build_part(condition_text.title(), condition_color, True),
         newline_part(),
-        build_part("Gear:", "bright_white", True),
+        build_part("Gear:", "display_room.summary.label", True),
     ]
 
     if gear_summary:
         for gear_line in gear_summary:
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
-                build_part(gear_line, "bright_magenta", True),
+                build_part(" - ", "display_room.summary.label"),
+                build_part(gear_line, "display_room.summary.gear", True),
             ])
     else:
         parts.extend([
             newline_part(),
-            build_part("No obvious gear.", "bright_white"),
+            build_part("No obvious gear.", "display_room.summary.empty"),
         ])
 
     return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
@@ -293,7 +293,7 @@ def display_entity_summary(session: ClientSession, entity) -> dict:
     return _display_look_summary(
         session,
         title=entity.name,
-        title_color="bright_green",
+        title_color="display_room.entity_summary.title",
         condition_text=condition_text,
         condition_color=condition_color,
         gear_summary=_summarize_entity_gear(entity),
@@ -307,7 +307,7 @@ def display_player_summary(session: ClientSession, target_session: ClientSession
     return _display_look_summary(
         session,
         title=target_name,
-        title_color="bright_cyan",
+        title_color="display_room.player_summary.title",
         condition_text=condition_text,
         condition_color=condition_color,
         gear_summary=_summarize_player_gear(target_session),
@@ -354,10 +354,10 @@ def _append_room_engagement_parts(parts: list[dict], target_name: str | None, *,
     verb_text = "Fighting " if is_you else "fighting "
     label_text = "YOU!" if is_you else target_name
     parts.extend([
-        build_part(" (", "bright_white"),
-        build_part(verb_text, "bright_white"),
-        build_part(label_text, "bright_yellow", True),
-        build_part(")", "bright_white"),
+        build_part(" (", "display_room.summary.label"),
+        build_part(verb_text, "display_room.status.verb"),
+        build_part(label_text, "display_room.status.label", True),
+        build_part(")", "display_room.summary.label"),
     ])
 
 
@@ -365,9 +365,9 @@ def display_room(session: ClientSession, room: Room) -> dict:
     prompt_after, prompt_parts = resolve_prompt_default(session, True)
 
     parts = [
-        build_part(room.title, "bright_green", True),
+        build_part(room.title, "display_room.room.title", True),
         newline_part(),
-        build_part(room.description, "bright_white"),
+        build_part(room.description, "display_room.room.description"),
     ]
 
     entities = list_room_entities(session, room.room_id)
@@ -375,14 +375,14 @@ def display_room(session: ClientSession, room: Room) -> dict:
         parts.extend([
             newline_part(),
             newline_part(),
-            build_part("You see here:", "bright_white", True),
+            build_part("You see here:", "display_room.section.heading", True),
         ])
 
         for entity in entities:
-            entity_name_color = "bright_red" if is_entity_hostile_to_player(session, entity) else "bright_yellow"
+            entity_name_color = "display_room.entity.hostile" if is_entity_hostile_to_player(session, entity) else "display_room.entity.neutral"
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
+                build_part(" - ", "display_room.section.bullet"),
                 build_part(entity.name, entity_name_color, True),
             ])
             _append_posture_parts(
@@ -403,15 +403,15 @@ def display_room(session: ClientSession, room: Room) -> dict:
         parts.extend([
             newline_part(),
             newline_part(),
-            build_part("Players here:", "bright_white", True),
+            build_part("Players here:", "display_room.section.heading", True),
         ])
 
         for other_player in other_players:
             player_name = other_player.authenticated_character_name.strip() or "Unknown"
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
-                build_part(player_name, "bright_cyan", True),
+                build_part(" - ", "display_room.section.bullet"),
+                build_part(player_name, "display_room.player.name", True),
             ])
             _append_posture_parts(
                 parts,
@@ -426,13 +426,13 @@ def display_room(session: ClientSession, room: Room) -> dict:
         parts.extend([
             newline_part(),
             newline_part(),
-            build_part("Corpses:", "bright_white", True),
+            build_part("Corpses:", "display_room.section.heading", True),
         ])
 
         for corpse in corpses:
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
+                build_part(" - ", "display_room.section.bullet"),
                 build_part(
                     _build_corpse_label(
                         corpse.source_name,
@@ -448,11 +448,11 @@ def display_room(session: ClientSession, room: Room) -> dict:
         parts.extend([
             newline_part(),
             newline_part(),
-            build_part("Coin pile:", "bright_white", True),
+            build_part("Coin pile:", "display_room.section.heading", True),
             newline_part(),
-            build_part(" - ", "bright_white"),
-            build_part(str(room_coin_amount), "bright_cyan", True),
-            build_part(" coins", "bright_white"),
+            build_part(" - ", "display_room.section.bullet"),
+            build_part(str(room_coin_amount), "display_room.coin.amount", True),
+            build_part(" coins", "display_room.summary.label"),
         ])
 
     room_items = list(session.room_ground_items.get(room.room_id, {}).values())
@@ -477,19 +477,19 @@ def display_room(session: ClientSession, room: Room) -> dict:
         parts.extend([
             newline_part(),
             newline_part(),
-            build_part("Items on ground:", "bright_white", True),
+            build_part("Items on ground:", "display_room.section.heading", True),
         ])
         for item_key in room_item_order:
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
+                build_part(" - ", "display_room.section.bullet"),
                 build_part(room_item_names[item_key], room_item_colors[item_key], True),
             ])
             count = room_item_counts[item_key]
             if count > 1:
                 parts.extend([
-                    build_part(" ", "bright_white"),
-                    build_part(f"[{count}]", "bright_cyan", True),
+                    build_part(" ", "display_room.summary.label"),
+                    build_part(f"[{count}]", "display_room.item.count", True),
                 ])
 
     return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)

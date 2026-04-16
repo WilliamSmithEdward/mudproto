@@ -31,7 +31,7 @@ def handle_skill_command(
         skills = _list_known_skills(session)
         if not skills:
             return display_command_result(session, [
-                build_part("You do not know any skills.", "bright_white"),
+                build_part("You do not know any skills.", "feedback.text"),
             ])
 
         menu_rows = [

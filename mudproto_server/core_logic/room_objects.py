@@ -57,5 +57,5 @@ def display_room_object_examination(session: ClientSession, room: Room, room_obj
     description = str(room_object.get("description", "")).strip() or "Nothing about it stands out."
 
     return display_command_result(session, [
-        build_part(description, "bright_white"),
+        build_part(description, "room_objects.description"),
     ])

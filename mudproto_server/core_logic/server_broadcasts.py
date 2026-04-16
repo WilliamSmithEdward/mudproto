@@ -4,7 +4,7 @@ import copy
 import re
 
 from command_handlers.parsing import parse_command
-from display_core import build_display_lines
+from display_core import build_display_lines, resolve_display_color
 from display_feedback import build_prompt_lines_default, build_prompt_parts_default
 from grammar import third_personize_text, to_third_person
 from models import ClientSession
@@ -133,10 +133,11 @@ def _strip_observer_actor_line_style(line: list[dict], actor_name: str) -> None:
     if not normalized_text.startswith(f"{normalized_actor} "):
         return
 
+    observer_color = resolve_display_color("combat.observer.message")
     for part in line:
         if not isinstance(part, dict):
             continue
-        part["fg"] = "bright_white"
+        part["fg"] = observer_color
         part["bold"] = False
 
 
@@ -144,12 +145,13 @@ def _strip_observer_proc_line_style(line: list[dict]) -> None:
     if not isinstance(line, list) or not line:
         return
 
+    proc_color = resolve_display_color("combat.proc.message").strip().lower()
     is_proc_line = any(
         isinstance(part, dict)
         and (
             bool(part.get("observer_plain", False))
             or (
-                str(part.get("fg", "")).strip().lower() == "bright_yellow"
+                str(part.get("fg", "")).strip().lower() == proc_color
                 and bool(part.get("bold", False))
             )
         )
@@ -158,10 +160,11 @@ def _strip_observer_proc_line_style(line: list[dict]) -> None:
     if not is_proc_line:
         return
 
+    observer_color = resolve_display_color("combat.observer.message")
     for part in line:
         if not isinstance(part, dict):
             continue
-        part["fg"] = "bright_white"
+        part["fg"] = observer_color
         part["bold"] = False
 
 
@@ -169,12 +172,13 @@ def _prefix_observer_proc_line_actor(line: list[dict], actor_name: str) -> None:
     if not isinstance(line, list) or not line:
         return
 
+    proc_color = resolve_display_color("combat.proc.message").strip().lower()
     is_proc_line = any(
         isinstance(part, dict)
         and (
             bool(part.get("observer_plain", False))
             or (
-                str(part.get("fg", "")).strip().lower() == "bright_yellow"
+                str(part.get("fg", "")).strip().lower() == proc_color
                 and bool(part.get("bold", False))
             )
         )
@@ -196,7 +200,7 @@ def _prefix_observer_proc_line_actor(line: list[dict], actor_name: str) -> None:
     prefixed_text = f"{cleaned_actor}'s {line_text}"
     line[:] = [{
         "text": prefixed_text,
-        "fg": "bright_white",
+        "fg": resolve_display_color("combat.observer.message"),
         "bold": False,
         "observer_plain": True,
     }]
@@ -404,7 +408,7 @@ def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tupl
                 continue
             if bool(part.get("observer_plain", False)):
                 return True
-            if str(part.get("fg", "")).strip().lower() == "bright_yellow" and bool(part.get("bold", False)):
+            if str(part.get("fg", "")).strip().lower() == resolve_display_color("combat.proc.message").strip().lower() and bool(part.get("bold", False)):
                 return True
         return False
 

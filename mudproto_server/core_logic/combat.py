@@ -136,7 +136,7 @@ def _queue_private_combat_message(session: ClientSession, message: str) -> None:
     if not cleaned:
         return
     session.pending_private_lines.append([
-        {"text": cleaned, "fg": "bright_yellow", "bold": True},
+        {"text": cleaned, "fg": resolve_display_color("combat.proc.message"), "bold": True},
     ])
 
 
@@ -145,7 +145,7 @@ def _append_inline_proc_message(parts: list[dict], message: str) -> None:
     if not cleaned:
         return
     append_newline_if_needed(parts)
-    proc_part = build_part(cleaned, "bright_yellow", True)
+    proc_part = build_part(cleaned, "combat.proc.message", True)
     proc_part["observer_plain"] = True
     parts.append(proc_part)
 
@@ -155,7 +155,7 @@ def _record_observer_broadcast_line(room_broadcast_lines: list[list[dict]], mess
     if not cleaned:
         return
     room_broadcast_lines.append([
-        {"text": cleaned, "fg": "bright_white", "bold": False},
+        {"text": cleaned, "fg": resolve_display_color("combat.observer.message"), "bold": False},
     ])
 
 
@@ -180,8 +180,8 @@ def _resolve_entity_defeat(
 
     append_newline_if_needed(parts)
     parts.extend([
-        build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
-        build_part(" is dead!", "bright_red", True),
+        build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "combat.death", True),
+        build_part(" is dead!", "combat.death", True),
     ])
 
     if entity.entity_id in session.combat.engaged_entity_ids:
@@ -195,9 +195,9 @@ def _resolve_entity_defeat(
             if next_target is not None:
                 append_newline_if_needed(parts)
                 parts.extend([
-                    build_part("You turn to ", "bright_white"),
+                    build_part("You turn to ", "combat.turn.text"),
                     build_part(with_article(next_target.name, is_named=getattr(next_target, "is_named", None))),
-                    build_part(".", "bright_white"),
+                    build_part(".", "combat.turn.text"),
                 ])
 
     return True
@@ -699,8 +699,8 @@ def resolve_combat_round(
             death_broadcast_lines: list[list[dict]] = []
             if entity_died_this_round:
                 death_broadcast_lines.append([
-                    build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "bright_red", True),
-                    build_part(" is dead!", "bright_red", True),
+                    build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)), "combat.death", True),
+                    build_part(" is dead!", "combat.death", True),
                 ])
             death_broadcast_lines.append(build_player_death_broadcast_parts(actor_name))
             payload["room_broadcast_lines"] = death_broadcast_lines

@@ -49,7 +49,7 @@ def _direction_sort_key(direction: str) -> tuple[int, str]:
 
 def build_prompt_parts(session: ClientSession) -> list[dict]:
     if not session.is_authenticated:
-        return [build_part("> ", "bright_white")]
+        return [build_part("> ", "display_feedback.prompt.guest")]
 
     room = get_room(session.player.current_room_id)
     exit_letters = ""
@@ -71,23 +71,23 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
     parts = [
         build_part(f"{status.hit_points}H", me_condition_color, True),
-        build_part(f" {status.vigor}V", "bright_white"),
+        build_part(f" {status.vigor}V", "display_feedback.prompt.vitals"),
     ]
     if show_mana:
-        parts.append(build_part(f" {status.mana}M", "bright_white"))
-    parts.append(build_part(f" {status.coins}C", "bright_white"))
+        parts.append(build_part(f" {status.mana}M", "display_feedback.prompt.vitals"))
+    parts.append(build_part(f" {status.coins}C", "display_feedback.prompt.vitals"))
 
     xp_to_next_level = get_xp_to_next_level(session.player.experience_points)
     parts.extend([
-        build_part(f" {xp_to_next_level}X", "bright_white"),
+        build_part(f" {xp_to_next_level}X", "display_feedback.prompt.vitals"),
     ])
 
     tick_seconds_remaining = _get_tick_seconds_remaining(session)
     if tick_seconds_remaining is not None:
         parts.extend([
-            build_part(" [Tick:", "bright_white"),
-            build_part(f"{tick_seconds_remaining}s", "bright_yellow", True),
-            build_part("]", "bright_white"),
+            build_part(" [Tick:", "display_feedback.prompt.bracket"),
+            build_part(f"{tick_seconds_remaining}s", "display_feedback.prompt.tick_value", True),
+            build_part("]", "display_feedback.prompt.bracket"),
         ])
 
     engaged_entity = get_engaged_entity(session)
@@ -107,9 +107,9 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
     # [Me: ...] is hidden when watch mode is active; the watched player's block takes its place.
     if watched_session is None:
         parts.extend([
-            build_part(" [Me:", "bright_white"),
+            build_part(" [Me:", "display_feedback.prompt.bracket"),
             build_part(me_condition.title(), me_condition_color, True),
-            build_part("]", "bright_white"),
+            build_part("]", "display_feedback.prompt.bracket"),
         ])
 
     if watched_session is not None:
@@ -119,34 +119,34 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
         )
         watched_name = (watched_session.authenticated_character_name or session.watch_player_name or "?").strip()
         parts.extend([
-            build_part(" [", "bright_white"),
-            build_part(watched_name, "bright_cyan", True),
-            build_part(":", "bright_white"),
+            build_part(" [", "display_feedback.prompt.bracket"),
+            build_part(watched_name, "display_feedback.prompt.watch_name", True),
+            build_part(":", "display_feedback.prompt.bracket"),
             build_part(watched_condition.title(), watched_condition_color, True),
-            build_part("]", "bright_white"),
+            build_part("]", "display_feedback.prompt.bracket"),
         ])
         watched_entity = get_engaged_entity(watched_session)
         if watched_entity is not None:
             watched_entity_condition, watched_entity_condition_color = get_entity_condition(watched_entity)
             parts.extend([
-                build_part(" [", "bright_white"),
+                build_part(" [", "display_feedback.prompt.bracket"),
                 build_part(watched_entity.name),
-                build_part(":", "bright_white"),
+                build_part(":", "display_feedback.prompt.bracket"),
                 build_part(watched_entity_condition.title(), watched_entity_condition_color, True),
-                build_part("]", "bright_white"),
+                build_part("]", "display_feedback.prompt.bracket"),
             ])
 
     if engaged_entity is not None:
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
         parts.extend([
-            build_part(" [", "bright_white"),
+            build_part(" [", "display_feedback.prompt.bracket"),
             build_part(engaged_entity.name),
-            build_part(":", "bright_white"),
+            build_part(":", "display_feedback.prompt.bracket"),
             build_part(npc_condition.title(), npc_condition_color, True),
-            build_part("]", "bright_white"),
+            build_part("]", "display_feedback.prompt.bracket"),
         ])
 
-    parts.append(build_part(f" Exits:{exit_letters}> ", "bright_white"))
+    parts.append(build_part(f" Exits:{exit_letters}> ", "display_feedback.prompt.exits"))
     return parts
 
 
@@ -203,7 +203,7 @@ def display_force_prompt(session: ClientSession) -> dict:
 
 
 def display_connected(session: ClientSession) -> dict:
-    parts = with_leading_blank_lines([build_part("Connection established.", "bright_green", True)])
+    parts = with_leading_blank_lines([build_part("Connection established.", "display_feedback.connected", True)])
     return build_display(parts)
 
 
@@ -226,10 +226,10 @@ def _find_room_merchant(session: ClientSession | None):
 
 def _merchant_quote_parts(merchant_name: str, quote: str) -> list[dict]:
     return [
-        build_part(merchant_name, "bright_white", False),
-        build_part(' says, "', "bright_white"),
-        build_part(quote, "bright_white", False),
-        build_part('"', "bright_white"),
+        build_part(merchant_name, "display_feedback.merchant.name", False),
+        build_part(' says, "', "display_feedback.merchant.quote"),
+        build_part(quote, "display_feedback.merchant.quote", False),
+        build_part('"', "display_feedback.merchant.quote"),
     ]
 
 
@@ -239,8 +239,8 @@ def _merchant_quote_parts(merchant_name: str, quote: str) -> list[dict]:
 def _build_usage_lore_error_parts(usage_text: str) -> list[dict]:
     cleaned_usage = str(usage_text).strip() or "that command"
     return [
-        build_part("You pause, trying to recall the proper form: ", "bright_white"),
-        build_part(cleaned_usage, "bright_white", False),
+        build_part("You pause, trying to recall the proper form: ", "display_feedback.usage.text"),
+        build_part(cleaned_usage, "display_feedback.usage.text", False),
     ]
 
 
@@ -248,19 +248,19 @@ def _build_missing_target_lore_parts(target_name: str | None = None) -> list[dic
     normalized_target_name = str(target_name or "").strip().lower()
     normalized_target = DIRECTION_ALIASES.get(normalized_target_name)
     if normalized_target == "up":
-        return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "bright_white", False)]
+        return [build_part("You lift your gaze overhead, but nothing there answers your attention.", "display_feedback.missing_target.text", False)]
     if normalized_target == "down":
-        return [build_part("You glance below, but nothing there reveals itself.", "bright_white", False)]
+        return [build_part("You glance below, but nothing there reveals itself.", "display_feedback.missing_target.text", False)]
     if normalized_target in {"north", "south", "east", "west"}:
-        return [build_part(f"You peer to the {normalized_target}, but nothing there draws your eye.", "bright_white", False)]
-    return [build_part("Nothing of note answers that search here.", "bright_white", False)]
+        return [build_part(f"You peer to the {normalized_target}, but nothing there draws your eye.", "display_feedback.missing_target.text", False)]
+    return [build_part("Nothing of note answers that search here.", "display_feedback.missing_target.text", False)]
 
 
 def _build_raw_error_parts(cleaned: str) -> list[dict]:
     fallback_text = cleaned or "Something feels amiss."
     if fallback_text[-1] not in ".!?":
         fallback_text += "."
-    return [build_part(fallback_text, "bright_white", False)]
+    return [build_part(fallback_text, "display_feedback.error.text", False)]
 
 
 def _build_coded_lore_error_parts(
@@ -282,13 +282,13 @@ def _build_coded_lore_error_parts(
         return _build_missing_target_lore_parts(target_name or None)
 
     if normalized_code == "corpse-not-found":
-        return [build_part("Nothing of that sort can be found here.", "bright_white", False)]
+        return [build_part("Nothing of that sort can be found here.", "display_feedback.error.text", False)]
 
     if normalized_code in DISPLAY_FEEDBACK_SIMPLE_MESSAGES:
-        return [build_part(DISPLAY_FEEDBACK_SIMPLE_MESSAGES[normalized_code], "bright_white", False)]
+        return [build_part(DISPLAY_FEEDBACK_SIMPLE_MESSAGES[normalized_code], "display_feedback.error.text", False)]
 
     if normalized_code == "no-merchant-here":
-        return [build_part(DISPLAY_FEEDBACK_MERCHANT_QUOTES[normalized_code], "bright_white", False)]
+        return [build_part(DISPLAY_FEEDBACK_MERCHANT_QUOTES[normalized_code], "display_feedback.error.text", False)]
 
     merchant = _find_room_merchant(session)
     if merchant is not None and normalized_code in DISPLAY_FEEDBACK_MERCHANT_QUOTES:

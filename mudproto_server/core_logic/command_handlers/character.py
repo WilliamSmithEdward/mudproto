@@ -26,7 +26,7 @@ def handle_character_command(
     if verb in {"attributes", "attribute", "attr", "attrs", "stats", "stat"}:
         configured_attributes = load_attributes()
         parts = [
-            build_part("Attributes", "bright_white", True),
+            build_part("Attributes", "feedback.text", True),
         ]
 
         effective_attributes = get_player_effective_attributes(session)
@@ -38,18 +38,18 @@ def handle_character_command(
             bonus = value - base_value
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
-                build_part(name, "bright_cyan", True),
-                build_part(" (", "bright_white"),
-                build_part(attribute_id, "bright_yellow", True),
-                build_part("): ", "bright_white"),
-                build_part(str(value), "bright_green", True),
+                build_part(" - ", "feedback.text"),
+                build_part(name, "feedback.value", True),
+                build_part(" (", "feedback.text"),
+                build_part(attribute_id, "feedback.warning", True),
+                build_part("): ", "feedback.text"),
+                build_part(str(value), "feedback.success", True),
             ])
             if bonus:
                 parts.extend([
-                    build_part(" (", "bright_white"),
-                    build_part(f"{bonus:+d}", "bright_yellow", True),
-                    build_part(")", "bright_white"),
+                    build_part(" (", "feedback.text"),
+                    build_part(f"{bonus:+d}", "feedback.warning", True),
+                    build_part(")", "feedback.text"),
                 ])
 
         return display_command_result(session, parts)

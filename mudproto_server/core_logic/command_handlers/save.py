@@ -21,5 +21,5 @@ def handle_save_command(
 
     save_player_state(session)
     return display_command_result(session, [
-        build_part("Your progress has been saved.", "bright_white"),
+        build_part("Your progress has been saved.", "feedback.text"),
     ])

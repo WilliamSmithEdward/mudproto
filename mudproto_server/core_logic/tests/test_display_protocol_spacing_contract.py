@@ -1,5 +1,5 @@
 from display_character import display_score
-from display_core import build_display, build_part, newline_part
+from display_core import build_display, build_part, newline_part, resolve_display_color
 from display_feedback import display_command_result, display_combat_round_result, display_prompt
 from display_room import display_room
 from models import ClientSession
@@ -26,6 +26,15 @@ def _extract_payload(outbound: dict) -> dict:
 
 def _line_text(line: list[dict]) -> str:
     return "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+
+
+def test_build_part_resolves_semantic_color_keys() -> None:
+    default_part = build_part("ready")
+    warning_part = build_part("careful", "feedback.warning", True)
+
+    assert default_part["fg"] == resolve_display_color("display_core.default_fg")
+    assert warning_part["fg"] == resolve_display_color("feedback.warning")
+    assert warning_part["bold"] is True
 
 
 def test_build_display_preserves_explicit_blank_lines() -> None:

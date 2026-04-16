@@ -65,12 +65,12 @@ def handle_item_drop_command(
             dropped_items.append(item)
 
         parts = [
-            build_part("You drop all matching items.", "bright_white"),
+            build_part("You drop all matching items.", "feedback.text"),
         ]
         for item in dropped_items:
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
+                build_part(" - ", "feedback.text"),
                 build_part(item.name, _item_highlight_color(item), True),
             ])
         return display_command_result(session, parts)
@@ -91,9 +91,9 @@ def handle_item_drop_command(
         existing_pile = max(0, int(session.room_coin_piles.get(room_id, 0)))
         session.room_coin_piles[room_id] = existing_pile + drop_amount
         return display_command_result(session, [
-            build_part("You drop ", "bright_white"),
-            build_part(str(drop_amount), "bright_cyan", True),
-            build_part(" coins into a pile on the ground.", "bright_white"),
+            build_part("You drop ", "feedback.text"),
+            build_part(str(drop_amount), "feedback.value", True),
+            build_part(" coins into a pile on the ground.", "feedback.text"),
         ])
 
     if selector == "all":
@@ -109,10 +109,10 @@ def handle_item_drop_command(
             dropped_count += 1
 
         return display_command_result(session, [
-            build_part("You drop all carried items.", "bright_white"),
+            build_part("You drop all carried items.", "feedback.text"),
             newline_part(),
-            build_part("Items dropped: ", "bright_white"),
-            build_part(str(dropped_count), "bright_yellow", True),
+            build_part("Items dropped: ", "feedback.text"),
+            build_part(str(dropped_count), "feedback.warning", True),
         ])
 
     inventory_item, inventory_error = _resolve_inventory_selector(session, selector)
@@ -120,9 +120,9 @@ def handle_item_drop_command(
         session.inventory_items.pop(inventory_item.item_id, None)
         _add_item_to_room_ground(session, session.player.current_room_id, inventory_item)
         return display_command_result(session, [
-            build_part("You drop ", "bright_white"),
+            build_part("You drop ", "feedback.text"),
             *_build_item_reference_parts(inventory_item),
-            build_part(".", "bright_white"),
+            build_part(".", "feedback.text"),
         ])
 
     return display_error(inventory_error or "Unable to resolve inventory selector.", session)

@@ -1,13 +1,33 @@
 from grammar import capitalize_after_newlines
 from protocol import build_response
+from settings import DISPLAY_COLOR_MAP
 
 PANEL_INNER_WIDTH = 34
 
 
-def build_part(text: str, fg: str = "bright_white", bold: bool = False) -> dict:
+def resolve_display_color(color_key_or_value: str | None, *, fallback: str = "display_core.default_fg") -> str:
+    raw_value = str(color_key_or_value or "").strip()
+    if raw_value:
+        resolved = str(DISPLAY_COLOR_MAP.get(raw_value, "")).strip()
+        if resolved:
+            return resolved
+        return raw_value
+
+    fallback_value = str(fallback).strip()
+    if fallback_value:
+        resolved_fallback = str(DISPLAY_COLOR_MAP.get(fallback_value, "")).strip()
+        if resolved_fallback:
+            return resolved_fallback
+        return fallback_value
+
+    resolved_default = str(DISPLAY_COLOR_MAP.get("display_core.default_fg", "bright_white")).strip()
+    return resolved_default or "bright_white"
+
+
+def build_part(text: str, fg: str = "display_core.default_fg", bold: bool = False) -> dict:
     return {
         "text": text,
-        "fg": fg,
+        "fg": resolve_display_color(fg),
         "bold": bold,
     }
 
@@ -66,7 +86,7 @@ def build_menu_table_parts(
 
     if column_colors is None or len(column_colors) < column_count:
         base_colors = list(column_colors or [])
-        base_colors.extend(["bright_cyan"] * (column_count - len(base_colors)))
+        base_colors.extend(["display_core.table.default_column"] * (column_count - len(base_colors)))
         column_colors = base_colors
 
     if column_alignments is None or len(column_alignments) < column_count:
@@ -76,11 +96,11 @@ def build_menu_table_parts(
 
     if not normalized_rows:
         return [
-            build_part(_panel_title_line(title), "bright_cyan", True),
+            build_part(_panel_title_line(title), "display_core.table.title", True),
             newline_part(),
-            build_part(_panel_divider(), "bright_black"),
+            build_part(_panel_divider(), "display_core.table.divider"),
             newline_part(),
-            build_part(empty_message, "bright_white"),
+            build_part(empty_message, "display_core.table.empty_message"),
         ]
 
     gap = 3
@@ -101,21 +121,21 @@ def build_menu_table_parts(
         return value.ljust(width)
 
     parts: list[dict] = [
-        build_part(str(title).strip().center(panel_width), "bright_cyan", True),
+        build_part(str(title).strip().center(panel_width), "display_core.table.title", True),
         newline_part(),
-        build_part("-" * panel_width, "bright_black"),
+        build_part("-" * panel_width, "display_core.table.divider"),
         newline_part(),
     ]
 
     for col_index in range(column_count):
         header_text = _align_text(normalized_headers[col_index], col_widths[col_index], column_alignments[col_index])
-        parts.append(build_part(header_text, "bright_white", True))
+        parts.append(build_part(header_text, "display_core.table.headers", True))
         if col_index < column_count - 1:
-            parts.append(build_part(" " * gap, "bright_white"))
+            parts.append(build_part(" " * gap, "display_core.table.headers"))
 
     parts.extend([
         newline_part(),
-        build_part("-" * panel_width, "bright_black"),
+        build_part("-" * panel_width, "display_core.table.divider"),
     ])
 
     for row_index, row in enumerate(normalized_rows):
@@ -130,7 +150,7 @@ def build_menu_table_parts(
             aligned_cell = _align_text(row[col_index], col_widths[col_index], column_alignments[col_index])
             parts.append(build_part(aligned_cell, cell_color, True))
             if col_index < column_count - 1:
-                parts.append(build_part(" " * gap, "bright_white"))
+                parts.append(build_part(" " * gap, "display_core.default_fg"))
 
     return parts
 
@@ -138,7 +158,7 @@ def build_menu_table_parts(
 def _normalize_part(part: dict) -> dict:
     normalized = {
         "text": str(part.get("text", "")),
-        "fg": part.get("fg", "bright_white"),
+        "fg": resolve_display_color(part.get("fg", "display_core.default_fg")),
         "bold": part.get("bold", False),
     }
     if bool(part.get("observer_plain", False)):
@@ -276,7 +296,7 @@ def build_display_lines(
 def display_text(
     text: str,
     *,
-    fg: str = "bright_white",
+    fg: str = "display_core.default_fg",
     bold: bool = False,
     prompt_after: bool = False,
     prompt_parts: list[dict] | None = None,

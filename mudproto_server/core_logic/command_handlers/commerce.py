@@ -124,11 +124,11 @@ def handle_commerce_command(
         session.inventory_items[purchased_item.item_id] = purchased_item
 
         return display_command_result(session, [
-            build_part("You buy ", "bright_white"),
+            build_part("You buy ", "feedback.text"),
             *_build_item_reference_parts(purchased_item),
-            build_part(" for ", "bright_white"),
-            build_part(f"{price} coins", "bright_cyan", True),
-            build_part(".", "bright_white"),
+            build_part(" for ", "feedback.text"),
+            build_part(f"{price} coins", "feedback.value", True),
+            build_part(".", "feedback.text"),
         ])
 
     if verb == "sell":
@@ -164,12 +164,12 @@ def handle_commerce_command(
         session.status.coins += offer
 
         return display_command_result(session, [
-            build_part(merchant.name, "bright_cyan", True),
-            build_part(" buys ", "bright_white"),
+            build_part(merchant.name, "feedback.value", True),
+            build_part(" buys ", "feedback.text"),
             *_build_item_reference_parts(owned_item),
-            build_part(" for ", "bright_white"),
-            build_part(f"{offer} coins", "bright_yellow", True),
-            build_part(".", "bright_white"),
+            build_part(" for ", "feedback.text"),
+            build_part(f"{offer} coins", "feedback.warning", True),
+            build_part(".", "feedback.text"),
         ])
 
     if verb in {"val", "value"}:
@@ -201,12 +201,12 @@ def handle_commerce_command(
 
         offer = _get_merchant_sale_offer(merchant, owned_item)
         return display_command_result(session, [
-            build_part(merchant.name, "bright_cyan", True),
-            build_part(" offers ", "bright_white"),
-            build_part(f"{offer} coins", "bright_yellow", True),
-            build_part(" for ", "bright_white"),
+            build_part(merchant.name, "feedback.value", True),
+            build_part(" offers ", "feedback.text"),
+            build_part(f"{offer} coins", "feedback.warning", True),
+            build_part(" for ", "feedback.text"),
             *_build_item_reference_parts(owned_item),
-            build_part(".", "bright_white"),
+            build_part(".", "feedback.text"),
         ])
 
     return None

@@ -27,14 +27,14 @@ def _resolve_player_class_name(class_id: str) -> str:
 
 def _resource_color(current: int, maximum: int) -> str:
     if maximum <= 0:
-        return "bright_white"
+        return "display_character.resource.empty"
 
     ratio = max(0.0, min(1.0, float(current) / float(maximum)))
     if ratio <= 0.2:
-        return "bright_red"
+        return "display_character.resource.low"
     if ratio <= 0.5:
-        return "bright_yellow"
-    return "bright_green"
+        return "display_character.resource.medium"
+    return "display_character.resource.high"
 
 
 def _resolve_posture_label(session: ClientSession) -> str:
@@ -152,50 +152,50 @@ def display_score(session: ClientSession) -> dict:
     title_line = "Adventurer's Ledger".center(panel_width)
 
     parts: list[dict] = [
-        build_part(title_line, "bright_cyan", True),
+        build_part(title_line, "display_character.ledger.title", True),
         newline_part(),
-        build_part(divider, "bright_black"),
+        build_part(divider, "display_character.ledger.divider"),
         newline_part(),
-        build_part("Name: ", "bright_white"),
-        build_part(character_name, "bright_yellow", True),
-        build_part("   Class: ", "bright_white"),
-        build_part(class_name, "bright_cyan", True),
-        build_part("   Level: ", "bright_white"),
-        build_part(level_text, "bright_green", True),
+        build_part("Name: ", "display_character.label"),
+        build_part(character_name, "display_character.name_value", True),
+        build_part("   Class: ", "display_character.label"),
+        build_part(class_name, "display_character.class_value", True),
+        build_part("   Level: ", "display_character.label"),
+        build_part(level_text, "display_character.level_value", True),
         newline_part(),
-        build_part("Location: ", "bright_white"),
-        build_part(room_name, "bright_magenta", True),
+        build_part("Location: ", "display_character.label"),
+        build_part(room_name, "display_character.location_value", True),
         newline_part(),
-        build_part("Posture: ", "bright_white"),
-        build_part(posture_label, "bright_cyan", True),
+        build_part("Posture: ", "display_character.label"),
+        build_part(posture_label, "display_character.posture_value", True),
         newline_part(),
-        build_part(divider, "bright_black"),
+        build_part(divider, "display_character.ledger.divider"),
         newline_part(),
-        build_part("Health: ", "bright_white"),
+        build_part("Health: ", "display_character.label"),
         build_part(f"{hp_now}/{hp_cap}", _resource_color(hp_now, hp_cap), True),
-        build_part("   Vigor: ", "bright_white"),
+        build_part("   Vigor: ", "display_character.label"),
         build_part(f"{vigor_now}/{vigor_cap}", _resource_color(vigor_now, vigor_cap), True),
     ]
 
     if show_mana:
         parts.extend([
-            build_part("   Mana: ", "bright_white"),
+            build_part("   Mana: ", "display_character.label"),
             build_part(f"{mana_now}/{mana_cap}", _resource_color(mana_now, mana_cap), True),
         ])
 
     parts.extend([
         newline_part(),
-        build_part("Coins: ", "bright_white"),
-        build_part(coins_text, "bright_cyan", True),
+        build_part("Coins: ", "display_character.label"),
+        build_part(coins_text, "display_character.coins_value", True),
         newline_part(),
-        build_part("Experience: ", "bright_white"),
-        build_part(str(xp_total), "bright_cyan", True),
-        build_part("   To Next Level: ", "bright_white"),
-        build_part(str(xp_to_next), "bright_green", True),
+        build_part("Experience: ", "display_character.label"),
+        build_part(str(xp_total), "display_character.xp_value", True),
+        build_part("   To Next Level: ", "display_character.label"),
+        build_part(str(xp_to_next), "display_character.xp_next_value", True),
         newline_part(),
-        build_part(divider, "bright_black"),
+        build_part(divider, "display_character.ledger.divider"),
         newline_part(),
-        build_part("Attributes", "bright_white", True),
+        build_part("Attributes", "display_character.label", True),
     ])
 
     for attribute in configured_attributes:
@@ -208,31 +208,31 @@ def display_score(session: ClientSession) -> dict:
         bonus = value - base_value
         parts.extend([
             newline_part(),
-            build_part(" - ", "bright_white"),
-            build_part(attribute_name, "bright_cyan", True),
-            build_part(" (", "bright_white"),
-            build_part(attribute_id.upper(), "bright_yellow", True),
-            build_part("): ", "bright_white"),
-            build_part(str(value), "bright_green", True),
+            build_part(" - ", "display_character.label"),
+            build_part(attribute_name, "display_character.attribute.name", True),
+            build_part(" (", "display_character.label"),
+            build_part(attribute_id.upper(), "display_character.attribute.code", True),
+            build_part("): ", "display_character.label"),
+            build_part(str(value), "display_character.attribute.value", True),
         ])
         if bonus:
             parts.extend([
-                build_part(" (", "bright_white"),
-                build_part(f"{bonus:+d}", "bright_yellow", True),
-                build_part(")", "bright_white"),
+                build_part(" (", "display_character.label"),
+                build_part(f"{bonus:+d}", "display_character.attribute.bonus", True),
+                build_part(")", "display_character.label"),
             ])
 
     parts.extend([
         newline_part(),
-        build_part(divider, "bright_black"),
+        build_part(divider, "display_character.ledger.divider"),
         newline_part(),
-        build_part("Active Effects", "bright_white", True),
+        build_part("Active Effects", "display_character.label", True),
     ])
 
     if not active_effects:
         parts.extend([
             newline_part(),
-            build_part(" - None", "bright_black"),
+            build_part(" - None", "display_character.effects.empty"),
         ])
     else:
         for effect in active_effects:
@@ -240,11 +240,11 @@ def display_score(session: ClientSession) -> dict:
             duration_text = _format_effect_remaining_duration(effect)
             parts.extend([
                 newline_part(),
-                build_part(" - ", "bright_white"),
-                build_part(effect_name, "bright_magenta", True),
-                build_part(" (", "bright_white"),
-                build_part(duration_text, "bright_yellow", True),
-                build_part(" remaining)", "bright_white"),
+                build_part(" - ", "display_character.label"),
+                build_part(effect_name, "display_character.effects.name", True),
+                build_part(" (", "display_character.label"),
+                build_part(duration_text, "display_character.effects.remaining", True),
+                build_part(" remaining)", "display_character.label"),
             ])
 
     return build_display(with_leading_blank_lines(parts), prompt_after=prompt_after, prompt_parts=prompt_parts)
@@ -258,7 +258,7 @@ def display_equipment(session: ClientSession) -> dict:
         "Worn Equipment",
         ["Slot", "Item"],
         rows,
-        column_colors=["bright_cyan", "bright_magenta"],
+        column_colors=["display_character.equipment.slot_column", "display_character.equipment.item_column"],
         column_alignments=["left", "left"],
         empty_message="Nothing is worn.",
     )
@@ -295,12 +295,12 @@ def display_inventory(session: ClientSession) -> dict:
 
     inventory_stacks = _stack_counts(inventory_items)
     rows = [[item_name, str(count)] for item_name, _, count in inventory_stacks]
-    row_cell_colors = [[item_color, "bright_cyan"] for _, item_color, _ in inventory_stacks]
+    row_cell_colors = [[item_color, "display_character.inventory.qty_column"] for _, item_color, _ in inventory_stacks]
     parts = build_menu_table_parts(
         "Inventory",
         ["Item", "Qty"],
         rows,
-        column_colors=["bright_cyan", "bright_cyan"],
+        column_colors=["display_character.equipment.slot_column", "display_character.inventory.qty_column"],
         row_cell_colors=row_cell_colors,
         column_alignments=["left", "right"],
         empty_message="Inventory is empty.",

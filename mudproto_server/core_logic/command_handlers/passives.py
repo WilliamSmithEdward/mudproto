@@ -39,7 +39,7 @@ def handle_passive_command(
     passives = _list_known_passives(session)
     if not passives:
         return display_command_result(session, [
-            build_part("You do not know any passives.", "bright_white"),
+            build_part("You do not know any passives.", "feedback.text"),
         ])
 
     rows = _build_passive_rows(passives)
@@ -50,7 +50,7 @@ def handle_passive_command(
             "Passives",
             ["Name", "Description"],
             rows,
-            column_colors=["bright_cyan", "bright_white"],
+            column_colors=["feedback.value", "feedback.text"],
             column_alignments=["left", "left"],
         ),
     )

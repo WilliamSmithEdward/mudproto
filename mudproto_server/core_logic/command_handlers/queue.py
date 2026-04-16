@@ -26,11 +26,11 @@ def handle_queue_command(
     cleared_count = clear_queued_commands(session)
     lagged = is_session_lagged(session)
     message = display_command_result(session, [
-        build_part("Cleared ", "bright_white"),
-        build_part(str(cleared_count), "bright_cyan", True),
-        build_part(" queued command", "bright_white"),
-        build_part("s" if cleared_count != 1 else "", "bright_white"),
-        build_part(".", "bright_white"),
+        build_part("Cleared ", "feedback.text"),
+        build_part(str(cleared_count), "feedback.value", True),
+        build_part(" queued command", "feedback.text"),
+        build_part("s" if cleared_count != 1 else "", "feedback.text"),
+        build_part(".", "feedback.text"),
     ], prompt_after=not lagged)
 
     if lagged:

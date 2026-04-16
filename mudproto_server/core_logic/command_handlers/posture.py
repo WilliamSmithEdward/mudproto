@@ -29,7 +29,7 @@ def handle_posture_command(
         session.is_resting = False
         session.is_sitting = True
         return display_command_result(session, [
-            build_part("You wake up.", "bright_white"),
+            build_part("You wake up.", "feedback.text"),
         ])
 
     if session.is_sleeping and verb in (_SIT_VERBS | _REST_VERBS | _STAND_VERBS):
@@ -43,7 +43,7 @@ def handle_posture_command(
         session.is_sleeping = False
         session.is_sitting = True
         return display_command_result(session, [
-            build_part("You sit down.", "bright_white"),
+            build_part("You sit down.", "feedback.text"),
         ])
 
     if verb in _REST_VERBS:
@@ -54,7 +54,7 @@ def handle_posture_command(
         session.is_sleeping = False
         session.is_resting = True
         return display_command_result(session, [
-            build_part("You rest your tired bones.", "bright_white"),
+            build_part("You rest your tired bones.", "feedback.text"),
         ])
 
     if verb in _SLEEP_VERBS:
@@ -65,7 +65,7 @@ def handle_posture_command(
         session.is_resting = False
         session.is_sleeping = True
         return display_command_result(session, [
-            build_part("You drift off to sleep.", "bright_white"),
+            build_part("You drift off to sleep.", "feedback.text"),
         ])
 
     if verb in _STAND_VERBS:
@@ -76,7 +76,7 @@ def handle_posture_command(
         session.is_resting = False
         session.is_sleeping = False
         return display_command_result(session, [
-            build_part("You stand up.", "bright_white"),
+            build_part("You stand up.", "feedback.text"),
         ])
 
     return None

@@ -64,18 +64,18 @@ def handle_equipment_command(
 
         if equip_result == HAND_BOTH:
             return display_command_result(session, [
-                build_part("You equip ", "bright_white"),
+                build_part("You equip ", "feedback.text"),
                 *_build_item_reference_parts(item),
-                build_part(" with both hands.", "bright_white"),
+                build_part(" with both hands.", "feedback.text"),
             ])
 
         hand_label = "main hand" if equip_result == HAND_MAIN else "off hand"
         return display_command_result(session, [
-            build_part("You equip ", "bright_white"),
+            build_part("You equip ", "feedback.text"),
             *_build_item_reference_parts(item),
-            build_part(" in your ", "bright_white"),
-            build_part(hand_label, "bright_yellow", True),
-            build_part(".", "bright_white"),
+            build_part(" in your ", "feedback.text"),
+            build_part(hand_label, "feedback.warning", True),
+            build_part(".", "feedback.text"),
         ])
 
     if verb in {"wield", "wiel", "wie", "wi"}:
@@ -136,15 +136,15 @@ def handle_equipment_command(
 
         if equip_result == HAND_BOTH:
             return display_command_result(session, [
-                build_part("You wield ", "bright_white"),
+                build_part("You wield ", "feedback.text"),
                 *_build_item_reference_parts(item),
-                build_part(" with both hands.", "bright_white"),
+                build_part(" with both hands.", "feedback.text"),
             ])
 
         return display_command_result(session, [
-            build_part("You wield ", "bright_white"),
+            build_part("You wield ", "feedback.text"),
             *_build_item_reference_parts(item),
-            build_part(".", "bright_white"),
+            build_part(".", "feedback.text"),
         ])
 
     if verb in {"hold", "hol", "ho"}:
@@ -181,9 +181,9 @@ def handle_equipment_command(
             return display_error(equip_result, session)
 
         return display_command_result(session, [
-            build_part("You hold ", "bright_white"),
+            build_part("You hold ", "feedback.text"),
             *_build_item_reference_parts(item),
-            build_part(" in your off hand.", "bright_white"),
+            build_part(" in your off hand.", "feedback.text"),
         ])
 
     if verb in {"wear", "wea", "puton"}:
@@ -241,7 +241,7 @@ def handle_equipment_command(
                 return display_error("You cannot wear any additional matching items right now.", session)
 
             parts = [
-                build_part("You wear all matching items.", "bright_white"),
+                build_part("You wear all matching items.", "feedback.text"),
             ]
             for item_name, slot_name in worn_results:
                 parts.extend([
@@ -276,7 +276,7 @@ def handle_equipment_command(
                 return display_error("You cannot wear any additional items right now.", session)
 
             parts = [
-                build_part("You wear everything you can.", "bright_white"),
+                build_part("You wear everything you can.", "feedback.text"),
             ]
             for item_name, slot_name in worn_results:
                 parts.extend([
@@ -307,11 +307,11 @@ def handle_equipment_command(
             return display_error(wear_result, session)
 
         return display_command_result(session, [
-            build_part("You wear ", "bright_white"),
+            build_part("You wear ", "feedback.text"),
             *_build_item_reference_parts(item),
-            build_part(" on your ", "bright_white"),
-            build_part(wear_result, "bright_yellow", True),
-            build_part(".", "bright_white"),
+            build_part(" on your ", "feedback.text"),
+            build_part(wear_result, "feedback.warning", True),
+            build_part(".", "feedback.text"),
         ])
 
     if verb in {"remove", "rem"}:
@@ -358,7 +358,7 @@ def handle_equipment_command(
                 return display_error(f"No equipped item matches '{item_selector}'.", session)
 
             parts = [
-                build_part("You remove all matching equipped items.", "bright_white"),
+                build_part("You remove all matching equipped items.", "feedback.text"),
             ]
             for item in removed_items:
                 parts.extend([
@@ -386,7 +386,7 @@ def handle_equipment_command(
                 return display_error("You have nothing to remove.", session)
 
             parts = [
-                build_part("You remove all equipped items and place them in your inventory.", "bright_white"),
+                build_part("You remove all equipped items and place them in your inventory.", "feedback.text"),
             ]
             for item in removed_items:
                 parts.extend([
@@ -405,9 +405,9 @@ def handle_equipment_command(
             return display_error(f"{item.name} is not currently worn or held.", session)
 
         return display_command_result(session, [
-            build_part("You remove ", "bright_white"),
+            build_part("You remove ", "feedback.text"),
             build_part(item.name, _item_highlight_color(item), True),
-            build_part(" and place it in your inventory.", "bright_white"),
+            build_part(" and place it in your inventory.", "feedback.text"),
         ])
 
     return None

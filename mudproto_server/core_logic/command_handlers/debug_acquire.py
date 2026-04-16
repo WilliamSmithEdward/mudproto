@@ -155,14 +155,14 @@ def _build_acquirable_parts(session: ClientSession) -> list[dict]:
 
     if not rows:
         return [
-            build_part("Nothing acquirable remains for your character.", "bright_white"),
+            build_part("Nothing acquirable remains for your character.", "feedback.text"),
         ]
 
     return build_menu_table_parts(
         "Acquirable Objects (Debug)",
         ["Type", "Name", "Id"],
         rows,
-        column_colors=["bright_magenta", "bright_cyan", "bright_yellow"],
+        column_colors=["item_logic.highlight.item", "feedback.value", "feedback.warning"],
         column_alignments=["left", "left", "left"],
     )
 
@@ -195,11 +195,11 @@ def _grant_entry(session: ClientSession, entry: dict) -> dict:
         save_player_state(session)
 
     return display_command_result(session, [
-        build_part("Acquired ", "bright_white"),
-        build_part(kind, "bright_magenta", True),
-        build_part(": ", "bright_white"),
-        build_part(entry_name, "bright_cyan", True),
-        build_part(".", "bright_white"),
+        build_part("Acquired ", "feedback.text"),
+        build_part(kind, "item_logic.highlight.item", True),
+        build_part(": ", "feedback.text"),
+        build_part(entry_name, "feedback.value", True),
+        build_part(".", "feedback.text"),
     ])
 
 
@@ -222,11 +222,11 @@ def _forget_entry(session: ClientSession, entry: dict) -> dict:
         save_player_state(session)
 
     return display_command_result(session, [
-        build_part("Forgot ", "bright_white"),
-        build_part(kind, "bright_magenta", True),
-        build_part(": ", "bright_white"),
-        build_part(entry_name, "bright_cyan", True),
-        build_part(".", "bright_white"),
+        build_part("Forgot ", "feedback.text"),
+        build_part(kind, "item_logic.highlight.item", True),
+        build_part(": ", "feedback.text"),
+        build_part(entry_name, "feedback.value", True),
+        build_part(".", "feedback.text"),
     ])
 
 

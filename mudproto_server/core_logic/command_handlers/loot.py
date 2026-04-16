@@ -69,9 +69,9 @@ def handle_loot_command(
                 return display_error(pickup_error or f"You cannot take {selected_item.name}.", session)
 
             return display_command_result(session, [
-                build_part("You take ", "bright_white"),
+                build_part("You take ", "feedback.text"),
                 *_build_item_reference_parts(selected_item),
-                build_part(".", "bright_white"),
+                build_part(".", "feedback.text"),
             ])
 
     if len(args) == 1:
@@ -97,14 +97,14 @@ def handle_loot_command(
                 return display_error(blocked_errors[0] if blocked_errors else f"No room item matches '{item_selector}'.", session)
 
             parts = [
-                build_part("You take all matching items from the room.", "bright_white"),
+                build_part("You take all matching items from the room.", "feedback.text"),
             ]
             for item in portable_matches:
                 parts.extend([
                     newline_part(),
-                    build_part("You take ", "bright_white"),
+                    build_part("You take ", "feedback.text"),
                     *_build_item_reference_parts(item),
-                    build_part(".", "bright_white"),
+                    build_part(".", "feedback.text"),
                 ])
             return display_command_result(session, parts)
 
@@ -120,9 +120,9 @@ def handle_loot_command(
         session.room_coin_piles[room_id] = 0
         session.status.coins += room_coin_pile
         return display_command_result(session, [
-            build_part("You take ", "bright_white"),
-            build_part(str(room_coin_pile), "bright_cyan", True),
-            build_part(" coins from the room.", "bright_white"),
+            build_part("You take ", "feedback.text"),
+            build_part(str(room_coin_pile), "feedback.value", True),
+            build_part(" coins from the room.", "feedback.text"),
         ])
 
     if len(args) == 1 and args[0].strip().lower() == "all":
@@ -152,13 +152,13 @@ def handle_loot_command(
             return display_error(blocked_errors[0] if blocked_errors else "There is nothing to loot in this room.", session)
 
         parts = [
-            build_part("You gather up the loose items in the room.", "bright_white"),
+            build_part("You gather up the loose items in the room.", "feedback.text"),
         ]
         if total_coins > 0:
             parts.extend([
                 newline_part(),
-                build_part("Coins +", "bright_white"),
-                build_part(str(total_coins), "bright_cyan", True),
+                build_part("Coins +", "feedback.text"),
+                build_part(str(total_coins), "feedback.value", True),
             ])
         for item in looted_items:
             parts.extend([
@@ -170,7 +170,7 @@ def handle_loot_command(
         if blocked_errors:
             parts.extend([
                 newline_part(),
-                build_part("Some larger containers remain where they are.", "bright_black"),
+                build_part("Some larger containers remain where they are.", "feedback.muted"),
             ])
 
         return display_command_result(session, parts)

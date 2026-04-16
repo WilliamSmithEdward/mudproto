@@ -32,9 +32,9 @@ def _append_experience_gain_notification(
 
     append_newline_if_needed(parts)
     parts.extend([
-        build_part_fn("You gain ", "bright_white"),
-        build_part_fn(str(gained), "bright_cyan", True),
-        build_part_fn(" experience.", "bright_white"),
+        build_part_fn("You gain ", "combat_rewards.text"),
+        build_part_fn(str(gained), "combat_rewards.experience", True),
+        build_part_fn(" experience.", "combat_rewards.text"),
     ])
 
     if new_level > old_level:
@@ -43,21 +43,21 @@ def _append_experience_gain_notification(
         append_newline_if_needed(parts)
         parts.append(build_part_fn("\n"))
         parts.extend([
-            build_part_fn("You advance to level ", "bright_green", True),
-            build_part_fn(str(new_level), "bright_green", True),
-            build_part_fn("!", "bright_green", True),
+            build_part_fn("You advance to level ", "combat_rewards.level_up", True),
+            build_part_fn(str(new_level), "combat_rewards.level_up", True),
+            build_part_fn("!", "combat_rewards.level_up", True),
         ])
         append_newline_if_needed(parts)
         parts.extend([
-            build_part_fn("Level gains: ", "bright_white"),
-            build_part_fn(f"+{int(resource_gains.get('hit_points', 0))}HP", "bright_green", True),
-            build_part_fn(" ", "bright_white"),
-            build_part_fn(f"+{int(resource_gains.get('vigor', 0))}V", "bright_yellow", True),
+            build_part_fn("Level gains: ", "combat_rewards.text"),
+            build_part_fn(f"+{int(resource_gains.get('hit_points', 0))}HP", "combat_rewards.gain.hp", True),
+            build_part_fn(" ", "combat_rewards.text"),
+            build_part_fn(f"+{int(resource_gains.get('vigor', 0))}V", "combat_rewards.gain.vigor", True),
         ])
         if show_mana:
             parts.extend([
-                build_part_fn(" ", "bright_white"),
-                build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "bright_cyan", True),
+                build_part_fn(" ", "combat_rewards.text"),
+                build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "combat_rewards.gain.mana", True),
             ])
         parts.append(build_part_fn("\n"))
     else:

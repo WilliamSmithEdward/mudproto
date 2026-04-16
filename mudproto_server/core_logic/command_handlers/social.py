@@ -63,16 +63,16 @@ def _send_realtime_notification(target_session: ClientSession, outbound: dict | 
 
 def _build_quote_parts(prefix: str, spoken_text: str) -> list[dict]:
     return [
-        build_part(prefix, "bright_white"),
-        build_part(f'"{spoken_text}"', "bright_white"),
+        build_part(prefix, "feedback.text"),
+        build_part(f'"{spoken_text}"', "feedback.text"),
     ]
 
 
 def _build_actor_quote_parts(actor_name: str, verb_text: str, spoken_text: str) -> list[dict]:
     return [
-        build_part(actor_name, "bright_white"),
-        build_part(f" {verb_text}, ", "bright_white"),
-        build_part(f'"{spoken_text}"', "bright_white"),
+        build_part(actor_name, "feedback.text"),
+        build_part(f" {verb_text}, ", "feedback.text"),
+        build_part(f'"{spoken_text}"', "feedback.text"),
     ]
 
 
@@ -152,8 +152,8 @@ def _notify_follow_target(target_session: ClientSession, follower_name: str) -> 
         return
 
     notification = display_command_result(target_session, [
-        build_part(follower_name, "bright_cyan", True),
-        build_part(" starts following you.", "bright_white"),
+        build_part(follower_name, "feedback.value", True),
+        build_part(" starts following you.", "feedback.text"),
     ])
 
     try:
@@ -169,8 +169,8 @@ def _notify_unfollow_target(target_session: ClientSession, follower_name: str) -
 
     resolved_name = str(follower_name).strip() or "Someone"
     notification = display_command_result(target_session, [
-        build_part(resolved_name, "bright_cyan", True),
-        build_part(" stops following you.", "bright_white"),
+        build_part(resolved_name, "feedback.value", True),
+        build_part(" stops following you.", "feedback.text"),
     ])
 
     try:
@@ -185,9 +185,9 @@ def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
 
     resolved_name = str(followed_name).strip() or "them"
     notification = display_command_result(session, [
-        build_part("You stop following ", "bright_white"),
-        build_part(resolved_name, "bright_cyan", True),
-        build_part(".", "bright_white"),
+        build_part("You stop following ", "feedback.text"),
+        build_part(resolved_name, "feedback.value", True),
+        build_part(".", "feedback.text"),
     ])
 
     try:
@@ -229,7 +229,7 @@ def _display_online_players(session: ClientSession) -> dict:
     if not online_sessions:
         session.pending_paged_displays.clear()
         return display_command_result(session, [
-            build_part("No players are currently online.", "bright_white"),
+            build_part("No players are currently online.", "feedback.text"),
         ])
 
     rows = [[_display_name(candidate)] for candidate in online_sessions]
@@ -243,17 +243,17 @@ def _display_online_players(session: ClientSession) -> dict:
             f"Players Online ({len(rows)})",
             ["Name"],
             chunk,
-            column_colors=["bright_cyan"],
+            column_colors=["feedback.value"],
         )
         if page_count > 1:
             parts.extend([
                 newline_part(),
-                build_part(f"Showing {start + 1}-{start + len(chunk)} of {len(rows)}.", "bright_white"),
+                build_part(f"Showing {start + 1}-{start + len(chunk)} of {len(rows)}.", "feedback.text"),
             ])
             if page_index < page_count:
                 parts.extend([
                     newline_part(),
-                    build_part("Press Enter for more.", "bright_yellow", True),
+                    build_part("Press Enter for more.", "feedback.warning", True),
                 ])
 
         page_messages.append(display_command_result(session, parts))
@@ -272,7 +272,7 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
         caps = get_player_resource_caps(member_session)
         condition, condition_color = get_health_condition(member_session.status.hit_points, caps["hit_points"])
         role = "Leader" if _session_identity_key(member_session) == leader_key else "Member"
-        role_color = "bright_yellow" if role == "Leader" else "bright_cyan"
+        role_color = "feedback.warning" if role == "Leader" else "feedback.value"
         show_mana = player_class_uses_mana(member_session.player.class_id) and int(caps.get("mana", 0)) > 0
         mana_text = f"{member_session.status.mana}/{caps['mana']}" if show_mana else "-"
         rows.append([
@@ -283,7 +283,7 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
             mana_text,
             condition.title(),
         ])
-        row_cell_colors.append([role_color, "bright_white", "bright_cyan", "bright_cyan", "bright_cyan", condition_color])
+        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", condition_color])
 
     return build_menu_table_parts(
         "Group Status",

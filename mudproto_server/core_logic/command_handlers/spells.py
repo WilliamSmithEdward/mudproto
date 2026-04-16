@@ -28,7 +28,7 @@ def handle_spell_command(
         spells = _list_known_spells(session)
         if not spells:
             return display_command_result(session, [
-                build_part("You do not know any spells.", "bright_white"),
+                build_part("You do not know any spells.", "feedback.text"),
             ])
 
         menu_rows = [

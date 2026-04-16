@@ -272,29 +272,29 @@ def display_container_examination(
 
     if isinstance(container, CorpseState):
         rows.append(["Type", "Corpse"])
-        row_cell_colors.append(["bright_cyan", "bright_yellow"])
+        row_cell_colors.append(["containers.label_column", "containers.type_value"])
     else:
         hydrate_misc_item_from_template(container)
         rows.append(["Type", "Container"])
-        row_cell_colors.append(["bright_cyan", "bright_yellow"])
+        row_cell_colors.append(["containers.label_column", "containers.type_value"])
         rows.append(["Location", str(default_location or "Room")])
-        row_cell_colors.append(["bright_cyan", "bright_white"])
+        row_cell_colors.append(["containers.label_column", "containers.location_value"])
         rows.append(["Carryable", "Yes" if bool(getattr(container, "portable", True)) else "No"])
-        row_cell_colors.append(["bright_cyan", "bright_white"])
+        row_cell_colors.append(["containers.label_column", "containers.location_value"])
         status_text = "Open"
-        status_color = "bright_green"
+        status_color = "containers.status.open"
         if _container_is_locked(container):
             status_text = "Locked"
-            status_color = "bright_yellow"
+            status_color = "containers.status.locked"
         elif _container_can_close(container) and _container_is_closed(container):
             status_text = "Closed"
-            status_color = "bright_yellow"
+            status_color = "containers.status.closed"
         rows.append(["Status", status_text])
-        row_cell_colors.append(["bright_cyan", status_color])
+        row_cell_colors.append(["containers.label_column", status_color])
 
     if _container_contents_visible(container):
         rows.append(["Coins", str(_container_coin_amount(container))])
-        row_cell_colors.append(["bright_cyan", "bright_cyan"])
+        row_cell_colors.append(["containers.label_column", "containers.coins_value"])
 
         container_items = list(_container_item_map(container).values())
         container_items.sort(key=lambda item: item.name.lower())
@@ -319,20 +319,20 @@ def display_container_examination(
                 count = item_counts[item_key]
                 item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
                 rows.append(["Item", item_label])
-                item_color = "bright_magenta" if isinstance(container, CorpseState) else item_colors[item_key]
-                row_cell_colors.append(["bright_magenta", item_color])
+                item_color = "containers.item.label" if isinstance(container, CorpseState) else item_colors[item_key]
+                row_cell_colors.append(["containers.item.label", item_color])
         else:
             rows.append(["Items", "None"])
-            row_cell_colors.append(["bright_magenta", "bright_black"])
+            row_cell_colors.append(["containers.item.label", "containers.item.empty"])
     else:
         rows.append(["Contents", "Hidden while closed"])
-        row_cell_colors.append(["bright_magenta", "bright_black"])
+        row_cell_colors.append(["containers.item.label", "containers.contents.hidden"])
 
     parts = build_menu_table_parts(
         title,
         ["Loot", "Contents"],
         rows,
-        column_colors=["bright_cyan", "bright_white"],
+        column_colors=["containers.label_column", "containers.location_value"],
         row_cell_colors=row_cell_colors,
         column_alignments=["left", "left"],
     )
@@ -342,9 +342,9 @@ def display_container_examination(
         if description:
             parts.extend([
                 newline_part(),
-                build_part("Description", "bright_white", True),
+                build_part("Description", "containers.description.heading", True),
                 newline_part(),
-                build_part(description, "bright_white"),
+                build_part(description, "containers.description.text"),
             ])
 
     return display_command_result(session, parts)

@@ -11,9 +11,9 @@ def build_cost_menu_parts(
 ) -> list[dict]:
     if not entries:
         return [
-            build_part(title, "bright_white", True),
+            build_part(title, "display_character.label", True),
             newline_part(),
-            build_part("Nothing is known.", "bright_white"),
+            build_part("Nothing is known.", "display_core.default_fg"),
         ]
 
     has_middle_column = bool(middle_column_header and middle_column_header.strip())
@@ -43,7 +43,7 @@ def build_cost_menu_parts(
             title,
             ["Name", middle_header_label, "Cost"],
             rows,
-            column_colors=["bright_cyan", "bright_magenta", "bright_yellow"],
+            column_colors=["display_character.equipment.slot_column", "display_character.equipment.item_column", "commerce.stock.column.price"],
             column_alignments=["left", "left", "right"],
         )
 
@@ -58,6 +58,6 @@ def build_cost_menu_parts(
         title,
         ["Name", "Cost"],
         rows,
-        column_colors=["bright_cyan", "bright_yellow"],
+        column_colors=["display_character.equipment.slot_column", "commerce.stock.column.price"],
         column_alignments=["left", "right"],
     )

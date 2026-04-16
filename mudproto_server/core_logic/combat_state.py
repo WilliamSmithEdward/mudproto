@@ -6,7 +6,7 @@ import uuid
 
 from assets import get_gear_template_by_id
 from combat_ability_effects import _process_entity_battle_round_support_effects, process_entity_battle_round_tick
-from display_core import build_display, build_part, with_leading_blank_lines
+from display_core import build_display, build_part, resolve_display_color, with_leading_blank_lines
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState
 from session_registry import active_character_sessions, connected_clients, shared_world_entities, shared_world_flags
@@ -19,17 +19,17 @@ _pending_auto_aggro_due_monotonic: dict[str, float] = {}
 
 def get_health_condition(hit_points: int, max_hit_points: int) -> tuple[str, str]:
     if max_hit_points <= 0:
-        return "awful", "bright_red"
+        return "awful", resolve_display_color("feedback.error")
 
     ratio = max(0.0, min(1.0, hit_points / max_hit_points))
     for band in HEALTH_CONDITION_BANDS:
         max_ratio = max(0.0, min(1.0, float(band.get("max_ratio", 1.0))))
         if ratio <= max_ratio:
             label = str(band.get("label", "perfect")).strip().lower() or "perfect"
-            color = str(band.get("color", "bright_green")).strip() or "bright_green"
+            color = str(band.get("color", resolve_display_color("feedback.success"))).strip() or resolve_display_color("feedback.success")
             return label, color
 
-    return "perfect", "bright_green"
+    return "perfect", resolve_display_color("feedback.success")
 
 
 def get_entity_condition(entity: EntityState) -> tuple[str, str]:
@@ -320,8 +320,8 @@ def _display_peaceful_warning(session: ClientSession, entity: EntityState) -> di
     prompt_after, prompt_parts = resolve_prompt_default(session, True)
     return build_display(
         with_leading_blank_lines([
-            build_part("Relax. ", "bright_yellow", True),
-            build_part(f"{entity.name} is peaceful.", "bright_white"),
+            build_part("Relax. ", "feedback.warning", True),
+            build_part(f"{entity.name} is peaceful.", "feedback.text"),
         ]),
         prompt_after=prompt_after,
         prompt_parts=prompt_parts,

@@ -11,6 +11,7 @@ SETTINGS_FILE = SERVER_CONFIG_ROOT / "settings.json"
 DIRECTIONS_FILE = SERVER_CONFIG_ROOT / "directions.json"
 HEALTH_CONDITIONS_FILE = SERVER_CONFIG_ROOT / "health_conditions.json"
 DISPLAY_FEEDBACK_FILE = SERVER_CONFIG_ROOT / "display_feedback.json"
+DISPLAY_COLORS_FILE = SERVER_CONFIG_ROOT / "display_colors.json"
 
 
 def _load_json_object(path: Path, *, label: str) -> dict:
@@ -54,10 +55,16 @@ def load_display_feedback_config() -> dict:
     return _load_json_object(DISPLAY_FEEDBACK_FILE, label="Display feedback config")
 
 
+@lru_cache(maxsize=1)
+def load_display_color_config() -> dict:
+    return _load_json_object(DISPLAY_COLORS_FILE, label="Display colors config")
+
+
 _SETTINGS = load_server_settings()
 _DIRECTIONS = load_direction_config()
 _HEALTH_CONDITIONS = load_health_condition_config()
 _DISPLAY_FEEDBACK = load_display_feedback_config()
+_DISPLAY_COLORS = load_display_color_config()
 
 
 def _section(name: str) -> dict:
@@ -138,6 +145,12 @@ DISPLAY_FEEDBACK_SIMPLE_MESSAGES = {
     str(code).strip().lower(): str(message).strip()
     for code, message in _raw_display_feedback_simple_messages.items()
     if str(code).strip() and str(message).strip()
+}
+
+DISPLAY_COLOR_MAP = {
+    str(key).strip(): str(value).strip()
+    for key, value in _DISPLAY_COLORS.items()
+    if str(key).strip() and str(value).strip()
 }
 
 SERVER_HOST = str(_NETWORK.get("host", "localhost")).strip() or "localhost"

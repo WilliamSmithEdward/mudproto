@@ -446,9 +446,9 @@ def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage
     ]
     row_cell_colors = [
         [
-            "bright_magenta" if str(entry.get("template_kind", "")).strip().lower() == "gear" else "bright_yellow",
-            "bright_cyan",
-            "bright_yellow",
+            "commerce.stock.row.gear_name" if str(entry.get("template_kind", "")).strip().lower() == "gear" else "commerce.stock.row.item_name",
+            "commerce.stock.row.type",
+            "commerce.stock.row.price",
         ]
         for entry in stock_entries
     ]
@@ -457,18 +457,18 @@ def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage
         title,
         ["Item", "Type", "Price"],
         rows,
-        column_colors=["bright_magenta", "bright_cyan", "bright_yellow"],
+        column_colors=["commerce.stock.column.item", "commerce.stock.column.type", "commerce.stock.column.price"],
         row_cell_colors=row_cell_colors,
         column_alignments=["left", "left", "right"],
         empty_message="Nothing is for sale right now.",
     )
     parts.extend([
         newline_part(),
-        build_part("Commands: ", "bright_white"),
-        build_part("buy <item>", "bright_yellow", True),
-        build_part(", ", "bright_white"),
-        build_part("sell <item>", "bright_yellow", True),
-        build_part(", ", "bright_white"),
-        build_part("val <item>", "bright_yellow", True),
+        build_part("Commands: ", "commerce.stock.commands.label"),
+        build_part("buy <item>", "commerce.stock.commands.verb", True),
+        build_part(", ", "commerce.stock.commands.label"),
+        build_part("sell <item>", "commerce.stock.commands.verb", True),
+        build_part(", ", "commerce.stock.commands.label"),
+        build_part("val <item>", "commerce.stock.commands.verb", True),
     ])
     return display_command_result(session, parts)

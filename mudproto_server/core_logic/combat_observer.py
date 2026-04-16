@@ -2,6 +2,7 @@
 
 import re
 
+from display_core import resolve_display_color
 from grammar import capitalize_after_newlines, resolve_player_pronouns, third_personize_text
 from session_registry import active_character_sessions
 
@@ -14,7 +15,7 @@ def _build_broadcast_lines(lines: list[str]) -> list[list[dict]]:
             continue
 
         is_death_line = cleaned.lower().endswith(" is dead!")
-        fg = "bright_red" if is_death_line else "bright_white"
+        fg = resolve_display_color("combat_observer.death") if is_death_line else resolve_display_color("combat_observer.normal")
         bold = is_death_line
         broadcast_lines.append([
             {"text": cleaned, "fg": fg, "bold": bold}

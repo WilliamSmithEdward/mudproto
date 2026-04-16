@@ -4,10 +4,10 @@ from settings import PLAYER_REFERENCE_MAX_HP
 
 
 SEVERITY_COLOR_MAP = {
-    "miss": "bright_red",
-    "massacre": "bright_green",
-    "annihilate": "bright_blue",
-    "obliterate": "orange",
+    "miss": "combat.severity.miss",
+    "massacre": "combat.severity.massacre",
+    "annihilate": "combat.severity.annihilate",
+    "obliterate": "combat.severity.obliterate",
 }
 
 
@@ -73,7 +73,7 @@ def build_player_attack_parts(
     }[severity]
     parts.extend([
         build_part("You "),
-        build_part(f"{top_label} ", SEVERITY_COLOR_MAP.get(severity, "bright_white"), True),
+        build_part(f"{top_label} ", SEVERITY_COLOR_MAP.get(severity, "display_core.default_fg"), True),
         build_part(named),
         build_part(" with your "),
         build_part(attack_verb),

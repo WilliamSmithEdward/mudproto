@@ -28,7 +28,7 @@ def build_player_death_parts() -> list[dict]:
 
     return [
         newline_part(),
-        build_part("You are dead!\n", "bright_red", True),
+        build_part("You are dead!\n", "death.player", True),
     ]
 
 
@@ -37,7 +37,7 @@ def build_player_death_mourn_parts() -> list[dict]:
     from display_core import build_part, newline_part
 
     return [
-        build_part("Your comrades mourn your death.", "bright_white"),
+        build_part("Your comrades mourn your death.", "death.mourn"),
     ]
 
 
@@ -46,5 +46,5 @@ def build_player_death_broadcast_parts(actor_name: str) -> list[dict]:
     from display_core import build_part, newline_part
 
     return [
-        build_part(f"{actor_name} is dead!", "bright_red", True),
+        build_part(f"{actor_name} is dead!", "death.broadcast", True),
     ]

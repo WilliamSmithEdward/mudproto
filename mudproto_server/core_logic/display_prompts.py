@@ -8,9 +8,9 @@ from models import ClientSession
 
 def initial_auth_prompt(session: ClientSession) -> dict[str, object]:
     return display_command_result(session, [
-        build_part("Enter an existing character name (letters only) or type ", "bright_white"),
-        build_part("start", "bright_yellow", True),
-        build_part(" to create a new character.", "bright_white"),
+        build_part("Enter an existing character name (letters only) or type ", "feedback.text"),
+        build_part("start", "feedback.warning", True),
+        build_part(" to create a new character.", "feedback.text"),
     ])
 
 
@@ -21,44 +21,44 @@ def login_prompt(session: ClientSession) -> dict[str, object]:
 
 def build_new_character_name_prompt(session: ClientSession) -> dict[str, object]:
     return display_command_result(session, [
-        build_part("Enter a new character name (letters only).", "bright_white"),
+        build_part("Enter a new character name (letters only).", "feedback.text"),
     ])
 
 
 def build_existing_password_prompt(session: ClientSession) -> dict[str, object]:
     return display_command_result(session, [
-        build_part("Character found. Enter your password.", "bright_white"),
+        build_part("Character found. Enter your password.", "feedback.text"),
     ])
 
 
 def build_new_character_password_prompt(session: ClientSession) -> dict[str, object]:
     return display_command_result(session, [
-        build_part("Enter a password for your character.", "bright_white"),
+        build_part("Enter a password for your character.", "feedback.text"),
     ])
 
 
 def build_gender_prompt(session: ClientSession) -> dict[str, object]:
     return display_command_result(session, [
-        build_part("Choose a gender: ", "bright_white"),
-        build_part("male", "bright_cyan", True),
-        build_part(" or ", "bright_white"),
-        build_part("female", "bright_magenta", True),
-        build_part(".", "bright_white"),
+        build_part("Choose a gender: ", "feedback.text"),
+        build_part("male", "feedback.value", True),
+        build_part(" or ", "feedback.text"),
+        build_part("female", "item_logic.highlight.item", True),
+        build_part(".", "feedback.text"),
     ])
 
 
 def build_class_prompt(session: ClientSession) -> dict[str, object]:
     classes = load_player_classes()
     parts: list[dict[str, object]] = [
-        build_part("Choose a class by id or name:", "bright_white"),
+        build_part("Choose a class by id or name:", "feedback.text"),
     ]
     for player_class in classes:
         parts.extend([
             newline_part(),
-            build_part(" - ", "bright_white"),
-            build_part(str(player_class.get("class_id", "")), "bright_cyan", True),
-            build_part(" (", "bright_white"),
-            build_part(str(player_class.get("name", "")), "bright_yellow", True),
-            build_part(")", "bright_white"),
+            build_part(" - ", "feedback.text"),
+            build_part(str(player_class.get("class_id", "")), "feedback.value", True),
+            build_part(" (", "feedback.text"),
+            build_part(str(player_class.get("name", "")), "feedback.warning", True),
+            build_part(")", "feedback.text"),
         ])
     return display_command_result(session, parts)
