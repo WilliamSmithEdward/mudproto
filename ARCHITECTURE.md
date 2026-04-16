@@ -152,7 +152,7 @@ Level gains: +10HP +5V +6M
 | `server_movement.py` | Movement notices, follower propagation, arrival/departure messaging, and post-move room refresh handling. |
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
 | `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `ActiveAffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
-| `settings.py` | Loads typed runtime config from [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), and [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
+| `settings.py` | Loads typed runtime config from [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json), and [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
 | `session_registry.py` | Shared connected/authenticated session maps, shared world state attachment, and session/world lookup helpers. |
 | `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
 | `session_bootstrap.py` | Player class application, attribute initialization, starting gear/items, and early progression bootstrap. |
@@ -163,7 +163,7 @@ Level gains: +10HP +5V +6M
 | `targeting_entities.py` | Entity/player/corpse lookup plus room target resolution helpers. |
 | `targeting_items.py` | Item and equipment selector resolution across inventory, corpses, and room ground items. |
 | `targeting_follow.py` | Follow/watch/group targeting helpers, recursive follow-chain group resolution, and death-time follow/group reconciliation. |
-| `item_logic.py` | Shared corpse/item display logic and misc item-use handling. |
+| `item_logic.py` | Shared item display/highlighting and misc item-use handling, including potion and quaff behavior. |
 | `abilities.py` | Shared known spell/skill lookup and name-resolution helpers. |
 | `world_population.py` | NPC/entity template hydration, training dummy spawning, shared-world initialization, and zone repopulation/reinitialization. |
 | `combat_ability_effects.py` | Shared support-effect scaling, restore logic, cooldown bookkeeping, affect resolution, and timed/battle-round effect processing. |
@@ -182,7 +182,8 @@ Level gains: +10HP +5V +6M
 | `damage.py` | Damage rolling (`roll_player_damage`, `roll_npc_weapon_damage`), hit-chance calculation, weapon verb resolution. |
 | `equipment_logic.py` | Equip/wear/unequip mechanics, hand weight validation, armor class calculation, equipped-item selector resolution. |
 | `inventory.py` | Item equippability checks, gear template hydration, item selector parsing/resolution, keyword helpers. |
-| `display_core.py` | Core display builders, line/part composition, and item-highlight coloring helpers. |
+| `containers.py` | Shared container operations for containers and corpses, including examine, loot, open/close, and lock/unlock flows. |
+| `display_core.py` | Core display builders, line/part composition, and semantic color resolution through the central display palette config. |
 | `display_feedback.py` | Prompt/status displays, command results, and explicit error-code-based feedback builders using lore text from [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json). |
 | `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
 | `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
@@ -272,9 +273,10 @@ configuration/
   server/
     settings.json          # network, timing, combat, gameplay, session,
                            # offline, database, assets sections
+    display_colors.json    # semantic display color map for all server UI text
   assets/
     gear.json              # weapon & armor templates (damage, AC, slots)
-    items.json             # consumable item templates and restore effects
+    items.json             # item templates for potions, keys, misc items, and containers
     npcs.json              # NPC templates (HP, AI, loot, merchant inventory)
     rooms.json             # world rooms (exits, zone_id, NPC spawns)
     zones.json             # zone membership and repop timing in game hours
@@ -316,10 +318,14 @@ ItemState
   â”œâ”€ name, description, keywords
   â”œâ”€ equippable (bool)
   â”œâ”€ slot ("weapon" | "armor")
+  â”œâ”€ item_type (consumable | potion | key | misc | container)
   â”œâ”€ Weapon fields: damage dice, hit/damage modifiers, weapon_type, can_hold
   â”œâ”€ Armor fields:  armor_class_bonus, wear_slot, wear_slots
+  â”œâ”€ Container/key fields: portable, lock_ids, can_close, can_lock, lock_id, contents
   â””â”€ weight
 ```
+
+Corpses expose the same container-like surface used by shared container helpers, so corpse examination and looting follow the same rules as other containers.
 
 `inventory.py::is_item_equippable()` lazily hydrates missing stats from the
 gear template. `inventory.py::build_equippable_item_from_template()` creates
@@ -566,15 +572,14 @@ When an entity dies:
 
 ### Item Highlighting
 
-`display_core.py::_item_highlight_color()` â€” equippable items render in
-**bright magenta**; non-equippable items in **bright cyan**. This is used
-consistently across inventory, room, loot, and action-message contexts.
+`item_logic.py::_item_highlight_color()` â€” equippable items render in
+**bright magenta**; non-equippable items in **bright yellow** by default. The actual palette is now resolved semantically through [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json), so the theme can be changed without touching gameplay code.
 
 ---
 
 ## 11. Display & Rendering
 
-Display messages are built across `display_core.py`, `display_feedback.py`, `display_character.py`, `display_room.py`, `display_menus.py`, and `display_prompts.py` and sent as structured JSON `lines`. Each line is an array of styled text parts, where each part carries `text`, optional `fg` color, and optional `bold` flag. Both the terminal client and the GUI client render these line arrays from the same server payload.
+Display messages are built across `display_core.py`, `display_feedback.py`, `display_character.py`, `display_room.py`, `display_menus.py`, and `display_prompts.py` and sent as structured JSON `lines`. Each line is an array of styled text parts, where each part carries `text`, optional `fg` color, and optional `bold` flag. Semantic color keys are resolved centrally through [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json), so both the desktop and web clients render the same server-authored theme.
 
 Key builders:
 - `build_display()` / `build_display_lines()` â€” assemble final protocol payloads with structural `lines`.
@@ -751,6 +756,7 @@ mudproto/
       server/directions.json
       server/health_conditions.json
       server/display_feedback.json
+      server/display_colors.json
       assets/gear.json
       assets/items.json
       assets/npcs.json

@@ -10,7 +10,7 @@
 
 `mudproto_server/configuration/assets/` is the content layer for the game world. These files define **what exists in the world**, while rules like wear slots, regeneration, level scaling, and potion cooldowns live in `mudproto_server/configuration/attributes/`.
 
-Server runtime and presentation configuration now lives separately under [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), and [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json). Those files are not content assets and should be maintained independently from the world bundle JSON.
+Server runtime and presentation configuration now lives separately under [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json), and [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json). Those files are not content assets and should be maintained independently from the world bundle JSON.
 
 ### Asset files
 
@@ -24,7 +24,7 @@ Server runtime and presentation configuration now lives separately under [mudpro
 | `spells.json` | Spell definitions |
 | `skills.json` | Skill definitions |
 
-The **authoritative schema and validation rules** for all of these files live in `mudproto_server/assets.py`.
+The **authoritative schema and validation rules** for all of these files live in `mudproto_server/core_logic/assets.py`.
 
 ---
 
@@ -74,7 +74,7 @@ After editing assets:
 
 - restart with:
   ```powershell
-  python mudproto_server/server.py
+  python mudproto_server/core_logic/server.py
   ```
 - connect a client and test relevant commands:
   - `look`
@@ -192,23 +192,46 @@ A **list** of objects.
 A **list** of objects.
 
 ### Current engine expectation
-Items in this file are currently **restore consumables**.
+Items in this file are `item_type`-driven templates. Common uses include:
+
+- restore consumables
+- potions
+- keys
+- misc usable items
+- room or inventory containers
 
 ### Required/common fields
 - `template_id`
 - `name`
 - `description`
 - `keywords`
-- `effect_type` â€” currently must be `"restore"`
-- `effect_target` â€” must be one of:
-  - `hit_points`
-  - `mana`
-  - `vigor`
-- `effect_amount` â€” integer, must be `> 0`
+- `item_type` â€” allowed values currently include `consumable`, `potion`, `key`, `misc`, and `container`
 - `coin_value` â€” non-negative integer
 - `use_lag_seconds` â€” non-negative float
 - `observer_action` â€” optional but recommended
 - `observer_context` â€” optional but recommended
+
+### Restore consumables and potions
+For restore items, also supply:
+- `effect_type` â€” currently `"restore"`
+- `effect_target` â€” one of `hit_points`, `mana`, or `vigor`
+- `effect_amount` â€” integer, must be `> 0`
+
+Potion items should use `item_type: "potion"` directly. In play they can be consumed with either `use <item>` or the quaff aliases.
+
+### Keys and containers
+For key items, use fields such as:
+- `lock_ids`
+- `consume_on_use`
+- `consume_message`
+
+For containers, use fields such as:
+- `portable`
+- `contents`
+- `can_close`
+- `can_lock`
+- `lock_id`
+- the optional open/close/lock/unlock message overrides
 
 ### Example
 ```json

@@ -8,7 +8,7 @@ These should match unless there is a very strong reason not to:
 
 - default server target
 - reconnect timing
-- color rendering
+- server-driven semantic color rendering
 - handling of structured display messages
 - local `/clear` behavior
 - local `/quit` behavior

@@ -94,12 +94,14 @@ First commands to try:
 - Swap command supports self/member and member/member reorder patterns.
 - Follow/group behavior reconciles correctly on death and movement.
 
-### Persistence and World
+### Persistence, Items, and World
 
 - SQLite-backed player persistence.
 - Shared room state for NPCs, corpses, coin piles, and ground items.
+- Corpses now follow the same shared container rules as other lootable containers.
+- Potions are modeled directly with item_type values and support both use and quaff-style aliases.
 - JSON-driven content for rooms, zones, NPCs, items, spells, skills, and attributes.
-- Server runtime and presentation config is split under [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), and [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json).
+- Server runtime and presentation config is split under [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json), and [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json).
 
 ## Architecture
 
@@ -123,7 +125,7 @@ Typical workflow:
 
 1. Regenerate instruction payload.
 2. Provide payload plus a content brief to an AI model.
-3. Save returned JSON payload under mudproto_server/configuration/assets/asset-payloads/.
+3. Save returned JSON payload under mudproto_server/configuration/assets/asset_payloads/.
 4. Restart server to load new content.
 
 Full process details: [LLM_CONTENT_GENERATION.md](LLM_CONTENT_GENERATION.md).
@@ -137,6 +139,9 @@ mudproto/
 ├── LLM_CONTENT_GENERATION.md
 ├── mudproto_client_gui/
 │   └── client_gui.py
+├── mudproto_client_web/
+│   ├── index.html
+│   └── documentation/
 ├── mudproto_llm_interfaces/
 │   ├── generate_asset_payload_generation_instructions.py
 │   └── asset_payload_generation_instructions.json
@@ -146,7 +151,8 @@ mudproto/
 │   │   │   ├── settings.json
 │   │   │   ├── directions.json
 │   │   │   ├── health_conditions.json
-│   │   │   └── display_feedback.json
+│   │   │   ├── display_feedback.json
+│   │   │   └── display_colors.json
 │   │   ├── assets/
 │   │   └── attributes/
 │   └── core_logic/
