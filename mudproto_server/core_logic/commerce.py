@@ -181,14 +181,39 @@ def _build_resale_stack_key(item: ItemState) -> str:
 
 def _get_merchant_base_stock_entries(merchant) -> list[dict[str, object]]:
     stock_entries = getattr(merchant, "merchant_inventory", None)
+    normalized_entries: list[dict[str, object]] = []
+
     if isinstance(stock_entries, list):
-        return stock_entries
+        for stock_entry in stock_entries:
+            if not isinstance(stock_entry, dict):
+                continue
+
+            template_id = str(stock_entry.get("template_id", "")).strip()
+            if not template_id:
+                continue
+
+            infinite = bool(stock_entry.get("infinite", False))
+            quantity = max(0, _as_int(stock_entry.get("quantity", 1), 1))
+            base_quantity = max(0, _as_int(stock_entry.get("base_quantity", quantity), quantity))
+            if not infinite and base_quantity <= 0:
+                base_quantity = max(1, quantity)
+
+            normalized_entries.append({
+                "template_id": template_id,
+                "infinite": infinite,
+                "quantity": quantity,
+                "base_quantity": base_quantity,
+            })
+
+        merchant.merchant_inventory = normalized_entries
+        return normalized_entries
 
     normalized_entries = [
         {
             "template_id": str(template_id).strip(),
             "infinite": True,
             "quantity": 1,
+            "base_quantity": 1,
         }
         for template_id in getattr(merchant, "merchant_inventory_template_ids", [])
         if str(template_id).strip()
@@ -208,6 +233,49 @@ def _find_merchant_base_stock_entry(merchant, template_id: str) -> dict[str, obj
             return stock_entry
 
     return None
+
+
+def process_merchant_game_hour_tick(merchant) -> None:
+    if not bool(getattr(merchant, "is_merchant", False)):
+        return
+
+    restock_game_hours = max(0, _as_int(getattr(merchant, "merchant_restock_game_hours", 0)))
+    if restock_game_hours <= 0:
+        setattr(merchant, "merchant_restock_elapsed_hours", 0)
+        return
+
+    limited_entries = [
+        stock_entry
+        for stock_entry in _get_merchant_base_stock_entries(merchant)
+        if not bool(stock_entry.get("infinite", False))
+    ]
+    if not limited_entries:
+        setattr(merchant, "merchant_restock_elapsed_hours", 0)
+        return
+
+    needs_restock = False
+    for stock_entry in limited_entries:
+        base_quantity = max(0, _as_int(stock_entry.get("base_quantity", stock_entry.get("quantity", 1)), 1))
+        current_quantity = max(0, _as_int(stock_entry.get("quantity", 0)))
+        if current_quantity < base_quantity:
+            needs_restock = True
+            break
+
+    if not needs_restock:
+        setattr(merchant, "merchant_restock_elapsed_hours", 0)
+        return
+
+    elapsed_hours = max(0, _as_int(getattr(merchant, "merchant_restock_elapsed_hours", 0))) + 1
+    if elapsed_hours < restock_game_hours:
+        setattr(merchant, "merchant_restock_elapsed_hours", elapsed_hours)
+        return
+
+    for stock_entry in limited_entries:
+        base_quantity = max(0, _as_int(stock_entry.get("base_quantity", stock_entry.get("quantity", 1)), 1))
+        current_quantity = max(0, _as_int(stock_entry.get("quantity", 0)))
+        stock_entry["quantity"] = max(current_quantity, base_quantity)
+
+    setattr(merchant, "merchant_restock_elapsed_hours", 0)
 
 
 def _append_item_to_merchant_stock(merchant, item: ItemState) -> None:

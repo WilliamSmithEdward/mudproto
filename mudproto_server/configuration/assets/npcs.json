@@ -277,6 +277,7 @@
       "npc_id": "npc.south-market-merchant",
       "name": "Quartermaster Vessa",
       "is_named": true,
+      "merchant_restock_game_hours": 6,
       "hit_points": 180,
       "max_hit_points": 180,
       "power_level": 1,

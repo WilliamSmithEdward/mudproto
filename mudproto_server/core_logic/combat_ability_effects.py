@@ -1047,6 +1047,11 @@ def process_entity_game_hour_tick(entity: EntityState) -> None:
         if affect.remaining_hours <= 0:
             entity.active_affects.remove(affect)
 
+    if bool(getattr(entity, "is_merchant", False)):
+        from commerce import process_merchant_game_hour_tick
+
+        process_merchant_game_hour_tick(entity)
+
 
 def _resolve_player_skill_scale_bonus(session: ClientSession, skill: dict) -> int:
     scaling_attribute_id = str(skill.get("scaling_attribute_id", "")).strip().lower()

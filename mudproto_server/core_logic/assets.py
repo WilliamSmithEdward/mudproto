@@ -1368,6 +1368,7 @@ def load_npc_templates() -> list[dict]:
                 "template_id": template_id,
                 "infinite": infinite,
                 "quantity": quantity,
+                "base_quantity": quantity,
             })
 
         merchant_buy_markup = float(raw_npc.get("merchant_buy_markup", 1.0))
@@ -1377,6 +1378,8 @@ def load_npc_templates() -> list[dict]:
         merchant_sell_ratio = float(raw_npc.get("merchant_sell_ratio", 0.5))
         if merchant_sell_ratio < 0.0 or merchant_sell_ratio > 1.0:
             raise ValueError(f"NPC '{npc_id}' merchant_sell_ratio must be between 0.0 and 1.0.")
+
+        merchant_restock_game_hours = max(0, int(raw_npc.get("merchant_restock_game_hours", 0)))
 
         if is_merchant and not merchant_inventory:
             raise ValueError(f"Merchant NPC '{npc_id}' must define merchant_inventory or merchant_inventory_template_ids.")
@@ -1514,6 +1517,7 @@ def load_npc_templates() -> list[dict]:
             "merchant_inventory": merchant_inventory,
             "merchant_buy_markup": merchant_buy_markup,
             "merchant_sell_ratio": merchant_sell_ratio,
+            "merchant_restock_game_hours": merchant_restock_game_hours,
             "pronoun_possessive": str(raw_npc.get("pronoun_possessive", "its")).strip().lower() or "its",
             "main_hand_weapon": main_hand_weapon,
             "off_hand_weapon": off_hand_weapon,

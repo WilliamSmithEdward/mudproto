@@ -93,3 +93,29 @@ def test_entity_game_hour_tick_uses_self_heal_spell_when_injured(monkeypatch) ->
 
     assert entity.hit_points > 40
     assert entity.mana == 40
+
+
+def test_entity_game_hour_tick_restocks_limited_merchant_stock_after_configured_hours() -> None:
+    entity = _make_entity("merchant-quartermaster", "Quartermaster Vessa")
+    entity.is_merchant = True
+    entity.merchant_restock_game_hours = 2
+    entity.merchant_inventory = [
+        {
+            "template_id": "item.potion.mending",
+            "infinite": False,
+            "quantity": 0,
+            "base_quantity": 3,
+        },
+        {
+            "template_id": "weapon.training-sword",
+            "infinite": True,
+            "quantity": 1,
+            "base_quantity": 1,
+        },
+    ]
+
+    process_entity_game_hour_tick(entity)
+    assert entity.merchant_inventory[0]["quantity"] == 0
+
+    process_entity_game_hour_tick(entity)
+    assert entity.merchant_inventory[0]["quantity"] == 3

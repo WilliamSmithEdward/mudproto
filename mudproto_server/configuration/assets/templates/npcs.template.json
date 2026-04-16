@@ -143,6 +143,13 @@
         "minimum": 0.0,
         "maximum": 1.0
       },
+      "merchant_restock_game_hours": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "If greater than 0, limited merchant stock replenishes to its configured quantity after this many game hours."
+      },
       "pronoun_possessive": {
         "type": "string",
         "required": false,
