@@ -59,6 +59,27 @@ def _resolve_effect_name(effect) -> str:
     return "Effect"
 
 
+def _resolve_effect_label(effect) -> str:
+    affect_type = str(getattr(effect, "affect_type", "")).strip().lower()
+    if affect_type in {"extra_hits", "extra_unarmed_hits"}:
+        return "Extra Hits"
+    if affect_type == "damage_dealt_multiplier":
+        amount = float(getattr(effect, "affect_amount", 0.0))
+        return "Decreased Damage" if amount < 0.0 else "Increased Damage"
+    if affect_type in {"damage_received_multiplier", "damage_reduction"}:
+        amount = float(getattr(effect, "affect_amount", 0.0))
+        return "Decreased Damage Received" if amount < 0.0 or affect_type == "damage_reduction" else "Increased Damage Received"
+    if affect_type == "regeneration":
+        resource = str(getattr(effect, "target_resource", "hit_points")).strip().lower() or "hit_points"
+        resource_label = {
+            "hit_points": "Health",
+            "mana": "Mana",
+            "vigor": "Vigor",
+        }.get(resource, "Health")
+        return f"Increased {resource_label} Regeneration"
+    return ""
+
+
 def _format_effect_remaining_duration(effect) -> str:
     effect_mode = str(
         getattr(effect, "support_mode", getattr(effect, "affect_mode", "timed"))
@@ -131,8 +152,12 @@ def display_score(session: ClientSession) -> dict:
     else:
         for effect in active_effects:
             effect_name = _resolve_effect_name(effect)
+            effect_label = _resolve_effect_label(effect)
             duration_text = _format_effect_remaining_duration(effect)
-            effect_line_texts.append(f" - {effect_name} ({duration_text} remaining)")
+            if effect_label:
+                effect_line_texts.append(f" - {effect_name} ({effect_label}, {duration_text} remaining)")
+            else:
+                effect_line_texts.append(f" - {effect_name} ({duration_text} remaining)")
 
     panel_width = max(
         PANEL_INNER_WIDTH,
@@ -237,12 +262,20 @@ def display_score(session: ClientSession) -> dict:
     else:
         for effect in active_effects:
             effect_name = _resolve_effect_name(effect)
+            effect_label = _resolve_effect_label(effect)
             duration_text = _format_effect_remaining_duration(effect)
             parts.extend([
                 newline_part(),
                 build_part(" - ", "display_character.label"),
                 build_part(effect_name, "display_character.effects.name", True),
                 build_part(" (", "display_character.label"),
+            ])
+            if effect_label:
+                parts.extend([
+                    build_part(effect_label, "display_character.effects.type", True),
+                    build_part(", ", "display_character.label"),
+                ])
+            parts.extend([
                 build_part(duration_text, "display_character.effects.remaining", True),
                 build_part(" remaining)", "display_character.label"),
             ])

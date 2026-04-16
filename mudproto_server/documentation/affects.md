@@ -10,7 +10,7 @@ Prefer broad, reusable templates. Parameterize behavior at the skill/spell level
 
 ## Usage
 
-In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a string template ID or an object containing `affect_id` plus override fields. Keep templates broad and place target, resource, duration, and tuning details on the ability entry.
+In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a string template ID or an object containing `affect_id` plus override fields. Keep templates broad and place target, resource, duration, and tuning details on the ability entry rather than on the shared template.
 
 ## Template Fields
 
@@ -20,6 +20,7 @@ In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a 
 | `target` | `"self"` or `"target"` |
 | `affect_mode` | `"instant"`, `"timed"`, or `"battle_rounds"` |
 | `amount` | Base numeric amount; for dealt/received damage multipliers, values between $-1$ and $1$ are treated as signed deltas from $1.0$ |
+| `can_be_negative` | Whether the affect template allows negative amount and scaling values |
 | `dice_count` / `dice_sides` / `roll_modifier` | Random component |
 | `scaling_attribute_id` / `scaling_multiplier` | Attribute-based scaling (players; supports decimal values) |
 | `level_scaling_multiplier` | Per-level scaling (players; supports decimal values) |
@@ -38,7 +39,7 @@ In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a 
 
 **Type:** `damage_received_multiplier`
 
-Multiplies incoming damage on the target. For multipliers, a value like `0.1` means $+10\%$, while `-0.1` means $-10\%$. Supports `damage_elements` to restrict which elements are affected; empty means all.
+Multiplies incoming damage on the target. For multipliers, a value like `0.1` means $+10\%$, while `-0.1` means $-10\%$. This template has `can_be_negative: true`. Supports `damage_elements` to restrict which elements are affected; empty means all.
 
 **Example skill usage:**
 ```json
@@ -59,7 +60,7 @@ Multiplies incoming damage on the target. For multipliers, a value like `0.1` me
 
 **Type:** `damage_dealt_multiplier`
 
-Multiplies outgoing damage on the affected target. A value like `-0.2` means $-20\%$ damage dealt, while `0.2` means $+20\%$. Supports `damage_elements` to restrict outgoing damage types.
+Multiplies outgoing damage on the affected target. A value like `-0.2` means $-20\%$ damage dealt, while `0.2` means $+20\%$. This template has `can_be_negative: true`. Supports `damage_elements` to restrict outgoing damage types.
 
 **Example spell usage:**
 ```json
@@ -80,7 +81,7 @@ Multiplies outgoing damage on the affected target. A value like `-0.2` means $-2
 
 **Type:** `regeneration`
 
-Restores `target_resource` each tick. Supports `hit_points` (default), `mana`, or `vigor`.
+Restores the chosen `target_resource` each tick. Supports `hit_points` (default), `mana`, or `vigor`. The target resource is supplied by the applying ability, not the shared template.
 
 **Example spell usage:**
 ```json

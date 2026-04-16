@@ -67,11 +67,18 @@ def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
 
 def test_shared_affect_templates_stay_generic() -> None:
     received_damage = _read_raw_affect("affect.received-damage")
+    dealt_damage = _read_raw_affect("affect.dealt-damage")
     regeneration = _read_raw_affect("affect.regeneration")
+    extra_hits = _read_raw_affect("affect.extra-hits")
 
     assert "target" not in received_damage
+    assert "target" not in dealt_damage
     assert "target" not in regeneration
     assert "target_resource" not in regeneration
+    assert received_damage.get("can_be_negative") is True
+    assert dealt_damage.get("can_be_negative") is True
+    assert regeneration.get("can_be_negative") is False
+    assert extra_hits.get("can_be_negative") is False
 
 
 def test_ice_storm_asset_has_aoe_damage_and_damage_dealt_debuff() -> None:

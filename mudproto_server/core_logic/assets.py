@@ -130,6 +130,7 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
     raw_damage_filters = raw_affect.get("damage_elements", raw_affect.get("damage_element", []))
     affect_damage_elements = _normalize_element_filters(raw_damage_filters, context=context)
     target_resource = str(raw_affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
+    can_be_negative = bool(raw_affect.get("can_be_negative", False))
 
     amount = float(raw_affect.get("amount", 0.0))
     dice_count = max(0, int(raw_affect.get("dice_count", 0)))
@@ -175,6 +176,19 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         raise ValueError(f"{context} target_resource must be one of: hit_points, mana, vigor.")
     if dice_count > 0 and dice_sides <= 0:
         raise ValueError(f"{context} affect dice_sides must be > 0 when dice_count is set.")
+    if not can_be_negative:
+        if amount < 0.0:
+            raise ValueError(f"{context} affect amount must be zero or greater unless can_be_negative is true.")
+        if roll_modifier < 0.0:
+            raise ValueError(f"{context} affect roll_modifier must be zero or greater unless can_be_negative is true.")
+        if scaling_multiplier < 0.0:
+            raise ValueError(f"{context} affect scaling_multiplier must be zero or greater unless can_be_negative is true.")
+        if level_scaling_multiplier < 0.0:
+            raise ValueError(f"{context} affect level_scaling_multiplier must be zero or greater unless can_be_negative is true.")
+        if power_scaling_multiplier < 0.0:
+            raise ValueError(f"{context} affect power_scaling_multiplier must be zero or greater unless can_be_negative is true.")
+        if amount_per_level_step < 0.0:
+            raise ValueError(f"{context} affect amount_per_level_step must be zero or greater unless can_be_negative is true.")
     if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
         raise ValueError(
             f"{context} affect scaling_attribute_id '{scaling_attribute_id}' is unknown."
@@ -197,6 +211,7 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         "affect_type": affect_type,
         "target": affect_target,
         "affect_mode": affect_mode,
+        "can_be_negative": can_be_negative,
         "damage_elements": affect_damage_elements,
         "target_resource": target_resource,
         "amount": amount,

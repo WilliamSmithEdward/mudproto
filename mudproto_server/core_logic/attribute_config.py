@@ -404,6 +404,7 @@ def load_affect_templates() -> list[dict]:
         target = str(raw_affect.get("target", "target")).strip().lower() or "target"
         affect_mode = str(raw_affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
         target_resource = str(raw_affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
+        can_be_negative = bool(raw_affect.get("can_be_negative", False))
         amount = float(raw_affect.get("amount", 0.0))
         dice_count = max(0, int(raw_affect.get("dice_count", 0)))
         dice_sides = max(0, int(raw_affect.get("dice_sides", 0)))
@@ -429,6 +430,19 @@ def load_affect_templates() -> list[dict]:
             raise ValueError(f"Affect '{affect_id}' affect_mode must be instant, timed, or battle_rounds.")
         if target_resource not in {"hit_points", "mana", "vigor"}:
             raise ValueError(f"Affect '{affect_id}' target_resource must be hit_points, mana, or vigor.")
+        if not can_be_negative:
+            if amount < 0.0:
+                raise ValueError(f"Affect '{affect_id}' amount must be >= 0 unless can_be_negative is true.")
+            if roll_modifier < 0.0:
+                raise ValueError(f"Affect '{affect_id}' roll_modifier must be >= 0 unless can_be_negative is true.")
+            if scaling_multiplier < 0.0:
+                raise ValueError(f"Affect '{affect_id}' scaling_multiplier must be >= 0 unless can_be_negative is true.")
+            if level_scaling_multiplier < 0.0:
+                raise ValueError(f"Affect '{affect_id}' level_scaling_multiplier must be >= 0 unless can_be_negative is true.")
+            if power_scaling_multiplier < 0.0:
+                raise ValueError(f"Affect '{affect_id}' power_scaling_multiplier must be >= 0 unless can_be_negative is true.")
+            if amount_per_level_step < 0.0:
+                raise ValueError(f"Affect '{affect_id}' amount_per_level_step must be >= 0 unless can_be_negative is true.")
         if scaling_attribute_id and scaling_attribute_id not in configured_attribute_ids:
             raise ValueError(
                 f"Affect '{affect_id}' scaling_attribute_id references unknown attribute '{scaling_attribute_id}'."
@@ -450,6 +464,7 @@ def load_affect_templates() -> list[dict]:
             "target": target,
             "affect_mode": affect_mode,
             "affect_type": affect_type,
+            "can_be_negative": can_be_negative,
             "damage_elements": damage_elements,
             "target_resource": target_resource,
             "amount": amount,

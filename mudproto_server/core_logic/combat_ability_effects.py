@@ -288,6 +288,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
 
         affect_id = str(affect.get("affect_id", "")).strip() or affect_type
         affect_name = str(affect.get("name", "")).strip() or affect_id
+        can_be_negative = bool(affect.get("can_be_negative", False))
         raw_damage_elements = affect.get("damage_elements", affect.get("damage_element", []))
         if isinstance(raw_damage_elements, str):
             raw_damage_elements = [raw_damage_elements]
@@ -336,6 +337,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_name=affect_name,
                 affect_mode=affect_mode,
                 affect_type=affect_type,
+                can_be_negative=can_be_negative,
                 affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,
                 affect_amount=affect_amount,
@@ -360,6 +362,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
             active_affect.affect_name = affect_name
             active_affect.affect_mode = affect_mode
             active_affect.affect_type = affect_type
+            active_affect.can_be_negative = can_be_negative
             active_affect.affect_damage_elements = affect_damage_elements
             active_affect.target_resource = target_resource
             active_affect.affect_amount = affect_amount
@@ -384,6 +387,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_name=affect_name,
                 affect_mode=affect_mode,
                 affect_type=affect_type,
+                can_be_negative=can_be_negative,
                 affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,
                 affect_amount=affect_amount,

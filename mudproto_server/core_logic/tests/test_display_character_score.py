@@ -95,7 +95,7 @@ def test_score_displays_active_affects_and_support_effects() -> None:
     rendered = _extract_display_text(outbound)
 
     assert "Regeneration Ward (2 hours remaining)" in rendered
-    assert "Fist Flurry (3 rounds remaining)" in rendered
+    assert "Fist Flurry (Extra Hits, 3 rounds remaining)" in rendered
 
 
 def test_score_displays_targeted_support_spell_affect_from_another_player(monkeypatch) -> None:
@@ -140,7 +140,23 @@ def test_score_displays_targeted_support_spell_affect_from_another_player(monkey
 
     assert applied is True
     assert "Regeneration Ward" in rendered
-    assert "Regeneration Ward (3 rounds remaining)" in score_rendered
+    assert "Regeneration Ward (Increased Health Regeneration, 3 rounds remaining)" in score_rendered
+
+
+def test_score_displays_damage_affect_labels() -> None:
+    session = _make_session("client-score-damage-label", "Lucia")
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.dealt-damage",
+        affect_name="Battle Focus",
+        affect_mode="battle_rounds",
+        affect_type="damage_dealt_multiplier",
+        affect_amount=0.2,
+        remaining_rounds=2,
+    ))
+
+    rendered = _extract_display_text(display_character.display_score(session))
+
+    assert "Battle Focus (Increased Damage, 2 rounds remaining)" in rendered
 
 
 def test_score_displays_targeted_ongoing_support_spell_from_another_player(monkeypatch) -> None:
