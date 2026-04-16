@@ -300,8 +300,11 @@ def display_container_examination(
             for item_key in item_order:
                 count = item_counts[item_key]
                 item_label = item_names[item_key] if count == 1 else f"{item_names[item_key]} [{count}]"
-                rows.append(["Item", item_label])
-                row_cell_colors.append(["containers.item.label", item_colors[item_key]])
+                sample_item = next((item for item in container_items if item.name.strip().lower() == item_key), None)
+                row_name = "Equipment" if sample_item is not None and bool(getattr(sample_item, "equippable", False)) else "Item"
+                row_label_color = "containers.item.equipment_label" if row_name == "Equipment" else "containers.item.label"
+                rows.append([row_name, item_label])
+                row_cell_colors.append([row_label_color, item_colors[item_key]])
         else:
             rows.append(["Items", "None"])
             row_cell_colors.append(["containers.item.label", "containers.item.empty"])
