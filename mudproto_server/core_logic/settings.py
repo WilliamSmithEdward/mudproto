@@ -23,6 +23,17 @@ def _load_json_object(path: Path, *, label: str) -> dict:
     return raw
 
 
+def _resolve_optional_path(value: object) -> Path | None:
+    raw = str(value).strip()
+    if not raw:
+        return None
+
+    path = Path(raw)
+    if not path.is_absolute():
+        path = SERVER_ROOT / path
+    return path
+
+
 @lru_cache(maxsize=1)
 def load_server_settings() -> dict:
     return _load_json_object(SETTINGS_FILE, label="Server settings file")
@@ -130,6 +141,11 @@ DISPLAY_FEEDBACK_SIMPLE_MESSAGES = {
 
 SERVER_HOST = str(_NETWORK.get("host", "localhost")).strip() or "localhost"
 SERVER_PORT = int(_NETWORK.get("port", 8765))
+SERVER_TLS_ENABLED = bool(_NETWORK.get("tls_enabled", False))
+SERVER_TLS_CERTFILE = _resolve_optional_path(_NETWORK.get("tls_certfile", ""))
+SERVER_TLS_KEYFILE = _resolve_optional_path(_NETWORK.get("tls_keyfile", ""))
+SERVER_TLS_CA_FILE = _resolve_optional_path(_NETWORK.get("tls_ca_file", ""))
+TLS_VERIFY_SERVER = bool(_NETWORK.get("tls_verify_server", False))
 
 COMMAND_SCHEDULER_INTERVAL_SECONDS = float(_TIMING.get("command_scheduler_interval_seconds", 0.1))
 GAME_TICK_INTERVAL_SECONDS = float(_TIMING.get("game_tick_interval_seconds", 60.0))

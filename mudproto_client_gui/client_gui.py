@@ -1,8 +1,11 @@
 ﻿import asyncio
 import ctypes
 import json
+import os
+import ssl
 import threading
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk
 from datetime import datetime, timezone
 from typing import Any, TypeAlias
@@ -36,6 +39,70 @@ COLOR_MAP = {
 
 RECONNECT_INTERVAL_MS = 5000
 OUTPUT_RIGHT_MARGIN_PX = 80
+CLIENT_ROOT = Path(__file__).resolve().parent.parent
+SERVER_ROOT = CLIENT_ROOT / "mudproto_server"
+SERVER_SETTINGS_FILE = SERVER_ROOT / "configuration" / "server" / "settings.json"
+
+
+def _load_network_settings() -> dict[str, Any]:
+    try:
+        with SERVER_SETTINGS_FILE.open("r", encoding="utf-8") as handle:
+            raw = json.load(handle)
+    except Exception:
+        return {}
+
+    if not isinstance(raw, dict):
+        return {}
+    network = raw.get("network", {})
+    return network if isinstance(network, dict) else {}
+
+
+def _resolve_network_path(raw_path: str) -> Path:
+    path = Path(str(raw_path).strip())
+    if path.is_absolute():
+        return path
+
+    if str(raw_path).strip().replace("\\", "/").startswith("configuration/"):
+        return SERVER_ROOT / path
+    return CLIENT_ROOT / path
+
+
+def default_server_uri() -> str:
+    env_uri = os.environ.get("MUDPROTO_SERVER_URI", "").strip()
+    if env_uri:
+        return env_uri
+
+    network = _load_network_settings()
+    host = str(network.get("host", "localhost")).strip() or "localhost"
+    port = int(network.get("port", 8765))
+    scheme = "wss" if bool(network.get("tls_enabled", False)) else "ws"
+    return f"{scheme}://{host}:{port}"
+
+
+def build_client_ssl_context(uri: str) -> ssl.SSLContext | None:
+    if not str(uri).strip().lower().startswith("wss://"):
+        return None
+
+    network = _load_network_settings()
+    verify_server = bool(network.get("tls_verify_server", False))
+    env_verify = os.environ.get("MUDPROTO_TLS_VERIFY_SERVER", "").strip().lower()
+    if env_verify:
+        verify_server = env_verify in {"1", "true", "yes", "on"}
+
+    ca_file = os.environ.get("MUDPROTO_TLS_CA_FILE", "").strip() or str(network.get("tls_ca_file", "")).strip()
+    context = ssl.create_default_context()
+
+    if ca_file:
+        resolved_ca = _resolve_network_path(ca_file)
+        if not resolved_ca.exists():
+            raise FileNotFoundError(f"TLS CA file not found: {resolved_ca}")
+        context.load_verify_locations(cafile=str(resolved_ca))
+
+    if not verify_server:
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
+    return context
 
 
 def configure_windows_dpi_awareness() -> None:
@@ -87,9 +154,9 @@ def _extract_lines(payload: dict[str, Any], key: str) -> list[Line]:
 
 
 class MudProtoGuiClient:
-    def __init__(self, root: tk.Tk, uri: str = "ws://localhost:8765") -> None:
+    def __init__(self, root: tk.Tk, uri: str | None = None) -> None:
         self.root = root
-        self.uri = uri
+        self.uri = str(uri).strip() if uri and str(uri).strip() else default_server_uri()
         self.websocket = None
         self.network_loop = asyncio.new_event_loop()
         self.network_thread = threading.Thread(target=self._run_network_loop, daemon=True)
@@ -371,7 +438,8 @@ class MudProtoGuiClient:
             return
 
         try:
-            self.websocket = await websockets.connect(self.uri)
+            ssl_context = build_client_ssl_context(self.uri)
+            self.websocket = await websockets.connect(self.uri, ssl=ssl_context)
             self.root.after(0, self._cancel_reconnect)
             self.root.after(0, self._set_prompt_text, "Connected. Waiting for server prompt...")
             self.root.after(0, self.append_system_message, f"Connected to {self.uri}", "bright_green")

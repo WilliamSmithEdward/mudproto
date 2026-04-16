@@ -1,7 +1,12 @@
 {
   "network": {
     "host": "localhost",
-    "port": 8765
+    "port": 8765,
+    "tls_enabled": true,
+    "tls_certfile": "configuration/server/encryption/server-cert.pem",
+    "tls_keyfile": "configuration/server/encryption/server-key.pem",
+    "tls_ca_file": "configuration/server/encryption/server-ca.pem",
+    "tls_verify_server": true
   },
   "timing": {
     "command_scheduler_interval_seconds": 0.1,

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import ssl
 import uuid
 
 from websockets.asyncio.server import ServerConnection
@@ -22,11 +23,35 @@ from server_loops import (
 )
 from server_movement import _handle_movement_side_effects
 from server_transport import send_json, send_outbound
-from settings import GAME_TICK_INTERVAL_SECONDS, SERVER_HOST, SERVER_PORT
+from settings import (
+    GAME_TICK_INTERVAL_SECONDS,
+    SERVER_HOST,
+    SERVER_PORT,
+    SERVER_TLS_CERTFILE,
+    SERVER_TLS_ENABLED,
+    SERVER_TLS_KEYFILE,
+)
 from session_lifecycle import handle_client_disconnect, reset_session_to_login
 from session_registry import get_connection_count, register_client
 from session_timing import touch_session
 from world_population import initialize_session_entities
+
+
+def _build_server_ssl_context() -> ssl.SSLContext | None:
+    if not SERVER_TLS_ENABLED:
+        return None
+
+    if SERVER_TLS_CERTFILE is None or SERVER_TLS_KEYFILE is None:
+        raise ValueError("TLS is enabled, but tls_certfile and tls_keyfile must both be configured.")
+    if not SERVER_TLS_CERTFILE.exists():
+        raise FileNotFoundError(f"TLS certificate file not found: {SERVER_TLS_CERTFILE}")
+    if not SERVER_TLS_KEYFILE.exists():
+        raise FileNotFoundError(f"TLS key file not found: {SERVER_TLS_KEYFILE}")
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile=str(SERVER_TLS_CERTFILE), keyfile=str(SERVER_TLS_KEYFILE))
+    return context
+
 
 async def handle_connection(websocket: ServerConnection) -> None:
     client_id = str(uuid.uuid4())
@@ -98,9 +123,12 @@ async def main():
     tick_task = asyncio.create_task(game_tick_loop())
     combat_task = asyncio.create_task(combat_round_loop())
 
+    ssl_context = _build_server_ssl_context()
+    scheme = "wss" if ssl_context is not None else "ws"
+
     try:
-        async with websockets.serve(handle_connection, SERVER_HOST, SERVER_PORT):
-            print(f"Server listening on ws://{SERVER_HOST}:{SERVER_PORT}")
+        async with websockets.serve(handle_connection, SERVER_HOST, SERVER_PORT, ssl=ssl_context):
+            print(f"Server listening on {scheme}://{SERVER_HOST}:{SERVER_PORT}")
             await asyncio.Future()
     finally:
         combat_task.cancel()

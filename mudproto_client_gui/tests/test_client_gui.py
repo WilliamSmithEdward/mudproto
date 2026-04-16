@@ -1,4 +1,5 @@
 import asyncio
+import ssl
 from typing import Any, cast
 
 import mudproto_client_gui.client_gui as client_gui
@@ -214,3 +215,32 @@ def test_render_display_long_line_then_prompt_has_single_boundary_newline() -> N
     })
 
     assert fake_output.content == f"> \n{long_text}\n526H 311V 1531C 0X> "
+
+
+def test_default_server_uri_switches_to_wss_when_tls_enabled(monkeypatch) -> None:
+    monkeypatch.setattr(client_gui, "_load_network_settings", lambda: {
+        "host": "example.com",
+        "port": 9443,
+        "tls_enabled": True,
+    })
+
+    assert client_gui.default_server_uri() == "wss://example.com:9443"
+
+
+def test_build_client_ssl_context_for_wss_can_disable_verification(monkeypatch) -> None:
+    monkeypatch.setattr(client_gui, "_load_network_settings", lambda: {
+        "tls_enabled": True,
+        "tls_verify_server": False,
+    })
+
+    context = client_gui.build_client_ssl_context("wss://example.com:9443")
+
+    assert context is not None
+    assert context.verify_mode == ssl.CERT_NONE
+    assert context.check_hostname is False
+
+
+def test_resolve_network_path_uses_server_root_for_configuration_paths() -> None:
+    resolved = client_gui._resolve_network_path("configuration/server/encryption/server-ca.pem")
+
+    assert resolved.as_posix().endswith("mudproto_server/configuration/server/encryption/server-ca.pem")

@@ -214,3 +214,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local TLS materials
+mudproto_server/configuration/server/encryption/*
+!mudproto_server/configuration/server/encryption/.gitkeep

@@ -1,2 +1,3 @@
 # Runtime dependencies for MudProto
 websockets>=12,<16
+cryptography>=44,<46
