@@ -1,3 +1,4 @@
+from commerce import _display_merchant_stock
 from protocol import utc_now_iso
 from models import ClientSession, EntityState
 from session_registry import active_character_sessions, connected_clients, shared_world_entities
@@ -122,3 +123,35 @@ def test_reinitialize_zone_evaluates_auto_aggro_for_players_in_repopulated_rooms
         connected_clients.update(previous_connected)
         active_character_sessions.clear()
         active_character_sessions.update(previous_active)
+
+
+def test_merchant_stock_display_shows_equipment_slot_labels() -> None:
+    session = _make_session("merchant-display-client")
+    session.player.current_room_id = "south-market"
+
+    merchant = EntityState(
+        entity_id="merchant-wares",
+        name="Quartermaster Vessa",
+        room_id="south-market",
+        hit_points=100,
+        max_hit_points=100,
+    )
+    merchant.is_alive = True
+    merchant.is_merchant = True
+    merchant.merchant_inventory = [
+        {"template_id": "item.potion.mending", "infinite": True, "quantity": 3, "base_quantity": 3},
+        {"template_id": "weapon.training-sword", "infinite": True, "quantity": 1, "base_quantity": 1},
+        {"template_id": "armor.vanguard-jacket", "infinite": True, "quantity": 1, "base_quantity": 1},
+    ]
+
+    outbound = _display_merchant_stock(session, merchant)
+    lines = [
+        "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+        for line in outbound.get("payload", {}).get("lines", [])
+        if isinstance(line, list)
+    ]
+    rendered = "\n".join(lines)
+
+    assert "Potion of Mending" in rendered and "Potion" in rendered
+    assert "Training Sword" in rendered and "Weapon" in rendered
+    assert "Vanguard Jacket" in rendered and "Chest" in rendered

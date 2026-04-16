@@ -67,6 +67,34 @@ def _get_trade_template_by_id(template_id: str) -> tuple[dict | None, str | None
     return None, None
 
 
+def _normalize_trade_display_label(value: str) -> str:
+    cleaned = str(value).strip().lower()
+    if not cleaned:
+        return ""
+    return cleaned.replace("_", " ").title()
+
+
+def _resolve_trade_display_type(*, template: dict | None = None, item: ItemState | None = None, template_kind: str | None = None) -> str:
+    if str(template_kind or "").strip().lower() == "gear" or (item is not None and is_item_equippable(item)):
+        slot = str((template or {}).get("slot", getattr(item, "slot", ""))).strip().lower()
+        if slot == "weapon":
+            return "Weapon"
+
+        wear_slots = (template or {}).get("wear_slots", getattr(item, "wear_slots", []))
+        if not isinstance(wear_slots, list):
+            wear_slots = []
+        normalized_wear_slots = [str(slot_name).strip().lower() for slot_name in wear_slots if str(slot_name).strip()]
+        if not normalized_wear_slots and item is not None and str(getattr(item, "wear_slot", "")).strip():
+            normalized_wear_slots = [str(getattr(item, "wear_slot", "")).strip().lower()]
+        if normalized_wear_slots:
+            return _normalize_trade_display_label(normalized_wear_slots[0]) or "Gear"
+
+        return _normalize_trade_display_label(slot) or "Gear"
+
+    item_type = str((template or {}).get("item_type", getattr(item, "item_type", ""))).strip().lower()
+    return _normalize_trade_display_label(item_type) or "Item"
+
+
 def _resolve_template_coin_value(template: dict, *, template_kind: str) -> int:
     explicit_value = max(0, _as_int(template.get("coin_value", 0)))
     if explicit_value > 0:
@@ -335,6 +363,7 @@ def _build_merchant_stock_entries(merchant) -> list[dict[str, object]]:
             "template_id": str(template.get("template_id", template_id)).strip(),
             "template": template,
             "template_kind": template_kind,
+            "display_type": _resolve_trade_display_type(template=template, template_kind=template_kind),
             "name": display_name,
             "base_name": base_name,
             "keywords": [str(keyword).strip().lower() for keyword in template.get("keywords", []) if str(keyword).strip()],
@@ -363,6 +392,7 @@ def _build_merchant_stock_entries(merchant) -> list[dict[str, object]]:
             "template_id": str(getattr(resale_item, "template_id", "")).strip(),
             "template": None,
             "template_kind": template_kind,
+            "display_type": _resolve_trade_display_type(item=resale_item, template_kind=template_kind),
             "name": f"{base_name} [{quantity}]",
             "base_name": base_name,
             "keywords": [str(keyword).strip().lower() for keyword in resale_item.keywords if str(keyword).strip()],
@@ -439,7 +469,7 @@ def _display_merchant_stock(session: ClientSession, merchant) -> OutboundMessage
     rows = [
         [
             str(entry["name"]),
-            str(entry["template_kind"]),
+            str(entry.get("display_type", entry["template_kind"])),
             f"{_as_int(entry.get('price', 0))} coins",
         ]
         for entry in stock_entries
