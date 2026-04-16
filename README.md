@@ -1,8 +1,8 @@
-﻿<div align="center">
+<div align="center">
 
 # MudProto
 
-An easily customizable and extendable, server-authoritative MUD framework built in Python.
+A customizable, extensible, server-authoritative MUD framework built in Python.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
@@ -10,23 +10,27 @@ An easily customizable and extendable, server-authoritative MUD framework built 
 [![SQLite](https://img.shields.io/badge/SQLite-persistence-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![CI](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/WilliamSmithEdward/mudproto/actions/workflows/ci.yml)
 
-</div>
+<br>
+
+<strong>Play MudProto live in your browser</strong>
+
+<p>
+  <a href="https://williamsmithedward.github.io/mudproto/mudproto_client_web/">
+    <img
+      src="https://img.shields.io/badge/Play-Live%20Web%20Client-2ea44f?style=for-the-badge"
+      alt="Play Live Web Client"
+      width="360"
+    />
+  </a>
+</p>
+
+<p align="center">
+  <strong>Live demo.</strong> No install required.
+</p>
+
+<br>
 
 ![MudProto gameplay screenshot](/images/mudproto_01.png)
-
-<div align="center">
-
-## 🎮 Play MudProto Live
-
-### Hey, you can play the game here right now:
-
-## [Enter the live web client](https://williamsmithedward.github.io/mudproto/mudproto_client_web/)
-
-No install required — just open the link and jump in.
-
-</div>
-
-> Tip: for the smoothest experience, use the live web client above or the desktop GUI client from this repo.
 
 ## Quick Start
 
