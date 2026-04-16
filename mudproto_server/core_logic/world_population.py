@@ -444,9 +444,12 @@ def _zone_repopulation_is_blocked(zone) -> bool:
     return True
 
 
-def reinitialize_zone(zone_id: str) -> int:
+def reinitialize_zone(zone_id: str, *, force: bool = False) -> int:
     zone = WORLD.zones.get(zone_id)
     if zone is None:
+        return 0
+
+    if not force and _zone_has_active_players(zone_id):
         return 0
 
     zone_room_ids = {room_id for room_id in zone.room_ids if room_id in WORLD.rooms}
@@ -627,17 +630,11 @@ def _zone_has_active_players(zone_id: str) -> bool:
     if not zone_room_ids:
         return False
 
-    seen_session_keys: set[str] = set()
-    for session in list(active_character_sessions.values()) + list(connected_clients.values()):
+    for session in _iter_unique_sessions():
         if not getattr(session, "is_authenticated", False):
             continue
         if bool(getattr(session, "disconnected_by_server", False)):
             continue
-
-        session_key = session.player_state_key.strip().lower() or session.client_id.strip().lower()
-        if session_key in seen_session_keys:
-            continue
-        seen_session_keys.add(session_key)
 
         if getattr(session.player, "current_room_id", "") in zone_room_ids:
             return True
