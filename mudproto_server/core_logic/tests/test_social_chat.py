@@ -49,6 +49,21 @@ def _extract_display_colors(outbound: dict | list[dict]) -> set[str]:
     return colors
 
 
+def _extract_display_lines(outbound: dict | list[dict]) -> list[list[dict]]:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    extracted: list[list[dict]] = []
+    for message in messages:
+        if not isinstance(message, dict) or message.get("type") != "display":
+            continue
+        payload = message.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        raw_lines = payload.get("lines", [])
+        if isinstance(raw_lines, list):
+            extracted.extend([line for line in raw_lines if isinstance(line, list)])
+    return extracted
+
+
 def _make_session(client_id: str, name: str, room_id: str) -> ClientSession:
     from protocol import utc_now_iso
 
@@ -95,12 +110,26 @@ def test_chat_messages_use_neutral_colors(monkeypatch) -> None:
     async def _scenario() -> None:
         response = dispatch_command(speaker, "sa hello there")
         assert _extract_display_colors(response) == {"bright_white"}
+        response_lines = _extract_display_lines(response)
+        assert response_lines[0] != []
+        payload = response.get("payload")
+        assert isinstance(payload, dict)
+        prompt_lines = payload.get("prompt_lines")
+        assert isinstance(prompt_lines, list)
+        assert prompt_lines[0] == []
         await asyncio.sleep(0)
 
     asyncio.run(_scenario())
 
     assert len(notifications) == 1
     assert _extract_display_colors(notifications[0][1]) == {"bright_white"}
+    notification_lines = _extract_display_lines(notifications[0][1])
+    assert notification_lines[0] != []
+    notification_payload = notifications[0][1].get("payload")
+    assert isinstance(notification_payload, dict)
+    notification_prompt_lines = notification_payload.get("prompt_lines")
+    assert isinstance(notification_prompt_lines, list)
+    assert notification_prompt_lines[0] == []
 
     _clear_session_registries()
 
@@ -182,6 +211,7 @@ def test_tell_sends_direct_message_to_named_online_player(monkeypatch) -> None:
         connected_clients[session.client_id] = session
 
     notifications: list[tuple[object, dict | list[dict]]] = []
+    response_holder: dict[str, dict | list[dict]] = {}
 
     async def fake_send_outbound(websocket, outbound):
         notifications.append((websocket, outbound))
@@ -191,7 +221,9 @@ def test_tell_sends_direct_message_to_named_online_player(monkeypatch) -> None:
 
     async def _scenario() -> None:
         response = social.handle_social_command(speaker, "tell", ["Orlandu", "hold", "the", "line"], "tell Orlandu hold the line")
+        response_holder["response"] = response
         assert "You tell Orlandu, \"hold the line\"" in _extract_display_text(response)
+        assert _extract_display_colors(response) == {"bright_white"}
         await asyncio.sleep(0)
 
     asyncio.run(_scenario())
@@ -199,7 +231,9 @@ def test_tell_sends_direct_message_to_named_online_player(monkeypatch) -> None:
     assert len(notifications) == 1
     assert notifications[0][0] is target.websocket
     assert "Ragnar tells you, \"hold the line\"" in _extract_display_text(notifications[0][1])
+    assert _extract_display_colors(notifications[0][1]) == {"bright_white"}
     assert observer.websocket not in {websocket for websocket, _outbound in notifications}
+    assert response_holder["response"] is not None
 
     _clear_session_registries()
 

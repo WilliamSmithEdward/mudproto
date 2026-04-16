@@ -76,6 +76,10 @@ def _build_actor_quote_parts(actor_name: str, verb_text: str, spoken_text: str) 
     ]
 
 
+def _display_chat_message(session: ClientSession, parts: list[dict]) -> dict:
+    return display_command_result(session, parts, compact=True)
+
+
 def _resolve_online_player_session(selector_text: str) -> tuple[ClientSession | None, str | None]:
     normalized_selector = str(selector_text).strip().lower()
     if not normalized_selector:
@@ -137,10 +141,10 @@ def _handle_group_tell(session: ClientSession, spoken_text: str) -> dict:
 
     actor_name = _display_name(session)
     for target_session in targets:
-        notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "tells your group", spoken_text))
+        notification = _display_chat_message(target_session, _build_actor_quote_parts(actor_name, "tells your group", spoken_text))
         _send_realtime_notification(target_session, notification)
 
-    return display_command_result(session, _build_quote_parts("You tell your group, ", spoken_text))
+    return _display_chat_message(session, _build_quote_parts("You tell your group, ", spoken_text))
 
 
 def _notify_follow_target(target_session: ClientSession, follower_name: str) -> None:
@@ -683,10 +687,10 @@ def handle_social_command(
 
         actor_name = _display_name(session)
         for target_session in _room_peer_sessions(session):
-            notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "says", spoken_text))
+            notification = _display_chat_message(target_session, _build_actor_quote_parts(actor_name, "says", spoken_text))
             _send_realtime_notification(target_session, notification)
 
-        return display_command_result(session, _build_quote_parts("You say, ", spoken_text))
+        return _display_chat_message(session, _build_quote_parts("You say, ", spoken_text))
 
     if verb in _YELL_VERBS:
         spoken_text = " ".join(args).strip()
@@ -695,10 +699,10 @@ def handle_social_command(
 
         actor_name = _display_name(session)
         for target_session in _zone_peer_sessions(session):
-            notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "yells", spoken_text))
+            notification = _display_chat_message(target_session, _build_actor_quote_parts(actor_name, "yells", spoken_text))
             _send_realtime_notification(target_session, notification)
 
-        return display_command_result(session, _build_quote_parts("You yell, ", spoken_text))
+        return _display_chat_message(session, _build_quote_parts("You yell, ", spoken_text))
 
     if verb in _TELL_VERBS:
         if len(args) < 2:
@@ -716,14 +720,14 @@ def handle_social_command(
             return display_error("You cannot tell yourself.", session)
 
         actor_name = _display_name(session)
-        notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "tells you", spoken_text))
+        notification = _display_chat_message(target_session, _build_actor_quote_parts(actor_name, "tells you", spoken_text))
         _send_realtime_notification(target_session, notification)
 
-        return display_command_result(session, [
+        return _display_chat_message(session, [
             build_part("You tell ", "bright_white"),
-            build_part(_display_name(target_session), "bright_cyan", True),
+            build_part(_display_name(target_session), "bright_white"),
             build_part(", ", "bright_white"),
-            build_part(f'"{spoken_text}"', "bright_magenta", True),
+            build_part(f'"{spoken_text}"', "bright_white"),
         ])
 
     if verb in _GROUP_TELL_VERBS:
@@ -739,9 +743,9 @@ def handle_social_command(
 
         actor_name = _display_name(session)
         for target_session in _server_peer_sessions(session):
-            notification = display_command_result(target_session, _build_actor_quote_parts(actor_name, "shouts", spoken_text))
+            notification = _display_chat_message(target_session, _build_actor_quote_parts(actor_name, "shouts", spoken_text))
             _send_realtime_notification(target_session, notification)
 
-        return display_command_result(session, _build_quote_parts("You shout, ", spoken_text))
+        return _display_chat_message(session, _build_quote_parts("You shout, ", spoken_text))
 
     return None
