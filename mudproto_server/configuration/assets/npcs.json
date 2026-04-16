@@ -290,7 +290,7 @@
       "is_aggro": false,
       "is_ally": true,
       "is_peaceful": true,
-      "respawn": false,
+      "respawn": true,
       "is_merchant": true,
       "merchant_inventory": [
         {

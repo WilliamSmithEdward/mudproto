@@ -107,6 +107,27 @@ def _populate_room_ground_items_from_config(room) -> None:
             room_items[ground_item.item_id] = ground_item
 
 
+def _count_room_npc_instances(room_id: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for entity in shared_world_entities.values():
+        if not getattr(entity, "is_alive", False):
+            continue
+        if str(getattr(entity, "room_id", "")).strip() != str(room_id).strip():
+            continue
+
+        npc_id = str(getattr(entity, "npc_id", "")).strip()
+        if not npc_id:
+            continue
+        counts[npc_id] = counts.get(npc_id, 0) + 1
+    return counts
+
+
+def _should_restore_npc_on_session_connect(template: dict, *, world_already_initialized: bool) -> bool:
+    if not world_already_initialized:
+        return True
+    return bool(template.get("is_merchant", False))
+
+
 def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: int) -> EntityState:
     entity = EntityState(
         f"npc-{uuid.uuid4().hex[:8]}",
@@ -618,13 +639,14 @@ def repopulate_game_hour_zones() -> None:
 
 
 def initialize_session_entities(session: ClientSession) -> None:
-    if session.entities:
-        return
-
+    world_already_initialized = bool(session.entities)
     next_spawn_sequence = max((entity.spawn_sequence for entity in session.entities.values()), default=0)
 
     for room in WORLD.rooms.values():
-        _populate_room_ground_items_from_config(room)
+        if room.room_id not in shared_world_room_ground_items:
+            _populate_room_ground_items_from_config(room)
+
+        room_npc_counts = _count_room_npc_instances(room.room_id)
         for npc_spawn in room.npcs:
             npc_id = str(npc_spawn.get("npc_id", "")).strip()
             if not npc_id:
@@ -633,13 +655,18 @@ def initialize_session_entities(session: ClientSession) -> None:
             template = get_npc_template_by_id(npc_id)
             if template is None:
                 continue
+            if not _should_restore_npc_on_session_connect(template, world_already_initialized=world_already_initialized):
+                continue
 
             spawn_count = max(1, int(npc_spawn.get("count", 1)))
-            for _ in range(spawn_count):
+            current_count = room_npc_counts.get(npc_id, 0)
+            missing_count = max(0, spawn_count - current_count)
+            for _ in range(missing_count):
                 next_spawn_sequence += 1
                 session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
                 entity = _build_entity_from_template(template, room.room_id, session.entity_spawn_counter)
                 session.entities[entity.entity_id] = entity
+                room_npc_counts[npc_id] = room_npc_counts.get(npc_id, 0) + 1
 
 
 def spawn_dummy(session: ClientSession) -> dict:
