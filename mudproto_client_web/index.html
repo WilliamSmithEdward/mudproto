@@ -149,13 +149,37 @@
 
     #output {
       flex: 1 1 auto;
-      overflow-y: auto;
+      overflow: auto;
       scrollbar-gutter: stable;
+      scrollbar-color: #3a3a3a #070707;
       padding: 16px 72px 18px 18px;
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.35;
       min-height: 320px;
+    }
+
+    #output::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+
+    #output::-webkit-scrollbar-track {
+      background: #070707;
+    }
+
+    #output::-webkit-scrollbar-thumb {
+      background: #323232;
+      border-radius: 999px;
+      border: 2px solid #070707;
+    }
+
+    #output::-webkit-scrollbar-thumb:hover {
+      background: #454545;
+    }
+
+    #output::-webkit-scrollbar-corner {
+      background: #070707;
     }
 
     .inputbar {
