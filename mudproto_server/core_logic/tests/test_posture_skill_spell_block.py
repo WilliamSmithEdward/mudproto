@@ -1,5 +1,5 @@
 import combat_player_abilities as player_abilities
-from models import ClientSession
+from models import ClientSession, EntityState
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -117,3 +117,68 @@ def test_player_sleeping_cannot_cast_spell() -> None:
 
     assert applied is False
     assert "Shhh... You are asleep. Use wake first." in _extract_display_text(response)
+
+
+def test_player_damage_skill_on_peaceful_target_shows_peace_warning() -> None:
+    session = _make_session("client-peace-skill", "Lucia")
+    target = EntityState(
+        entity_id="entity-milekeeper",
+        name="Marra the Milekeeper",
+        room_id="start",
+        hit_points=100,
+        max_hit_points=100,
+        is_peaceful=True,
+    )
+    session.entities[target.entity_id] = target
+    starting_vigor = session.status.vigor
+
+    skill = {
+        "skill_id": "skill.bash",
+        "name": "Bash",
+        "skill_type": "damage",
+        "cast_type": "target",
+        "vigor_cost": 10,
+        "usable_out_of_combat": True,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    }
+
+    response, applied = player_abilities.use_skill(session, skill, "Marra the Milekeeper")
+
+    assert applied is False
+    assert "Relax." in _extract_display_text(response)
+    assert "Marra the Milekeeper is peaceful." in _extract_display_text(response)
+    assert session.status.vigor == starting_vigor
+
+
+def test_player_damage_spell_on_peaceful_target_shows_peace_warning() -> None:
+    session = _make_session("client-peace-spell", "Lucia")
+    target = EntityState(
+        entity_id="entity-milekeeper",
+        name="Marra the Milekeeper",
+        room_id="start",
+        hit_points=100,
+        max_hit_points=100,
+        is_peaceful=True,
+    )
+    session.entities[target.entity_id] = target
+    starting_mana = session.status.mana
+
+    spell = {
+        "spell_id": "spell.missile",
+        "name": "Magic Missile",
+        "spell_type": "damage",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    }
+
+    response, applied = player_abilities.cast_spell(session, spell, "Marra the Milekeeper")
+
+    assert applied is False
+    assert "Relax." in _extract_display_text(response)
+    assert "Marra the Milekeeper is peaceful." in _extract_display_text(response)
+    assert session.status.mana == starting_mana

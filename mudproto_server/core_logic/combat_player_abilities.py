@@ -36,6 +36,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     )
     from combat_rewards import _award_shared_entity_experience, _mark_entity_contributor
     from combat_state import (
+        _display_peaceful_warning,
         _engage_next_targeting_entity,
         _is_entity_engaged_by_other_player,
         apply_entity_defeat_flags,
@@ -395,6 +396,9 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     else:
         return display_error(f"Damage skill '{skill_name}' cannot be cast as '{cast_type}'.", session), False
 
+    if not damage_targets and peaceful_targets_for_feedback:
+        return _display_peaceful_warning(session, peaceful_targets_for_feedback[0]), False
+
     if session.status.vigor < vigor_cost:
         return display_error(
             f"Not enough vigor for {skill_name}. Need {vigor_cost}V, have {session.status.vigor}V.",
@@ -535,6 +539,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
     )
     from combat_rewards import _award_shared_entity_experience, _mark_entity_contributor
     from combat_state import (
+        _display_peaceful_warning,
         _engage_next_targeting_entity,
         _is_entity_engaged_by_other_player,
         apply_entity_defeat_flags,
@@ -869,6 +874,9 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             return display_error("No valid hostile targets in the room.", session), False
     else:
         return display_error(f"Damage spell '{spell_name}' cannot be cast as '{cast_type}'.", session), False
+
+    if not damage_targets and peaceful_targets_for_feedback:
+        return _display_peaceful_warning(session, peaceful_targets_for_feedback[0]), False
 
     status.mana -= mana_cost
 

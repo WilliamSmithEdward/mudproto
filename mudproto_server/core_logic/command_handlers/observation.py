@@ -75,6 +75,7 @@ def handle_observation_command(
                     session,
                     session.player.current_room_id,
                     normalized_selector,
+                    visible_name_only=True,
                 )
                 if room_item is not None:
                     if is_item_container(room_item):
@@ -90,7 +91,11 @@ def handle_observation_command(
                     session,
                 )
 
-            owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
+            owned_item, owned_location, _ = _resolve_owned_item_selector(
+                session,
+                normalized_selector,
+                visible_name_only=True,
+            )
             if owned_item is not None:
                 if is_item_container(owned_item):
                     return display_container_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
@@ -100,6 +105,7 @@ def handle_observation_command(
                 session,
                 session.player.current_room_id,
                 normalized_selector,
+                visible_name_only=True,
             )
             if room_item is not None:
                 if is_item_container(room_item):
@@ -178,6 +184,7 @@ def handle_observation_command(
                 session,
                 session.player.current_room_id,
                 normalized_selector,
+                visible_name_only=True,
             )
             if room_item is not None:
                 if is_item_container(room_item):
@@ -193,7 +200,11 @@ def handle_observation_command(
 
             return display_error(room_object_error or room_item_error or f"No room item or feature matches '{normalized_selector}'.", session)
 
-        owned_item, owned_location, _ = _resolve_owned_item_selector(session, normalized_selector)
+        owned_item, owned_location, _ = _resolve_owned_item_selector(
+            session,
+            normalized_selector,
+            visible_name_only=True,
+        )
         if owned_item is not None:
             if is_item_container(owned_item):
                 return display_container_examination(session, owned_item, default_location=str(owned_location or "Inventory"))
@@ -203,6 +214,7 @@ def handle_observation_command(
             session,
             session.player.current_room_id,
             normalized_selector,
+            visible_name_only=True,
         )
         if room_item is not None:
             if is_item_container(room_item):

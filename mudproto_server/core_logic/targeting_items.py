@@ -1,11 +1,24 @@
 """Inventory and room-item selector helpers."""
 
+import re
+
 from inventory import get_item_keywords, is_item_equippable, parse_item_selector
 from models import ClientSession, ItemState
 from equipment_logic import list_worn_items
 
 
-def _resolve_owned_item_selector(session: ClientSession, selector: str) -> tuple[ItemState | None, str | None, str | None]:
+def _selector_keywords_for_item(item: ItemState, *, visible_name_only: bool = False) -> set[str]:
+    if not visible_name_only:
+        return get_item_keywords(item)
+    return {token for token in re.findall(r"[a-zA-Z0-9]+", str(item.name).lower()) if token}
+
+
+def _resolve_owned_item_selector(
+    session: ClientSession,
+    selector: str,
+    *,
+    visible_name_only: bool = False,
+) -> tuple[ItemState | None, str | None, str | None]:
     requested_index, keywords, parse_error = parse_item_selector(selector)
     if parse_error is not None:
         return None, None, parse_error
@@ -27,7 +40,7 @@ def _resolve_owned_item_selector(session: ClientSession, selector: str) -> tuple
 
     matches: list[tuple[ItemState, str]] = []
     for _, location_label, item in candidates:
-        item_keywords = get_item_keywords(item)
+        item_keywords = _selector_keywords_for_item(item, visible_name_only=visible_name_only)
         if all(keyword in item_keywords for keyword in keywords):
             matches.append((item, location_label))
 
@@ -105,14 +118,14 @@ def _list_room_ground_items(session: ClientSession, room_id: str):
     return list(reversed(list(session.room_ground_items.get(room_id, {}).values())))
 
 
-def _resolve_room_ground_matches(session: ClientSession, room_id: str, selector: str):
+def _resolve_room_ground_matches(session: ClientSession, room_id: str, selector: str, *, visible_name_only: bool = False):
     requested_index, keywords, parse_error = parse_item_selector(selector)
     if parse_error is not None:
         return [], None, parse_error
 
     matches = []
     for item in _list_room_ground_items(session, room_id):
-        item_keywords = get_item_keywords(item)
+        item_keywords = _selector_keywords_for_item(item, visible_name_only=visible_name_only)
         if all(keyword in item_keywords for keyword in keywords):
             matches.append(item)
 
@@ -122,8 +135,19 @@ def _resolve_room_ground_matches(session: ClientSession, room_id: str, selector:
     return matches, requested_index, None
 
 
-def _resolve_room_ground_item_selector(session: ClientSession, room_id: str, selector: str) -> tuple[ItemState | None, str | None]:
-    matches, requested_index, selector_error = _resolve_room_ground_matches(session, room_id, selector)
+def _resolve_room_ground_item_selector(
+    session: ClientSession,
+    room_id: str,
+    selector: str,
+    *,
+    visible_name_only: bool = False,
+) -> tuple[ItemState | None, str | None]:
+    matches, requested_index, selector_error = _resolve_room_ground_matches(
+        session,
+        room_id,
+        selector,
+        visible_name_only=visible_name_only,
+    )
     if selector_error is not None:
         return None, selector_error
 
