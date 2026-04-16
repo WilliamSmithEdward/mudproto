@@ -72,6 +72,7 @@ class ActiveAffectState:
     affect_name: str
     affect_mode: str
     affect_type: str
+    affect_template_name: str = ""
     can_be_negative: bool = False
     affect_damage_elements: list[str] = field(default_factory=list)
     target_resource: str = "hit_points"

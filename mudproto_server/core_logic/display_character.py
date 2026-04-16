@@ -1,4 +1,4 @@
-from attribute_config import get_player_class_by_id, load_attributes, player_class_uses_mana
+from attribute_config import get_affect_template_by_id, get_player_class_by_id, load_attributes, player_class_uses_mana
 from equipment_logic import get_player_effective_attributes, list_worn_items
 from experience import get_xp_to_next_level
 from item_logic import _item_highlight_color
@@ -60,23 +60,16 @@ def _resolve_effect_name(effect) -> str:
 
 
 def _resolve_effect_label(effect) -> str:
-    affect_type = str(getattr(effect, "affect_type", "")).strip().lower()
-    if affect_type in {"extra_hits", "extra_unarmed_hits"}:
-        return "Extra Hits"
-    if affect_type == "damage_dealt_multiplier":
-        amount = float(getattr(effect, "affect_amount", 0.0))
-        return "Decreased Damage" if amount < 0.0 else "Increased Damage"
-    if affect_type in {"damage_received_multiplier", "damage_reduction"}:
-        amount = float(getattr(effect, "affect_amount", 0.0))
-        return "Decreased Damage Received" if amount < 0.0 or affect_type == "damage_reduction" else "Increased Damage Received"
-    if affect_type == "regeneration":
-        resource = str(getattr(effect, "target_resource", "hit_points")).strip().lower() or "hit_points"
-        resource_label = {
-            "hit_points": "Health",
-            "mana": "Mana",
-            "vigor": "Vigor",
-        }.get(resource, "Health")
-        return f"Increased {resource_label} Regeneration"
+    effect_name = _resolve_effect_name(effect).strip().lower()
+    template_name = str(getattr(effect, "affect_template_name", "")).strip()
+    if not template_name:
+        affect_id = str(getattr(effect, "affect_id", "")).strip().lower()
+        if affect_id:
+            affect_template = get_affect_template_by_id(affect_id)
+            if isinstance(affect_template, dict):
+                template_name = str(affect_template.get("name", "")).strip()
+    if template_name and template_name.strip().lower() != effect_name:
+        return template_name
     return ""
 
 

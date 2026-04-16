@@ -87,9 +87,15 @@ def _resolve_ability_affects(ability: dict) -> list[dict]:
         if not isinstance(affect_template, dict):
             continue
 
+        template_name = str(affect_template.get("name", affect_id)).strip() or affect_id
+        ability_name = str(ability.get("name", "")).strip()
+        source_name = str(override_payload.get("name", ability_name)).strip() or template_name
+
         resolved_affect = dict(affect_template)
         resolved_affect.update(override_payload)
         resolved_affect["affect_id"] = affect_id
+        resolved_affect["name"] = source_name
+        resolved_affect["affect_template_name"] = template_name
         seen_affect_ids.add(affect_id)
         resolved_affects.append(resolved_affect)
 
@@ -287,7 +293,8 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
             continue
 
         affect_id = str(affect.get("affect_id", "")).strip() or affect_type
-        affect_name = str(affect.get("name", "")).strip() or affect_id
+        affect_template_name = str(affect.get("affect_template_name", "")).strip() or affect_id
+        affect_name = str(affect.get("name", "")).strip() or affect_template_name
         can_be_negative = bool(affect.get("can_be_negative", False))
         raw_damage_elements = affect.get("damage_elements", affect.get("damage_element", []))
         if isinstance(raw_damage_elements, str):
@@ -337,6 +344,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_name=affect_name,
                 affect_mode=affect_mode,
                 affect_type=affect_type,
+                affect_template_name=affect_template_name,
                 can_be_negative=can_be_negative,
                 affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,
@@ -360,6 +368,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
             if active_affect.affect_id != affect_id:
                 continue
             active_affect.affect_name = affect_name
+            active_affect.affect_template_name = affect_template_name
             active_affect.affect_mode = affect_mode
             active_affect.affect_type = affect_type
             active_affect.can_be_negative = can_be_negative
@@ -387,6 +396,7 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_name=affect_name,
                 affect_mode=affect_mode,
                 affect_type=affect_type,
+                affect_template_name=affect_template_name,
                 can_be_negative=can_be_negative,
                 affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,

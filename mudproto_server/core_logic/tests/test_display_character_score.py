@@ -88,6 +88,7 @@ def test_score_displays_active_affects_and_support_effects() -> None:
         affect_name="Fist Flurry",
         affect_mode="battle_rounds",
         affect_type="extra_unarmed_hits",
+        affect_template_name="Extra Hits",
         remaining_rounds=3,
     ))
 
@@ -140,7 +141,7 @@ def test_score_displays_targeted_support_spell_affect_from_another_player(monkey
 
     assert applied is True
     assert "Regeneration Ward" in rendered
-    assert "Regeneration Ward (Increased Health Regeneration, 3 rounds remaining)" in score_rendered
+    assert "Regeneration Ward (Regeneration, 3 rounds remaining)" in score_rendered
 
 
 def test_score_displays_damage_affect_labels() -> None:
@@ -150,13 +151,31 @@ def test_score_displays_damage_affect_labels() -> None:
         affect_name="Battle Focus",
         affect_mode="battle_rounds",
         affect_type="damage_dealt_multiplier",
+        affect_template_name="Dealt Damage",
         affect_amount=0.2,
         remaining_rounds=2,
     ))
 
     rendered = _extract_display_text(display_character.display_score(session))
 
-    assert "Battle Focus (Increased Damage, 2 rounds remaining)" in rendered
+    assert "Battle Focus (Dealt Damage, 2 rounds remaining)" in rendered
+
+
+def test_score_uses_template_name_dynamically_for_affect_label() -> None:
+    session = _make_session("client-score-dynamic-affect-label", "Lucia")
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.custom-template-name",
+        affect_name="Battle Focus",
+        affect_mode="battle_rounds",
+        affect_type="damage_dealt_multiplier",
+        affect_template_name="Mystic Pressure",
+        affect_amount=0.2,
+        remaining_rounds=2,
+    ))
+
+    rendered = _extract_display_text(display_character.display_score(session))
+
+    assert "Battle Focus (Mystic Pressure, 2 rounds remaining)" in rendered
 
 
 def test_score_displays_targeted_ongoing_support_spell_from_another_player(monkeypatch) -> None:

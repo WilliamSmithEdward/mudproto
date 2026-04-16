@@ -539,8 +539,10 @@ def _serialize_affect(effect: ActiveAffectState) -> dict:
     return {
         "affect_id": effect.affect_id,
         "affect_name": effect.affect_name,
+        "affect_template_name": effect.affect_template_name,
         "affect_mode": effect.affect_mode,
         "affect_type": effect.affect_type,
+        "can_be_negative": bool(effect.can_be_negative),
         "affect_damage_elements": [
             str(element).strip().lower()
             for element in list(effect.affect_damage_elements or [])
@@ -588,8 +590,10 @@ def _deserialize_affect(raw: dict) -> ActiveAffectState:
     return ActiveAffectState(
         affect_id=str(raw.get("affect_id", "")).strip(),
         affect_name=str(raw.get("affect_name", "")).strip(),
+        affect_template_name=str(raw.get("affect_template_name", "")).strip(),
         affect_mode=str(raw.get("affect_mode", "timed")).strip().lower() or "timed",
         affect_type=str(raw.get("affect_type", "")).strip().lower(),
+        can_be_negative=bool(raw.get("can_be_negative", False)),
         affect_damage_elements=[
             str(element).strip().lower()
             for element in raw_damage_elements
