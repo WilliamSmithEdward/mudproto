@@ -5,4 +5,5 @@ extraPaths = ["mudproto_server/core_logic"]
 testpaths = [
 	"mudproto_server/core_logic/tests",
 	"mudproto_client_gui/tests",
+	"mudproto_client_web/tests",
 ]
