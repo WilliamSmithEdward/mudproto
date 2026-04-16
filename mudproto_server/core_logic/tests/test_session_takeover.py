@@ -142,6 +142,97 @@ def test_complete_login_replaces_all_other_sessions_for_same_character(monkeypat
         connected_clients.update(previous_connected)
 
 
+def test_complete_login_resets_loaded_posture_to_standing(monkeypatch) -> None:
+    incoming = _make_session("client-login-standing", "Lucia")
+    incoming.is_authenticated = False
+    incoming.player_state_key = ""
+    incoming.authenticated_character_name = ""
+
+    def _fake_load_player_state(target_session, player_key=None) -> bool:
+        target_session.player.class_id = "class.monk"
+        target_session.is_sitting = True
+        target_session.is_resting = True
+        target_session.is_sleeping = True
+        return True
+
+    monkeypatch.setattr(session_lifecycle, "load_player_state", _fake_load_player_state)
+    monkeypatch.setattr(session_lifecycle, "hydrate_session_from_active_character", lambda _session, _character_key: False)
+    monkeypatch.setattr(session_lifecycle, "clear_transient_interaction_flags_for_session", lambda _session: 0)
+    monkeypatch.setattr(session_lifecycle, "purge_nonpersistent_items", lambda _session, reason="": 0)
+    monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
+    monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: None)
+    monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
+    monkeypatch.setattr(session_lifecycle, "disconnect_other_character_sessions", lambda _session, _character_key: None)
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(
+        session_lifecycle,
+        "display_room",
+        lambda _session, _room: {"type": "display", "payload": {"lines": [[], [{"text": "Room line", "fg": "bright_white", "bold": False}]]}},
+    )
+    monkeypatch.setattr(session_lifecycle, "prepend_room_enter_communications", lambda result, _session, _room_id: result)
+
+    session_lifecycle.complete_login(
+        incoming,
+        {
+            "character_key": "lucia",
+            "character_name": "Lucia",
+            "class_id": "class.monk",
+            "gender": "female",
+            "login_room_id": "start",
+        },
+        is_new_character=False,
+    )
+
+    assert incoming.is_sitting is False
+    assert incoming.is_resting is False
+    assert incoming.is_sleeping is False
+
+
+def test_complete_login_resets_resumed_posture_to_standing(monkeypatch) -> None:
+    incoming = _make_session("client-login-standing-resume", "Lucia")
+    incoming.is_authenticated = False
+    incoming.player_state_key = ""
+    incoming.authenticated_character_name = ""
+
+    def _fake_hydrate_session_from_active_character(target_session, _character_key) -> bool:
+        target_session.player.class_id = "class.monk"
+        target_session.is_sitting = False
+        target_session.is_resting = True
+        target_session.is_sleeping = True
+        return True
+
+    monkeypatch.setattr(session_lifecycle, "hydrate_session_from_active_character", _fake_hydrate_session_from_active_character)
+    monkeypatch.setattr(session_lifecycle, "clear_transient_interaction_flags_for_session", lambda _session: 0)
+    monkeypatch.setattr(session_lifecycle, "purge_nonpersistent_items", lambda _session, reason="": 0)
+    monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
+    monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: None)
+    monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
+    monkeypatch.setattr(session_lifecycle, "disconnect_other_character_sessions", lambda _session, _character_key: None)
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(
+        session_lifecycle,
+        "display_room",
+        lambda _session, _room: {"type": "display", "payload": {"lines": [[], [{"text": "Room line", "fg": "bright_white", "bold": False}]]}},
+    )
+    monkeypatch.setattr(session_lifecycle, "prepend_room_enter_communications", lambda result, _session, _room_id: result)
+
+    session_lifecycle.complete_login(
+        incoming,
+        {
+            "character_key": "lucia",
+            "character_name": "Lucia",
+            "class_id": "class.monk",
+            "gender": "female",
+            "login_room_id": "start",
+        },
+        is_new_character=False,
+    )
+
+    assert incoming.is_sitting is False
+    assert incoming.is_resting is False
+    assert incoming.is_sleeping is False
+
+
 def test_complete_login_announces_connection_to_room_peers(monkeypatch) -> None:
     incoming = _make_session("client-new-room", "Lucia")
     incoming.is_authenticated = False

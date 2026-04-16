@@ -225,6 +225,14 @@ def _announce_room_connection_state(origin_session: ClientSession, state_text: s
             return
 
 
+def _reset_session_posture_to_standing(session: ClientSession) -> bool:
+    posture_was_nonstanding = bool(session.is_sitting or session.is_resting or session.is_sleeping)
+    session.is_sitting = False
+    session.is_resting = False
+    session.is_sleeping = False
+    return posture_was_nonstanding
+
+
 def complete_login(session: ClientSession, character_record: dict, *, is_new_character: bool) -> dict | list[dict]:
     character_key = str(character_record.get("character_key", "")).strip()
     character_name = str(character_record.get("character_name", "")).strip()
@@ -257,6 +265,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     else:
         ensure_player_attributes(session)
 
+    posture_was_reset = _reset_session_posture_to_standing(session)
     removed_nonpersistent_count = purge_nonpersistent_items(session, reason="login_sanitization")
     cleared_transient_flags = clear_transient_interaction_flags_for_session(session)
     clamp_player_resources_to_caps(session)
@@ -271,6 +280,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     if (
         (not resumed_from_active and not loaded_state)
         or is_new_character
+        or posture_was_reset
         or removed_nonpersistent_count > 0
         or cleared_transient_flags > 0
     ):
