@@ -14,5 +14,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "new WebSocket" in content
     assert "function buildInputMessage" in content
     assert "function renderDisplayMessage" in content
+    assert "Structured protocol renderer" not in content
+    assert "Pure HTML + CSS + JavaScript" not in content
+    assert "Local controls:" not in content
     assert "/clear" in content
     assert "/quit" in content

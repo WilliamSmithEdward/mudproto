@@ -36,13 +36,12 @@
 
     .app {
       display: grid;
-      grid-template-rows: auto auto 1fr auto;
+      grid-template-rows: auto 1fr auto;
       gap: 12px;
       min-height: calc(100vh - 28px);
     }
 
     .toolbar,
-    .helpbar,
     .inputbar {
       background: var(--panel);
       border: 1px solid var(--border);
@@ -140,19 +139,20 @@
 
     .output-header {
       display: flex;
-      justify-content: space-between;
+      align-items: center;
       gap: 12px;
-      padding: 8px 12px;
+      padding: 10px 20px 10px 14px;
       border-bottom: 1px solid var(--border);
       background: var(--panel-2);
-      color: var(--muted);
-      font-size: 0.9rem;
+      color: var(--text);
+      font-size: 0.98rem;
+      font-weight: 700;
     }
 
     #output {
       flex: 1 1 auto;
       overflow-y: auto;
-      padding: 12px;
+      padding: 14px 28px 16px 14px;
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.35;
@@ -184,19 +184,6 @@
       border: none;
     }
 
-    .helpbar {
-      color: var(--muted);
-      line-height: 1.4;
-      font-size: 0.92rem;
-    }
-
-    .helpbar strong {
-      color: var(--text);
-    }
-
-    .helpbar .accent {
-      color: var(--accent);
-    }
   </style>
 </head>
 <body>
@@ -211,17 +198,9 @@
       <div id="status" class="status disconnected">Disconnected</div>
     </div>
 
-    <div class="helpbar">
-      <strong>Local controls:</strong>
-      <span class="accent">/clear</span> clears the screen,
-      <span class="accent">/quit</span> disconnects locally,
-      Enter on a blank input continues paged output, and Up/Down cycle command history.
-    </div>
-
     <div class="output-wrap">
       <div class="output-header">
-        <span>Structured protocol renderer</span>
-        <span>Pure HTML + CSS + JavaScript</span>
+        <span>MudProto Web Client</span>
       </div>
       <div id="output" aria-live="polite"></div>
     </div>
