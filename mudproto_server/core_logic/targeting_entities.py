@@ -15,7 +15,7 @@ def list_room_entities(session: ClientSession, room_id: str) -> list[EntityState
         if entity.is_alive and entity.room_id == room_id:
             entities.append(entity)
 
-    entities.sort(key=lambda item: item.spawn_sequence)
+    entities.sort(key=lambda item: item.spawn_sequence, reverse=True)
     return entities
 
 
@@ -26,7 +26,7 @@ def list_room_corpses(session: ClientSession, room_id: str) -> list[CorpseState]
         if corpse.room_id == room_id:
             corpses.append(corpse)
 
-    corpses.sort(key=lambda item: item.spawn_sequence)
+    corpses.sort(key=lambda item: item.spawn_sequence, reverse=True)
     return corpses
 
 
@@ -65,7 +65,7 @@ def resolve_room_entity_selector(
         for entity in session.entities.values()
         if entity.room_id == room_id
     ]
-    all_room_entities.sort(key=lambda item: item.spawn_sequence)
+    all_room_entities.sort(key=lambda item: item.spawn_sequence, reverse=True)
 
     room_entities = [
         entity
@@ -267,11 +267,9 @@ def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tup
     if not normalized:
         return None, "Provide an item selector."
 
-    items = list(corpse.loot_items.values())
+    items = list(reversed(list(corpse.loot_items.values())))
     if not items:
         return None, "That corpse has no lootable items."
-
-    items.sort(key=lambda item: item.name.lower())
 
     if "." not in normalized:
         exact_match: ItemState | None = None

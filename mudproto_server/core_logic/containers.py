@@ -194,14 +194,12 @@ def resolve_accessible_container(
         return None, None, parse_error
 
     candidates: list[tuple[int, ContainerLocation, ItemState]] = []
-    for item in session.inventory_items.values():
+    for item in reversed(list(session.inventory_items.values())):
         if is_item_container(item):
             candidates.append((0, "inventory", item))
     for item in _list_room_ground_items(session, session.player.current_room_id):
         if is_item_container(item):
             candidates.append((1, "room", item))
-
-    candidates.sort(key=lambda entry: (entry[0], entry[2].name.lower(), entry[2].item_id))
 
     matches: list[tuple[ContainerLocation, ItemState]] = []
     for _, location, item in candidates:
@@ -444,8 +442,7 @@ def take_item_from_container(session: ClientSession, container: ContainerTarget,
     if parse_error is not None:
         return display_error(parse_error, session)
 
-    container_items = list(_container_item_map(container).values())
-    container_items.sort(key=lambda item: (item.name.lower(), item.item_id))
+    container_items = list(reversed(list(_container_item_map(container).values())))
     matches = [item for item in container_items if all(keyword in get_item_keywords(item) for keyword in keywords)]
     if not matches:
         return display_error(f"No item matching '{item_selector}' is in {_container_label(container)}.", session)

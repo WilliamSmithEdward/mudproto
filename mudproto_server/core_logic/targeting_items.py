@@ -19,13 +19,11 @@ def _resolve_owned_item_selector(session: ClientSession, selector: str) -> tuple
         seen_item_ids.add(item.item_id)
         candidates.append((0, str(location_label).strip() or "equipped", item))
 
-    for item in session.inventory_items.values():
+    for item in reversed(list(session.inventory_items.values())):
         if item.item_id in seen_item_ids:
             continue
         seen_item_ids.add(item.item_id)
         candidates.append((1, "inventory", item))
-
-    candidates.sort(key=lambda entry: (entry[0], entry[2].name.lower(), entry[2].item_id))
 
     matches: list[tuple[ItemState, str]] = []
     for _, location_label, item in candidates:
@@ -51,8 +49,7 @@ def _resolve_inventory_selector(session: ClientSession, selector: str):
     if parse_error is not None:
         return None, parse_error
 
-    inventory_items = list(session.inventory_items.values())
-    inventory_items.sort(key=lambda item: item.name.lower())
+    inventory_items = list(reversed(list(session.inventory_items.values())))
 
     matches = []
     for item in inventory_items:
@@ -76,8 +73,7 @@ def _resolve_misc_inventory_selector(session: ClientSession, selector: str):
     if parse_error is not None:
         return None, parse_error
 
-    misc_items = [item for item in session.inventory_items.values() if not is_item_equippable(item)]
-    misc_items.sort(key=lambda item: item.name.lower())
+    misc_items = [item for item in reversed(list(session.inventory_items.values())) if not is_item_equippable(item)]
 
     matches = []
     for item in misc_items:
@@ -106,9 +102,7 @@ def _resolve_wear_inventory_selector(session: ClientSession, selector: str) -> t
 
 
 def _list_room_ground_items(session: ClientSession, room_id: str):
-    room_items = list(session.room_ground_items.get(room_id, {}).values())
-    room_items.sort(key=lambda item: (item.name.lower(), item.item_id))
-    return room_items
+    return list(reversed(list(session.room_ground_items.get(room_id, {}).values())))
 
 
 def _resolve_room_ground_matches(session: ClientSession, room_id: str, selector: str):

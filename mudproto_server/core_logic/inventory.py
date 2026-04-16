@@ -358,13 +358,11 @@ def is_item_equippable(item: ItemState) -> bool:
 
 
 def list_equippable_inventory_items(session: ClientSession) -> list[ItemState]:
-    equippable_items = [
+    return [
         item
-        for item in session.inventory_items.values()
+        for item in reversed(list(session.inventory_items.values()))
         if is_item_equippable(item)
     ]
-    equippable_items.sort(key=lambda item: (item.name.lower(), item.item_id))
-    return equippable_items
 
 
 def _name_keywords(name: str) -> set[str]:

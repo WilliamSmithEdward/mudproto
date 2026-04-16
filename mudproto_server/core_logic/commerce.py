@@ -166,7 +166,7 @@ def _list_room_merchants(session: ClientSession):
         and entity.is_alive
         and bool(getattr(entity, "is_merchant", False))
     ]
-    merchants.sort(key=lambda entity: (entity.name.lower(), entity.spawn_sequence, entity.entity_id))
+    merchants.sort(key=lambda entity: (entity.name.lower(), -entity.spawn_sequence, entity.entity_id))
     return merchants
 
 
