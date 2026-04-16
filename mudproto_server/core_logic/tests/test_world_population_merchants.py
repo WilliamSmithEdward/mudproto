@@ -1,7 +1,8 @@
 from protocol import utc_now_iso
 from models import ClientSession, EntityState
-from session_registry import shared_world_entities
-from world_population import initialize_session_entities
+from session_registry import active_character_sessions, connected_clients, shared_world_entities
+from world_population import initialize_session_entities, initialize_shared_world_state, reinitialize_zone
+import world_population
 
 
 def _make_session(client_id: str = "test-client") -> ClientSession:
@@ -11,7 +12,7 @@ def _make_session(client_id: str = "test-client") -> ClientSession:
     return session
 
 
-def test_initialize_session_entities_restores_missing_market_merchant_when_world_already_exists() -> None:
+def test_initialize_shared_world_state_restores_missing_market_merchant() -> None:
     previous_entities = dict(shared_world_entities)
     try:
         shared_world_entities.clear()
@@ -23,8 +24,7 @@ def test_initialize_session_entities_restores_missing_market_merchant_when_world
             max_hit_points=10,
         )
 
-        session = _make_session()
-        initialize_session_entities(session)
+        initialize_shared_world_state()
 
         merchant_ids = [
             getattr(entity, "npc_id", "")
@@ -37,7 +37,7 @@ def test_initialize_session_entities_restores_missing_market_merchant_when_world
         shared_world_entities.update(previous_entities)
 
 
-def test_initialize_session_entities_does_not_duplicate_market_merchant() -> None:
+def test_initialize_shared_world_state_does_not_duplicate_market_merchant() -> None:
     previous_entities = dict(shared_world_entities)
     try:
         shared_world_entities.clear()
@@ -52,8 +52,7 @@ def test_initialize_session_entities_does_not_duplicate_market_merchant() -> Non
         merchant.is_alive = True
         shared_world_entities[merchant.entity_id] = merchant
 
-        session = _make_session("test-client-2")
-        initialize_session_entities(session)
+        initialize_shared_world_state()
 
         merchant_ids = [
             entity_id
@@ -64,3 +63,62 @@ def test_initialize_session_entities_does_not_duplicate_market_merchant() -> Non
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+def test_initialize_session_entities_does_not_mutate_shared_world_on_login() -> None:
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    previous_active = dict(active_character_sessions)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+        active_character_sessions.clear()
+
+        occupant = _make_session("occupied-client")
+        occupant.is_authenticated = True
+        occupant.player.current_room_id = "hall"
+        connected_clients[occupant.client_id] = occupant
+        active_character_sessions[occupant.player_state_key] = occupant
+
+        session = _make_session("login-client")
+        initialize_session_entities(session)
+
+        assert shared_world_entities == {}
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+        active_character_sessions.clear()
+        active_character_sessions.update(previous_active)
+
+
+def test_reinitialize_zone_evaluates_auto_aggro_for_players_in_repopulated_rooms(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    previous_active = dict(active_character_sessions)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+        active_character_sessions.clear()
+
+        occupant = _make_session("hall-client")
+        occupant.is_authenticated = True
+        occupant.player.current_room_id = "hall"
+        connected_clients[occupant.client_id] = occupant
+        active_character_sessions[occupant.player_state_key] = occupant
+
+        aggro_checks: list[str] = []
+        monkeypatch.setattr(world_population, "maybe_auto_engage_current_room", lambda session: aggro_checks.append(session.client_id))
+
+        spawned_count = reinitialize_zone("zone.northern-wing")
+
+        assert spawned_count >= 2
+        assert aggro_checks == [occupant.client_id]
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+        active_character_sessions.clear()
+        active_character_sessions.update(previous_active)

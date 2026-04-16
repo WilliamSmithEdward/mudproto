@@ -3,6 +3,7 @@ import random
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id, load_rooms
+from combat_state import maybe_auto_engage_current_room
 from corpse_labels import normalize_corpse_label_style
 from inventory import build_equippable_item_from_template, build_misc_item_from_template, tick_item_decay_list, tick_item_decay_map
 from models import ClientSession, EntityState, ItemState
@@ -122,10 +123,10 @@ def _count_room_npc_instances(room_id: str) -> dict[str, int]:
     return counts
 
 
-def _should_restore_npc_on_session_connect(template: dict, *, world_already_initialized: bool) -> bool:
-    if not world_already_initialized:
+def _template_triggers_auto_hostility(template: dict) -> bool:
+    if bool(template.get("is_aggro", False)):
         return True
-    return bool(template.get("is_merchant", False))
+    return any(str(flag).strip() for flag in template.get("aggro_player_flags", []))
 
 
 def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: int) -> EntityState:
@@ -248,6 +249,28 @@ def _clear_entity_ids_from_combat_state(entity_ids: set[str]) -> None:
 
     for session in _iter_unique_sessions():
         session.combat.engaged_entity_ids -= entity_ids
+
+
+def _evaluate_auto_aggro_for_room_players(room_ids: set[str]) -> None:
+    if not room_ids:
+        return
+
+    seen_session_keys: set[str] = set()
+    for session in _iter_unique_sessions():
+        if not getattr(session, "is_authenticated", False):
+            continue
+        if not getattr(session, "is_connected", False) or bool(getattr(session, "disconnected_by_server", False)):
+            continue
+
+        room_id = str(getattr(session.player, "current_room_id", "")).strip()
+        if room_id not in room_ids:
+            continue
+
+        session_key = str(getattr(session, "player_state_key", "")).strip().lower() or str(getattr(session, "client_id", "")).strip().lower()
+        if session_key in seen_session_keys:
+            continue
+        seen_session_keys.add(session_key)
+        maybe_auto_engage_current_room(session)
 
 
 def _clear_zone_player_flags(zone) -> None:
@@ -453,6 +476,7 @@ def reinitialize_zone(zone_id: str) -> int:
 
     next_spawn_sequence = max((entity.spawn_sequence for entity in shared_world_entities.values()), default=0)
     spawned_count = 0
+    hostile_spawn_room_ids: set[str] = set()
 
     for room_id in zone.room_ids:
         room = WORLD.rooms.get(room_id)
@@ -476,10 +500,13 @@ def reinitialize_zone(zone_id: str) -> int:
                 entity = _build_entity_from_template(template, room.room_id, next_spawn_sequence)
                 shared_world_entities[entity.entity_id] = entity
                 spawned_count += 1
+                if _template_triggers_auto_hostility(template):
+                    hostile_spawn_room_ids.add(room.room_id)
 
     for session in list(connected_clients.values()) + list(active_character_sessions.values()):
         session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
 
+    _evaluate_auto_aggro_for_room_players(hostile_spawn_room_ids)
     return spawned_count
 
 
@@ -527,6 +554,7 @@ def process_zone_flag_spawns() -> int:
     target room, the NPC is spawned.
     """
     spawned_count = 0
+    hostile_spawn_room_ids: set[str] = set()
     next_spawn_sequence = max(
         (entity.spawn_sequence for entity in shared_world_entities.values()), default=0
     )
@@ -573,6 +601,8 @@ def process_zone_flag_spawns() -> int:
                 shared_world_entities[entity.entity_id] = entity
                 spawned_count += 1
                 spawned_for_rule += 1
+                if _template_triggers_auto_hostility(template):
+                    hostile_spawn_room_ids.add(room_id)
 
             if spawned_for_rule > 0 and announcement_message:
                 _broadcast_zone_flag_spawn_announcement(zone.zone_id, announcement_message)
@@ -581,6 +611,7 @@ def process_zone_flag_spawns() -> int:
         for session in list(connected_clients.values()) + list(active_character_sessions.values()):
             session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
 
+    _evaluate_auto_aggro_for_room_players(hostile_spawn_room_ids)
     return spawned_count
 
 
@@ -638,9 +669,9 @@ def repopulate_game_hour_zones() -> None:
             zone.game_hours_since_repopulation = 0
 
 
-def initialize_session_entities(session: ClientSession) -> None:
-    world_already_initialized = bool(session.entities)
-    next_spawn_sequence = max((entity.spawn_sequence for entity in session.entities.values()), default=0)
+def initialize_shared_world_state() -> int:
+    next_spawn_sequence = max((entity.spawn_sequence for entity in shared_world_entities.values()), default=0)
+    spawned_count = 0
 
     for room in WORLD.rooms.values():
         if room.room_id not in shared_world_room_ground_items:
@@ -655,18 +686,28 @@ def initialize_session_entities(session: ClientSession) -> None:
             template = get_npc_template_by_id(npc_id)
             if template is None:
                 continue
-            if not _should_restore_npc_on_session_connect(template, world_already_initialized=world_already_initialized):
-                continue
 
             spawn_count = max(1, int(npc_spawn.get("count", 1)))
             current_count = room_npc_counts.get(npc_id, 0)
             missing_count = max(0, spawn_count - current_count)
             for _ in range(missing_count):
                 next_spawn_sequence += 1
-                session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
-                entity = _build_entity_from_template(template, room.room_id, session.entity_spawn_counter)
-                session.entities[entity.entity_id] = entity
+                entity = _build_entity_from_template(template, room.room_id, next_spawn_sequence)
+                shared_world_entities[entity.entity_id] = entity
                 room_npc_counts[npc_id] = room_npc_counts.get(npc_id, 0) + 1
+                spawned_count += 1
+
+    for session in list(connected_clients.values()) + list(active_character_sessions.values()):
+        session.entity_spawn_counter = max(session.entity_spawn_counter, next_spawn_sequence)
+
+    return spawned_count
+
+
+def initialize_session_entities(session: ClientSession) -> None:
+    next_entity_spawn_sequence = max((entity.spawn_sequence for entity in session.entities.values()), default=0)
+    next_corpse_spawn_sequence = max((corpse.spawn_sequence for corpse in session.corpses.values()), default=0)
+    session.entity_spawn_counter = max(session.entity_spawn_counter, next_entity_spawn_sequence)
+    session.corpse_spawn_counter = max(session.corpse_spawn_counter, next_corpse_spawn_sequence)
 
 
 def spawn_dummy(session: ClientSession) -> dict:

@@ -35,7 +35,7 @@ from settings import (
 from session_lifecycle import handle_client_disconnect, reset_session_to_login
 from session_registry import get_connection_count, register_client
 from session_timing import touch_session
-from world_population import initialize_session_entities
+from world_population import initialize_session_entities, initialize_shared_world_state
 
 
 WEBSOCKET_SERVER_LOGGER_NAME = "mudproto.websocket"
@@ -177,6 +177,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
 
 async def main():
+    initialize_shared_world_state()
     tick_task = asyncio.create_task(game_tick_loop())
     combat_task = asyncio.create_task(combat_round_loop())
 
