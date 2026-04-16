@@ -16,9 +16,9 @@ except ImportError as exc:  # pragma: no cover - runtime guidance path
     ) from exc
 
 
-SERVER_DIR = Path(__file__).resolve().parent
+ENCRYPTION_DIR = Path(__file__).resolve().parent
+SERVER_DIR = ENCRYPTION_DIR.parent
 SETTINGS_FILE = SERVER_DIR / "settings.json"
-ENCRYPTION_DIR = SERVER_DIR / "encryption"
 CERT_FILE = ENCRYPTION_DIR / "server-cert.pem"
 KEY_FILE = ENCRYPTION_DIR / "server-key.pem"
 CA_FILE = ENCRYPTION_DIR / "server-ca.pem"

@@ -218,3 +218,4 @@ __marimo__/
 # Local TLS materials
 mudproto_server/configuration/server/encryption/*
 !mudproto_server/configuration/server/encryption/.gitkeep
+!mudproto_server/configuration/server/encryption/generate_encryption_files.py
