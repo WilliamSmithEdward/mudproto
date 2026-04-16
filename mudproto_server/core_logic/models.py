@@ -282,6 +282,7 @@ class ClientSession:
     pending_character_name: str = ""
     pending_password: str = ""
     pending_gender: str = ""
+    failed_password_attempts: int = 0
     following_player_key: str = ""
     following_player_name: str = ""
     is_sitting: bool = False

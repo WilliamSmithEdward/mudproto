@@ -144,6 +144,13 @@ async def handle_connection(websocket: ServerConnection) -> None:
             response = _inject_private_lines_into_outbound(session, response)
             await send_outbound(session.websocket, response)
 
+            if session.disconnected_by_server and not session.is_connected:
+                try:
+                    await session.websocket.close(code=4003, reason="Disconnected by server")
+                except Exception:
+                    pass
+                break
+
             if session.pending_death_logout:
                 reset_session_to_login(session)
                 await send_outbound(session.websocket, login_prompt(session))

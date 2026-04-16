@@ -88,6 +88,26 @@ def initialize_player_state_db() -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS login_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                attempted_at TEXT NOT NULL,
+                client_id TEXT NOT NULL DEFAULT '',
+                session_auth_stage TEXT NOT NULL DEFAULT '',
+                event_type TEXT NOT NULL,
+                success INTEGER NOT NULL DEFAULT 0,
+                character_name TEXT NOT NULL DEFAULT '',
+                character_key TEXT NOT NULL DEFAULT '',
+                failure_reason TEXT NOT NULL DEFAULT '',
+                remote_address TEXT NOT NULL DEFAULT '',
+                local_address TEXT NOT NULL DEFAULT '',
+                request_path TEXT NOT NULL DEFAULT '',
+                headers_json TEXT NOT NULL DEFAULT '{}',
+                connection_info_json TEXT NOT NULL DEFAULT '{}'
+            )
+            """
+        )
         connection.commit()
 
 
@@ -108,6 +128,90 @@ def _character_key(character_name: str) -> str:
 
 def _hash_password(password: str, salt: str) -> str:
     return hashlib.sha256(f"{salt}:{password}".encode("utf-8")).hexdigest()
+
+
+def _json_text(value: object) -> str:
+    try:
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    except TypeError:
+        return json.dumps(str(value), ensure_ascii=False)
+
+
+def _build_connection_snapshot(session: ClientSession) -> dict[str, object]:
+    websocket = getattr(session, "websocket", None)
+    request = getattr(websocket, "request", None)
+
+    headers: dict[str, str] = {}
+    raw_headers = getattr(request, "headers", None)
+    if raw_headers is not None:
+        try:
+            headers = {str(key): str(value) for key, value in raw_headers.items()}
+        except Exception:
+            try:
+                headers = {str(key): str(value) for key, value in raw_headers.raw_items()}
+            except Exception:
+                headers = {"repr": repr(raw_headers)}
+
+    return {
+        "client_id": str(getattr(session, "client_id", "") or ""),
+        "connected_at": str(getattr(session, "connected_at", "") or ""),
+        "remote_address": getattr(websocket, "remote_address", ""),
+        "local_address": getattr(websocket, "local_address", ""),
+        "request_path": str(getattr(request, "path", "") or ""),
+        "subprotocol": str(getattr(websocket, "subprotocol", "") or ""),
+        "headers": headers,
+    }
+
+
+def log_login_event(
+    session: ClientSession,
+    *,
+    event_type: str,
+    success: bool,
+    character_name: str = "",
+    character_key: str = "",
+    failure_reason: str = "",
+) -> None:
+    initialize_player_state_db()
+    snapshot = _build_connection_snapshot(session)
+
+    with _connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO login_audit (
+                attempted_at,
+                client_id,
+                session_auth_stage,
+                event_type,
+                success,
+                character_name,
+                character_key,
+                failure_reason,
+                remote_address,
+                local_address,
+                request_path,
+                headers_json,
+                connection_info_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                _utc_now_iso(),
+                str(getattr(session, "client_id", "") or ""),
+                str(getattr(session, "auth_stage", "") or ""),
+                str(event_type).strip() or "unknown",
+                1 if success else 0,
+                str(character_name).strip(),
+                str(character_key).strip().lower(),
+                str(failure_reason).strip().lower(),
+                _json_text(snapshot.get("remote_address", "")),
+                _json_text(snapshot.get("local_address", "")),
+                str(snapshot.get("request_path", "") or ""),
+                _json_text(snapshot.get("headers", {})),
+                _json_text(snapshot),
+            ),
+        )
+        connection.commit()
 
 
 def get_character_by_name(character_name: str) -> dict | None:

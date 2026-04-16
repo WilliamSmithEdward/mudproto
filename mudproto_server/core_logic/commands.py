@@ -39,6 +39,9 @@ async def process_input_message(message: dict, session: ClientSession) -> Outbou
         session.pending_paged_displays.clear()
 
     if not session.is_authenticated:
+        if is_session_lagged(session):
+            return display_error("Please wait a moment before trying again.", session)
+
         from command_handlers.auth import process_auth_input
 
         return process_auth_input(session, input_text)
