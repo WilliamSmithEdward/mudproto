@@ -30,7 +30,11 @@ A customizable, extensible, server-authoritative MUD framework built in Python.
 
 <br>
 
-![MudProto gameplay screenshot](/images/mudproto_01.png)
+<p align="center">
+  <img src="images/mudproto_01.png" alt="MudProto gameplay screenshot" />
+</p>
+
+</div>
 
 ## Quick Start
 
@@ -79,9 +83,9 @@ First commands to try:
 
 - Postures: standing, sitting, resting.
 - Commands:
-    - sit aliases: si, sit
-    - rest aliases: r, re, res, rest
-    - stand aliases: st, sta, stan, stand
+  - sit aliases: si, sit
+  - rest aliases: r, re, res, rest
+  - stand aliases: st, sta, stan, stand
 - Sitting and resting can block movement using posture config flags.
 - Posture damage multipliers are data-driven from posture config.
 - Resting can apply regeneration bonus multipliers.
