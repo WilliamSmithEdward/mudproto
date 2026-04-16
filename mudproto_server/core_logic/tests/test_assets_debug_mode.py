@@ -59,3 +59,33 @@ def test_debug_helpers_visible_when_debug_mode_enabled(monkeypatch) -> None:
     assert has_button_action
     assert has_circle_object
     assert has_button_object
+
+
+def test_start_room_includes_starter_loot_chest() -> None:
+    start_room = _room_by_id("start")
+    room_items = start_room.get("items", [])
+    template_ids = {
+        str(item.get("template_id", "")).strip()
+        for item in room_items
+        if isinstance(item, dict)
+    }
+
+    assert "item.container.prototype-starter-chest" in template_ids
+
+
+def test_starter_loot_chest_contains_potions_coins_and_sword() -> None:
+    chest_template = next(
+        template
+        for template in assets.load_item_templates()
+        if str(template.get("template_id", "")).strip() == "item.container.prototype-starter-chest"
+    )
+    contents = chest_template.get("contents", [])
+    content_ids = {
+        str(entry.get("template_id", "")).strip()
+        for entry in contents
+        if isinstance(entry, dict)
+    }
+
+    assert {"item.potion.mana", "item.potion.mending", "item.potion.vigor"}.issubset(content_ids)
+    assert "weapon.prototype-dawnblade" in content_ids
+    assert int(chest_template.get("coins", 0) or 0) > 0

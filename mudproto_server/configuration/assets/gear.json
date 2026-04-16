@@ -52,6 +52,24 @@
     "attacks_per_round_bonus": 0
   },
   {
+    "template_id": "weapon.prototype-dawnblade",
+    "name": "Prototype Dawnblade",
+    "slot": "weapon",
+    "description": "A keen sunsteel sword with a balanced grip and a pale edge that seems to hold the first light of morning.",
+    "keywords": ["prototype", "dawnblade", "sword", "sunsteel"],
+    "weapon_type": "sword",
+    "can_hold": false,
+    "can_two_hand": true,
+    "weight": 6,
+    "coin_value": 72,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 5,
+    "damage_roll_modifier": 2,
+    "hit_roll_modifier": 2,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
     "template_id": "weapon.reaver-nightblade",
     "name": "Reaver Nightblade",
     "slot": "weapon",

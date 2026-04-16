@@ -422,26 +422,6 @@ def display_room(session: ClientSession, room: Room) -> dict:
             _append_room_engagement_parts(parts, _resolve_player_engagement_target_name(other_player))
 
     corpses = list_room_corpses(session, room.room_id)
-    if corpses:
-        parts.extend([
-            newline_part(),
-            newline_part(),
-            build_part("Corpses:", "display_room.section.heading", True),
-        ])
-
-        for corpse in corpses:
-            parts.extend([
-                newline_part(),
-                build_part(" - ", "display_room.section.bullet"),
-                build_part(
-                    _build_corpse_label(
-                        corpse.source_name,
-                        getattr(corpse, "corpse_label_style", "generic"),
-                        is_named=bool(getattr(corpse, "is_named", False)),
-                    ),
-                    bold=True,
-                ),
-            ])
 
     room_coin_amount = max(0, int(session.room_coin_piles.get(room.room_id, 0)))
     if room_coin_amount > 0:
@@ -458,34 +438,52 @@ def display_room(session: ClientSession, room: Room) -> dict:
     room_items = list(session.room_ground_items.get(room.room_id, {}).values())
     room_items.sort(key=lambda item: item.name.lower())
 
-    room_item_counts: dict[str, int] = {}
-    room_item_names: dict[str, str] = {}
-    room_item_colors: dict[str, str] = {}
-    room_item_order: list[str] = []
+    ground_item_counts: dict[str, int] = {}
+    ground_item_names: dict[str, str] = {}
+    ground_item_colors: dict[str, str] = {}
+    ground_item_order: list[str] = []
+
+    for corpse in corpses:
+        corpse_name = _build_corpse_label(
+            corpse.source_name,
+            getattr(corpse, "corpse_label_style", "generic"),
+            is_named=bool(getattr(corpse, "is_named", False)),
+        )
+        normalized = corpse_name.strip().lower()
+        if not normalized:
+            continue
+        if normalized not in ground_item_counts:
+            ground_item_counts[normalized] = 0
+            ground_item_names[normalized] = corpse_name
+            ground_item_colors[normalized] = "item_logic.highlight.item"
+            ground_item_order.append(normalized)
+        ground_item_counts[normalized] += 1
+
     for item in room_items:
         normalized = item.name.strip().lower()
         if not normalized:
             continue
-        if normalized not in room_item_counts:
-            room_item_counts[normalized] = 0
-            room_item_names[normalized] = item.name
-            room_item_colors[normalized] = _item_highlight_color(item)
-            room_item_order.append(normalized)
-        room_item_counts[normalized] += 1
+        if normalized not in ground_item_counts:
+            ground_item_counts[normalized] = 0
+            ground_item_names[normalized] = item.name
+            ground_item_colors[normalized] = _item_highlight_color(item)
+            ground_item_order.append(normalized)
+        ground_item_counts[normalized] += 1
 
-    if room_items:
+    if ground_item_order:
+        ground_item_order.sort(key=lambda item_key: ground_item_names[item_key].lower())
         parts.extend([
             newline_part(),
             newline_part(),
-            build_part("Items on ground:", "display_room.section.heading", True),
+            build_part("On the ground:", "display_room.section.heading", True),
         ])
-        for item_key in room_item_order:
+        for item_key in ground_item_order:
             parts.extend([
                 newline_part(),
                 build_part(" - ", "display_room.section.bullet"),
-                build_part(room_item_names[item_key], room_item_colors[item_key], True),
+                build_part(ground_item_names[item_key], ground_item_colors[item_key], True),
             ])
-            count = room_item_counts[item_key]
+            count = ground_item_counts[item_key]
             if count > 1:
                 parts.extend([
                     build_part(" ", "display_room.summary.label"),

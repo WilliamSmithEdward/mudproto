@@ -42,6 +42,43 @@
     "observer_context": "Renewed energy surges through [actor_object]."
   },
   {
+    "template_id": "item.container.prototype-starter-chest",
+    "name": "Supply Chest",
+    "description": "A banded supply chest sits open against the wall, stocked with potions, loose coin, and a prize blade for a promising newcomer.",
+    "keywords": ["supply", "chest", "starter chest", "cache"],
+    "item_type": "container",
+    "portable": false,
+    "persistent": true,
+    "can_close": true,
+    "can_lock": false,
+    "is_closed": false,
+    "is_locked": false,
+    "coins": 72,
+    "contents": [
+      {
+        "template_id": "item.potion.mana",
+        "quantity": 2
+      },
+      {
+        "template_id": "item.potion.mending",
+        "quantity": 2
+      },
+      {
+        "template_id": "item.potion.vigor",
+        "quantity": 2
+      },
+      {
+        "template_id": "item.key.west-gate",
+        "quantity": 1
+      },
+      {
+        "template_id": "weapon.prototype-dawnblade",
+        "quantity": 1
+      }
+    ],
+    "coin_value": 0
+  },
+  {
     "template_id": "item.key.west-gate",
     "name": "Brass Gate Key",
     "description": "A small brass key with a worn square bit, likely meant for the western gate nearby.",

@@ -529,6 +529,7 @@ def load_item_templates() -> list[dict]:
             "item_type": raw_item_type,
             "persistent": persistent,
             "portable": portable,
+            "coins": max(0, int(raw_template.get("coins", 0))),
             "lock_ids": lock_ids,
             "contents": normalized_contents,
             "consume_on_use": bool(raw_template.get("consume_on_use", False)),

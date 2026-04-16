@@ -457,7 +457,7 @@ def insert_room_communication_lines(outbound: dict, communication_lines: list[li
     if not normalized_insert:
         return outbound
 
-    section_headers = {"You see here:", "Players here:", "Corpses:", "Coin pile:", "Items on ground:"}
+    section_headers = {"You see here:", "Players here:", "Corpses:", "Coin pile:", "Items on ground:", "On the ground:"}
     insert_index = len(normalized_existing)
     for index, line in enumerate(normalized_existing):
         if _line_text(line) in section_headers:

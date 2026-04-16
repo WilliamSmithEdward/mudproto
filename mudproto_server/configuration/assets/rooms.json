@@ -85,7 +85,7 @@
     ],
     "items": [
       {
-        "template_id": "item.key.west-gate",
+        "template_id": "item.container.prototype-starter-chest",
         "count": 1
       }
     ],

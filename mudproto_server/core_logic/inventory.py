@@ -107,6 +107,7 @@ def build_misc_item_from_template(template: dict, *, item_id: str | None = None)
         persistent=bool(template.get("persistent", True)),
         lock_ids=[str(lock_id).strip().lower() for lock_id in template.get("lock_ids", []) if str(lock_id).strip()],
         portable=bool(template.get("portable", template.get("carryable", True))),
+        coins=max(0, int(template.get("coins", 0))),
         consume_on_use=bool(template.get("consume_on_use", False)),
         consume_message=str(template.get("consume_message", "")).strip(),
         decay_game_hours=max(0, int(template.get("decay_game_hours", 0))),

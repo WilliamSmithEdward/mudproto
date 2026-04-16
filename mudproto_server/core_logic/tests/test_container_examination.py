@@ -124,3 +124,28 @@ def test_container_description_wraps_within_contents_column() -> None:
     assert any("A weathered cedar chest bound in dark iron bands rests" in line for line in lines)
     assert any("beneath the loft rafters, sturdy and too awkward to carry" in line for line in lines)
     assert any("off whole." in line for line in lines)
+
+
+def test_container_status_and_description_render_below_contents_divider() -> None:
+    session = _make_session()
+    chest = ItemState(
+        item_id="chest-3",
+        name="Supply Chest",
+        item_type="container",
+        description="A broad training chest with neatly sorted supplies.",
+        container_items={
+            "item-3": ItemState(item_id="item-3", name="Potion of Mending", item_type="potion"),
+        },
+        coins=24,
+    )
+
+    response = display_container_examination(session, chest)
+    lines = _display_lines(response)
+    divider_indices = [index for index, line in enumerate(lines) if line.strip() and set(line.strip()) == {"-"}]
+    status_index = next(index for index, line in enumerate(lines) if "Status" in line)
+    description_index = next(index for index, line in enumerate(lines) if "Description" in line)
+
+    assert len(divider_indices) >= 3
+    assert any("Potion of Mending" in line for line in lines[:divider_indices[-1]])
+    assert status_index > divider_indices[-1]
+    assert description_index > status_index

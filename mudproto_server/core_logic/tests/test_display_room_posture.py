@@ -1,5 +1,5 @@
 import display_room
-from models import ClientSession, EntityState
+from models import ClientSession, CorpseState, EntityState, ItemState
 from world import Room
 
 
@@ -115,3 +115,29 @@ def test_display_room_shows_player_posture_labels(monkeypatch) -> None:
     assert "Beatrix (sitting)" in rendered
     assert "Orlandu (resting)" in rendered
     assert "Mina (sleeping)" in rendered
+
+
+def test_display_room_groups_corpses_with_ground_items(monkeypatch) -> None:
+    viewer = _make_session("client-viewer-ground", "Lucia")
+    room = Room(room_id="start", title="Start", description="A room.")
+    corpse = CorpseState(
+        corpse_id="corpse-1",
+        source_entity_id="bandit-1",
+        source_name="Bandit",
+        room_id="start",
+    )
+    viewer.room_ground_items["start"] = {
+        "chest-1": ItemState(item_id="chest-1", name="Supply Chest", item_type="container"),
+    }
+
+    monkeypatch.setattr(display_room, "list_room_entities", lambda _session, _room_id: [])
+    monkeypatch.setattr(display_room, "list_authenticated_room_players", lambda _room_id, exclude_client_id=None: [])
+    monkeypatch.setattr(display_room, "list_room_corpses", lambda _session, _room_id: [corpse])
+
+    outbound = display_room.display_room(viewer, room)
+    rendered = _extract_display_text(outbound)
+
+    assert "On the ground:" in rendered
+    assert "Bandit corpse" in rendered
+    assert "Supply Chest" in rendered
+    assert "Corpses:" not in rendered

@@ -128,6 +128,7 @@ class ItemState:
     persistent: bool = True
     lock_ids: list[str] = field(default_factory=list)
     portable: bool = True
+    coins: int = 0
     consume_on_use: bool = False
     consume_message: str = ""
     decay_game_hours: int = 0

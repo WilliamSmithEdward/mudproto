@@ -6,11 +6,11 @@ import re
 from textwrap import wrap
 from typing import Literal
 
-from display_core import build_menu_table_parts, build_part, newline_part
+from display_core import build_menu_table_parts, build_part, newline_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from grammar import with_article
 from inventory import consume_item_on_use, get_item_keywords, hydrate_misc_item_from_template, item_unlocks_lock, parse_item_selector
-from item_logic import _build_corpse_label, _build_item_reference_parts, _item_highlight_color
+from item_logic import _build_item_reference_parts, _item_highlight_color
 from models import ClientSession, CorpseState, ItemState
 from targeting_entities import resolve_room_corpse_selector
 from targeting_items import _list_room_ground_items, _resolve_inventory_selector
@@ -253,8 +253,8 @@ def display_container_examination(
     default_location: str | None = None,
 ):
     title = _container_label(container)
-    rows: list[list[str]] = []
-    row_cell_colors: list[list[str]] = []
+    content_rows: list[list[str]] = []
+    content_row_cell_colors: list[list[str]] = []
 
     if isinstance(container, ItemState):
         hydrate_misc_item_from_template(container)
@@ -267,12 +267,10 @@ def display_container_examination(
     elif _container_can_close(container) and _container_is_closed(container):
         status_text = "Closed"
         status_color = "containers.status.closed"
-    rows.append(["Status", status_text])
-    row_cell_colors.append(["containers.label_column", status_color])
 
     if _container_contents_visible(container):
-        rows.append(["Coins", str(_container_coin_amount(container))])
-        row_cell_colors.append(["containers.label_column", "containers.coins_value"])
+        content_rows.append(["Coins", str(_container_coin_amount(container))])
+        content_row_cell_colors.append(["containers.label_column", "containers.coins_value"])
 
         container_items = list(_container_item_map(container).values())
         container_items.sort(key=lambda item: item.name.lower())
@@ -299,32 +297,61 @@ def display_container_examination(
                 sample_item = next((item for item in container_items if item.name.strip().lower() == item_key), None)
                 row_name = "Equipment" if sample_item is not None and bool(getattr(sample_item, "equippable", False)) else "Item"
                 row_label_color = "containers.item.equipment_label" if row_name == "Equipment" else "containers.item.label"
-                rows.append([row_name, item_label])
-                row_cell_colors.append([row_label_color, item_colors[item_key]])
+                content_rows.append([row_name, item_label])
+                content_row_cell_colors.append([row_label_color, item_colors[item_key]])
         else:
-            rows.append(["Items", "None"])
-            row_cell_colors.append(["containers.item.label", "containers.item.empty"])
+            content_rows.append(["Items", "None"])
+            content_row_cell_colors.append(["containers.item.label", "containers.item.empty"])
     else:
-        rows.append(["Contents", "Hidden while closed"])
-        row_cell_colors.append(["containers.item.label", "containers.contents.hidden"])
-
-    description = str(getattr(container, "description", "")).strip()
-    if description:
-        wrapped_description = wrap(description, width=_CONTAINER_DESCRIPTION_COLUMN_WIDTH) or [description]
-        rows.append(["Description", wrapped_description[0]])
-        row_cell_colors.append(["containers.description.heading", "containers.description.text"])
-        for continuation_line in wrapped_description[1:]:
-            rows.append(["", continuation_line])
-            row_cell_colors.append(["containers.description.heading", "containers.description.text"])
+        content_rows.append(["Contents", "Hidden while closed"])
+        content_row_cell_colors.append(["containers.item.label", "containers.contents.hidden"])
 
     parts = build_menu_table_parts(
         title,
         ["Loot", "Contents"],
-        rows,
+        content_rows,
         column_colors=["containers.label_column", "containers.location_value"],
-        row_cell_colors=row_cell_colors,
+        row_cell_colors=content_row_cell_colors,
         column_alignments=["left", "left"],
     )
+
+    detail_rows: list[tuple[str, list[str], str, str]] = [
+        ("Status", [status_text], "containers.label_column", status_color),
+    ]
+
+    description = str(getattr(container, "description", "")).strip()
+    if description:
+        wrapped_description = wrap(description, width=_CONTAINER_DESCRIPTION_COLUMN_WIDTH) or [description]
+        detail_rows.append(("Description", wrapped_description, "containers.description.heading", "containers.description.text"))
+
+    if detail_rows:
+        rendered_lines = parts_to_lines(parts)
+        panel_width = max(
+            (sum(len(str(part.get("text", ""))) for part in line if isinstance(part, dict)) for line in rendered_lines),
+            default=34,
+        )
+        label_width = max(len(label) for label, _, _, _ in detail_rows)
+        gap = 3
+
+        parts.extend([
+            newline_part(),
+            build_part("-" * panel_width, "display_core.table.divider"),
+        ])
+
+        for label, value_lines, label_color, value_color in detail_rows:
+            parts.extend([
+                newline_part(),
+                build_part(label.ljust(label_width), label_color, True),
+                build_part(" " * gap, "display_core.default_fg"),
+                build_part(value_lines[0], value_color, True),
+            ])
+            for continuation_line in value_lines[1:]:
+                parts.extend([
+                    newline_part(),
+                    build_part(" " * label_width, label_color),
+                    build_part(" " * gap, "display_core.default_fg"),
+                    build_part(continuation_line, value_color),
+                ])
 
     return display_command_result(session, parts)
 
