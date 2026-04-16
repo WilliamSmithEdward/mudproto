@@ -339,18 +339,19 @@ def display_container_examination(
         ])
 
         for label, value_lines, label_color, value_color in detail_rows:
+            value_bold = True
             parts.extend([
                 newline_part(),
                 build_part(label.ljust(label_width), label_color, True),
                 build_part(" " * gap, "display_core.default_fg"),
-                build_part(value_lines[0], value_color, True),
+                build_part(value_lines[0], value_color, value_bold),
             ])
             for continuation_line in value_lines[1:]:
                 parts.extend([
                     newline_part(),
                     build_part(" " * label_width, label_color),
                     build_part(" " * gap, "display_core.default_fg"),
-                    build_part(continuation_line, value_color),
+                    build_part(continuation_line, value_color, value_bold),
                 ])
 
     return display_command_result(session, parts)

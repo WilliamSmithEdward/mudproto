@@ -40,6 +40,21 @@ def _display_lines(outbound: dict) -> list[str]:
     return rendered_lines
 
 
+def _find_part_style(outbound: dict, snippet: str) -> tuple[str, bool] | None:
+    payload = outbound.get("payload", {})
+    lines = payload.get("lines", [])
+    for line in lines:
+        if not isinstance(line, list):
+            continue
+        for part in line:
+            if not isinstance(part, dict):
+                continue
+            text = str(part.get("text", ""))
+            if snippet in text:
+                return str(part.get("fg", "")), bool(part.get("bold", False))
+    return None
+
+
 def test_corpse_examination_uses_standard_container_rules() -> None:
     session = _make_session()
     corpse = CorpseState(
@@ -149,3 +164,25 @@ def test_container_status_and_description_render_below_contents_divider() -> Non
     assert any("Potion of Mending" in line for line in lines[:divider_indices[-1]])
     assert status_index > divider_indices[-1]
     assert description_index > status_index
+
+
+def test_container_wrapped_description_lines_keep_same_style() -> None:
+    session = _make_session()
+    chest = ItemState(
+        item_id="chest-4",
+        name="Supply Chest",
+        item_type="container",
+        description=(
+            "A banded supply chest sits open against the wall, stocked with potions, "
+            "loose coin, and a prize blade for a promising newcomer."
+        ),
+    )
+
+    response = display_container_examination(session, chest)
+    first_style = _find_part_style(response, "A banded supply chest sits open against the wall")
+    second_style = _find_part_style(response, "with potions, loose coin, and a prize blade for a")
+    third_style = _find_part_style(response, "promising newcomer.")
+
+    assert first_style is not None
+    assert second_style == first_style
+    assert third_style == first_style
