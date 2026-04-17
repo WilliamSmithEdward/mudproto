@@ -227,7 +227,7 @@ class MudProtoGuiClient:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.base_font = ("Consolas", 11)
-        self.menu_font = ("Consolas", 13)
+        self.menu_font = ("Consolas", 12)
         self.bold_font = ("Consolas", 11, "bold")
         self.command_history: list[str] = []
         self.history_index: int | None = None
@@ -308,8 +308,8 @@ class MudProtoGuiClient:
         self.file_menu_button = tk.Menubutton(menu_frame, text="File", **menu_button_options)
         self.file_menu_button.pack(side="left", padx=(0, 2))
         file_menu = tk.Menu(self.file_menu_button, **menu_options)
-        self._add_menu_command(file_menu, "Load Config...", self.load_config_from_dialog, spacer_after=True)
-        self._add_menu_command(file_menu, "Save Config", self.save_config, spacer_after=True)
+        self._add_menu_command(file_menu, "Load Config...", self.load_config_from_dialog)
+        self._add_menu_command(file_menu, "Save Config", self.save_config)
         self._add_menu_command(file_menu, "Save Config As...", self.save_config_as)
         file_menu.add_separator()
         self._add_menu_command(file_menu, "Exit", self.on_close)
@@ -324,7 +324,8 @@ class MudProtoGuiClient:
         self.configuration_menu_button = tk.Menubutton(menu_frame, text="Configuration", **menu_button_options)
         self.configuration_menu_button.pack(side="left", padx=2)
         configuration_menu = tk.Menu(self.configuration_menu_button, **menu_options)
-        self._add_menu_command(configuration_menu, "Aliases...", self.open_aliases_modal_placeholder)
+        self._add_menu_command(configuration_menu, "Aliases", self.open_aliases_modal_placeholder)
+        self._add_menu_command(configuration_menu, "Key Bindings", self.open_key_bindings_modal_placeholder)
         self.configuration_menu_button.configure(menu=configuration_menu)
 
         self.connection_menu_button = tk.Menubutton(menu_frame, text="Connection", **menu_button_options)
@@ -332,7 +333,7 @@ class MudProtoGuiClient:
         connection_menu = tk.Menu(self.connection_menu_button, **menu_options)
         self._add_menu_command(connection_menu, "Set Server URI...", self.prompt_server_uri)
         connection_menu.add_separator()
-        self._add_menu_command(connection_menu, "Connect", self.connect, spacer_after=True)
+        self._add_menu_command(connection_menu, "Connect", self.connect)
         self._add_menu_command(connection_menu, "Disconnect", self.disconnect)
         self.connection_menu_button.configure(menu=connection_menu)
 
@@ -418,22 +419,8 @@ class MudProtoGuiClient:
         self.input_entry.bind("<Down>", self.on_history_down)
         self.input_entry.focus_set()
 
-    def _add_menu_spacer(self, menu: tk.Menu) -> None:
-        menu.add_command(label=" ", state="disabled")
-        last_index = menu.index("end")
-        if last_index is not None:
-            menu.entryconfigure(
-                last_index,
-                background="#101010",
-                foreground="#101010",
-                activebackground="#101010",
-                activeforeground="#101010",
-            )
-
-    def _add_menu_command(self, menu: tk.Menu, label: str, command, *, spacer_after: bool = False) -> None:
+    def _add_menu_command(self, menu: tk.Menu, label: str, command) -> None:
         menu.add_command(label=f"  {label}  ", command=command)
-        if spacer_after:
-            self._add_menu_spacer(menu)
 
     def _build_client_config(self) -> dict[str, Any]:
         return _normalize_client_config({
@@ -587,6 +574,12 @@ class MudProtoGuiClient:
         self._show_themed_message(
             "Aliases",
             "The aliases editor entry point is now ready. This will become the primary place to add, update, and delete aliases in a future step.",
+        )
+
+    def open_key_bindings_modal_placeholder(self) -> None:
+        self._show_themed_message(
+            "Key Bindings",
+            "The key bindings editor entry point is now ready. This will become the primary place to add, update, and delete key bindings in a future step.",
         )
 
     def show_about_dialog(self) -> None:

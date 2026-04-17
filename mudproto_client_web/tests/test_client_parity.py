@@ -90,4 +90,5 @@ def test_gui_and_web_clients_share_settings_actions() -> None:
     assert "def load_config_from_dialog" in GUI_CLIENT_SOURCE
     assert "def prompt_server_uri" in GUI_CLIENT_SOURCE
     assert "def open_aliases_modal_placeholder" in GUI_CLIENT_SOURCE
+    assert "def open_key_bindings_modal_placeholder" in GUI_CLIENT_SOURCE
     assert 'label="Focus Input"' not in GUI_CLIENT_SOURCE

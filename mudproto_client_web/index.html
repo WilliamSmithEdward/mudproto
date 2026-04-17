@@ -320,9 +320,9 @@
             <button id="loadConfigBtn" type="button">Load Config</button>
           </div>
           <div class="modal-section">
-            <div class="modal-section-title">Aliases</div>
-            <button id="aliasesBtn" type="button">Aliases...</button>
-            <div class="modal-placeholder">Alias tools will open in their own modal next.</div>
+            <div class="modal-section-title">Customization</div>
+            <button id="aliasesBtn" type="button">Aliases</button>
+            <button id="keyBindingsBtn" type="button">Key Bindings</button>
           </div>
         </div>
       </div>
@@ -423,6 +423,7 @@
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
+        this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
         this.configFileInput = document.getElementById("configFileInput");
         this.aliases = {};
 
@@ -445,6 +446,7 @@
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
         this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig());
         this.aliasesBtn.addEventListener("click", () => this.openAliasesModal());
+        this.keyBindingsBtn.addEventListener("click", () => this.openKeyBindingsModal());
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
 
         this.settingsModal.addEventListener("click", (event) => {
@@ -605,6 +607,11 @@
       openAliasesModal() {
         this.closeSettings();
         this.appendSystemMessage("Aliases editor placeholder is ready for the next step.", "bright_cyan");
+      }
+
+      openKeyBindingsModal() {
+        this.closeSettings();
+        this.appendSystemMessage("Key bindings editor placeholder is ready for the next step.", "bright_cyan");
       }
 
       setStatus(text, state) {

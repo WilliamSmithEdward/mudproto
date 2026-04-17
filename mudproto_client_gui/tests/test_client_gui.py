@@ -282,10 +282,10 @@ def test_python_client_uses_roomier_menu_spacing() -> None:
 
     assert "MENU_BUTTON_PADX = 12" in source
     assert "MENU_BUTTON_PADY = 6" in source
-    assert "self.menu_font = (\"Consolas\", 13)" in source
+    assert "self.menu_font = (\"Consolas\", 12)" in source
     assert "file_menu.add_separator()" in source
     assert "connection_menu.add_separator()" in source
-    assert "def _add_menu_spacer" in source
+    assert "def _add_menu_spacer" not in source
     assert "def _add_menu_command" in source
     assert 'self.connection_state_label.bind("<Enter>", self._show_connection_tooltip)' in source
     assert 'self.connection_state_label.bind("<Leave>", self._hide_connection_tooltip)' in source
