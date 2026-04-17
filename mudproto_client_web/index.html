@@ -329,6 +329,7 @@
             <button id="saveConfigBtn" type="button">Save Config</button>
             <button id="saveConfigAsBtn" type="button">Save Config As...</button>
             <button id="loadConfigBtn" type="button">Load Config</button>
+            <button id="loadNewConfigBtn" type="button">Load New Config</button>
           </div>
           <div class="modal-section">
             <div class="modal-section-title">Customization</div>
@@ -652,6 +653,7 @@ Binds use the same command pipeline as typed input.</div>
         this.renderQueue = [];
         this.renderScheduled = false;
         this.autoScrollThresholdPx = 24;
+        this.pendingLoadMode = "merge";
 
         this.outputEl = document.getElementById("output");
         this.inputEl = document.getElementById("commandInput");
@@ -668,6 +670,7 @@ Binds use the same command pipeline as typed input.</div>
         this.saveConfigBtn = document.getElementById("saveConfigBtn");
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
+        this.loadNewConfigBtn = document.getElementById("loadNewConfigBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
         this.aliasHelpSection = document.getElementById("aliasHelpSection");
@@ -696,7 +699,8 @@ Binds use the same command pipeline as typed input.</div>
         this.closeHelpBtn.addEventListener("click", () => this.closeHelp());
         this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
-        this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig());
+        this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig("merge"));
+        this.loadNewConfigBtn.addEventListener("click", () => this.requestLoadNewConfig());
         this.aliasesBtn.addEventListener("click", () => this.openAliasesModal());
         this.keyBindingsBtn.addEventListener("click", () => this.openKeyBindingsModal());
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
@@ -777,6 +781,26 @@ Binds use the same command pipeline as typed input.</div>
         return config;
       }
 
+      mergeClientConfig(currentConfig, incomingConfig) {
+        const current = this.normalizeClientConfig(currentConfig || {});
+        const incoming = incomingConfig && typeof incomingConfig === "object" ? incomingConfig : {};
+        const incomingAliases = this.normalizeStringMap(incoming.aliases, (key) => String(key).trim().toLowerCase());
+        const incomingKeyBindings = this.normalizeStringMap(incoming.key_bindings, (key) => normalizeBindKeyName(key));
+
+        return this.normalizeClientConfig({
+          version: 1,
+          server_uri: typeof incoming.server_uri === "string" && incoming.server_uri.trim() ? incoming.server_uri.trim() : current.server_uri,
+          aliases: {
+            ...current.aliases,
+            ...incomingAliases,
+          },
+          key_bindings: {
+            ...current.key_bindings,
+            ...incomingKeyBindings,
+          },
+        });
+      }
+
       currentUri() {
         const uri = this.serverUriEl.value.trim() || DEFAULT_SERVER_URI;
         this.serverUriEl.value = uri;
@@ -847,9 +871,15 @@ Binds use the same command pipeline as typed input.</div>
         this.closeSettings();
       }
 
-      requestLoadConfig() {
+      requestLoadConfig(loadMode = "merge") {
+        this.pendingLoadMode = loadMode;
         this.configFileInput.value = "";
         this.configFileInput.click();
+      }
+
+      requestLoadNewConfig() {
+        this.pendingLoadMode = "replace";
+        this.requestLoadConfig("replace");
       }
 
       loadConfigFromFile(event) {
@@ -862,15 +892,27 @@ Binds use the same command pipeline as typed input.</div>
         reader.onload = () => {
           try {
             const parsed = JSON.parse(String(reader.result || "{}"));
-            const normalized = this.normalizeClientConfig(parsed);
-            this.aliases = normalized.aliases || {};
-            this.keyBindings = normalized.key_bindings || {};
-            this.serverUriEl.value = normalized.server_uri;
+            const mode = this.pendingLoadMode === "replace" ? "replace" : "merge";
+            const currentConfig = this.buildClientConfig();
+            const nextConfig = mode === "replace"
+              ? this.normalizeClientConfig(parsed)
+              : this.mergeClientConfig(currentConfig, parsed);
+
+            this.aliases = nextConfig.aliases || {};
+            this.keyBindings = nextConfig.key_bindings || {};
+            this.serverUriEl.value = nextConfig.server_uri;
             this.persistClientConfig();
-            this.appendSystemMessage("Loaded client config. Reconnect to apply any server change.", "bright_green");
+            this.appendSystemMessage(
+              mode === "replace"
+                ? "Loaded new client config. Reconnect to apply any server change."
+                : "Loaded client config and merged it into current settings. Reconnect to apply any server change.",
+              "bright_green"
+            );
             this.closeSettings();
           } catch {
             this.appendSystemMessage("Failed to load client config.", "bright_red");
+          } finally {
+            this.pendingLoadMode = "merge";
           }
         };
         reader.readAsText(file);
