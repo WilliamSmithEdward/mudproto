@@ -426,6 +426,14 @@ Binds use the same command pipeline as typed input.</div>
     const MAX_RENDER_QUEUE_GROUPS = 100;
     const MAX_COMMAND_HISTORY = 100;
     const MAX_ALIAS_EXPANSION_DEPTH = 8;
+    const DEFAULT_KEY_BINDINGS = {
+      numpad2: "south",
+      numpad4: "west",
+      numpad6: "east",
+      numpad8: "north",
+      numpad_add: "down",
+      numpad_subtract: "up",
+    };
     const BIND_KEY_SYNONYMS = {
       escape: "esc",
       pgup: "pageup",
@@ -741,7 +749,8 @@ Binds use the same command pipeline as typed input.</div>
       normalizeClientConfig(raw) {
         const data = raw && typeof raw === "object" ? raw : {};
         const aliases = this.normalizeStringMap(data.aliases, (key) => String(key).trim().toLowerCase());
-        const keyBindings = this.normalizeStringMap(data.key_bindings, (key) => normalizeBindKeyName(key));
+        const configuredKeyBindings = this.normalizeStringMap(data.key_bindings, (key) => normalizeBindKeyName(key));
+        const keyBindings = Object.keys(configuredKeyBindings).length ? configuredKeyBindings : { ...DEFAULT_KEY_BINDINGS };
 
         return {
           version: 1,

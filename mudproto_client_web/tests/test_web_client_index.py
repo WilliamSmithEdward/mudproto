@@ -67,6 +67,13 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert "MAX_OUTPUT_GROUPS = 400" in content
     assert "MAX_RENDER_QUEUE_GROUPS = 100" in content
     assert "MAX_COMMAND_HISTORY = 100" in content
+    assert 'const DEFAULT_KEY_BINDINGS = {' in content
+    assert 'numpad2: "south"' in content
+    assert 'numpad4: "west"' in content
+    assert 'numpad6: "east"' in content
+    assert 'numpad8: "north"' in content
+    assert 'numpad_add: "down"' in content
+    assert 'numpad_subtract: "up"' in content
     assert 'key_bindings' in content
     assert 'this.keyBindings' in content
     assert 'mergeClientConfig(currentConfig, incomingConfig)' in content
