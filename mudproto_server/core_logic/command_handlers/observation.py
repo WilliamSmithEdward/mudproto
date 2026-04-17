@@ -25,20 +25,20 @@ _OBSERVATION_VERBS = {
 }
 
 
-def _resolve_directional_room_look(room, selector_text: str):
+def _resolve_directional_room_look(room, selector_text: str) -> tuple[str | None, object | None]:
     cleaned_selector = str(selector_text).strip().lower()
     if not cleaned_selector or " " in cleaned_selector:
-        return None
+        return None, None
 
     normalized_direction = normalize_direction_token(cleaned_selector)
-    if normalized_direction not in room.exits:
-        return None
+    if normalized_direction not in {"north", "south", "east", "west", "up", "down"}:
+        return None, None
 
     destination_room_id = room.exits.get(normalized_direction)
     if not destination_room_id:
-        return None
+        return normalized_direction, None
 
-    return get_room(destination_room_id)
+    return normalized_direction, get_room(destination_room_id)
 
 
 def handle_observation_command(
@@ -66,9 +66,16 @@ def handle_observation_command(
             if not normalized_selector:
                 return display_room(session, room)
 
-            directional_room = _resolve_directional_room_look(room, normalized_selector)
-            if directional_room is not None:
-                return display_room(session, directional_room)
+            requested_direction, directional_room = _resolve_directional_room_look(room, normalized_selector)
+            if requested_direction is not None:
+                if directional_room is not None:
+                    return display_room(session, directional_room)
+                return display_error(
+                    f"No target named '{requested_direction}' is here.",
+                    session,
+                    error_code="target-not-found",
+                    error_context={"target": requested_direction},
+                )
 
             if search_room_item:
                 room_item, room_item_error = _resolve_room_ground_item_selector(

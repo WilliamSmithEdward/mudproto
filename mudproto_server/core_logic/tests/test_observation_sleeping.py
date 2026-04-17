@@ -54,6 +54,51 @@ def test_sleeping_does_not_block_non_observation_verbs() -> None:
         assert outbound is None
 
 
+def test_look_direction_prefixes_take_precedence_over_matching_targets(monkeypatch) -> None:
+    session = _make_session("client-observe-direction", "Lucia")
+    monkeypatch.setattr(observation, "get_room", lambda _room_id: Room(room_id="start", title="Start", description="A room."))
+    monkeypatch.setattr(observation, "_resolve_owned_item_selector", lambda *_args, **_kwargs: (None, None, None))
+    monkeypatch.setattr(observation, "_resolve_room_ground_item_selector", lambda *_args, **_kwargs: (None, None))
+    monkeypatch.setattr(observation, "resolve_room_object_selector", lambda *_args, **_kwargs: (None, None))
+    monkeypatch.setattr(observation, "resolve_room_entity_selector", lambda *_args, **_kwargs: (None, "entity fallback should not win"))
+    monkeypatch.setattr(observation, "resolve_room_corpse_selector", lambda *_args, **_kwargs: (None, None))
+    monkeypatch.setattr(observation, "_resolve_room_player_selector", lambda *_args, **_kwargs: (object(), None))
+    monkeypatch.setattr(observation, "display_player_summary", lambda *_args, **_kwargs: {"type": "display", "payload": {"lines": [[{"text": "PLAYER TARGET", "fg": "bright_white", "bold": False}]], "prompt_lines": []}})
+
+    expected_messages = {
+        "n": "You peer to the north, but nothing there draws your eye.",
+        "no": "You peer to the north, but nothing there draws your eye.",
+        "nor": "You peer to the north, but nothing there draws your eye.",
+        "nort": "You peer to the north, but nothing there draws your eye.",
+        "north": "You peer to the north, but nothing there draws your eye.",
+        "s": "You peer to the south, but nothing there draws your eye.",
+        "so": "You peer to the south, but nothing there draws your eye.",
+        "sou": "You peer to the south, but nothing there draws your eye.",
+        "sout": "You peer to the south, but nothing there draws your eye.",
+        "south": "You peer to the south, but nothing there draws your eye.",
+        "e": "You peer to the east, but nothing there draws your eye.",
+        "ea": "You peer to the east, but nothing there draws your eye.",
+        "eas": "You peer to the east, but nothing there draws your eye.",
+        "east": "You peer to the east, but nothing there draws your eye.",
+        "w": "You peer to the west, but nothing there draws your eye.",
+        "we": "You peer to the west, but nothing there draws your eye.",
+        "wes": "You peer to the west, but nothing there draws your eye.",
+        "west": "You peer to the west, but nothing there draws your eye.",
+        "u": "You lift your gaze overhead, but nothing there answers your attention.",
+        "up": "You lift your gaze overhead, but nothing there answers your attention.",
+        "d": "You glance below, but nothing there reveals itself.",
+        "do": "You glance below, but nothing there reveals itself.",
+        "dow": "You glance below, but nothing there reveals itself.",
+        "down": "You glance below, but nothing there reveals itself.",
+    }
+
+    for selector, expected_text in expected_messages.items():
+        outbound = handle_observation_command(session, "look", [selector], f"look {selector}")
+        rendered = _extract_display_text(outbound)
+        assert expected_text in rendered
+        assert "PLAYER TARGET" not in rendered
+
+
 def test_look_and_examine_do_not_match_hidden_wear_slot_keywords(monkeypatch) -> None:
     session = _make_session("client-observe-slot", "Lucia")
     worn_armor = ItemState(

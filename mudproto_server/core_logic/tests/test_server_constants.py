@@ -7,6 +7,9 @@ def test_direction_maps_are_loaded_and_used_by_prompt_helpers() -> None:
     assert DIRECTION_SHORT_LABELS["north"] == "N"
     assert DIRECTION_SHORT_LABELS["down"] == "D"
     assert DIRECTION_ALIASES["n"] == "north"
+    assert DIRECTION_ALIASES["no"] == "north"
+    assert DIRECTION_ALIASES["nor"] == "north"
+    assert DIRECTION_ALIASES["nort"] == "north"
     assert DIRECTION_ALIASES["w"] == "west"
 
     assert _direction_short_label("north") == "N"

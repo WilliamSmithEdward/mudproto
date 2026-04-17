@@ -19,6 +19,9 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert 'id="menuBtn"' in content
     assert 'id="settingsModal"' in content
     assert 'id="helpModal"' in content
+    assert 'id="helpHomeView"' in content
+    assert 'id="helpDetailView"' in content
+    assert 'id="helpBackBtn"' in content
     assert "toggleConnection()" in content
     assert "Save Config" in content
     assert "Save Config As..." in content

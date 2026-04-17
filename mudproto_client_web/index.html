@@ -213,6 +213,23 @@
       line-height: 1.45;
     }
 
+    .help-view.hidden {
+      display: none;
+    }
+
+    .help-nav-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #helpBackBtn {
+      padding: 6px 10px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
     .output-wrap {
       display: flex;
       flex-direction: column;
@@ -346,40 +363,20 @@
           <span id="helpTitle">Command Help</span>
           <button id="closeHelpBtn" type="button" aria-label="Close help">×</button>
         </div>
-        <div class="modal-body">
-          <div id="aliasHelpSection" class="modal-section">
-            <div class="modal-section-title">Alias Commands</div>
-            <div class="modal-placeholder help-text">#alias
-#alias &lt;pattern&gt;
-#alias &lt;name&gt; &lt;expansion&gt;
-
-Examples:
-#alias heal cast 'heal' %1
-#alias prep stand;draw sword;cast 'armor'
-#alias sayall gossip %0
-#alias mtell tell %1 [Tom says:] %r
-
-Variables:
-%0 = all text after the alias name
-%1..%9 = positional arguments
-%r = remaining text after the highest referenced positional variable</div>
+        <div id="helpHomeView" class="modal-body help-view">
+          <div class="modal-section">
+            <div class="modal-section-title">Help Sections</div>
+            <button id="openAliasesHelpBtn" type="button">Open Aliases Help</button>
+            <button id="openBindsHelpBtn" type="button">Open Binds Help</button>
           </div>
-          <div id="bindHelpSection" class="modal-section">
-            <div class="modal-section-title">Bind Commands</div>
-            <div class="modal-placeholder help-text">#bind
-#bind &lt;pattern&gt;
-#bind &lt;key&gt; &lt;expansion&gt;
-
-Examples:
-#bind f2 flee
-#bind pageup scan
-#bind up north
-#bind numpad8 north
-
-Notes:
-f2-f12 and the listed navigation keys are supported.
-f1 is reserved and cannot be rebound.
-Binds use the same command pipeline as typed input.</div>
+        </div>
+        <div id="helpDetailView" class="modal-body help-view hidden">
+          <div class="modal-section">
+            <div class="help-nav-row">
+              <button id="helpBackBtn" type="button" aria-label="Back to help sections">←</button>
+              <div id="helpDetailTitle" class="modal-section-title">Help Detail</div>
+            </div>
+            <div id="helpDetailContent" class="modal-placeholder help-text"></div>
           </div>
         </div>
       </div>
@@ -673,16 +670,21 @@ Binds use the same command pipeline as typed input.</div>
         this.menuBtn = document.getElementById("menuBtn");
         this.settingsModal = document.getElementById("settingsModal");
         this.helpModal = document.getElementById("helpModal");
+        this.helpHomeView = document.getElementById("helpHomeView");
+        this.helpDetailView = document.getElementById("helpDetailView");
+        this.helpDetailTitle = document.getElementById("helpDetailTitle");
+        this.helpDetailContent = document.getElementById("helpDetailContent");
         this.closeSettingsBtn = document.getElementById("closeSettingsBtn");
         this.closeHelpBtn = document.getElementById("closeHelpBtn");
+        this.helpBackBtn = document.getElementById("helpBackBtn");
+        this.openAliasesHelpBtn = document.getElementById("openAliasesHelpBtn");
+        this.openBindsHelpBtn = document.getElementById("openBindsHelpBtn");
         this.saveConfigBtn = document.getElementById("saveConfigBtn");
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
         this.loadNewConfigBtn = document.getElementById("loadNewConfigBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
-        this.aliasHelpSection = document.getElementById("aliasHelpSection");
-        this.bindHelpSection = document.getElementById("bindHelpSection");
         this.configFileInput = document.getElementById("configFileInput");
         this.aliases = {};
         this.keyBindings = {};
@@ -705,6 +707,9 @@ Binds use the same command pipeline as typed input.</div>
         this.menuBtn.addEventListener("click", () => this.openSettings());
         this.closeSettingsBtn.addEventListener("click", () => this.closeSettings());
         this.closeHelpBtn.addEventListener("click", () => this.closeHelp());
+        this.helpBackBtn.addEventListener("click", () => this.showHelpHome());
+        this.openAliasesHelpBtn.addEventListener("click", () => this.showHelpSection("aliases"));
+        this.openBindsHelpBtn.addEventListener("click", () => this.showHelpSection("binds"));
         this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
         this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig("merge"));
@@ -828,24 +833,45 @@ Binds use the same command pipeline as typed input.</div>
         this.settingsModal.setAttribute("aria-hidden", "true");
       }
 
+      showHelpHome() {
+        this.helpHomeView.classList.remove("hidden");
+        this.helpDetailView.classList.add("hidden");
+      }
+
+      showHelpSection(sectionName) {
+        const helpContent = {
+          aliases: {
+            title: "Alias Commands",
+            body: `#alias\n#alias <pattern>\n#alias <name> <expansion>\n\nExamples:\n#alias heal cast 'heal' %1\n#alias prep stand;draw sword;cast 'armor'\n#alias sayall gossip %0\n#alias mtell tell %1 [Tom says:] %r\n\nVariables:\n%0 = all text after the alias name\n%1..%9 = positional arguments\n%r = remaining text after the highest referenced positional variable`,
+          },
+          binds: {
+            title: "Bind Commands",
+            body: `#bind\n#bind <pattern>\n#bind <key> <expansion>\n\nExamples:\n#bind f2 flee\n#bind pageup scan\n#bind up north\n#bind numpad8 north\n\nNotes:\nf2-f12 and the listed navigation keys are supported.\nf1 is reserved and cannot be rebound.\nBinds use the same command pipeline as typed input.`,
+          },
+        };
+
+        const selected = helpContent[sectionName] || helpContent.aliases;
+        this.helpDetailTitle.textContent = selected.title;
+        this.helpDetailContent.textContent = selected.body;
+        this.helpHomeView.classList.add("hidden");
+        this.helpDetailView.classList.remove("hidden");
+      }
+
       openHelp(sectionName = "") {
         this.closeSettings();
         this.helpModal.classList.remove("hidden");
         this.helpModal.setAttribute("aria-hidden", "false");
-
-        const sectionTargets = {
-          aliases: this.aliasHelpSection,
-          binds: this.bindHelpSection,
-        };
-        const section = sectionTargets[sectionName];
-        if (section) {
-          window.setTimeout(() => section.scrollIntoView({ block: "start", behavior: "smooth" }), 0);
+        if (sectionName) {
+          this.showHelpSection(sectionName);
+          return;
         }
+        this.showHelpHome();
       }
 
       closeHelp() {
         this.helpModal.classList.add("hidden");
         this.helpModal.setAttribute("aria-hidden", "true");
+        this.showHelpHome();
       }
 
       saveConfig() {
