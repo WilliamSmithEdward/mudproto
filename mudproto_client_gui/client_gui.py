@@ -6,7 +6,7 @@ import ssl
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox, simpledialog, ttk
+from tkinter import filedialog, messagebox, ttk
 from datetime import datetime, timezone
 from typing import Any, TypeAlias
 
@@ -227,7 +227,7 @@ class MudProtoGuiClient:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.base_font = ("Consolas", 11)
-        self.menu_font = ("Consolas", 12)
+        self.menu_font = ("Consolas", 11)
         self.bold_font = ("Consolas", 11, "bold")
         self.command_history: list[str] = []
         self.history_index: int | None = None
@@ -304,6 +304,7 @@ class MudProtoGuiClient:
             "font": self.menu_font,
             "activeborderwidth": 0,
         }
+        self._menu_item_spacer = tk.PhotoImage(width=1, height=22)
 
         self.file_menu_button = tk.Menubutton(menu_frame, text="File", **menu_button_options)
         self.file_menu_button.pack(side="left", padx=(0, 2))
@@ -420,7 +421,12 @@ class MudProtoGuiClient:
         self.input_entry.focus_set()
 
     def _add_menu_command(self, menu: tk.Menu, label: str, command) -> None:
-        menu.add_command(label=f"  {label}  ", command=command)
+        menu.add_command(
+            label=f"  {label}  ",
+            command=command,
+            image=self._menu_item_spacer,
+            compound="left",
+        )
 
     def _build_client_config(self) -> dict[str, Any]:
         return _normalize_client_config({
@@ -533,19 +539,76 @@ class MudProtoGuiClient:
             self.append_system_message(f"Failed to load client config: {exc}", fg="bright_red")
 
     def prompt_server_uri(self) -> None:
-        new_uri = simpledialog.askstring("Server URI", "Enter the server WebSocket URI:", initialvalue=self.uri, parent=self.root)
-        if new_uri is None:
-            return
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Server URI")
+        dialog.configure(bg="#090909")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)
 
-        normalized_uri = str(new_uri).strip()
-        if not normalized_uri:
-            self.append_system_message("Server URI was left unchanged.", fg="bright_yellow")
-            return
+        outer = tk.Frame(dialog, bg="#090909", padx=16, pady=16)
+        outer.pack(fill="both", expand=True)
 
-        self.uri = normalized_uri
-        self._set_connection_indicator("Connected" if self.websocket is not None else "Disconnected", "bright_green" if self.websocket is not None else "bright_red")
-        self._persist_default_client_config()
-        self.append_system_message(f"Server URI updated to {self.uri}", fg="bright_cyan")
+        body = tk.Frame(outer, bg="#101010", highlightbackground="#262626", highlightthickness=1, padx=14, pady=14)
+        body.pack(fill="both", expand=True)
+
+        tk.Label(body, text="Server URI", bg="#101010", fg=COLOR_MAP["bright_cyan"], font=self.menu_font).pack(anchor="w", pady=(0, 10))
+        tk.Label(body, text="Enter the server WebSocket URI:", bg="#101010", fg=COLOR_MAP["bright_white"], font=self.base_font).pack(anchor="w", pady=(0, 8))
+
+        entry = tk.Entry(
+            body,
+            bg="#050505",
+            fg=COLOR_MAP["bright_white"],
+            insertbackground=COLOR_MAP["bright_cyan"],
+            relief="flat",
+            borderwidth=1,
+            font=self.base_font,
+            width=42,
+        )
+        entry.pack(fill="x", pady=(0, 12), ipady=6)
+        entry.insert(0, self.uri)
+        entry.selection_range(0, tk.END)
+        entry.focus_set()
+
+        button_row = tk.Frame(body, bg="#101010")
+        button_row.pack(fill="x")
+
+        def _close() -> None:
+            dialog.destroy()
+
+        def _submit() -> None:
+            normalized_uri = str(entry.get()).strip()
+            if not normalized_uri:
+                self.append_system_message("Server URI was left unchanged.", fg="bright_yellow")
+                _close()
+                return
+
+            self.uri = normalized_uri
+            self._set_connection_indicator("Connected" if self.websocket is not None else "Disconnected", "bright_green" if self.websocket is not None else "bright_red")
+            self._persist_default_client_config()
+            self.append_system_message(f"Server URI updated to {self.uri}", fg="bright_cyan")
+            _close()
+
+        button_style = {
+            "bg": "#151515",
+            "fg": COLOR_MAP["bright_white"],
+            "activebackground": "#1e1e1e",
+            "activeforeground": COLOR_MAP["bright_white"],
+            "relief": "flat",
+            "bd": 1,
+            "padx": 12,
+            "pady": 4,
+            "highlightthickness": 0,
+        }
+        tk.Button(button_row, text="Cancel", command=_close, **button_style).pack(side="right", padx=(8, 0))
+        tk.Button(button_row, text="Save", command=_submit, **button_style).pack(side="right")
+
+        dialog.bind("<Escape>", lambda _event: _close())
+        dialog.bind("<Return>", lambda _event: _submit())
+        dialog.update_idletasks()
+        x = self.root.winfo_rootx() + max(20, (self.root.winfo_width() - dialog.winfo_width()) // 2)
+        y = self.root.winfo_rooty() + max(20, (self.root.winfo_height() - dialog.winfo_height()) // 3)
+        dialog.geometry(f"+{x}+{y}")
 
     def _show_themed_message(self, title: str, message: str) -> None:
         dialog = tk.Toplevel(self.root)
