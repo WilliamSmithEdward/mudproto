@@ -40,4 +40,6 @@ def test_web_client_keeps_primary_settings_actions() -> None:
     assert 'id="helpBackBtn"' in content
     assert "Open Aliases Help" in content
     assert "Open Binds Help" in content
+    assert "Open Actions Help" in content
+    assert "Actions" in content
     assert "Focus Input" not in content

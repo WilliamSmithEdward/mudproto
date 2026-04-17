@@ -56,19 +56,26 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "#bind" in content
     assert "#unalias" in content
     assert "#unbind" in content
+    assert "#action" in content
+    assert "#unaction" in content
     assert 'splitCommandLine(commandLine)' in content
     assert 'executeCommandLine(rawText' in content
     assert 'handleAliasCommand(commandText)' in content
     assert 'handleBindCommand(commandText)' in content
     assert 'handleUnaliasCommand(commandText)' in content
     assert 'handleUnbindCommand(commandText)' in content
+    assert 'handleActionCommand(commandText)' in content
+    assert 'handleUnactionCommand(commandText)' in content
     assert 'normalizeBindKeyName(keyName)' in content
     assert 'trimmed.startsWith("{")' in content
     assert 'MAX_ALIAS_EXPANSION_DEPTH = 8' in content
+    assert 'MAX_ACTION_FIRE_DEPTH = 1' in content
     assert 'localCommand === "#clear"' in content
     assert 'localCommand === "#quit"' in content
     assert 'localCommand === "#unalias"' in content
     assert 'localCommand === "#unbind"' in content
+    assert 'localCommand === "#action"' in content
+    assert 'localCommand === "#unaction"' in content
     assert '<select id="bindKeyInput">' in content
     assert "populateBindKeyOptions()" in content
 
@@ -115,3 +122,65 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert '.output-group {' in content
     assert 'display: inline;' in content
     assert 'state === "connected" || state === "connecting" ? "Disconnect" : "Connect"' in content
+
+
+def test_web_client_action_trigger_system() -> None:
+    content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
+
+    assert 'id="actionsModal"' in content
+    assert 'id="actionsBtn"' in content
+    assert 'id="actionPatternInput"' in content
+    assert 'id="actionExpansionInput"' in content
+    assert 'id="actionPriorityInput"' in content
+    assert 'id="actionAddBtn"' in content
+    assert 'id="actionsBackBtn"' in content
+    assert 'id="actionsList"' in content
+    assert 'id="openActionsHelpBtn"' in content
+    assert "openActionsModal()" in content
+    assert "closeActionsModal()" in content
+    assert "renderActionsList()" in content
+    assert "submitActionForm()" in content
+    assert "normalizeActionsArray(raw)" in content
+    assert "mergeActionsArrays(currentActions, incomingActions)" in content
+    assert "loadActions(actionsArray)" in content
+    assert "addAction(pattern, expansion, priority)" in content
+    assert "removeActionsMatching(searchPattern)" in content
+    assert "showActionList(searchPattern)" in content
+    assert "resolveActionExpansion(template, lineText)" in content
+    assert "evaluateActionsForLine(lineText)" in content
+    assert "this.actionFiringDepth" in content
+    assert "this.actionIdCounter" in content
+    assert "this.actions" in content
+    assert "Action Trigger Commands" in content
+    assert "Open Actions Help" in content
+
+
+def test_web_client_action_config_persistence() -> None:
+    content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
+
+    assert "actions: this.actions.map" in content
+    assert "config.actions" in content
+    assert "storedConfig.actions" in content
+    assert "nextConfig.actions" in content
+    assert "defaults.actions" in content
+
+
+def test_web_client_action_command_dispatch() -> None:
+    content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
+
+    assert '"#action", "#unaction"' in content
+    assert 'localCommand === "#action"' in content
+    assert 'localCommand === "#unaction"' in content
+    assert 'handleActionCommand(commandText)' in content
+    assert 'handleUnactionCommand(commandText)' in content
+    assert 'localCommand === "#action") && index < segments.length' in content
+
+
+def test_web_client_action_matching_in_render_pipeline() -> None:
+    content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
+
+    assert "evaluateActionsForLine" in content
+    assert "actionFiringDepth >= MAX_ACTION_FIRE_DEPTH" in content
+    assert "action.anchored" in content
+    assert "textLower.startsWith(patternLower)" in content
+    assert "textLower.includes(patternLower)" in content

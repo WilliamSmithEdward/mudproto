@@ -663,6 +663,7 @@
             <div class="modal-section-title">Customization</div>
             <button id="aliasesBtn" type="button">Aliases</button>
             <button id="keyBindingsBtn" type="button">Key Bindings</button>
+            <button id="actionsBtn" type="button">Actions</button>
           </div>
           <div class="modal-section">
             <button id="resetConfigBtn" type="button">Reset Config</button>
@@ -682,6 +683,7 @@
             <div class="modal-section-title">Help Sections</div>
             <button id="openAliasesHelpBtn" type="button">Open Aliases Help</button>
             <button id="openBindsHelpBtn" type="button">Open Binds Help</button>
+            <button id="openActionsHelpBtn" type="button">Open Actions Help</button>
           </div>
         </div>
         <div id="helpDetailView" class="modal-body help-view hidden">
@@ -772,6 +774,33 @@
       </div>
     </div>
 
+    <div id="actionsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="actionsTitle">
+        <div class="modal-header">
+          <button id="actionsBackBtn" type="button" class="modal-back-btn" aria-label="Back to settings">←</button>
+          <span id="actionsTitle">Actions</span>
+        </div>
+        <div class="modal-body">
+          <div class="mapping-form">
+            <div class="mapping-form-field mapping-name-field">
+              <label for="actionPatternInput">Pattern</label>
+              <input id="actionPatternInput" type="text" placeholder="e.g. tells you" />
+            </div>
+            <div class="mapping-form-field mapping-expansion-field">
+              <label for="actionExpansionInput">Expansion</label>
+              <input id="actionExpansionInput" type="text" placeholder="e.g. #echo %0" />
+            </div>
+            <div class="mapping-form-field" style="flex:0 0 4em">
+              <label for="actionPriorityInput">Priority</label>
+              <input id="actionPriorityInput" type="number" min="0" max="9" value="5" style="width:3.5em" />
+            </div>
+            <button id="actionAddBtn" type="button">Set</button>
+          </div>
+          <div id="actionsList" class="mapping-list"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="output-wrap">
       <div class="output-header">
         <span>MudProto Web Client</span>
@@ -813,6 +842,7 @@
     const MAX_RENDER_QUEUE_GROUPS = 100;
     const MAX_COMMAND_HISTORY = 100;
     const MAX_ALIAS_EXPANSION_DEPTH = 8;
+    const MAX_ACTION_FIRE_DEPTH = 1;
     const DEFAULT_KEY_BINDINGS = {
       numpad2: "south",
       numpad4: "west",
@@ -1090,6 +1120,7 @@
         this.helpBackBtn = document.getElementById("helpBackBtn");
         this.openAliasesHelpBtn = document.getElementById("openAliasesHelpBtn");
         this.openBindsHelpBtn = document.getElementById("openBindsHelpBtn");
+        this.openActionsHelpBtn = document.getElementById("openActionsHelpBtn");
         this.saveConfigBtn = document.getElementById("saveConfigBtn");
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
@@ -1119,13 +1150,25 @@
         this.bindingsBackBtn = document.getElementById("bindingsBackBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
+        this.actionsBtn = document.getElementById("actionsBtn");
+        this.actionsModal = document.getElementById("actionsModal");
+        this.actionsList = document.getElementById("actionsList");
+        this.actionPatternInput = document.getElementById("actionPatternInput");
+        this.actionExpansionInput = document.getElementById("actionExpansionInput");
+        this.actionPriorityInput = document.getElementById("actionPriorityInput");
+        this.actionAddBtn = document.getElementById("actionAddBtn");
+        this.actionsBackBtn = document.getElementById("actionsBackBtn");
         this.configFileInput = document.getElementById("configFileInput");
         this.aliases = {};
         this.keyBindings = {};
+        this.actions = [];
+        this.actionIdCounter = 0;
+        this.actionFiringDepth = 0;
 
         const storedConfig = this.loadStoredClientConfig();
         this.aliases = storedConfig.aliases || {};
         this.keyBindings = storedConfig.key_bindings || {};
+        this.loadActions(storedConfig.actions || []);
         this.serverUriEl.value = storedConfig.server_uri || window.localStorage.getItem("mudproto.serverUri") || DEFAULT_SERVER_URI;
 
         this.bindEvents();
@@ -1174,6 +1217,16 @@
         this.bindingsModal.addEventListener("click", (event) => {
           if (event.target === this.bindingsModal) { this.closeBindingsModal(); this.openSettings(); }
         });
+        this.actionsBtn.addEventListener("click", () => this.openActionsModal());
+        this.actionAddBtn.addEventListener("click", () => this.submitActionForm());
+        this.actionExpansionInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") { this.submitActionForm(); }
+        });
+        this.actionsBackBtn.addEventListener("click", () => { this.closeActionsModal(); this.openSettings(); });
+        this.actionsModal.addEventListener("click", (event) => {
+          if (event.target === this.actionsModal) { this.closeActionsModal(); this.openSettings(); }
+        });
+        this.openActionsHelpBtn.addEventListener("click", () => this.showHelpSection("actions"));
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
 
         this.settingsModal.addEventListener("click", (event) => {
@@ -1218,12 +1271,14 @@
         const aliases = this.normalizeStringMap(data.aliases, (key) => String(key).trim().toLowerCase());
         const configuredKeyBindings = this.normalizeStringMap(data.key_bindings, (key) => normalizeBindKeyName(key));
         const keyBindings = Object.keys(configuredKeyBindings).length ? configuredKeyBindings : { ...DEFAULT_KEY_BINDINGS };
+        const actions = this.normalizeActionsArray(data.actions);
 
         return {
           version: 1,
           server_uri: typeof data.server_uri === "string" && data.server_uri.trim() ? data.server_uri.trim() : DEFAULT_SERVER_URI,
           aliases,
           key_bindings: keyBindings,
+          actions,
         };
       }
 
@@ -1245,6 +1300,7 @@
           server_uri: this.serverUriEl.value.trim() || DEFAULT_SERVER_URI,
           aliases: this.aliases,
           key_bindings: this.keyBindings,
+          actions: this.actions.map((a) => ({ pattern: a.pattern, expansion: a.expansion, priority: a.priority })),
         });
       }
 
@@ -1252,6 +1308,7 @@
         const config = this.buildClientConfig();
         this.aliases = config.aliases;
         this.keyBindings = config.key_bindings;
+        this.loadActions(config.actions || []);
         window.localStorage.setItem("mudproto.serverUri", config.server_uri);
         window.localStorage.setItem("mudproto.clientConfig", JSON.stringify(config));
         window.localStorage.setItem("mudproto.configFileName", this.configFileName);
@@ -1299,6 +1356,7 @@
           const defaults = this.normalizeClientConfig({});
           this.aliases = defaults.aliases;
           this.keyBindings = defaults.key_bindings;
+          this.loadActions(defaults.actions || []);
           this.serverUriEl.value = defaults.server_uri;
           this.configFileName = "mudproto-client-config.json";
           this.persistClientConfig();
@@ -1311,6 +1369,8 @@
         const incoming = incomingConfig && typeof incomingConfig === "object" ? incomingConfig : {};
         const incomingAliases = this.normalizeStringMap(incoming.aliases, (key) => String(key).trim().toLowerCase());
         const incomingKeyBindings = this.normalizeStringMap(incoming.key_bindings, (key) => normalizeBindKeyName(key));
+        const incomingActions = this.normalizeActionsArray(incoming.actions);
+        const mergedActions = this.mergeActionsArrays(current.actions || [], incomingActions);
 
         return this.normalizeClientConfig({
           version: 1,
@@ -1323,6 +1383,7 @@
             ...current.key_bindings,
             ...incomingKeyBindings,
           },
+          actions: mergedActions,
         });
       }
 
@@ -1395,6 +1456,7 @@
               "#unalias *                   Remove all aliases",
               "",
               "Other Local Commands:",
+              "#action   Define triggers on incoming text (see Actions Help)",
               "#clear    Clear the output window",
               "#quit     Disconnect and close",
               "#help     Open this help window",
@@ -1449,6 +1511,50 @@
               "#unbind <key>                Remove a single key binding",
               "#unbind <pattern>            Remove binds matching pattern",
               "#unbind *                    Remove all key bindings",
+            ].join("\n"),
+          },
+          actions: {
+            title: "Action Trigger Commands",
+            body: [
+              "Usage:",
+              "#action                           List all actions",
+              "#action <search>                  List actions matching search (* wildcards)",
+              "#action {pattern} {expansion}     Create action with default priority 5",
+              "#action {pattern} {expansion} N   Create action with priority N (0-9)",
+              "",
+              "Examples:",
+              "#action {tells you} {#echo %0}",
+              "#action {^You receive} {say Got loot!} 3",
+              "#action {attacks you} {flee} 1",
+              "#action {has arrived} {look}",
+              "",
+              "Pattern Matching:",
+              "- Plain pattern: matches anywhere in the line (case-insensitive)",
+              "- ^pattern: anchored, matches only at the start of the line",
+              "- All matching actions fire in priority order (lowest first)",
+              "- Actions with the same priority fire in insertion order",
+              "",
+              "Variables:",
+              "%0        The full text of the matched line",
+              "%1..%9    Positional words from the line",
+              "%-2..%-9  From that position onward",
+              "%r        Remaining text after word 1",
+              "",
+              "Priority:",
+              "- 0 = highest priority, 9 = lowest",
+              "- Default priority is 5",
+              "- Lower priority numbers fire first",
+              "",
+              "Behavior:",
+              "- Actions trigger on incoming server text",
+              "- Action expansions run through the command pipeline",
+              "  (alias expansion, semicolon chaining, and quoting all apply)",
+              "- Actions do not trigger on output from other actions (depth limit)",
+              "- Actions are saved to your client config",
+              "",
+              "Removing Actions:",
+              "#unaction <pattern>           Remove actions whose pattern matches",
+              "#unaction *                   Remove all actions",
             ].join("\n"),
           },
         };
@@ -1539,6 +1645,7 @@
 
             this.aliases = nextConfig.aliases || {};
             this.keyBindings = nextConfig.key_bindings || {};
+            this.loadActions(nextConfig.actions || []);
             this.serverUriEl.value = nextConfig.server_uri;
             this.persistClientConfig();
             this.appendSystemMessage(
@@ -1572,6 +1679,12 @@
           if (this.bindingsModal && !this.bindingsModal.classList.contains("hidden")) {
             event.preventDefault();
             this.closeBindingsModal();
+            this.openSettings();
+            return;
+          }
+          if (this.actionsModal && !this.actionsModal.classList.contains("hidden")) {
+            event.preventDefault();
+            this.closeActionsModal();
             this.openSettings();
             return;
           }
@@ -1824,7 +1937,7 @@
           const { commandName, remainder } = splitLeadingToken(commandText);
           const localCommand = this.resolveLocalCommand(commandName);
 
-          if ((localCommand === "#alias" || localCommand === "#bind") && index < segments.length - 1) {
+          if ((localCommand === "#alias" || localCommand === "#bind" || localCommand === "#action") && index < segments.length - 1) {
             try {
               if (parseCommandWords(remainder).length >= 2) {
                 commandText = segments.slice(index).join(";");
@@ -1842,7 +1955,7 @@
       }
 
       resolveLocalCommand(input) {
-        const commands = ["#alias", "#unalias", "#bind", "#unbind", "#clear", "#quit", "#help"];
+        const commands = ["#alias", "#unalias", "#bind", "#unbind", "#action", "#unaction", "#clear", "#quit", "#help"];
         const lowered = String(input || "").trim().toLowerCase();
         if (!lowered.startsWith("#")) {
           return lowered;
@@ -1900,8 +2013,18 @@
           return;
         }
 
+        if (localCommand === "#action") {
+          this.handleActionCommand(commandText);
+          return;
+        }
+
+        if (localCommand === "#unaction") {
+          this.handleUnactionCommand(commandText);
+          return;
+        }
+
         if (localCommand.startsWith("#")) {
-          this.appendSystemMessage("Unknown local command. Available: #alias, #unalias, #bind, #unbind, #clear, #quit, #help.", "bright_yellow");
+          this.appendSystemMessage("Unknown local command. Available: #alias, #unalias, #bind, #unbind, #action, #unaction, #clear, #quit, #help.", "bright_yellow");
           return;
         }
 
@@ -2057,6 +2180,280 @@
         this.bindExpansionInput.value = "";
         this.renderBindingsList();
         this.bindKeyInput.focus();
+      }
+
+      normalizeActionsArray(raw) {
+        if (!Array.isArray(raw)) {
+          return [];
+        }
+        return raw.filter((entry) => {
+          if (!entry || typeof entry !== "object") { return false; }
+          const pattern = String(entry.pattern || "").trim();
+          const expansion = String(entry.expansion || "").trim();
+          return pattern && expansion;
+        }).map((entry) => ({
+          pattern: String(entry.pattern).trim(),
+          expansion: String(entry.expansion).trim(),
+          priority: Math.max(0, Math.min(9, Number(entry.priority) || 5)),
+        }));
+      }
+
+      mergeActionsArrays(currentActions, incomingActions) {
+        const existing = new Set(currentActions.map((a) => `${a.pattern}\x00${a.expansion}\x00${a.priority}`));
+        const merged = [...currentActions];
+        for (const action of incomingActions) {
+          const key = `${action.pattern}\x00${action.expansion}\x00${action.priority}`;
+          if (!existing.has(key)) {
+            merged.push(action);
+            existing.add(key);
+          }
+        }
+        return merged;
+      }
+
+      loadActions(actionsArray) {
+        this.actions = [];
+        this.actionIdCounter = 0;
+        const normalized = this.normalizeActionsArray(actionsArray);
+        for (const entry of normalized) {
+          this.actions.push({
+            pattern: entry.pattern,
+            expansion: entry.expansion,
+            priority: entry.priority,
+            anchored: entry.pattern.startsWith("^"),
+            id: this.actionIdCounter++,
+          });
+        }
+        this.sortActions();
+      }
+
+      sortActions() {
+        this.actions.sort((a, b) => a.priority - b.priority || a.id - b.id);
+      }
+
+      addAction(pattern, expansion, priority) {
+        const existing = this.actions.find(
+          (a) => a.pattern === pattern && a.expansion === expansion && a.priority === priority
+        );
+        if (existing) {
+          return existing;
+        }
+        const action = {
+          pattern,
+          expansion,
+          priority,
+          anchored: pattern.startsWith("^"),
+          id: this.actionIdCounter++,
+        };
+        this.actions.push(action);
+        this.sortActions();
+        return action;
+      }
+
+      removeActionsMatching(searchPattern) {
+        const trimmed = searchPattern.trim().toLowerCase();
+        if (!trimmed) {
+          return [];
+        }
+        const matcher = wildcardToRegExp(trimmed);
+        const removed = this.actions.filter((a) => matcher.test(a.pattern.toLowerCase()));
+        this.actions = this.actions.filter((a) => !matcher.test(a.pattern.toLowerCase()));
+        return removed;
+      }
+
+      handleActionCommand(commandText) {
+        const { remainder } = splitLeadingToken(commandText);
+        if (!remainder) {
+          this.showActionList("");
+          return;
+        }
+
+        const { commandName: patternToken, remainder: afterPattern } = splitLeadingToken(remainder);
+        if (!patternToken) {
+          this.showActionList("");
+          return;
+        }
+
+        if (!afterPattern) {
+          this.showActionList(patternToken);
+          return;
+        }
+
+        const { commandName: expansionToken, remainder: afterExpansion } = splitLeadingToken(afterPattern);
+        if (!expansionToken) {
+          this.showActionList(patternToken);
+          return;
+        }
+
+        const priorityStr = afterExpansion ? afterExpansion.trim() : "";
+        const priority = priorityStr ? Math.max(0, Math.min(9, Number(priorityStr) || 5)) : 5;
+        const pattern = patternToken.trim();
+        const expansion = expansionToken.trim();
+
+        this.addAction(pattern, expansion, priority);
+        this.persistClientConfig();
+        this.appendSystemMessage(`[${priority}] ${pattern} => ${expansion}`, "bright_green");
+      }
+
+      handleUnactionCommand(commandText) {
+        const { remainder } = splitLeadingToken(commandText);
+        if (!remainder) {
+          this.appendSystemMessage("Usage: #unaction <pattern>", "bright_yellow");
+          return;
+        }
+        const removed = this.removeActionsMatching(remainder);
+        if (!removed.length) {
+          this.appendSystemMessage(`No actions match ${remainder.trim()}.`, "bright_yellow");
+          return;
+        }
+        this.persistClientConfig();
+        this.appendSystemMessage(`Removed ${removed.length} action${removed.length > 1 ? "s" : ""}.`, "bright_green");
+      }
+
+      showActionList(searchPattern) {
+        const trimmed = String(searchPattern || "").trim().toLowerCase();
+        let entries = this.actions;
+        if (trimmed) {
+          const matcher = wildcardToRegExp(trimmed);
+          entries = entries.filter((a) => matcher.test(a.pattern.toLowerCase()));
+        }
+        if (!entries.length) {
+          this.appendSystemMessage(trimmed ? `No actions match ${searchPattern.trim()}.` : "No actions defined.", "bright_yellow");
+          return;
+        }
+        const lines = entries.map((a) => `  [${a.priority}] ${a.pattern} => ${a.expansion}`);
+        this.appendSystemMessage(`-- Actions --\n${lines.join("\n")}`, "bright_cyan");
+      }
+
+      resolveActionExpansion(template, lineText) {
+        const expansion = stripOuterBraces(template);
+        const words = parseCommandWords(lineText);
+        return String(expansion || "").replace(/%-([1-9])|%([0-9r])/gi, (_match, rangeToken, token) => {
+          if (rangeToken) {
+            const fromIndex = Number(rangeToken) - 1;
+            return words.slice(fromIndex).join(" ");
+          }
+          const lowered = String(token).toLowerCase();
+          if (lowered === "0") {
+            return lineText;
+          }
+          if (lowered === "r") {
+            return words.slice(1).join(" ");
+          }
+          const index = Number(lowered) - 1;
+          return index >= 0 ? (words[index] || "") : "";
+        });
+      }
+
+      evaluateActionsForLine(lineText) {
+        if (this.actionFiringDepth >= MAX_ACTION_FIRE_DEPTH) {
+          return;
+        }
+        if (!this.actions.length) {
+          return;
+        }
+        const text = String(lineText || "");
+        if (!text) {
+          return;
+        }
+        const textLower = text.toLowerCase();
+
+        this.actionFiringDepth += 1;
+        try {
+          for (const action of this.actions) {
+            const patternText = action.anchored ? action.pattern.slice(1) : action.pattern;
+            const patternLower = patternText.toLowerCase();
+            let matched = false;
+            if (action.anchored) {
+              matched = textLower.startsWith(patternLower);
+            } else {
+              matched = textLower.includes(patternLower);
+            }
+            if (matched) {
+              const resolved = this.resolveActionExpansion(action.expansion, text);
+              this.executeCommandLine(resolved, { depth: 0 });
+            }
+          }
+        } finally {
+          this.actionFiringDepth -= 1;
+        }
+      }
+
+      openActionsModal() {
+        this.closeSettings();
+        this.actionPatternInput.value = "";
+        this.actionExpansionInput.value = "";
+        this.actionPriorityInput.value = "5";
+        this.renderActionsList();
+        this.actionsModal.classList.remove("hidden");
+        this.actionsModal.setAttribute("aria-hidden", "false");
+        this.actionPatternInput.focus();
+      }
+
+      closeActionsModal() {
+        this.actionsModal.classList.add("hidden");
+        this.actionsModal.setAttribute("aria-hidden", "true");
+      }
+
+      renderActionsList() {
+        if (!this.actions.length) {
+          this.actionsList.innerHTML = '<div class="mapping-empty">No actions defined.</div>';
+          return;
+        }
+        this.actionsList.innerHTML = this.actions.map((action, index) => {
+          const safePattern = this.escapeHtml(action.pattern);
+          const safeExpansion = this.escapeHtml(action.expansion);
+          return `<div class="mapping-row"><span class="mapping-key" title="${safePattern}">[${action.priority}] ${safePattern}</span><span class="mapping-eq">=</span><span class="mapping-val" title="${safeExpansion}">${safeExpansion}</span><button class="mapping-del" type="button" data-index="${index}" aria-label="Delete action ${safePattern}">✕</button></div>`;
+        }).join("");
+        this.actionsList.querySelectorAll(".mapping-del").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const idx = Number(btn.getAttribute("data-index"));
+            if (idx >= 0 && idx < this.actions.length) {
+              this.actions.splice(idx, 1);
+              this.persistClientConfig();
+              this.renderActionsList();
+            }
+          });
+        });
+        this.actionsList.querySelectorAll(".mapping-row").forEach((row, index) => {
+          const keyEl = row.querySelector(".mapping-key");
+          const valEl = row.querySelector(".mapping-val");
+          const editHandler = (event) => {
+            if (event.target.classList.contains("mapping-del")) { return; }
+            const action = this.actions[index];
+            if (action) {
+              this.actionPatternInput.value = action.pattern;
+              this.actionExpansionInput.value = action.expansion;
+              this.actionPriorityInput.value = String(action.priority);
+              this.actionExpansionInput.focus();
+            }
+          };
+          keyEl.style.cursor = "pointer";
+          valEl.style.cursor = "pointer";
+          keyEl.addEventListener("click", editHandler);
+          valEl.addEventListener("click", editHandler);
+        });
+      }
+
+      submitActionForm() {
+        const pattern = this.actionPatternInput.value.trim();
+        if (!pattern) {
+          this.actionPatternInput.focus();
+          return;
+        }
+        const expansion = this.actionExpansionInput.value.trim();
+        if (!expansion) {
+          this.actionExpansionInput.focus();
+          return;
+        }
+        const priority = Math.max(0, Math.min(9, Number(this.actionPriorityInput.value) || 5));
+        this.addAction(pattern, expansion, priority);
+        this.persistClientConfig();
+        this.actionPatternInput.value = "";
+        this.actionExpansionInput.value = "";
+        this.actionPriorityInput.value = "5";
+        this.renderActionsList();
+        this.actionPatternInput.focus();
       }
 
       escapeHtml(text) {
@@ -2440,6 +2837,16 @@
         }
         if (renderedLines.length) {
           this.appendLineGroup(renderedLines);
+          if (this.actions.length) {
+            for (const line of renderedLines) {
+              const lineText = Array.isArray(line)
+                ? line.map((span) => (span && typeof span === "object" ? span.text || "" : "")).join("")
+                : "";
+              if (lineText) {
+                this.evaluateActionsForLine(lineText);
+              }
+            }
+          }
         }
       }
 
