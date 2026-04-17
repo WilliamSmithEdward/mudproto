@@ -321,6 +321,12 @@ class MudProtoGuiClient:
         edit_menu.add_command(label="  Clear Output  ", command=self.clear_output)
         self.edit_menu_button.configure(menu=edit_menu)
 
+        self.configuration_menu_button = tk.Menubutton(menu_frame, text="Configuration", **menu_button_options)
+        self.configuration_menu_button.pack(side="left", padx=2)
+        configuration_menu = tk.Menu(self.configuration_menu_button, **menu_options)
+        configuration_menu.add_command(label="  Aliases...  ", command=self.open_aliases_modal_placeholder)
+        self.configuration_menu_button.configure(menu=configuration_menu)
+
         self.connection_menu_button = tk.Menubutton(menu_frame, text="Connection", **menu_button_options)
         self.connection_menu_button.pack(side="left", padx=2)
         connection_menu = tk.Menu(self.connection_menu_button, **menu_options)
@@ -537,14 +543,42 @@ class MudProtoGuiClient:
         self._persist_default_client_config()
         self.append_system_message(f"Server URI updated to {self.uri}", fg="bright_cyan")
 
+    def _show_themed_message(self, title: str, message: str) -> None:
+        dialog = tk.Toplevel(self.root)
+        dialog.title(title)
+        dialog.configure(bg="#090909")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        outer = tk.Frame(dialog, bg="#090909", padx=16, pady=16)
+        outer.pack(fill="both", expand=True)
+
+        body = tk.Frame(outer, bg="#101010", highlightbackground="#262626", highlightthickness=1, padx=14, pady=14)
+        body.pack(fill="both", expand=True)
+
+        tk.Label(body, text=title, bg="#101010", fg=COLOR_MAP["bright_cyan"], font=self.menu_font).pack(anchor="w", pady=(0, 10))
+        tk.Label(body, text=message, justify="left", bg="#101010", fg=COLOR_MAP["bright_white"], font=self.base_font, wraplength=420).pack(anchor="w")
+        tk.Button(body, text="Close", command=dialog.destroy, bg="#151515", fg=COLOR_MAP["bright_white"], activebackground="#1e1e1e", activeforeground=COLOR_MAP["bright_white"], relief="flat", bd=1, padx=12, pady=4, highlightthickness=0).pack(anchor="e", pady=(14, 0))
+
+        dialog.update_idletasks()
+        x = self.root.winfo_rootx() + max(20, (self.root.winfo_width() - dialog.winfo_width()) // 2)
+        y = self.root.winfo_rooty() + max(20, (self.root.winfo_height() - dialog.winfo_height()) // 3)
+        dialog.geometry(f"+{x}+{y}")
+
+    def open_aliases_modal_placeholder(self) -> None:
+        self._show_themed_message(
+            "Aliases",
+            "The aliases editor entry point is now ready. This will become the primary place to add, update, and delete aliases in a future step.",
+        )
+
     def show_about_dialog(self) -> None:
-        messagebox.showinfo(
+        self._show_themed_message(
             "MudProto Client Settings",
             "The File menu can load and save portable client config packages.\n\n"
             "Local commands stay client-side:\n"
             "#clear\n"
             "#quit",
-            parent=self.root,
         )
 
     def _restore_input_focus(self) -> None:

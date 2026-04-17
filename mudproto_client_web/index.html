@@ -321,7 +321,8 @@
           </div>
           <div class="modal-section">
             <div class="modal-section-title">Aliases</div>
-            <div class="modal-placeholder">Alias tools coming next.</div>
+            <button id="aliasesBtn" type="button">Aliases...</button>
+            <div class="modal-placeholder">Alias tools will open in their own modal next.</div>
           </div>
         </div>
       </div>
@@ -421,6 +422,7 @@
         this.saveConfigBtn = document.getElementById("saveConfigBtn");
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
+        this.aliasesBtn = document.getElementById("aliasesBtn");
         this.configFileInput = document.getElementById("configFileInput");
         this.aliases = {};
 
@@ -442,6 +444,7 @@
         this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
         this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig());
+        this.aliasesBtn.addEventListener("click", () => this.openAliasesModal());
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
 
         this.settingsModal.addEventListener("click", (event) => {
@@ -597,6 +600,11 @@
           }
         };
         reader.readAsText(file);
+      }
+
+      openAliasesModal() {
+        this.closeSettings();
+        this.appendSystemMessage("Aliases editor placeholder is ready for the next step.", "bright_cyan");
       }
 
       setStatus(text, state) {

@@ -22,7 +22,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "Save Config As..." in content
     assert "Load Config" in content
     assert "Aliases" in content
-    assert "Alias tools coming next." in content
+    assert "Aliases..." in content
+    assert "Alias tools will open in their own modal next." in content
     assert "Local commands stay client-side" not in content
     assert "Focus Input" not in content
     assert "Clear Output" not in content
