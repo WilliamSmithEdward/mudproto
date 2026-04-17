@@ -647,9 +647,8 @@ def test_reconnect_copies_follow_state_to_new_session() -> None:
     follower.group_member_keys = {"some_member_key"}
 
     from session_lifecycle import _copy_runtime_state
-    from models import ClientSession as FreshSession
 
-    new_session = FreshSession()
+    new_session = _make_session("client-new", "NewChar")
 
     _copy_runtime_state(follower, new_session)
 
