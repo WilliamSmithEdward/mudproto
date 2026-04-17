@@ -184,3 +184,29 @@ def test_web_client_action_matching_in_render_pipeline() -> None:
     assert "action.anchored" in content
     assert "textLower.startsWith(patternLower)" in content
     assert "textLower.includes(patternLower)" in content
+
+
+def test_web_client_options_modal() -> None:
+    content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
+
+    assert 'id="optionsModal"' in content
+    assert 'id="optionsBtn"' in content
+    assert 'id="optionsBackBtn"' in content
+    assert 'id="optEchoCommands"' in content
+    assert 'id="optEchoActionCommands"' in content
+    assert "Client Options" in content
+    assert "openOptionsModal()" in content
+    assert "closeOptionsModal()" in content
+    assert "normalizeOptions(raw)" in content
+    assert "loadOptions(raw)" in content
+    assert "this.options" in content
+    assert "echo_commands" in content
+    assert "echo_action_commands" in content
+    assert "Echo commands sent to game" in content
+    assert "Echo commands sent by action triggers" in content
+    assert 'options.echo_commands' in content
+    assert 'options.echo_action_commands' in content
+    assert '> ${text}' not in content  # no longer a line group echo
+    assert 'appendInlineEcho' in content
+    assert '` ${text}`' in content
+    assert '[action] ${resolved}' in content

@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 
 from combat_state import maybe_auto_engage_current_room
 from display_core import build_line, build_part
@@ -202,12 +203,17 @@ def _invalidate_replaced_session(session: ClientSession) -> None:
 
 async def _close_replaced_session_websocket(session: ClientSession) -> None:
     websocket = getattr(session, "websocket", None)
+    if websocket is None:
+        return
+
     close_method = getattr(websocket, "close", None)
     if not callable(close_method):
         return
 
     try:
-        await close_method(code=4002, reason="Logged in from another session")
+        result = close_method(code=4002, reason="Logged in from another session")
+        if inspect.isawaitable(result):
+            await result
     except Exception:
         pass
 

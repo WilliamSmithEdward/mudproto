@@ -96,7 +96,8 @@
       font-size: 0.92rem;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    input[type="number"] {
       background: #050505;
       border: 1px solid var(--border);
       color: var(--text);
@@ -104,9 +105,11 @@
       padding: 8px 10px;
       font: inherit;
       outline: none;
+      color-scheme: dark;
     }
 
-    input[type="text"]:focus {
+    input[type="text"]:focus,
+    input[type="number"]:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(97, 214, 214, 0.25);
     }
@@ -314,6 +317,45 @@
       padding: 14px 16px 16px;
     }
 
+    #actionsModal .modal-panel {
+      width: min(660px, 100%);
+    }
+
+    #actionsModal .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 16px 16px;
+    }
+
+    #optionsModal .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 16px 16px;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+
+    .option-row label {
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.94rem;
+    }
+
+    .option-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
     .mapping-list {
       display: flex;
       flex-direction: column;
@@ -408,9 +450,25 @@
     }
 
     .mapping-form-field input[type="text"],
+    .mapping-form-field input[type="number"],
     .mapping-form-field select {
       padding: 6px 8px;
       font-size: 0.92rem;
+    }
+
+    .mapping-form-field.mapping-priority-field {
+      flex: 0 0 auto;
+      width: 5em;
+    }
+
+    .mapping-form-field.mapping-priority-field input[type="number"] {
+      width: 100%;
+    }
+
+    .mapping-form-field.mapping-priority-field input[type="number"]::-webkit-inner-spin-button {
+      transform: scale(1.4);
+      margin-right: 2px;
+      cursor: pointer;
     }
 
     .mapping-form-field.mapping-name-field {
@@ -661,6 +719,7 @@
           </div>
           <div class="modal-section">
             <div class="modal-section-title">Customization</div>
+            <button id="optionsBtn" type="button">Options</button>
             <button id="aliasesBtn" type="button">Aliases</button>
             <button id="keyBindingsBtn" type="button">Key Bindings</button>
             <button id="actionsBtn" type="button">Actions</button>
@@ -733,6 +792,7 @@
         <div class="modal-header">
           <button id="aliasesBackBtn" type="button" class="modal-back-btn" aria-label="Back to settings">←</button>
           <span id="aliasesTitle">Aliases</span>
+          <button id="closeAliasesBtn" type="button" aria-label="Close aliases">×</button>
         </div>
         <div class="modal-body">
           <div class="mapping-form">
@@ -756,6 +816,7 @@
         <div class="modal-header">
           <button id="bindingsBackBtn" type="button" class="modal-back-btn" aria-label="Back to settings">←</button>
           <span id="bindingsTitle">Key Bindings</span>
+          <button id="closeBindingsBtn" type="button" aria-label="Close key bindings">×</button>
         </div>
         <div class="modal-body">
           <div class="mapping-form">
@@ -774,11 +835,32 @@
       </div>
     </div>
 
+    <div id="optionsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="optionsTitle">
+        <div class="modal-header">
+          <button id="optionsBackBtn" type="button" class="modal-back-btn" aria-label="Back to settings">←</button>
+          <span id="optionsTitle">Client Options</span>
+          <button id="closeOptionsBtn" type="button" aria-label="Close options">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="option-row">
+            <input id="optEchoCommands" type="checkbox" />
+            <label for="optEchoCommands">Echo commands sent to game</label>
+          </div>
+          <div class="option-row">
+            <input id="optEchoActionCommands" type="checkbox" />
+            <label for="optEchoActionCommands">Echo commands sent by action triggers</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="actionsModal" class="modal hidden" aria-hidden="true">
       <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="actionsTitle">
         <div class="modal-header">
           <button id="actionsBackBtn" type="button" class="modal-back-btn" aria-label="Back to settings">←</button>
           <span id="actionsTitle">Actions</span>
+          <button id="closeActionsBtn" type="button" aria-label="Close actions">×</button>
         </div>
         <div class="modal-body">
           <div class="mapping-form">
@@ -790,9 +872,9 @@
               <label for="actionExpansionInput">Expansion</label>
               <input id="actionExpansionInput" type="text" placeholder="e.g. #echo %0" />
             </div>
-            <div class="mapping-form-field" style="flex:0 0 4em">
+            <div class="mapping-form-field mapping-priority-field">
               <label for="actionPriorityInput">Priority</label>
-              <input id="actionPriorityInput" type="number" min="0" max="9" value="5" style="width:3.5em" />
+              <input id="actionPriorityInput" type="number" min="0" max="9" value="5" />
             </div>
             <button id="actionAddBtn" type="button">Set</button>
           </div>
@@ -1142,14 +1224,22 @@
         this.aliasExpansionInput = document.getElementById("aliasExpansionInput");
         this.aliasAddBtn = document.getElementById("aliasAddBtn");
         this.aliasesBackBtn = document.getElementById("aliasesBackBtn");
+        this.closeAliasesBtn = document.getElementById("closeAliasesBtn");
         this.bindingsModal = document.getElementById("bindingsModal");
         this.bindingsList = document.getElementById("bindingsList");
         this.bindKeyInput = document.getElementById("bindKeyInput");
         this.bindExpansionInput = document.getElementById("bindExpansionInput");
         this.bindAddBtn = document.getElementById("bindAddBtn");
         this.bindingsBackBtn = document.getElementById("bindingsBackBtn");
+        this.closeBindingsBtn = document.getElementById("closeBindingsBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
+        this.optionsBtn = document.getElementById("optionsBtn");
+        this.optionsModal = document.getElementById("optionsModal");
+        this.optionsBackBtn = document.getElementById("optionsBackBtn");
+        this.closeOptionsBtn = document.getElementById("closeOptionsBtn");
+        this.optEchoCommands = document.getElementById("optEchoCommands");
+        this.optEchoActionCommands = document.getElementById("optEchoActionCommands");
         this.actionsBtn = document.getElementById("actionsBtn");
         this.actionsModal = document.getElementById("actionsModal");
         this.actionsList = document.getElementById("actionsList");
@@ -1158,17 +1248,20 @@
         this.actionPriorityInput = document.getElementById("actionPriorityInput");
         this.actionAddBtn = document.getElementById("actionAddBtn");
         this.actionsBackBtn = document.getElementById("actionsBackBtn");
+        this.closeActionsBtn = document.getElementById("closeActionsBtn");
         this.configFileInput = document.getElementById("configFileInput");
         this.aliases = {};
         this.keyBindings = {};
         this.actions = [];
         this.actionIdCounter = 0;
         this.actionFiringDepth = 0;
+        this.options = { echo_commands: false, echo_action_commands: false };
 
         const storedConfig = this.loadStoredClientConfig();
         this.aliases = storedConfig.aliases || {};
         this.keyBindings = storedConfig.key_bindings || {};
         this.loadActions(storedConfig.actions || []);
+        this.loadOptions(storedConfig.options || {});
         this.serverUriEl.value = storedConfig.server_uri || window.localStorage.getItem("mudproto.serverUri") || DEFAULT_SERVER_URI;
 
         this.bindEvents();
@@ -1206,6 +1299,7 @@
           if (event.key === "Enter") { this.submitAliasForm(); }
         });
         this.aliasesBackBtn.addEventListener("click", () => { this.closeAliasesModal(); this.openSettings(); });
+        this.closeAliasesBtn.addEventListener("click", () => this.closeAliasesModal());
         this.aliasesModal.addEventListener("click", (event) => {
           if (event.target === this.aliasesModal) { this.closeAliasesModal(); this.openSettings(); }
         });
@@ -1214,8 +1308,23 @@
           if (event.key === "Enter") { this.submitBindForm(); }
         });
         this.bindingsBackBtn.addEventListener("click", () => { this.closeBindingsModal(); this.openSettings(); });
+        this.closeBindingsBtn.addEventListener("click", () => this.closeBindingsModal());
         this.bindingsModal.addEventListener("click", (event) => {
           if (event.target === this.bindingsModal) { this.closeBindingsModal(); this.openSettings(); }
+        });
+        this.optionsBtn.addEventListener("click", () => this.openOptionsModal());
+        this.optionsBackBtn.addEventListener("click", () => { this.closeOptionsModal(); this.openSettings(); });
+        this.closeOptionsBtn.addEventListener("click", () => this.closeOptionsModal());
+        this.optionsModal.addEventListener("click", (event) => {
+          if (event.target === this.optionsModal) { this.closeOptionsModal(); this.openSettings(); }
+        });
+        this.optEchoCommands.addEventListener("change", () => {
+          this.options.echo_commands = this.optEchoCommands.checked;
+          this.persistClientConfig();
+        });
+        this.optEchoActionCommands.addEventListener("change", () => {
+          this.options.echo_action_commands = this.optEchoActionCommands.checked;
+          this.persistClientConfig();
         });
         this.actionsBtn.addEventListener("click", () => this.openActionsModal());
         this.actionAddBtn.addEventListener("click", () => this.submitActionForm());
@@ -1223,6 +1332,7 @@
           if (event.key === "Enter") { this.submitActionForm(); }
         });
         this.actionsBackBtn.addEventListener("click", () => { this.closeActionsModal(); this.openSettings(); });
+        this.closeActionsBtn.addEventListener("click", () => this.closeActionsModal());
         this.actionsModal.addEventListener("click", (event) => {
           if (event.target === this.actionsModal) { this.closeActionsModal(); this.openSettings(); }
         });
@@ -1272,6 +1382,7 @@
         const configuredKeyBindings = this.normalizeStringMap(data.key_bindings, (key) => normalizeBindKeyName(key));
         const keyBindings = Object.keys(configuredKeyBindings).length ? configuredKeyBindings : { ...DEFAULT_KEY_BINDINGS };
         const actions = this.normalizeActionsArray(data.actions);
+        const options = this.normalizeOptions(data.options);
 
         return {
           version: 1,
@@ -1279,6 +1390,7 @@
           aliases,
           key_bindings: keyBindings,
           actions,
+          options,
         };
       }
 
@@ -1301,6 +1413,7 @@
           aliases: this.aliases,
           key_bindings: this.keyBindings,
           actions: this.actions.map((a) => ({ pattern: a.pattern, expansion: a.expansion, priority: a.priority })),
+          options: { ...this.options },
         });
       }
 
@@ -1309,6 +1422,7 @@
         this.aliases = config.aliases;
         this.keyBindings = config.key_bindings;
         this.loadActions(config.actions || []);
+        this.loadOptions(config.options || {});
         window.localStorage.setItem("mudproto.serverUri", config.server_uri);
         window.localStorage.setItem("mudproto.clientConfig", JSON.stringify(config));
         window.localStorage.setItem("mudproto.configFileName", this.configFileName);
@@ -1357,6 +1471,7 @@
           this.aliases = defaults.aliases;
           this.keyBindings = defaults.key_bindings;
           this.loadActions(defaults.actions || []);
+          this.loadOptions(defaults.options || {});
           this.serverUriEl.value = defaults.server_uri;
           this.configFileName = "mudproto-client-config.json";
           this.persistClientConfig();
@@ -1384,6 +1499,12 @@
             ...incomingKeyBindings,
           },
           actions: mergedActions,
+          options: {
+            echo_commands: incoming.options && typeof incoming.options === "object" && incoming.options.echo_commands !== undefined
+              ? !!incoming.options.echo_commands : current.options.echo_commands,
+            echo_action_commands: incoming.options && typeof incoming.options === "object" && incoming.options.echo_action_commands !== undefined
+              ? !!incoming.options.echo_action_commands : current.options.echo_action_commands,
+          },
         });
       }
 
@@ -1646,6 +1767,7 @@
             this.aliases = nextConfig.aliases || {};
             this.keyBindings = nextConfig.key_bindings || {};
             this.loadActions(nextConfig.actions || []);
+            this.loadOptions(nextConfig.options || {});
             this.serverUriEl.value = nextConfig.server_uri;
             this.persistClientConfig();
             this.appendSystemMessage(
@@ -1679,6 +1801,12 @@
           if (this.bindingsModal && !this.bindingsModal.classList.contains("hidden")) {
             event.preventDefault();
             this.closeBindingsModal();
+            this.openSettings();
+            return;
+          }
+          if (this.optionsModal && !this.optionsModal.classList.contains("hidden")) {
+            event.preventDefault();
+            this.closeOptionsModal();
             this.openSettings();
             return;
           }
@@ -2231,6 +2359,33 @@
         this.actions.sort((a, b) => a.priority - b.priority || a.id - b.id);
       }
 
+      normalizeOptions(raw) {
+        const data = raw && typeof raw === "object" ? raw : {};
+        return {
+          echo_commands: !!data.echo_commands,
+          echo_action_commands: !!data.echo_action_commands,
+        };
+      }
+
+      loadOptions(raw) {
+        this.options = this.normalizeOptions(raw);
+        this.optEchoCommands.checked = this.options.echo_commands;
+        this.optEchoActionCommands.checked = this.options.echo_action_commands;
+      }
+
+      openOptionsModal() {
+        this.closeSettings();
+        this.optEchoCommands.checked = this.options.echo_commands;
+        this.optEchoActionCommands.checked = this.options.echo_action_commands;
+        this.optionsModal.classList.remove("hidden");
+        this.optionsModal.setAttribute("aria-hidden", "false");
+      }
+
+      closeOptionsModal() {
+        this.optionsModal.classList.add("hidden");
+        this.optionsModal.setAttribute("aria-hidden", "true");
+      }
+
       addAction(pattern, expansion, priority) {
         const existing = this.actions.find(
           (a) => a.pattern === pattern && a.expansion === expansion && a.priority === priority
@@ -2371,6 +2526,9 @@
             }
             if (matched) {
               const resolved = this.resolveActionExpansion(action.expansion, text);
+              if (this.options.echo_action_commands) {
+                this.appendInlineEcho(` [action] ${resolved}`);
+              }
               this.executeCommandLine(resolved, { depth: 0 });
             }
           }
@@ -2584,6 +2742,9 @@
           return;
         }
 
+        if (this.options.echo_commands) {
+          this.appendInlineEcho(` ${text}`);
+        }
         this.websocket.send(JSON.stringify(buildInputMessage(text)));
       }
 
@@ -2667,6 +2828,16 @@
       pruneOutput() {
         while (this.outputEl.childElementCount > MAX_OUTPUT_GROUPS) {
           this.outputEl.firstElementChild?.remove();
+        }
+      }
+
+      appendInlineEcho(text) {
+        const span = document.createElement("span");
+        span.textContent = text;
+        span.style.color = COLOR_MAP.bright_black;
+        this.outputEl.appendChild(span);
+        if (this.isNearBottom()) {
+          this.outputEl.scrollTop = this.outputEl.scrollHeight;
         }
       }
 
