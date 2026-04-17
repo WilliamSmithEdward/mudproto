@@ -226,8 +226,7 @@
     <div class="toolbar">
       <label for="serverUri">Server</label>
       <input id="serverUri" type="text" spellcheck="false" aria-label="Server URI" />
-      <button id="connectBtn" type="button">Connect</button>
-      <button id="disconnectBtn" type="button">Disconnect</button>
+      <button id="connectionBtn" type="button">Connect</button>
       <button id="clearBtn" type="button">Clear Output</button>
       <div id="status" class="status disconnected">Disconnected</div>
     </div>
@@ -319,8 +318,7 @@
         this.inputFormEl = document.getElementById("inputForm");
         this.statusEl = document.getElementById("status");
         this.serverUriEl = document.getElementById("serverUri");
-        this.connectBtn = document.getElementById("connectBtn");
-        this.disconnectBtn = document.getElementById("disconnectBtn");
+        this.connectionBtn = document.getElementById("connectionBtn");
         this.clearBtn = document.getElementById("clearBtn");
 
         const savedUri = window.localStorage.getItem("mudproto.serverUri") || DEFAULT_SERVER_URI;
@@ -334,8 +332,7 @@
       bindEvents() {
         this.inputFormEl.addEventListener("submit", (event) => this.onSubmit(event));
         this.inputEl.addEventListener("keydown", (event) => this.onHistoryKey(event));
-        this.connectBtn.addEventListener("click", () => this.connect());
-        this.disconnectBtn.addEventListener("click", () => this.disconnect(true));
+        this.connectionBtn.addEventListener("click", () => this.toggleConnection());
         this.clearBtn.addEventListener("click", () => this.clearOutput());
 
         document.addEventListener("keydown", (event) => {
@@ -373,11 +370,26 @@
       setStatus(text, state) {
         this.statusEl.textContent = text;
         this.statusEl.className = `status ${state}`;
+
+        if (this.connectionBtn) {
+          this.connectionBtn.textContent = state === "connected" || state === "connecting" ? "Disconnect" : "Connect";
+        }
       }
 
       focusInput() {
         this.inputEl.focus();
         this.inputEl.selectionStart = this.inputEl.selectionEnd = this.inputEl.value.length;
+      }
+
+      toggleConnection() {
+        if (this.websocket || this.connecting) {
+          this.appendSystemMessage("Disconnected locally.", "bright_yellow");
+          this.disconnect(true);
+          return;
+        }
+
+        this.appendSystemMessage(`Connecting to ${this.currentUri()}...`, "bright_cyan");
+        this.connect();
       }
 
       cancelReconnect() {

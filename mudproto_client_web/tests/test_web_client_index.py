@@ -14,6 +14,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "new WebSocket" in content
     assert "function buildInputMessage" in content
     assert "function renderDisplayMessage" in content
+    assert 'id="connectionBtn"' in content
+    assert "toggleConnection()" in content
     assert "Structured protocol renderer" not in content
     assert "Pure HTML + CSS + JavaScript" not in content
     assert "Local controls:" not in content
@@ -47,3 +49,4 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'document.createElement("span")' in content
     assert 'this.renderQueue.splice(0, this.renderQueue.length - MAX_RENDER_QUEUE_GROUPS)' in content
     assert '.output-group {' in content
+    assert 'state === "connected" || state === "connecting" ? "Disconnect" : "Connect"' in content
