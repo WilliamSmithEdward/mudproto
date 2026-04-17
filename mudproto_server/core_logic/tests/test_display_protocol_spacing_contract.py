@@ -92,7 +92,7 @@ def test_display_command_result_compact_skips_leading_blank() -> None:
     assert _line_text(lines[0]) == "Ready"
 
 
-def test_display_error_does_not_prepend_extra_blank_before_message() -> None:
+def test_display_error_prepends_leading_blank_line() -> None:
     from display_feedback import display_error
 
     session = _make_session("client-error-spacing", authenticated=False)
@@ -101,8 +101,9 @@ def test_display_error_does_not_prepend_extra_blank_before_message() -> None:
 
     lines = payload.get("lines")
     assert isinstance(lines, list)
-    assert lines
-    assert _line_text(lines[0]) == "No valid hostile targets in the room."
+    assert len(lines) >= 2
+    assert lines[0] == []
+    assert _line_text(lines[1]) == "No valid hostile targets in the room."
 
 
 def test_display_command_result_compact_without_prompt_has_trailing_blank_line() -> None:
