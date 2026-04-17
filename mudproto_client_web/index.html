@@ -187,6 +187,10 @@
       background: #070707;
     }
 
+    .output-group {
+      display: block;
+    }
+
     .inputbar {
       display: flex;
       align-items: center;
@@ -262,7 +266,8 @@
 
     const RECONNECT_INTERVAL_MS = 5000;
     const DEFAULT_SERVER_URI = "wss://williamsmithe.com:8765/";
-    const MAX_OUTPUT_GROUPS = 500;
+    const MAX_OUTPUT_GROUPS = 400;
+    const MAX_RENDER_QUEUE_GROUPS = 100;
     const MAX_COMMAND_HISTORY = 100;
 
     function utcNowIso() {
@@ -631,6 +636,9 @@
         }
 
         this.renderQueue.push(lines);
+        if (this.renderQueue.length > MAX_RENDER_QUEUE_GROUPS) {
+          this.renderQueue.splice(0, this.renderQueue.length - MAX_RENDER_QUEUE_GROUPS);
+        }
         if (this.renderScheduled) {
           return;
         }
