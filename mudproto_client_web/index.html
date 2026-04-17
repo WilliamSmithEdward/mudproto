@@ -130,11 +130,16 @@
       background: #1e1e1e;
     }
 
+    #helpBtn,
     #menuBtn {
       font-size: 1.1rem;
       line-height: 1;
       padding-left: 14px;
       padding-right: 14px;
+    }
+
+    #helpBtn {
+      font-weight: 700;
     }
 
     .modal {
@@ -201,6 +206,11 @@
       border-radius: 8px;
       background: #0c0c0c;
       color: var(--muted);
+    }
+
+    .help-text {
+      white-space: pre-wrap;
+      line-height: 1.45;
     }
 
     .output-wrap {
@@ -300,6 +310,7 @@
       <label for="serverUri">Server</label>
       <input id="serverUri" type="text" spellcheck="false" aria-label="Server URI" />
       <button id="connectionBtn" type="button">Connect</button>
+      <button id="helpBtn" type="button" aria-label="Open help" title="Help">?</button>
       <button id="menuBtn" type="button" aria-label="Open settings menu" title="Settings">☰</button>
       <div id="status" class="status disconnected">Disconnected</div>
     </div>
@@ -323,6 +334,51 @@
             <div class="modal-section-title">Customization</div>
             <button id="aliasesBtn" type="button">Aliases</button>
             <button id="keyBindingsBtn" type="button">Key Bindings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="helpModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+        <div class="modal-header">
+          <span id="helpTitle">Command Help</span>
+          <button id="closeHelpBtn" type="button" aria-label="Close help">×</button>
+        </div>
+        <div class="modal-body">
+          <div id="aliasHelpSection" class="modal-section">
+            <div class="modal-section-title">Alias Commands</div>
+            <div class="modal-placeholder help-text">#alias
+#alias &lt;pattern&gt;
+#alias &lt;name&gt; &lt;expansion&gt;
+
+Examples:
+#alias heal cast 'heal' %1
+#alias prep stand;draw sword;cast 'armor'
+#alias sayall gossip %0
+#alias mtell tell %1 [Tom says:] %r
+
+Variables:
+%0 = all text after the alias name
+%1..%9 = positional arguments
+%r = remaining text after the highest referenced positional variable</div>
+          </div>
+          <div id="bindHelpSection" class="modal-section">
+            <div class="modal-section-title">Bind Commands</div>
+            <div class="modal-placeholder help-text">#bind
+#bind &lt;pattern&gt;
+#bind &lt;key&gt; &lt;expansion&gt;
+
+Examples:
+#bind f2 flee
+#bind pageup scan
+#bind up north
+#bind numpad8 north
+
+Notes:
+f2-f12 and the listed navigation keys are supported.
+f1 is reserved and cannot be rebound.
+Binds use the same command pipeline as typed input.</div>
           </div>
         </div>
       </div>
@@ -368,6 +424,25 @@
     const MAX_OUTPUT_GROUPS = 400;
     const MAX_RENDER_QUEUE_GROUPS = 100;
     const MAX_COMMAND_HISTORY = 100;
+    const MAX_ALIAS_EXPANSION_DEPTH = 8;
+    const BIND_KEY_SYNONYMS = {
+      escape: "esc",
+      pgup: "pageup",
+      pgdn: "pagedown",
+      del: "delete",
+      ins: "insert",
+      arrowup: "up",
+      arrowdown: "down",
+      arrowleft: "left",
+      arrowright: "right",
+    };
+    const SUPPORTED_BIND_KEYS = new Set([
+      "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
+      "backspace", "tab", "esc", "pageup", "pagedown", "end", "home", "left", "right", "up", "down",
+      "insert", "delete", "numpad0", "numpad1", "numpad2", "numpad3", "numpad4", "numpad5", "numpad6",
+      "numpad7", "numpad8", "numpad9", "numpad_multiply", "numpad_add", "numpad_subtract",
+      "numpad_decimal", "numpad_divide", "numlock", "scrolllock",
+    ]);
 
     function utcNowIso() {
       return new Date().toISOString();
@@ -390,6 +465,174 @@
         return [];
       }
       return candidate.filter((line) => Array.isArray(line));
+    }
+
+    function splitCommandLine(commandLine) {
+      const segments = [];
+      let current = "";
+      let quote = null;
+      let escaped = false;
+
+      for (const char of String(commandLine || "")) {
+        if (escaped) {
+          current += char;
+          escaped = false;
+          continue;
+        }
+
+        if (char === "\\") {
+          current += char;
+          escaped = true;
+          continue;
+        }
+
+        if (quote) {
+          if (char === quote) {
+            quote = null;
+          }
+          current += char;
+          continue;
+        }
+
+        if (char === '"' || char === "'") {
+          quote = char;
+          current += char;
+          continue;
+        }
+
+        if (char === ";") {
+          const segment = current.trim();
+          if (segment) {
+            segments.push(segment);
+          }
+          current = "";
+          continue;
+        }
+
+        current += char;
+      }
+
+      if (quote) {
+        throw new Error("Malformed input: unmatched quote.");
+      }
+
+      const finalSegment = current.trim();
+      if (finalSegment) {
+        segments.push(finalSegment);
+      }
+      return segments;
+    }
+
+    function splitLeadingToken(commandText) {
+      const trimmed = String(commandText || "").trim();
+      if (!trimmed) {
+        return { commandName: "", remainder: "" };
+      }
+
+      const firstSpace = trimmed.search(/\s/);
+      if (firstSpace === -1) {
+        return { commandName: trimmed, remainder: "" };
+      }
+
+      return {
+        commandName: trimmed.slice(0, firstSpace),
+        remainder: trimmed.slice(firstSpace).trim(),
+      };
+    }
+
+    function parseCommandWords(commandText) {
+      const words = [];
+      let current = "";
+      let quote = null;
+      let escaped = false;
+
+      for (const char of String(commandText || "").trim()) {
+        if (escaped) {
+          current += char;
+          escaped = false;
+          continue;
+        }
+
+        if (char === "\\") {
+          escaped = true;
+          continue;
+        }
+
+        if (quote) {
+          if (char === quote) {
+            quote = null;
+          } else {
+            current += char;
+          }
+          continue;
+        }
+
+        if (char === '"' || char === "'") {
+          quote = char;
+          continue;
+        }
+
+        if (/\s/.test(char)) {
+          if (current) {
+            words.push(current);
+            current = "";
+          }
+          continue;
+        }
+
+        current += char;
+      }
+
+      if (quote) {
+        throw new Error("Malformed input: unmatched quote.");
+      }
+
+      if (escaped) {
+        current += "\\";
+      }
+
+      if (current) {
+        words.push(current);
+      }
+
+      return words;
+    }
+
+    function wildcardToRegExp(pattern) {
+      const escaped = String(pattern || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*");
+      return new RegExp(`^${escaped}$`, "i");
+    }
+
+    function normalizeBindKeyName(keyName) {
+      const raw = String(keyName || "").trim().toLowerCase().replace(/\s+/g, "");
+      if (!raw) {
+        return "";
+      }
+      const normalized = BIND_KEY_SYNONYMS[raw] || raw;
+      return SUPPORTED_BIND_KEYS.has(normalized) ? normalized : "";
+    }
+
+    function bindEventKeyName(event) {
+      const code = String(event && event.code ? event.code : "");
+      const codeMap = {
+        NumpadMultiply: "numpad_multiply",
+        NumpadAdd: "numpad_add",
+        NumpadSubtract: "numpad_subtract",
+        NumpadDecimal: "numpad_decimal",
+        NumpadDivide: "numpad_divide",
+      };
+
+      if (/^Numpad\d$/.test(code)) {
+        return `numpad${code.slice(-1)}`;
+      }
+      if (codeMap[code]) {
+        return codeMap[code];
+      }
+      return normalizeBindKeyName(event && event.key ? event.key : "");
     }
 
     function renderDisplayMessage(client, message) {
@@ -416,19 +659,26 @@
         this.statusEl = document.getElementById("status");
         this.serverUriEl = document.getElementById("serverUri");
         this.connectionBtn = document.getElementById("connectionBtn");
+        this.helpBtn = document.getElementById("helpBtn");
         this.menuBtn = document.getElementById("menuBtn");
         this.settingsModal = document.getElementById("settingsModal");
+        this.helpModal = document.getElementById("helpModal");
         this.closeSettingsBtn = document.getElementById("closeSettingsBtn");
+        this.closeHelpBtn = document.getElementById("closeHelpBtn");
         this.saveConfigBtn = document.getElementById("saveConfigBtn");
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
+        this.aliasHelpSection = document.getElementById("aliasHelpSection");
+        this.bindHelpSection = document.getElementById("bindHelpSection");
         this.configFileInput = document.getElementById("configFileInput");
         this.aliases = {};
+        this.keyBindings = {};
 
         const storedConfig = this.loadStoredClientConfig();
         this.aliases = storedConfig.aliases || {};
+        this.keyBindings = storedConfig.key_bindings || {};
         this.serverUriEl.value = storedConfig.server_uri || window.localStorage.getItem("mudproto.serverUri") || DEFAULT_SERVER_URI;
 
         this.bindEvents();
@@ -440,8 +690,10 @@
         this.inputFormEl.addEventListener("submit", (event) => this.onSubmit(event));
         this.inputEl.addEventListener("keydown", (event) => this.onHistoryKey(event));
         this.connectionBtn.addEventListener("click", () => this.toggleConnection());
+        this.helpBtn.addEventListener("click", () => this.openHelp());
         this.menuBtn.addEventListener("click", () => this.openSettings());
         this.closeSettingsBtn.addEventListener("click", () => this.closeSettings());
+        this.closeHelpBtn.addEventListener("click", () => this.closeHelp());
         this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
         this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig());
@@ -455,48 +707,43 @@
           }
         });
 
-        document.addEventListener("keydown", (event) => {
-          if (event.defaultPrevented) {
-            return;
-          }
-
-          const active = document.activeElement;
-          if (active === this.inputEl || active === this.serverUriEl) {
-            return;
-          }
-
-          if (event.key === "Escape" && this.settingsModal && !this.settingsModal.classList.contains("hidden")) {
-            event.preventDefault();
-            this.closeSettings();
-            return;
-          }
-
-          if (event.key === "Enter") {
-            event.preventDefault();
-            this.inputEl.focus();
-            return;
-          }
-
-          if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-            this.inputEl.focus();
-            this.inputEl.value += event.key;
-            event.preventDefault();
+        this.helpModal.addEventListener("click", (event) => {
+          if (event.target === this.helpModal) {
+            this.closeHelp();
           }
         });
 
+        document.addEventListener("keydown", (event) => this.onGlobalKeyDown(event));
         window.addEventListener("beforeunload", () => this.disconnect(true));
+      }
+
+      normalizeStringMap(raw, normalizer = (key) => String(key).trim().toLowerCase()) {
+        if (!raw || typeof raw !== "object") {
+          return {};
+        }
+
+        const normalized = {};
+        Object.entries(raw).forEach(([key, value]) => {
+          const normalizedKey = normalizer(key);
+          const expansion = String(value || "").trim();
+          if (normalizedKey && expansion) {
+            normalized[normalizedKey] = expansion;
+          }
+        });
+
+        return Object.fromEntries(Object.entries(normalized).sort(([left], [right]) => left.localeCompare(right)));
       }
 
       normalizeClientConfig(raw) {
         const data = raw && typeof raw === "object" ? raw : {};
-        const aliases = data.aliases && typeof data.aliases === "object" ? Object.fromEntries(
-          Object.entries(data.aliases).filter(([key, value]) => String(key).trim() && String(value).trim())
-        ) : {};
+        const aliases = this.normalizeStringMap(data.aliases, (key) => String(key).trim().toLowerCase());
+        const keyBindings = this.normalizeStringMap(data.key_bindings, (key) => normalizeBindKeyName(key));
 
         return {
           version: 1,
           server_uri: typeof data.server_uri === "string" && data.server_uri.trim() ? data.server_uri.trim() : DEFAULT_SERVER_URI,
           aliases,
+          key_bindings: keyBindings,
         };
       }
 
@@ -517,11 +764,14 @@
           version: 1,
           server_uri: this.serverUriEl.value.trim() || DEFAULT_SERVER_URI,
           aliases: this.aliases,
+          key_bindings: this.keyBindings,
         });
       }
 
       persistClientConfig() {
         const config = this.buildClientConfig();
+        this.aliases = config.aliases;
+        this.keyBindings = config.key_bindings;
         window.localStorage.setItem("mudproto.serverUri", config.server_uri);
         window.localStorage.setItem("mudproto.clientConfig", JSON.stringify(config));
         return config;
@@ -535,6 +785,7 @@
       }
 
       openSettings() {
+        this.closeHelp();
         this.settingsModal.classList.remove("hidden");
         this.settingsModal.setAttribute("aria-hidden", "false");
       }
@@ -542,6 +793,26 @@
       closeSettings() {
         this.settingsModal.classList.add("hidden");
         this.settingsModal.setAttribute("aria-hidden", "true");
+      }
+
+      openHelp(sectionName = "") {
+        this.closeSettings();
+        this.helpModal.classList.remove("hidden");
+        this.helpModal.setAttribute("aria-hidden", "false");
+
+        const sectionTargets = {
+          aliases: this.aliasHelpSection,
+          binds: this.bindHelpSection,
+        };
+        const section = sectionTargets[sectionName];
+        if (section) {
+          window.setTimeout(() => section.scrollIntoView({ block: "start", behavior: "smooth" }), 0);
+        }
+      }
+
+      closeHelp() {
+        this.helpModal.classList.add("hidden");
+        this.helpModal.setAttribute("aria-hidden", "true");
       }
 
       saveConfig() {
@@ -593,6 +864,7 @@
             const parsed = JSON.parse(String(reader.result || "{}"));
             const normalized = this.normalizeClientConfig(parsed);
             this.aliases = normalized.aliases || {};
+            this.keyBindings = normalized.key_bindings || {};
             this.serverUriEl.value = normalized.server_uri;
             this.persistClientConfig();
             this.appendSystemMessage("Loaded client config. Reconnect to apply any server change.", "bright_green");
@@ -604,14 +876,276 @@
         reader.readAsText(file);
       }
 
+      onGlobalKeyDown(event) {
+        if (event.defaultPrevented) {
+          return;
+        }
+
+        if (event.key === "Escape") {
+          if (this.helpModal && !this.helpModal.classList.contains("hidden")) {
+            event.preventDefault();
+            this.closeHelp();
+            return;
+          }
+          if (this.settingsModal && !this.settingsModal.classList.contains("hidden")) {
+            event.preventDefault();
+            this.closeSettings();
+            return;
+          }
+        }
+
+        if (this.tryExecuteBoundKey(event)) {
+          return;
+        }
+
+        const active = document.activeElement;
+        if (active === this.inputEl || active === this.serverUriEl) {
+          return;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          this.inputEl.focus();
+          return;
+        }
+
+        if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          this.inputEl.focus();
+          this.inputEl.value += event.key;
+          event.preventDefault();
+        }
+      }
+
+      tryExecuteBoundKey(event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) {
+          return false;
+        }
+        if ((this.helpModal && !this.helpModal.classList.contains("hidden")) || (this.settingsModal && !this.settingsModal.classList.contains("hidden"))) {
+          return false;
+        }
+
+        const normalizedKey = bindEventKeyName(event);
+        if (!normalizedKey || normalizedKey === "f1") {
+          return false;
+        }
+
+        const expansion = this.keyBindings[normalizedKey];
+        if (!expansion) {
+          return false;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        this.executeCommandLine(expansion, { depth: 0 });
+        return true;
+      }
+
+      collectReferencedAliasPosition(template) {
+        const matches = String(template || "").match(/%([1-9])/g) || [];
+        return matches.reduce((highest, match) => Math.max(highest, Number(match.slice(1))), 0);
+      }
+
+      resolveAliasExpansion(template, remainderText) {
+        const remainder = String(remainderText || "").trim();
+        const args = parseCommandWords(remainder);
+        const highestReferenced = this.collectReferencedAliasPosition(template);
+        const remainingText = highestReferenced > 0 ? args.slice(highestReferenced).join(" ") : remainder;
+
+        return String(template || "").replace(/%([0-9r])/gi, (_match, token) => {
+          const lowered = String(token).toLowerCase();
+          if (lowered === "0") {
+            return remainder;
+          }
+          if (lowered === "r") {
+            return remainingText;
+          }
+          const index = Number(lowered) - 1;
+          return index >= 0 ? (args[index] || "") : "";
+        });
+      }
+
+      applyAliasExpansion(command, depth = 0) {
+        const { commandName, remainder } = splitLeadingToken(command);
+        const aliasKey = commandName.toLowerCase();
+        const expansion = this.aliases[aliasKey];
+        if (!expansion) {
+          return false;
+        }
+        if (depth >= MAX_ALIAS_EXPANSION_DEPTH) {
+          this.appendSystemMessage("Alias recursion depth exceeded.", "bright_red");
+          return true;
+        }
+
+        const resolved = this.resolveAliasExpansion(expansion, remainder);
+        this.executeCommandLine(resolved, { depth: depth + 1 });
+        return true;
+      }
+
+      matchingEntries(mapping, pattern = "") {
+        const entries = Object.entries(mapping || {}).sort(([left], [right]) => left.localeCompare(right));
+        const trimmedPattern = String(pattern || "").trim().toLowerCase();
+        if (!trimmedPattern) {
+          return entries;
+        }
+        const matcher = wildcardToRegExp(trimmedPattern);
+        return entries.filter(([name]) => matcher.test(name));
+      }
+
+      showMappingList(mapping, pattern, emptyMessage) {
+        const entries = this.matchingEntries(mapping, pattern);
+        if (!entries.length) {
+          this.appendSystemMessage(emptyMessage, "bright_yellow");
+          return;
+        }
+        this.appendSystemMessage(entries.map(([name, expansion]) => `${name} = ${expansion}`).join("\n"), "bright_cyan");
+      }
+
+      handleAliasCommand(commandText) {
+        const { remainder } = splitLeadingToken(commandText);
+        if (!remainder) {
+          this.showMappingList(this.aliases, "", "No aliases defined.");
+          return;
+        }
+
+        const { commandName: aliasName, remainder: expansion } = splitLeadingToken(remainder);
+        if (!aliasName) {
+          this.appendSystemMessage("Invalid alias name.", "bright_yellow");
+          return;
+        }
+
+        if (!expansion) {
+          this.showMappingList(this.aliases, aliasName, `No aliases match ${aliasName}.`);
+          return;
+        }
+
+        const normalizedName = String(aliasName).trim().toLowerCase();
+        if (!normalizedName || normalizedName.startsWith("#") || /\s/.test(aliasName)) {
+          this.appendSystemMessage("Invalid alias name.", "bright_yellow");
+          return;
+        }
+
+        this.aliases[normalizedName] = expansion.trim();
+        this.persistClientConfig();
+        this.appendSystemMessage(`${normalizedName} = ${this.aliases[normalizedName]}`, "bright_green");
+      }
+
+      handleBindCommand(commandText) {
+        const { remainder } = splitLeadingToken(commandText);
+        if (!remainder) {
+          this.showMappingList(this.keyBindings, "", "No binds defined.");
+          return;
+        }
+
+        const { commandName: rawKeyName, remainder: expansion } = splitLeadingToken(remainder);
+        if (!rawKeyName) {
+          this.appendSystemMessage("Invalid key name.", "bright_yellow");
+          return;
+        }
+
+        if (!expansion) {
+          this.showMappingList(this.keyBindings, rawKeyName, `No binds match ${rawKeyName}.`);
+          return;
+        }
+
+        const normalizedKey = normalizeBindKeyName(rawKeyName);
+        if (String(rawKeyName).trim().toLowerCase() === "f1") {
+          this.appendSystemMessage("Reserved key: f1 cannot be rebound.", "bright_yellow");
+          return;
+        }
+        if (!normalizedKey) {
+          this.appendSystemMessage("Invalid key name.", "bright_yellow");
+          return;
+        }
+
+        this.keyBindings[normalizedKey] = expansion.trim();
+        this.persistClientConfig();
+        this.appendSystemMessage(`${normalizedKey} = ${this.keyBindings[normalizedKey]}`, "bright_green");
+      }
+
+      executeCommandLine(rawText, { depth = 0 } = {}) {
+        let segments;
+        try {
+          segments = splitCommandLine(rawText);
+        } catch (error) {
+          this.appendSystemMessage(error instanceof Error ? error.message : "Malformed input.", "bright_yellow");
+          return;
+        }
+
+        for (let index = 0; index < segments.length; index += 1) {
+          let commandText = segments[index];
+          const { commandName, remainder } = splitLeadingToken(commandText);
+          const localCommand = commandName.toLowerCase();
+
+          if ((localCommand === "#alias" || localCommand === "#bind") && index < segments.length - 1) {
+            try {
+              if (parseCommandWords(remainder).length >= 2) {
+                commandText = segments.slice(index).join(";");
+                this.dispatchCommand(commandText, depth);
+                break;
+              }
+            } catch (error) {
+              this.appendSystemMessage(error instanceof Error ? error.message : "Malformed input.", "bright_yellow");
+              return;
+            }
+          }
+
+          this.dispatchCommand(commandText, depth);
+        }
+      }
+
+      dispatchCommand(commandText, depth = 0) {
+        const normalizedText = String(commandText || "").trim();
+        if (!normalizedText) {
+          return;
+        }
+
+        const { commandName } = splitLeadingToken(normalizedText);
+        const localCommand = commandName.toLowerCase();
+
+        if (localCommand === "#clear") {
+          this.clearOutput();
+          return;
+        }
+
+        if (localCommand === "#quit") {
+          this.appendSystemMessage("Disconnected locally.", "bright_yellow");
+          this.disconnect(true);
+          return;
+        }
+
+        if (localCommand === "#help") {
+          this.openHelp();
+          return;
+        }
+
+        if (localCommand === "#alias") {
+          this.handleAliasCommand(commandText);
+          return;
+        }
+
+        if (localCommand === "#bind") {
+          this.handleBindCommand(commandText);
+          return;
+        }
+
+        if (localCommand.startsWith("#")) {
+          this.appendSystemMessage("Unknown local command. Available: #clear, #quit, #alias, #bind, #help.", "bright_yellow");
+          return;
+        }
+
+        if (this.applyAliasExpansion(normalizedText, depth)) {
+          return;
+        }
+
+        this.sendText(normalizedText);
+      }
+
       openAliasesModal() {
-        this.closeSettings();
-        this.appendSystemMessage("Aliases editor placeholder is ready for the next step.", "bright_cyan");
+        this.openHelp("aliases");
       }
 
       openKeyBindingsModal() {
-        this.closeSettings();
-        this.appendSystemMessage("Key bindings editor placeholder is ready for the next step.", "bright_cyan");
+        this.openHelp("binds");
       }
 
       setStatus(text, state) {
@@ -748,31 +1282,17 @@
 
         if (normalizedText) {
           this.recordHistory(normalizedText);
+          this.executeCommandLine(rawText, { depth: 0 });
         }
 
-        const localCommand = normalizedText.toLowerCase();
-
-        if (localCommand === "#clear") {
-          this.clearOutput();
-          return;
-        }
-
-        if (localCommand === "#quit") {
-          this.appendSystemMessage("Disconnected locally.", "bright_yellow");
-          this.disconnect(true);
-          return;
-        }
-
-        if (localCommand.startsWith("#")) {
-          this.appendSystemMessage("Unknown local command. Available: #clear, #quit.", "bright_yellow");
-          return;
-        }
-
-        this.sendText(rawText);
         this.focusInput();
       }
 
       onHistoryKey(event) {
+        if (this.tryExecuteBoundKey(event)) {
+          return;
+        }
+
         if (event.key === "ArrowUp") {
           event.preventDefault();
           this.onHistoryUp();

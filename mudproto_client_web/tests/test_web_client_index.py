@@ -15,8 +15,10 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "function buildInputMessage" in content
     assert "function renderDisplayMessage" in content
     assert 'id="connectionBtn"' in content
+    assert 'id="helpBtn"' in content
     assert 'id="menuBtn"' in content
     assert 'id="settingsModal"' in content
+    assert 'id="helpModal"' in content
     assert "toggleConnection()" in content
     assert "Save Config" in content
     assert "Save Config As..." in content
@@ -45,10 +47,16 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "text-rendering: optimizeLegibility;" in content
     assert "#clear" in content
     assert "#quit" in content
-    assert 'const localCommand = normalizedText.toLowerCase();' in content
+    assert "#alias" in content
+    assert "#bind" in content
+    assert 'splitCommandLine(commandLine)' in content
+    assert 'executeCommandLine(rawText' in content
+    assert 'handleAliasCommand(commandText)' in content
+    assert 'handleBindCommand(commandText)' in content
+    assert 'normalizeBindKeyName(keyName)' in content
+    assert 'MAX_ALIAS_EXPANSION_DEPTH = 8' in content
     assert 'localCommand === "#clear"' in content
     assert 'localCommand === "#quit"' in content
-    assert 'localCommand.startsWith("#")' in content
 
 
 def test_web_client_prunes_old_output_and_history() -> None:
@@ -57,6 +65,8 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert "MAX_OUTPUT_GROUPS = 400" in content
     assert "MAX_RENDER_QUEUE_GROUPS = 100" in content
     assert "MAX_COMMAND_HISTORY = 100" in content
+    assert 'key_bindings' in content
+    assert 'this.keyBindings' in content
     assert 'window.localStorage.setItem("mudproto.clientConfig"' in content
     assert "downloadClientConfig(fileName)" in content
     assert ".modal-body {" in content

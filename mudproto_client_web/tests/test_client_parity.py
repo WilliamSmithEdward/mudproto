@@ -35,4 +35,7 @@ def test_web_client_keeps_primary_settings_actions() -> None:
     assert "Load Config" in content
     assert "Aliases" in content
     assert "Key Bindings" in content
+    assert 'id="helpBtn"' in content
+    assert "Alias Commands" in content
+    assert "Bind Commands" in content
     assert "Focus Input" not in content
