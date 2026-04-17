@@ -56,4 +56,5 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'document.createElement("span")' in content
     assert 'this.renderQueue.splice(0, this.renderQueue.length - MAX_RENDER_QUEUE_GROUPS)' in content
     assert '.output-group {' in content
+    assert 'display: inline;' in content
     assert 'state === "connected" || state === "connecting" ? "Disconnect" : "Connect"' in content
