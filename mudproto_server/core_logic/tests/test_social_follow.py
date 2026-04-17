@@ -662,3 +662,60 @@ def test_reconnect_copies_follow_state_to_new_session() -> None:
     assert new_session.group_member_keys is not follower.group_member_keys
 
     _clear_session_registries()
+
+
+def test_disconnected_member_visible_in_group_status() -> None:
+    """A disconnected group member appears in the group menu with 'Disconnected' state."""
+    _clear_session_registries()
+    leader, member = _register_room_pair(follower_name="Lucia")
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    member_key = (member.player_state_key or member.client_id).strip().lower()
+
+    member.following_player_key = leader.player_state_key
+    member.following_player_name = leader.authenticated_character_name
+    member.group_leader_key = leader_key
+    leader.group_member_keys = {member_key}
+
+    # Simulate soft disconnect: move member to active_character_sessions.
+    connected_clients.pop(member.client_id, None)
+    member.is_connected = False
+    member.disconnected_by_server = False
+    active_character_sessions[member_key] = member
+
+    response = social.handle_social_command(leader, "group", [], "group")
+    text = _extract_display_text(response)
+    assert "Lucia" in text
+    assert "Disconnected" in text
+    # Member key should still be in the group.
+    assert member_key in leader.group_member_keys
+
+    _clear_session_registries()
+
+
+def test_leader_can_ungroup_disconnected_member() -> None:
+    """The leader can ungroup a member who is offline (in active_character_sessions)."""
+    _clear_session_registries()
+    leader, member = _register_room_pair(follower_name="Lucia")
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    member_key = (member.player_state_key or member.client_id).strip().lower()
+
+    member.following_player_key = leader.player_state_key
+    member.following_player_name = leader.authenticated_character_name
+    member.group_leader_key = leader_key
+    leader.group_member_keys = {member_key}
+
+    # Simulate soft disconnect.
+    connected_clients.pop(member.client_id, None)
+    member.is_connected = False
+    member.disconnected_by_server = False
+    active_character_sessions[member_key] = member
+
+    response = social.handle_social_command(leader, "ungroup", ["Orlandu"], "ungroup Orlandu")
+    text = _extract_display_text(response)
+    assert "remove" in text.lower()
+    assert member_key not in leader.group_member_keys
+    assert member.group_leader_key == ""
+
+    _clear_session_registries()

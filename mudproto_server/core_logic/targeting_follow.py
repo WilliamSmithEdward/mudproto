@@ -5,7 +5,7 @@ import re
 
 from models import ClientSession
 from server_transport import send_outbound
-from session_registry import connected_clients, list_authenticated_room_players
+from session_registry import connected_clients, active_character_sessions, list_authenticated_room_players
 
 from targeting_parsing import _selector_prefix_matches_keywords
 
@@ -185,7 +185,7 @@ def _session_identity_key(session: ClientSession | None) -> str:
     return ((session.player_state_key or session.client_id) or "").strip().lower()
 
 
-def _find_session_by_identity_key(identity_key: str) -> ClientSession | None:
+def _find_session_by_identity_key(identity_key: str, *, include_offline: bool = False) -> ClientSession | None:
     normalized_key = str(identity_key).strip().lower()
     if not normalized_key:
         return None
@@ -195,6 +195,12 @@ def _find_session_by_identity_key(identity_key: str) -> ClientSession | None:
             continue
         if _session_identity_key(candidate) == normalized_key:
             return candidate
+
+    if include_offline:
+        offline = active_character_sessions.get(normalized_key)
+        if offline is not None and offline.is_authenticated:
+            return offline
+
     return None
 
 
@@ -381,7 +387,7 @@ def _list_group_member_sessions(session: ClientSession) -> tuple[ClientSession, 
 
     valid_member_sessions: list[ClientSession] = []
     for member_key in list(leader_session.group_member_keys):
-        member_session = _find_session_by_identity_key(member_key)
+        member_session = _find_session_by_identity_key(member_key, include_offline=True)
         if member_session is None:
             leader_session.group_member_keys.discard(member_key)
             continue

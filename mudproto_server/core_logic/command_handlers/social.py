@@ -270,20 +270,27 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
     row_cell_colors: list[list[str]] = []
     for member_session in member_sessions:
         caps = get_player_resource_caps(member_session)
+        is_offline = not member_session.is_connected or member_session.disconnected_by_server
         condition, condition_color = get_health_condition(member_session.status.hit_points, caps["hit_points"])
         role = "Leader" if _session_identity_key(member_session) == leader_key else "Member"
         role_color = "feedback.warning" if role == "Leader" else "feedback.value"
         show_mana = player_class_uses_mana(member_session.player.class_id) and int(caps.get("mana", 0)) > 0
         mana_text = f"{member_session.status.mana}/{caps['mana']}" if show_mana else "-"
+        if is_offline:
+            state_text = "Disconnected"
+            state_color = "feedback.error"
+        else:
+            state_text = condition.title()
+            state_color = condition_color
         rows.append([
             role,
             _display_name(member_session),
             f"{member_session.status.hit_points}/{caps['hit_points']}",
             f"{member_session.status.vigor}/{caps['vigor']}",
             mana_text,
-            condition.title(),
+            state_text,
         ])
-        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", condition_color])
+        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", state_color])
 
     return build_menu_table_parts(
         "Group Status",
