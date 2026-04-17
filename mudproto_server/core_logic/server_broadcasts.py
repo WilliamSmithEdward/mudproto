@@ -63,12 +63,6 @@ def _contains_player_death_line(lines: list[list[dict]]) -> bool:
     return False
 
 
-def _ensure_leading_blank_lines(lines: list[list[dict]], desired_count: int) -> list[list[dict]]:
-    leading_blank_count = 0
-    while leading_blank_count < len(lines) and not lines[leading_blank_count]:
-        leading_blank_count += 1
-    return ([[]] * max(0, desired_count - leading_blank_count)) + lines
-
 
 def _merge_lines_with_pending_private(existing_lines: object, pending_lines: list[list[dict]]) -> list[list[dict]]:
     normalized_existing = _normalized_line_lists(existing_lines)
@@ -254,10 +248,7 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
                 copied_payload["lines"] = normalized_lines
 
             normalized_lines = _normalized_line_lists(copied_payload.get("lines"))
-            if normalized_lines:
-                copied_payload["lines"] = _ensure_leading_blank_lines(normalized_lines, 1)
-            else:
-                copied_payload["lines"] = normalized_lines
+            copied_payload["lines"] = normalized_lines
         broadcast_messages.append(copied_message)
 
     return broadcast_messages

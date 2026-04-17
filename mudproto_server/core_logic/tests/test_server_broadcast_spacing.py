@@ -57,7 +57,7 @@ def test_normalize_prompt_spacing_does_not_double_gap_when_content_already_trail
     assert _line_text(prompt_lines[0]).endswith("> ")
 
 
-def test_room_broadcast_messages_add_at_most_one_leading_blank_line() -> None:
+def test_room_broadcast_messages_have_no_leading_blank_line() -> None:
     origin = _make_session("client-origin", name="Lucia")
     outbound = build_display([build_part("You cast regeneration ward on you.")])
 
@@ -69,11 +69,10 @@ def test_room_broadcast_messages_add_at_most_one_leading_blank_line() -> None:
 
     lines = payload.get("lines")
     assert isinstance(lines, list)
-    assert lines[0] == []
-    assert lines[1] != []
+    assert lines[0] != []
 
 
-def test_room_broadcast_messages_keep_single_leading_blank_if_already_present() -> None:
+def test_room_broadcast_messages_keep_leading_blank_if_already_present() -> None:
     origin = _make_session("client-origin-2", name="Lucia")
     outbound = build_display([
         build_part("\n"),
