@@ -262,6 +262,8 @@
 
     const RECONNECT_INTERVAL_MS = 5000;
     const DEFAULT_SERVER_URI = "wss://williamsmithe.com:8765/";
+    const MAX_OUTPUT_GROUPS = 500;
+    const MAX_COMMAND_HISTORY = 100;
 
     function utcNowIso() {
       return new Date().toISOString();
@@ -541,6 +543,9 @@
       recordHistory(command) {
         if (!this.commandHistory.length || this.commandHistory[this.commandHistory.length - 1] !== command) {
           this.commandHistory.push(command);
+          if (this.commandHistory.length > MAX_COMMAND_HISTORY) {
+            this.commandHistory.splice(0, this.commandHistory.length - MAX_COMMAND_HISTORY);
+          }
         }
         this.historyIndex = null;
         this.historyStash = "";
@@ -549,6 +554,12 @@
       isNearBottom() {
         const remaining = this.outputEl.scrollHeight - this.outputEl.scrollTop - this.outputEl.clientHeight;
         return remaining <= this.autoScrollThresholdPx;
+      }
+
+      pruneOutput() {
+        while (this.outputEl.childElementCount > MAX_OUTPUT_GROUPS) {
+          this.outputEl.firstElementChild?.remove();
+        }
       }
 
       appendPart(fragment, part) {
@@ -586,24 +597,29 @@
             continue;
           }
 
+          const group = document.createElement("span");
+          group.className = "output-group";
+
           if (!this.outputEndsWithNewline) {
-            fragment.appendChild(document.createTextNode("\n"));
+            group.appendChild(document.createTextNode("\n"));
           }
 
           lines.forEach((line, index) => {
             if (index > 0) {
-              fragment.appendChild(document.createTextNode("\n"));
+              group.appendChild(document.createTextNode("\n"));
             }
             if (!Array.isArray(line)) {
               return;
             }
-            line.forEach((part) => this.appendPart(fragment, part));
+            line.forEach((part) => this.appendPart(group, part));
           });
 
           this.outputEndsWithNewline = Array.isArray(lines[lines.length - 1]) && lines[lines.length - 1].length === 0;
+          fragment.appendChild(group);
         }
 
         this.outputEl.appendChild(fragment);
+        this.pruneOutput();
         if (shouldStickToBottom) {
           this.outputEl.scrollTop = this.outputEl.scrollHeight;
         }

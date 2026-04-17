@@ -27,3 +27,14 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "text-rendering: optimizeLegibility;" in content
     assert "/clear" in content
     assert "/quit" in content
+
+
+def test_web_client_prunes_old_output_and_history() -> None:
+    content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
+
+    assert "MAX_OUTPUT_GROUPS = 500" in content
+    assert "MAX_COMMAND_HISTORY = 100" in content
+    assert "pruneOutput()" in content
+    assert "childElementCount > MAX_OUTPUT_GROUPS" in content
+    assert "firstElementChild?.remove()" in content
+    assert 'document.createElement("span")' in content
