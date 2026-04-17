@@ -60,15 +60,17 @@ def test_web_client_color_map_matches_gui_client() -> None:
 def test_gui_and_web_clients_share_local_command_contract() -> None:
     content = _read_web_source()
 
-    assert "/clear" in content
-    assert "/quit" in content
+    assert "#clear" in content
+    assert "#quit" in content
     assert "ArrowUp" in content
     assert "ArrowDown" in content
 
-    assert 'toLowerCase() === "/clear"' in content
-    assert 'toLowerCase() === "/quit"' in content
-    assert '"/clear"' in GUI_CLIENT_SOURCE
-    assert '"/quit"' in GUI_CLIENT_SOURCE
+    assert 'localCommand === "#clear"' in content
+    assert 'localCommand === "#quit"' in content
+    assert 'localCommand.startsWith("#")' in content
+    assert '"#clear"' in GUI_CLIENT_SOURCE
+    assert '"#quit"' in GUI_CLIENT_SOURCE
+    assert 'startswith("#")' in GUI_CLIENT_SOURCE
     assert "def on_history_up" in GUI_CLIENT_SOURCE
     assert "def on_history_down" in GUI_CLIENT_SOURCE
     assert "clear_output" in GUI_CLIENT_SOURCE

@@ -10,8 +10,8 @@ These should match unless there is a very strong reason not to:
 - reconnect timing
 - server-driven semantic color rendering
 - handling of structured display messages
-- local `/clear` behavior
-- local `/quit` behavior
+- local `#clear` behavior
+- local `#quit` behavior
 - command history with Up and Down keys
 
 If any of those change, update both clients in the same pass and keep the parity tests passing.

@@ -27,8 +27,12 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "requestAnimationFrame" in content
     assert "createDocumentFragment" in content
     assert "text-rendering: optimizeLegibility;" in content
-    assert "/clear" in content
-    assert "/quit" in content
+    assert "#clear" in content
+    assert "#quit" in content
+    assert 'const localCommand = normalizedText.toLowerCase();' in content
+    assert 'localCommand === "#clear"' in content
+    assert 'localCommand === "#quit"' in content
+    assert 'localCommand.startsWith("#")' in content
 
 
 def test_web_client_prunes_old_output_and_history() -> None:

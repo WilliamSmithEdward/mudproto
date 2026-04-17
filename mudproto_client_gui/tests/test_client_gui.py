@@ -103,7 +103,7 @@ def test_on_submit_sends_blank_spaces_to_server(monkeypatch) -> None:
 
 
 def test_on_submit_handles_clear_locally(monkeypatch) -> None:
-    client = _make_client("  /clear  ")
+    client = _make_client("  #clear  ")
     sent: list[str] = []
     cleared: list[bool] = []
 
@@ -120,11 +120,11 @@ def test_on_submit_handles_clear_locally(monkeypatch) -> None:
     assert result == "break"
     assert cleared == [True]
     assert sent == []
-    assert client.command_history == ["/clear"]
+    assert client.command_history == ["#clear"]
 
 
 def test_on_submit_handles_quit_locally(monkeypatch) -> None:
-    client = _make_client(" /quit ")
+    client = _make_client(" #quit ")
     sent: list[str] = []
     closed: list[bool] = []
 
@@ -141,7 +141,28 @@ def test_on_submit_handles_quit_locally(monkeypatch) -> None:
     assert result == "break"
     assert closed == [True]
     assert sent == []
-    assert client.command_history == ["/quit"]
+    assert client.command_history == ["#quit"]
+
+
+def test_on_submit_keeps_unknown_hash_command_local(monkeypatch) -> None:
+    client = _make_client(" #help ")
+    sent: list[str] = []
+    notices: list[tuple[str, str]] = []
+
+    async def _fake_send(text: str) -> None:
+        sent.append(text)
+
+    monkeypatch.setattr(client, "_send_text_async", _fake_send)
+    monkeypatch.setattr(client_gui.asyncio, "run_coroutine_threadsafe", lambda coroutine, _loop: _ImmediateFuture(coroutine))
+    monkeypatch.setattr(client_gui.threading, "Thread", _ImmediateThread)
+    monkeypatch.setattr(client, "append_system_message", lambda text, fg="bright_white": notices.append((text, fg)))
+
+    result = client.on_submit()
+
+    assert result == "break"
+    assert sent == []
+    assert notices == [("Unknown local command. Available: #clear, #quit.", "bright_yellow")]
+    assert client.command_history == ["#help"]
 
 
 def test_on_submit_keeps_raw_text_but_normalizes_history(monkeypatch) -> None:

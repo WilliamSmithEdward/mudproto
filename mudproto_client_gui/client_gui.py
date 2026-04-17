@@ -502,12 +502,17 @@ class MudProtoGuiClient:
         if normalized_text:
             self._record_history(normalized_text)
 
-        if normalized_text.lower() == "/clear":
+        local_command = normalized_text.lower()
+        if local_command == "#clear":
             self.clear_output()
             return "break"
 
-        if normalized_text.lower() == "/quit":
+        if local_command == "#quit":
             self.on_close()
+            return "break"
+
+        if local_command.startswith("#"):
+            self.append_system_message("Unknown local command. Available: #clear, #quit.", fg="bright_yellow")
             return "break"
 
         future = asyncio.run_coroutine_threadsafe(self._send_text_async(raw_text), self.network_loop)

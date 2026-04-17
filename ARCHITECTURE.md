@@ -18,7 +18,7 @@ Responsibilities:
 - Open and maintain the WebSocket connection.
 - Send raw user input to the server as `input` messages.
 - Render `display` messages and prompts.
-- Handle local-only client actions such as `/quit`.
+- Handle local-only client actions such as `#quit`.
 
 The GUI client renders structured payload in a Tk-based interface and should not
 know command semantics or gameplay rules.

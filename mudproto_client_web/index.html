@@ -491,14 +491,21 @@
           this.recordHistory(normalizedText);
         }
 
-        if (normalizedText.toLowerCase() === "/clear") {
+        const localCommand = normalizedText.toLowerCase();
+
+        if (localCommand === "#clear") {
           this.clearOutput();
           return;
         }
 
-        if (normalizedText.toLowerCase() === "/quit") {
+        if (localCommand === "#quit") {
           this.appendSystemMessage("Disconnected locally.", "bright_yellow");
           this.disconnect(true);
+          return;
+        }
+
+        if (localCommand.startsWith("#")) {
+          this.appendSystemMessage("Unknown local command. Available: #clear, #quit.", "bright_yellow");
           return;
         }
 
