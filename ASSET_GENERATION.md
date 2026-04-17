@@ -2,7 +2,7 @@
 
 > Scope: this document covers how to add or modify content in `mudproto_server/configuration/assets/`.
 >
-> Note: the real folder name is `assets` â€” not `asssets`.
+> Note: the real folder name is `assets` - not `asssets`.
 
 ---
 
@@ -35,7 +35,7 @@ When editing or generating assets, follow these rules exactly:
 1. **All files must be valid JSON**
    - Use double quotes.
    - No trailing commas.
-   - Top-level structure must match the fileâ€™s expected shape.
+   - Top-level structure must match the file's expected shape.
 
 2. **IDs must be unique within their asset type**
    - Duplicate IDs will raise a `ValueError` and stop load/startup.
@@ -121,17 +121,17 @@ A **list** of objects.
 ### Required/common fields
 
 #### Shared
-- `template_id` â€” required, unique string
-- `name` â€” required, non-empty string
-- `slot` â€” required, must be `"weapon"` or `"armor"`
-- `description` â€” recommended
-- `keywords` â€” recommended list of lowercase tokens
-- `weight` â€” non-negative integer
-- `coin_value` â€” non-negative integer
+- `template_id` - required, unique string
+- `name` - required, non-empty string
+- `slot` - required, must be `"weapon"` or `"armor"`
+- `description` - recommended
+- `keywords` - recommended list of lowercase tokens
+- `weight` - non-negative integer
+- `coin_value` - non-negative integer
 
 #### Weapon-only fields
-- `weapon_type` â€” e.g. `sword`, `dagger`
-- `can_hold` â€” `true` if the item should be holdable/off-hand usable for players
+- `weapon_type` - e.g. `sword`, `dagger`
+- `can_hold` - `true` if the item should be holdable/off-hand usable for players
 - `damage_dice_count`
 - `damage_dice_sides`
 - `damage_roll_modifier`
@@ -140,8 +140,8 @@ A **list** of objects.
 - `attacks_per_round_bonus`
 
 #### Armor-only fields
-- `wear_slots` â€” **required for armor**, non-empty list
-- `armor_class_bonus` â€” must be `>= 0`
+- `wear_slots` - **required for armor**, non-empty list
+- `armor_class_bonus` - must be `>= 0`
 
 ### Important validation rules
 - Weapons **cannot** define `wear_slots`.
@@ -205,17 +205,17 @@ Items in this file are `item_type`-driven templates. Common uses include:
 - `name`
 - `description`
 - `keywords`
-- `item_type` â€” allowed values currently include `consumable`, `potion`, `key`, `misc`, and `container`
-- `coin_value` â€” non-negative integer
-- `use_lag_seconds` â€” non-negative float
-- `observer_action` â€” optional but recommended
-- `observer_context` â€” optional but recommended
+- `item_type` - allowed values currently include `consumable`, `potion`, `key`, `misc`, and `container`
+- `coin_value` - non-negative integer
+- `use_lag_seconds` - non-negative float
+- `observer_action` - optional but recommended
+- `observer_context` - optional but recommended
 
 ### Restore consumables and potions
 For restore items, also supply:
-- `effect_type` â€” currently `"restore"`
-- `effect_target` â€” one of `hit_points`, `mana`, or `vigor`
-- `effect_amount` â€” integer, must be `> 0`
+- `effect_type` - currently `"restore"`
+- `effect_target` - one of `hit_points`, `mana`, or `vigor`
+- `effect_amount` - integer, must be `> 0`
 
 Potion items should use `item_type: "potion"` directly. In play they can be consumed with either `use <item>` or the quaff aliases.
 
@@ -271,10 +271,10 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 ```
 
 ### Common fields
-- `npc_id` â€” required, unique string
-- `name` â€” required
-- `hit_points`, `max_hit_points` â€” must be `> 0`
-- `power_level` â€” non-negative integer
+- `npc_id` - required, unique string
+- `name` - required
+- `hit_points`, `max_hit_points` - must be `> 0`
+- `power_level` - non-negative integer
 - `attacks_per_round`
 - `hit_roll_modifier`
 - `armor_class`
@@ -287,25 +287,25 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 - `is_ally`
 - `is_peaceful`
 - `respawn`
-- `pronoun_possessive` â€” e.g. `his`, `her`, `its`
-- `main_hand_weapon` â€” object with `template_id`, `spawn_chance`, `drop_on_death`
-- `off_hand_weapon` â€” object with `template_id`, `spawn_chance`, `drop_on_death`
-- `inventory_items` â€” template-backed carried items; each entry may include `spawn_chance`
+- `pronoun_possessive` - e.g. `his`, `her`, `its`
+- `main_hand_weapon` - object with `template_id`, `spawn_chance`, `drop_on_death`
+- `off_hand_weapon` - object with `template_id`, `spawn_chance`, `drop_on_death`
+- `inventory_items` - template-backed carried items; each entry may include `spawn_chance`
 - `vigor`, `max_vigor`
 - `mana`, `max_mana`
-- `skill_use_chance` â€” float from `0.0` to `1.0`
-- `skill_ids` â€” valid `skill_id`s
-- `spell_use_chance` â€” float from `0.0` to `1.0`
-- `spell_ids` â€” valid `spell_id`s
+- `skill_use_chance` - float from `0.0` to `1.0`
+- `skill_ids` - valid `skill_id`s
+- `spell_use_chance` - float from `0.0` to `1.0`
+- `spell_ids` - valid `spell_id`s
 
 ### Merchant-only fields
 - `is_merchant: true`
-- `merchant_inventory` â€” list of stock objects:
+- `merchant_inventory` - list of stock objects:
   - `template_id`
-  - `infinite` â€” boolean
-  - `quantity` â€” required for limited stock (`>= 1` when `infinite: false`)
-- `merchant_buy_markup` â€” must be `> 0`
-- `merchant_sell_ratio` â€” must be between `0.0` and `1.0`
+  - `infinite` - boolean
+  - `quantity` - required for limited stock (`>= 1` when `infinite: false`)
+- `merchant_buy_markup` - must be `> 0`
+- `merchant_sell_ratio` - must be between `0.0` and `1.0`
 
 ### Respawn / world behavior notes
 - `respawn: true` means the NPC is eligible for zone-driven repopulation.
@@ -369,12 +369,12 @@ A **list** of rooms.
 - `title`
 - `description`
 - `zone_id`
-- `exits` â€” object mapping direction to destination `room_id`
+- `exits` - object mapping direction to destination `room_id`
 
 ### Optional field
-- `npcs` â€” list of spawn objects:
+- `npcs` - list of spawn objects:
   - `npc_id`
-  - `count` â€” integer, must be `>= 1`
+  - `count` - integer, must be `>= 1`
 
 ### Example
 ```json
@@ -395,7 +395,7 @@ A **list** of rooms.
 
 ### Notes
 - Exit destinations are validated at world build time in `world.py`.
-- Room-to-zone membership comes from each roomâ€™s `zone_id`.
+- Room-to-zone membership comes from each room's `zone_id`.
 - Do **not** try to assign room membership inside `zones.json`; that is derived at runtime.
 
 ---
@@ -406,9 +406,9 @@ A **list** of rooms.
 A **list** of zone objects.
 
 ### Fields
-- `zone_id` â€” required, unique
-- `name` â€” required
-- `repopulate_game_hours` â€” integer, must be `>= 0`
+- `zone_id` - required, unique
+- `name` - required
+- `repopulate_game_hours` - integer, must be `>= 0`
 
 ### Example
 ```json
@@ -432,13 +432,13 @@ A **list** of zone objects.
 A **list** of spells.
 
 ### Required common fields
-- `spell_id` â€” required, unique
-- `name` â€” required, unique among spell names
-- `school` â€” required, non-empty
-- `description` â€” recommended
-- `mana_cost` â€” integer, `>= 0`
-- `spell_type` â€” `"damage"` or `"support"`
-- `cast_type` â€” `"self"`, `"target"`, or `"aoe"`
+- `spell_id` - required, unique
+- `name` - required, unique among spell names
+- `school` - required, non-empty
+- `description` - recommended
+- `mana_cost` - integer, `>= 0`
+- `spell_type` - `"damage"` or `"support"`
+- `cast_type` - `"self"`, `"target"`, or `"aoe"`
 
 If `cast_type` is omitted:
 - support spells default to `self`
@@ -448,14 +448,14 @@ If `cast_type` is omitted:
 - `damage_dice_count`
 - `damage_dice_sides`
 - `damage_modifier`
-- `damage_scaling_attribute_id` â€” must be a valid attribute id, usually `int`
-- `damage_scaling_multiplier` â€” `>= 0`
-- `level_scaling_multiplier` â€” `>= 0`
-- `damage_context` â€” **required for damage spells**
+- `damage_scaling_attribute_id` - must be a valid attribute id, usually `int`
+- `damage_scaling_multiplier` - `>= 0`
+- `level_scaling_multiplier` - `>= 0`
+- `damage_context` - **required for damage spells**
 
 Optional life-steal style fields on damage spells:
-- `restore_effect` â€” `heal`, `vigor`, or `mana`
-- `restore_ratio` â€” `0.0` to `1.0`
+- `restore_effect` - `heal`, `vigor`, or `mana`
+- `restore_ratio` - `0.0` to `1.0`
 - `restore_context`
 - `observer_restore_context`
 
@@ -527,24 +527,24 @@ Optional presentation fields:
 A **list** of skills.
 
 ### Required/common fields
-- `skill_id` â€” required, unique
-- `name` â€” required, unique among skill names
+- `skill_id` - required, unique
+- `name` - required, unique among skill names
 - `description`
-- `skill_type` â€” `"damage"` or `"support"`
-- `cast_type` â€” `"self"`, `"target"`, or `"aoe"`
-- `vigor_cost` â€” integer, `>= 0`
-- `usable_out_of_combat` â€” boolean
-- `lag_rounds` â€” integer, `>= 0`
-- `cooldown_rounds` â€” integer, `>= 0`
-- `scaling_attribute_id` â€” if set, must be a valid attribute id
-- `scaling_multiplier` â€” `>= 0`
-- `level_scaling_multiplier` â€” `>= 0`
+- `skill_type` - `"damage"` or `"support"`
+- `cast_type` - `"self"`, `"target"`, or `"aoe"`
+- `vigor_cost` - integer, `>= 0`
+- `usable_out_of_combat` - boolean
+- `lag_rounds` - integer, `>= 0`
+- `cooldown_rounds` - integer, `>= 0`
+- `scaling_attribute_id` - if set, must be a valid attribute id
+- `scaling_multiplier` - `>= 0`
+- `level_scaling_multiplier` - `>= 0`
 
 ### Damage skill fields
 - `damage_dice_count`
 - `damage_dice_sides`
 - `damage_modifier`
-- `damage_context` â€” **required for damage skills**
+- `damage_context` - **required for damage skills**
 
 Optional on damage skills:
 - `restore_effect`
@@ -600,7 +600,17 @@ Optional on damage skills:
   "level_scaling_multiplier": 0.5,
   "support_effect": "",
   "support_amount": 0,
-  "affect_ids": ["affect.damage-reduction"],
+  "affect_ids": [{
+    "affect_id": "affect.received-damage",
+    "name": "Centered Guard",
+    "target": "self",
+    "amount": -0.12,
+    "amount_per_level_step": -0.02,
+    "level_step": 10,
+    "scaling_attribute_id": "con",
+    "scaling_multiplier": -0.005,
+    "duration_rounds": 3
+  }],
   "support_mode": "battle_rounds",
   "duration_rounds": 3,
   "support_context": "You settle into a centered guard, turning the worst of each blow aside.",
@@ -615,22 +625,45 @@ Optional on damage skills:
 
 ## 6. Affects
 
-Skills and spells can reference affect templates defined in `configuration/attributes/affects.json` via the `affect_ids` array. Each entry must be a string affect id. Inline affect payloads and per-skill or per-spell override objects are no longer supported.
+Skills and spells can reference shared affect templates defined in `configuration/attributes/affects.json` via the `affect_ids` array.
 
-### Available affect templates
+Each `affect_ids` entry may be either:
+- a string shared affect id
+- an object with `affect_id` plus override fields such as `name`, `target`, `target_resource`, `amount`, durations, and scaling
 
-| Template ID | Type | Purpose |
+Inline legacy `affects` payload blocks are no longer supported, but override objects inside `affect_ids` are supported and are the preferred way to tune a generic template per ability.
+
+### Available shared affect templates
+
+| Template ID | Descriptor | Purpose |
 |---|---|---|
-| `affect.increase-received-damage` | `damage_received_multiplier` | Multiplies incoming damage on the target. `amount` is a multiplier (e.g. 1.1 = +10%). `damage_elements` restricts which elements are affected; empty = all. |
-| `affect.regeneration` | `regeneration` | Restores `target_resource` each tick. Supports `hit_points` (default), `mana`, or `vigor`. |
-| `affect.extra-hits` | `extra_hits` | Grants extra attacks per round. Specify base counts via `extra_main_hand_hits`, `extra_off_hand_hits`, `extra_unarmed_hits`. Level scaling adds bonus hits to types with base > 0 via `hits_per_level_step` / `level_step`. |
-| `affect.damage-reduction` | `damage_reduction` | Flat damage subtracted from each incoming hit. Strongest active reduction wins. |
+| `affect.received-damage` | `Damage Received` | Modifies incoming damage on the target. Positive values increase damage taken; negative values reduce it. |
+| `affect.dealt-damage` | `Damage Dealt` | Modifies outgoing damage from the affected target. Positive values increase damage dealt; negative values reduce it. |
+| `affect.regeneration` | `Regeneration` | Restores `target_resource` each tick. Supports `hit_points`, `mana`, or `vigor`. |
+| `affect.extra-hits` | `Extra Hits` | Grants extra attacks per round, including hand-specific and unarmed scaling options. |
 
 ### Referencing affects
 
-Each `affect_ids` entry must be a string like `"affect.regeneration"` or `"affect.damage-reduction"`.
+String form:
 
-Define all affect behavior centrally in `configuration/attributes/affects.json`. See that file for the supported templates and their shared behavior.
+```json
+"affect_ids": ["affect.regeneration"]
+```
+
+Override-object form:
+
+```json
+"affect_ids": [{
+  "affect_id": "affect.received-damage",
+  "name": "Pressure Point",
+  "target": "target",
+  "amount": 0.1,
+  "damage_elements": ["physical"],
+  "duration_rounds": 3
+}]
+```
+
+Define the shared behavior centrally in `configuration/attributes/affects.json`, and use the override object to customize the applying skill or spell.
 
 ---
 
@@ -683,7 +716,7 @@ Current valid ids:
 
 ## 9. Common pitfalls to avoid
 
-### Donâ€™t do these
+### Don't do these
 - Put `wear_slots` on a weapon.
 - Forget `wear_slots` on armor.
 - Add a room exit to a room that does not exist.

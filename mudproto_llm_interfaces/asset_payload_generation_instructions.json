@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
-  "version": "2.16",
-  "generated_at_utc": "2026-04-15T08:08:08.830931+00:00",
+  "version": "2.17",
+  "generated_at_utc": "2026-04-17T00:56:26.492342+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -110,8 +110,8 @@
       "Damage abilities support secondary restore effects via restore_effect/restore_ratio/restore_context fields.",
       "Skills support lag and cooldown controls including lag_rounds, cooldown_rounds, cooldown_hours, and target_lag_rounds.",
       "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
-      "Support effects include heal, vigor, mana, and damage_reduction (skills). Skills and spells also support affect-based effects via affect_ids (regeneration, damage_received_multiplier, extra_hits, damage_reduction). See affect_ids in the skill/spell schemas for details.",
-      "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as damage_received_multiplier."
+      "Support effects include heal, vigor, mana, and legacy flat damage_reduction on skills when explicitly desired. Skills and spells also support affect-based status behavior via affect_ids, using shared templates such as affect.received-damage, affect.dealt-damage, affect.regeneration, and affect.extra-hits. Affect entries may be plain ids or override objects with affect_id plus tuning fields.",
+      "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as affect.received-damage and affect.dealt-damage."
     ],
     "npc_behavior_and_content": [
       "NPCs support aggro/ally/peaceful roles, merchant inventories and pricing, combat loadouts, and loot/inventory drops.",
@@ -145,7 +145,8 @@
     "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
     "Use lowercase IDs and keywords to match project conventions.",
     "When defining gear bonuses, use direct `equipment_effects` entries with only `effect_type` and `amount`.",
-    "For gear bonus effect_type values, prefer broad reusable stat names such as `str`, `dex`, `con`, `wis`, `hit_points`, `vigor`, `mana`, `weapon_damage`, and `hitroll`.",
+    "For gear bonus effect_type values, use supported direct attribute ids such as `str`, `dex`, `con`, and `wis`, or configured shared gear stats such as `hit_points`, `vigor`, `mana`, `weapon_damage`, and `hitroll`.",
+    "Use equipment_effects for passive while-equipped bonuses, and reserve affect_ids for temporary support or combat status behavior from abilities or valid items.",
     "Do not invent lore-only gear effect identifiers or unnecessary naming layers for equipment bonuses.",
     "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
     "Every asset section must be present and must be a JSON array, even when empty.",
@@ -400,7 +401,7 @@
           "type": "array[object]",
           "required": false,
           "default": [],
-          "notes": "Optional direct gear bonuses. Each entry should include `effect_type` and `amount`. `effect_type` can be any configured attribute id such as `str`, `dex`, `con`, `wis`, or a general stat type from configuration/attributes/equipment_effects.json such as `hit_points`, `vigor`, `mana`, `weapon_damage`, or `hitroll`."
+          "notes": "Optional direct passive gear bonuses applied while equipped. Each entry should include only `effect_type` and `amount`. `effect_type` can be any configured attribute id such as `str`, `dex`, `con`, `wis`, or a general stat type from configuration/attributes/equipment_effects.json such as `hit_points`, `vigor`, `mana`, `weapon_damage`, or `hitroll`. Use this for worn stat bonuses rather than temporary affect-style behavior."
         },
         "wear_slots": {
           "type": "array[string]",
@@ -442,10 +443,12 @@
           "default": "consumable",
           "allowed_values": [
             "consumable",
+            "potion",
             "key",
             "misc",
             "container"
-          ]
+          ],
+          "notes": "Use potion directly for potion items instead of a separate subtype field."
         },
         "effect_type": {
           "type": "string",
@@ -786,6 +789,13 @@
           "default": 0.5,
           "minimum": 0.0,
           "maximum": 1.0
+        },
+        "merchant_restock_game_hours": {
+          "type": "integer",
+          "required": false,
+          "default": 0,
+          "minimum": 0,
+          "notes": "If greater than 0, limited merchant stock replenishes to its configured quantity after this many game hours."
         },
         "pronoun_possessive": {
           "type": "string",
@@ -1309,7 +1319,7 @@
           "type": "array[string]",
           "required": false,
           "default": [],
-          "notes": "Array of affect template ids defined in configuration/attributes/affects.json. Only string references are supported. Available templates: affect.increase-received-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction."
+          "notes": "Array of affect references defined in configuration/attributes/affects.json. Entries may be strings or objects with affect_id plus override fields. Common templates: affect.received-damage, affect.dealt-damage, affect.regeneration, affect.extra-hits."
         },
         "support_amount": {
           "type": "integer",
@@ -1554,7 +1564,7 @@
           "type": "array[string]",
           "required": false,
           "default": [],
-          "notes": "Array of affect template ids defined in configuration/attributes/affects.json. Only string references are supported. Available templates: affect.increase-received-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction."
+          "notes": "Array of affect references defined in configuration/attributes/affects.json. Entries may be strings or objects with affect_id plus override fields. Common templates: affect.received-damage, affect.dealt-damage, affect.regeneration, affect.extra-hits."
         },
         "support_amount": {
           "type": "integer",
@@ -1734,12 +1744,12 @@
   ],
   "current_game_assets": {
     "counts": {
-      "gear": 22,
-      "items": 6,
+      "gear": 23,
+      "items": 7,
       "npcs": 7,
       "rooms": 13,
       "skills": 9,
-      "spells": 6,
+      "spells": 7,
       "zones": 4,
       "asset_payload_files": 4
     },
@@ -1804,6 +1814,29 @@
           "damage_roll_modifier": 0,
           "hit_roll_modifier": 1,
           "attack_damage_bonus": 0,
+          "attacks_per_round_bonus": 0
+        },
+        {
+          "template_id": "weapon.prototype-dawnblade",
+          "name": "Prototype Dawnblade",
+          "slot": "weapon",
+          "description": "A keen sunsteel sword with a balanced grip and a pale edge that seems to hold the first light of morning.",
+          "keywords": [
+            "prototype",
+            "dawnblade",
+            "sword",
+            "sunsteel"
+          ],
+          "weapon_type": "sword",
+          "can_hold": false,
+          "can_two_hand": true,
+          "weight": 6,
+          "coin_value": 72,
+          "damage_dice_count": 4,
+          "damage_dice_sides": 5,
+          "damage_roll_modifier": 2,
+          "hit_roll_modifier": 2,
+          "attack_damage_bonus": 1,
           "attacks_per_round_bonus": 0
         },
         {
@@ -2227,6 +2260,7 @@
             "potion",
             "mana"
           ],
+          "item_type": "potion",
           "effect_type": "restore",
           "effect_target": "mana",
           "effect_amount": 50,
@@ -2244,6 +2278,7 @@
             "mending",
             "healing"
           ],
+          "item_type": "potion",
           "effect_type": "restore",
           "effect_target": "hit_points",
           "effect_amount": 45,
@@ -2261,6 +2296,7 @@
             "vigor",
             "stamina"
           ],
+          "item_type": "potion",
           "effect_type": "restore",
           "effect_target": "vigor",
           "effect_amount": 40,
@@ -2268,6 +2304,48 @@
           "use_lag_seconds": 0,
           "observer_action": "[actor_name] drinks a potion of vigor.",
           "observer_context": "Renewed energy surges through [actor_object]."
+        },
+        {
+          "template_id": "item.container.prototype-starter-chest",
+          "name": "Supply Chest",
+          "description": "A banded supply chest sits open against the wall, stocked with potions, loose coin, and a prize blade for a promising newcomer.",
+          "keywords": [
+            "supply",
+            "chest",
+            "starter chest",
+            "cache"
+          ],
+          "item_type": "container",
+          "portable": false,
+          "persistent": true,
+          "can_close": true,
+          "can_lock": false,
+          "is_closed": false,
+          "is_locked": false,
+          "coins": 72,
+          "contents": [
+            {
+              "template_id": "item.potion.mana",
+              "quantity": 2
+            },
+            {
+              "template_id": "item.potion.mending",
+              "quantity": 2
+            },
+            {
+              "template_id": "item.potion.vigor",
+              "quantity": 2
+            },
+            {
+              "template_id": "item.key.west-gate",
+              "quantity": 1
+            },
+            {
+              "template_id": "weapon.prototype-dawnblade",
+              "quantity": 1
+            }
+          ],
+          "coin_value": 0
         },
         {
           "template_id": "item.key.west-gate",
@@ -2618,6 +2696,7 @@
             "npc_id": "npc.south-market-merchant",
             "name": "Quartermaster Vessa",
             "is_named": true,
+            "merchant_restock_game_hours": 6,
             "hit_points": 180,
             "max_hit_points": 180,
             "power_level": 1,
@@ -2816,7 +2895,7 @@
           ],
           "items": [
             {
-              "template_id": "item.key.west-gate",
+              "template_id": "item.container.prototype-starter-chest",
               "count": 1
             }
           ],
@@ -3145,7 +3224,19 @@
           "support_effect": "",
           "support_amount": 0,
           "affect_ids": [
-            "affect.damage-reduction"
+            {
+              "affect_id": "affect.received-damage",
+              "name": "Centered Guard",
+              "target": "self",
+              "affect_mode": "battle_rounds",
+              "amount": -0.12,
+              "amount_per_level_step": -0.02,
+              "level_step": 10,
+              "scaling_attribute_id": "con",
+              "scaling_multiplier": -0.005,
+              "level_scaling_multiplier": -0.005,
+              "duration_rounds": 3
+            }
           ],
           "support_mode": "battle_rounds",
           "duration_rounds": 3,
@@ -3197,7 +3288,19 @@
           "lag_rounds": 1,
           "cooldown_rounds": 3,
           "affect_ids": [
-            "affect.increase-received-damage"
+            {
+              "affect_id": "affect.received-damage",
+              "name": "Pressure Point",
+              "target": "target",
+              "affect_mode": "battle_rounds",
+              "damage_elements": [
+                "physical"
+              ],
+              "amount": 0.1,
+              "scaling_attribute_id": "dex",
+              "scaling_multiplier": 0.01,
+              "duration_rounds": 3
+            }
           ]
         },
         {
@@ -3235,7 +3338,18 @@
           "support_effect": "",
           "support_amount": 0,
           "affect_ids": [
-            "affect.extra-hits"
+            {
+              "affect_id": "affect.extra-hits",
+              "name": "Fist Flurry",
+              "target": "self",
+              "affect_mode": "battle_rounds",
+              "extra_main_hand_hits": 0,
+              "extra_off_hand_hits": 0,
+              "extra_unarmed_hits": 2,
+              "hits_per_level_step": 1,
+              "level_step": 5,
+              "duration_rounds": 3
+            }
           ],
           "support_mode": "battle_rounds",
           "duration_rounds": 3,
@@ -3303,6 +3417,38 @@
           "damage_context": "[a/an] is singed badly."
         },
         {
+          "spell_id": "spell.ice-storm",
+          "name": "Ice Storm",
+          "school": "Storm",
+          "description": "A roaring burst of sleet and jagged ice that lashes every hostile foe nearby.",
+          "spell_type": "damage",
+          "element": "ice",
+          "cast_type": "aoe",
+          "mana_cost": 46,
+          "level_scaling_multiplier": 1.25,
+          "damage_dice_count": 6,
+          "damage_dice_sides": 20,
+          "damage_modifier": 8,
+          "damage_scaling_attribute_id": "int",
+          "damage_scaling_multiplier": 1.25,
+          "damage_context": "[a/an] [verb] raked by freezing shards and numbing wind.",
+          "affect_ids": [
+            {
+              "affect_id": "affect.dealt-damage",
+              "name": "Icebound",
+              "target": "target",
+              "affect_mode": "battle_rounds",
+              "damage_elements": [
+                "physical"
+              ],
+              "amount": -0.2,
+              "duration_rounds": 3,
+              "duration_rounds_per_level_step": 1,
+              "duration_level_step": 10
+            }
+          ]
+        },
+        {
           "spell_id": "spell.healing-light",
           "name": "Healing Light",
           "school": "Restoration",
@@ -3339,7 +3485,20 @@
           "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
           "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle.",
           "affect_ids": [
-            "affect.regeneration"
+            {
+              "affect_id": "affect.regeneration",
+              "name": "Regeneration Ward",
+              "target": "self",
+              "affect_mode": "battle_rounds",
+              "target_resource": "hit_points",
+              "amount": 0,
+              "dice_count": 1,
+              "dice_sides": 21,
+              "roll_modifier": 39,
+              "scaling_attribute_id": "wis",
+              "scaling_multiplier": 1.0,
+              "duration_rounds": 3
+            }
           ]
         },
         {

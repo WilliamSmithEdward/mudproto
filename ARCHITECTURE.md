@@ -12,7 +12,7 @@ the client is a dumb renderer.
 
 ### Clients (`mudproto_client_gui/client_gui.py`)
 
-The GUI client is a **generic renderer** â€” it contains zero game-specific logic.
+The GUI client is a **generic renderer** - it contains zero game-specific logic.
 
 Responsibilities:
 - Open and maintain the WebSocket connection.
@@ -54,7 +54,7 @@ Responsibilities:
 
 ## 2. Protocol Contract
 
-### Client â†’ Server
+### Client -> Server
 
 ```json
 {
@@ -65,7 +65,7 @@ Responsibilities:
 }
 ```
 
-### Server â†’ Client
+### Server -> Client
 
 ```json
 {
@@ -307,22 +307,22 @@ eagerly validate:
 
 ### Item Model (unified)
 
-All items â€” inventory, ground, loot, equipped â€” use a single `ItemState`
+All items - inventory, ground, loot, equipped - use a single `ItemState`
 dataclass. The `equippable` flag is an **intrinsic property** populated from
 the gear template at creation/deserialization time.
 
 ```
 ItemState
-  â”œâ”€ item_id (UUID)
-  â”œâ”€ template_id
-  â”œâ”€ name, description, keywords
-  â”œâ”€ equippable (bool)
-  â”œâ”€ slot ("weapon" | "armor")
-  â”œâ”€ item_type (consumable | potion | key | misc | container)
-  â”œâ”€ Weapon fields: damage dice, hit/damage modifiers, weapon_type, can_hold
-  â”œâ”€ Armor fields:  armor_class_bonus, wear_slot, wear_slots
-  â”œâ”€ Container/key fields: portable, lock_ids, can_close, can_lock, lock_id, contents
-  â””â”€ weight
+  |- item_id (UUID)
+  |- template_id
+  |- name, description, keywords
+  |- equippable (bool)
+  |- slot ("weapon" | "armor")
+  |- item_type (consumable | potion | key | misc | container)
+  |- Weapon fields: damage dice, hit/damage modifiers, weapon_type, can_hold
+  |- Armor fields:  armor_class_bonus, wear_slot, wear_slots
+  |- Container/key fields: portable, lock_ids, can_close, can_lock, lock_id, contents
+  \- weight
 ```
 
 Corpses expose the same container-like surface used by shared container helpers, so corpse examination and looting follow the same rules as other containers.
@@ -335,10 +335,10 @@ a fresh `ItemState` from a template ID.
 
 ```
 EquipmentState
-  â”œâ”€ equipped_items          {item_id â†’ ItemState}
-  â”œâ”€ equipped_main_hand_id   (Optional)
-  â”œâ”€ equipped_off_hand_id    (Optional)
-  â””â”€ worn_item_ids           {wear_slot â†’ item_id}
+  |- equipped_items          {item_id -> ItemState}
+  |- equipped_main_hand_id   (Optional)
+  |- equipped_off_hand_id    (Optional)
+  \- worn_item_ids           {wear_slot -> item_id}
 ```
 
 Invariant: every item in `equipped_items` is referenced by exactly one of
@@ -347,7 +347,7 @@ Invariant: every item in `equipped_items` is referenced by exactly one of
 
 ### Entity State
 
-NPCs are represented by `EntityState` â€” each instance is spawned per-player
+NPCs are represented by `EntityState` - each instance is spawned per-player
 via `world_population.py::initialize_session_entities()`. Entities carry their own HP,
 power level, weapon template IDs, skill list, and cooldown tracking.
 
@@ -369,7 +369,7 @@ power level, weapon template IDs, skill list, and cooldown tracking.
 
 ### Connection
 
-1. WebSocket connects â†’ `ClientSession` created with unique `client_id`.
+1. WebSocket connects -> `ClientSession` created with unique `client_id`.
 2. Registered in `connected_clients`.
 3. Attached to shared world state (entities, corpses, coins, ground items).
 4. Per-session `command_scheduler_loop` task launched.
@@ -381,9 +381,9 @@ Multi-stage state machine in `commands.py::_process_auth_input()`:
 
 ```
 awaiting_character_or_start
-  â”œâ”€ "start" â†’ awaiting_new_character_name â†’ awaiting_new_character_password
-  â”‚            â†’ awaiting_new_character_class â†’ create & login
-  â””â”€ <name>  â†’ awaiting_existing_password â†’ validate & login
+  |- "start" -> awaiting_new_character_name -> awaiting_new_character_password
+  |            -> awaiting_new_character_class -> create & login
+  \- <name>  -> awaiting_existing_password -> validate & login
 ```
 
 On login:
@@ -399,7 +399,7 @@ On login:
 3. Launch `_offline_character_loop()`:
    - Auto-flee every 2 s if in combat.
    - Regenerate via game-hour ticks.
-   - After 5 consecutive safe hours â†’ auto-disconnect, respawn at
+   - After 5 consecutive safe hours -> auto-disconnect, respawn at
      `login_room_id`.
 
 ### Reconnect
@@ -414,22 +414,21 @@ Old scheduler task is cancelled; new one starts.
 
 ### Parsing
 
-`parse_command(text)` â†’ `(verb, args)`. First whitespace-delimited word is
-the verb; remainder is args. Direction aliases (`n`â†’`north`, `u`â†’`up`, etc.)
+`parse_command(text)` -> `(verb, args)`. First whitespace-delimited word is
+the verb; remainder is args. Direction aliases (`n`->`north`, `u`->`up`, etc.)
 are normalised.
 
 ### Dispatch
 
 ```
 Raw input
-  â†“  validate_message() [protocol.py]
-  â†“  dispatch_message() [commands.py]
-  â”œâ”€ Not authenticated â†’ _process_auth_input()
-  â”œâ”€ Authenticated + lagged â†’ enqueue (FIFO, max 5)
-  â””â”€ Authenticated + not lagged â†’ execute_command()
-  â†“
-  send_outbound() â†’ client
-  optional room_broadcast_parts â†’ other players in room
+  -> validate_message() [protocol.py]
+  -> dispatch_message() [commands.py]
+  |- Not authenticated -> _process_auth_input()
+  |- Authenticated + lagged -> enqueue (FIFO, max 5)
+  \- Authenticated + not lagged -> execute_command()
+  -> send_outbound() to client
+  -> optional room_broadcast_parts to other players in room
 ```
 
 ### Lag & Queuing
@@ -445,9 +444,9 @@ Raw input
 ### Item / Entity Selectors
 
 Selectors use `<index>.<keyword>` syntax:
-- `1.sword` â€” first item matching "sword".
-- `2.training.sword` â€” second item matching both "training" and "sword".
-- `wear vest left.hand` â€” wear to a specific slot.
+- `1.sword` - first item matching "sword".
+- `2.training.sword` - second item matching both "training" and "sword".
+- `wear vest left.hand` - wear to a specific slot.
 
 Resolution lives in `inventory.py` (inventory/ground selectors) and
 `equipment_logic.py` (equipped-item selectors).
@@ -470,9 +469,9 @@ Resolution lives in `inventory.py` (inventory/ground selectors) and
 2. Group by room.
 3. Per room, assign each NPC an active target session (one player per NPC).
 4. For each player (alphabetical order):
-   - `combat.py::resolve_combat_round()` â€” player attacks primary target,
+   - `combat.py::resolve_combat_round()` - player attacks primary target,
      entities retaliate.
-5. Build **unified room-round display** â€” each player's combat output is
+5. Build **unified room-round display** - each player's combat output is
    third-personised for observers, then merged into a single chronological
    block so everyone in the room sees the full picture.
 6. Send display + force prompt to each player.
@@ -493,7 +492,7 @@ Subsequent rounds are full strength for both sides.
 - NPC: power level + weapon dice + modifiers
   (`damage.py::roll_npc_weapon_damage`).
 - Severity label chosen by damage-to-max-HP ratio (`combat_text.py`):
-  miss â†’ barely â†’ normal â†’ hard â†’ extreme â†’ massacre â†’ annihilate â†’
+  miss -> barely -> normal -> hard -> extreme -> massacre -> annihilate ->
   obliterate.
 
 ### Death & Loot
@@ -512,15 +511,15 @@ When an entity dies:
 ### Spells
 
 - Cost mana. Defined in `spells.json`.
-- **Damage spells**: targeted or AoE. Roll dice, apply to engaged entities.
-- **Support spells**: heal/vigor/mana or affect-based (via `affect_ids`). Self-cast only.
+- **Damage spells**: targeted or AoE. Roll dice and apply to affected entities.
+- **Support spells**: heal, restore resources, or apply affects via `affect_ids`. They can target self or another valid target depending on the spell definition.
   Modes: `instant`, `timed` (hours), `battle_rounds`.
 - Cast via `cast <spell> [target]`.
 
 ### Skills
 
 - Cost vigor. Defined in `skills.json`.
-- Scale with an attribute via `scaling_attribute_id` Ã— `scaling_multiplier`.
+- Scale with an attribute via `scaling_attribute_id` x `scaling_multiplier`.
 - Have cooldowns (rounds). `usable_out_of_combat` flag.
 - Used via `<skill_name> [target]` (longest-prefix match on known skills).
 
@@ -530,7 +529,7 @@ When an entity dies:
   round and also while out of combat via `tick_out_of_combat_cooldowns()`.
 - Player consumables: `combat.potion_cooldown_until` is a `time.monotonic()`
   timestamp that enforces the global potion reuse lockout.  Duration is
-  `cooldown_rounds Ã— COMBAT_ROUND_INTERVAL_SECONDS`, configured by
+  `cooldown_rounds x COMBAT_ROUND_INTERVAL_SECONDS`, configured by
   `configuration/attributes/item_usage.json`.  Because the cooldown is
   timestamp-based it applies identically in and out of combat.
 - NPC: `entity.skill_cooldowns` + `skill_lag_rounds_remaining`.
@@ -545,12 +544,12 @@ When an entity dies:
 
 ### Affects
 
-- Defined in `configuration/attributes/affects.json`.
-- Skills and spells reference affect templates via `affect_ids` overrides.
-- `ActiveAffectState` tracked on the session alongside support effects.
-- Four affect types: `regeneration`, `damage_received_multiplier`,
-  `extra_hits`, `damage_reduction`.
-- Resolved at runtime by `combat_ability_effects.py`.
+- Defined in `configuration/attributes/affects.json` as shared templates using `affect_id`, `descriptor`, `affect_mode`, and `can_be_negative`.
+- Skills and spells reference them via `affect_ids`, using either a plain string id or an override object.
+- `ActiveAffectState` is tracked on the session alongside support effects.
+- Runtime behavior keys off the shared affect id directly, while the score screen renders the source name plus a generic descriptor.
+- Negative-capable affects render polarity-aware labels such as `Increased Damage Dealt` or `Reduced Damage Received`, and regeneration labels include the specific resource type.
+- Resolved and processed by `combat_ability_effects.py`.
 
 ---
 
@@ -572,7 +571,7 @@ When an entity dies:
 
 ### Item Highlighting
 
-`item_logic.py::_item_highlight_color()` â€” equippable items render in
+`item_logic.py::_item_highlight_color()` - equippable items render in
 **bright magenta**; non-equippable items in **bright yellow** by default. The actual palette is now resolved semantically through [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json), so the theme can be changed without touching gameplay code.
 
 ---
@@ -582,11 +581,11 @@ When an entity dies:
 Display messages are built across `display_core.py`, `display_feedback.py`, `display_character.py`, `display_room.py`, `display_menus.py`, and `display_prompts.py` and sent as structured JSON `lines`. Each line is an array of styled text parts, where each part carries `text`, optional `fg` color, and optional `bold` flag. Semantic color keys are resolved centrally through [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json), so both the desktop and web clients render the same server-authored theme.
 
 Key builders:
-- `build_display()` / `build_display_lines()` â€” assemble final protocol payloads with structural `lines`.
-- `display_room()` â€” room title, description, exits, NPCs, corpses, items,
+- `build_display()` / `build_display_lines()` - assemble final protocol payloads with structural `lines`.
+- `display_room()` - room title, description, exits, NPCs, corpses, items,
   coins, other players.
 - `display_inventory()`, `display_equipment()`, `display_attributes()`.
-- `build_prompt_parts()` â€” HP/vigor/mana (color-coded), coins, XP-to-next,
+- `build_prompt_parts()` - HP/vigor/mana (color-coded), coins, XP-to-next,
   engaged-entity condition, and exits.
 
 Rendering invariants:
@@ -658,19 +657,19 @@ auto-disconnect.
 
 | State | Storage | Shared? |
 |-------|---------|---------|
-| Entities | `session.entities` (alias to shared dict) | Yes â€” all players see the same NPC instances. |
+| Entities | `session.entities` (alias to shared dict) | Yes - all players see the same NPC instances. |
 | Corpses | `session.corpses` | Yes |
 | Ground items | `session.room_ground_items` | Yes |
 | Coin piles | `session.room_coin_piles` | Yes |
-| Inventory | `session.inventory_items` | No â€” per player. |
-| Equipment | `session.equipment` | No â€” per player. |
-| Combat | `session.combat` | No â€” per player. |
+| Inventory | `session.inventory_items` | No - per player. |
+| Equipment | `session.equipment` | No - per player. |
+| Combat | `session.combat` | No - per player. |
 
 ---
 
 ## 15. World, Zones & NPC Spawning
 
-Rooms are defined in `rooms.json` with exits (direction â†’ room ID), `zone_id`,
+Rooms are defined in `rooms.json` with exits (direction -> room ID), `zone_id`,
 and NPC spawn configs (template ID + count). Zones are defined in `zones.json`
 with `room_ids` and `repopulate_game_hours`.
 
@@ -691,14 +690,14 @@ Key behaviors:
 ## 16. Grammar & Text Pipeline
 
 `grammar.py` centralises all natural-language transforms:
-- **Articles**: `indefinite_article("orc")` â†’ `"an"`;
-  `with_article("sword")` â†’ `"a sword"`.
-- **Third-person verbs**: `to_third_person("slash")` â†’ `"slashes"`.
-- **Capitalisation**: `capitalize_after_newlines(text)` â€” uppercase after
+- **Articles**: `indefinite_article("orc")` -> `"an"`;
+  `with_article("sword")` -> `"a sword"`.
+- **Third-person verbs**: `to_third_person("slash")` -> `"slashes"`.
+- **Capitalisation**: `capitalize_after_newlines(text)` - uppercase after
   `\n` and at string start.
-- **Person rewrite**: `third_personize_text(text, actor)` â€” rewrites
+- **Person rewrite**: `third_personize_text(text, actor)` - rewrites
   second-person combat/action text for room observers
-  ("You slash an orc" â†’ "PlayerName slashes an orc").
+  ("You slash an orc" -> "PlayerName slashes an orc").
 
 ---
 

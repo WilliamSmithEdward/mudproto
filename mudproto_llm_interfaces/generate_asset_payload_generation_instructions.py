@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.16",
+        "version": "2.17",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
         "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
@@ -195,8 +195,8 @@ def build_instruction_payload() -> dict[str, object]:
                 "Damage abilities support secondary restore effects via restore_effect/restore_ratio/restore_context fields.",
                 "Skills support lag and cooldown controls including lag_rounds, cooldown_rounds, cooldown_hours, and target_lag_rounds.",
                 "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
-                "Support effects include heal, vigor, mana, and damage_reduction (skills). Skills and spells also support affect-based effects via affect_ids (regeneration, damage_received_multiplier, extra_hits, damage_reduction). See affect_ids in the skill/spell schemas for details.",
-                "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as damage_received_multiplier."
+                "Support effects include heal, vigor, mana, and legacy flat damage_reduction on skills when explicitly desired. Skills and spells also support affect-based status behavior via affect_ids, using shared templates such as affect.received-damage, affect.dealt-damage, affect.regeneration, and affect.extra-hits. Affect entries may be plain ids or override objects with affect_id plus tuning fields.",
+                "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as affect.received-damage and affect.dealt-damage."
             ],
             "npc_behavior_and_content": [
                 "NPCs support aggro/ally/peaceful roles, merchant inventories and pricing, combat loadouts, and loot/inventory drops.",
@@ -230,7 +230,8 @@ def build_instruction_payload() -> dict[str, object]:
             "For other asset types with repeated IDs, keep the most recently loaded asset definition.",
             "Use lowercase IDs and keywords to match project conventions.",
             "When defining gear bonuses, use direct `equipment_effects` entries with only `effect_type` and `amount`.",
-            "For gear bonus effect_type values, prefer broad reusable stat names such as `str`, `dex`, `con`, `wis`, `hit_points`, `vigor`, `mana`, `weapon_damage`, and `hitroll`.",
+            "For gear bonus effect_type values, use supported direct attribute ids such as `str`, `dex`, `con`, and `wis`, or configured shared gear stats such as `hit_points`, `vigor`, `mana`, `weapon_damage`, and `hitroll`.",
+            "Use equipment_effects for passive while-equipped bonuses, and reserve affect_ids for temporary support or combat status behavior from abilities or valid items.",
             "Do not invent lore-only gear effect identifiers or unnecessary naming layers for equipment bonuses.",
             "Before content creation, ask where the new content should attach, what the zone theme/content should be, the target difficulty, any special mechanics, and the desired room count unless the user already supplied that information.",
             "Every asset section must be present and must be a JSON array, even when empty.",

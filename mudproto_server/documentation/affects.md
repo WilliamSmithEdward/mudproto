@@ -2,15 +2,22 @@
 
 ## Overview
 
-Affect templates define reusable affect types. Skills and spells reference them via `affect_ids`.
+Affect templates define reusable shared behaviors. Skills, spells, and item payloads reference them through `affect_ids`.
 
 ## Strategy
 
-Prefer broad, reusable templates. Parameterize behavior at the skill/spell level via `affect_ids` overrides rather than creating narrow one-off templates.
+Prefer broad, reusable templates. Keep the shared template generic and place target, duration, scaling, and signed tuning on the applying ability via `affect_ids` override objects.
 
 ## Usage
 
-In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a string template ID or an object containing `affect_id` plus override fields. Shared affect templates now use `descriptor` for the generic label, while the skill or spell `name` remains the source label shown first in the score display.
+In a skill or spell JSON, add an `affect_ids` array. Each entry may be either:
+
+- a string shared affect id such as `"affect.regeneration"`
+- an object containing `affect_id` plus override fields such as `name`, `target`, `target_resource`, `amount`, durations, and scaling values
+
+Shared templates now use `descriptor` for the generic label text. The ability `name` remains the source label shown first in the score display.
+
+Runtime behavior keys off the shared `affect_id` directly, while the score display combines the source name with the generic descriptor and, when relevant, polarity or resource context.
 
 ## Template Fields
 
@@ -37,9 +44,9 @@ In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a 
 
 ### `affect.received-damage`
 
-**Type:** `damage_received_multiplier`
+**Behavior:** modifies incoming damage on the target.
 
-Multiplies incoming damage on the target. For multipliers, a value like `0.1` means $+10\%$, while `-0.1` means $-10\%$. This template has `can_be_negative: true`. Supports `damage_elements` to restrict which elements are affected; empty means all.
+For multipliers, a value like `0.1` means $+10\%$, while `-0.1` means $-10\%$. This template has `can_be_negative: true`. Supports `damage_elements` to restrict which elements are affected; empty means all. Score labels render as `Increased Damage Received` or `Reduced Damage Received`.
 
 **Example skill usage:**
 ```json
@@ -58,9 +65,9 @@ Multiplies incoming damage on the target. For multipliers, a value like `0.1` me
 
 ### `affect.dealt-damage`
 
-**Type:** `damage_dealt_multiplier`
+**Behavior:** modifies outgoing damage from the affected target.
 
-Multiplies outgoing damage on the affected target. A value like `-0.2` means $-20\%$ damage dealt, while `0.2` means $+20\%$. This template has `can_be_negative: true`. Supports `damage_elements` to restrict outgoing damage types.
+A value like `-0.2` means $-20\%$ damage dealt, while `0.2` means $+20\%$. This template has `can_be_negative: true`. Supports `damage_elements` to restrict outgoing damage types. Score labels render as `Increased Damage Dealt` or `Reduced Damage Dealt`.
 
 **Example spell usage:**
 ```json
@@ -79,9 +86,9 @@ Multiplies outgoing damage on the affected target. A value like `-0.2` means $-2
 
 ### `affect.regeneration`
 
-**Type:** `regeneration`
+**Behavior:** restores the chosen resource each tick.
 
-Restores the chosen `target_resource` each tick. Supports `hit_points` (default), `mana`, or `vigor`. The target resource is supplied by the applying ability, not the shared template.
+Supports `hit_points` (default), `mana`, or `vigor`. The target resource is supplied by the applying ability, not the shared template. Score labels render resource-specific text such as `Health Regeneration`, `Mana Regeneration`, or `Vigor Regeneration`.
 
 **Example spell usage:**
 ```json
@@ -103,9 +110,9 @@ Restores the chosen `target_resource` each tick. Supports `hit_points` (default)
 
 ### `affect.extra-hits`
 
-**Type:** `extra_hits`
+**Behavior:** grants extra attacks per round.
 
-Grants extra attacks per round. Specify base counts per hand type. Level scaling adds bonus hits to types with base > 0.
+Specify base counts per hand type. Level scaling adds bonus hits to types with base > 0.
 
 **Example skill usage:**
 ```json

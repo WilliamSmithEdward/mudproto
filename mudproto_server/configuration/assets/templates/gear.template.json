@@ -184,7 +184,7 @@
         "type": "array[object]",
         "required": false,
         "default": [],
-        "notes": "Optional direct gear bonuses. Each entry should include `effect_type` and `amount`. `effect_type` can be any configured attribute id such as `str`, `dex`, `con`, `wis`, or a general stat type from configuration/attributes/equipment_effects.json such as `hit_points`, `vigor`, `mana`, `weapon_damage`, or `hitroll`."
+        "notes": "Optional direct passive gear bonuses applied while equipped. Each entry should include only `effect_type` and `amount`. `effect_type` can be any configured attribute id such as `str`, `dex`, `con`, `wis`, or a general stat type from configuration/attributes/equipment_effects.json such as `hit_points`, `vigor`, `mana`, `weapon_damage`, or `hitroll`. Use this for worn stat bonuses rather than temporary affect-style behavior."
       },
       "wear_slots": {
         "type": "array[string]",
