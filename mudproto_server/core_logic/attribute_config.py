@@ -339,6 +339,15 @@ def load_regeneration_config() -> dict:
     }
 
 
+_SUPPORTED_AFFECT_TEMPLATE_IDS = {
+    "affect.received-damage",
+    "affect.dealt-damage",
+    "affect.regeneration",
+    "affect.extra-hits",
+    "affect.damage-reduction",
+}
+
+
 @lru_cache(maxsize=1)
 def load_affect_templates() -> list[dict]:
     raw_affects = _read_json_attribute_config(AFFECTS_FILE)
@@ -360,7 +369,6 @@ def load_affect_templates() -> list[dict]:
             continue
 
         affect_id = str(raw_affect.get("affect_id", "")).strip().lower()
-        affect_type = str(raw_affect.get("affect_type", "")).strip().lower()
         raw_damage_elements = raw_affect.get("damage_elements", raw_affect.get("damage_element", []))
         if isinstance(raw_damage_elements, str):
             raw_damage_elements = [raw_damage_elements]
@@ -385,22 +393,16 @@ def load_affect_templates() -> list[dict]:
             raise ValueError("Affect templates must include a non-empty affect_id.")
         if affect_id in seen_affect_ids:
             raise ValueError(f"Duplicate affect_id in affects config: {affect_id}")
-        if affect_type not in {
-            "regeneration",
-            "damage_received_multiplier",
-            "damage_dealt_multiplier",
-            "extra_hits",
-            "damage_reduction",
-        }:
+        if affect_id not in _SUPPORTED_AFFECT_TEMPLATE_IDS:
             raise ValueError(
-                f"Affect '{affect_id}' affect_type must be one of: regeneration, damage_received_multiplier, damage_dealt_multiplier, extra_hits, damage_reduction."
+                f"Affect '{affect_id}' must use a supported shared affect_id."
             )
-        if damage_elements and affect_type not in {"damage_received_multiplier", "damage_dealt_multiplier"}:
+        if damage_elements and affect_id not in {"affect.received-damage", "affect.dealt-damage"}:
             raise ValueError(
                 f"Affect '{affect_id}' damage element filters are only supported for damage_received_multiplier and damage_dealt_multiplier."
             )
 
-        name = str(raw_affect.get("name", "")).strip() or affect_id
+        descriptor = str(raw_affect.get("descriptor", "")).strip() or affect_id
         target = str(raw_affect.get("target", "target")).strip().lower() or "target"
         affect_mode = str(raw_affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
         target_resource = str(raw_affect.get("target_resource", "hit_points")).strip().lower() or "hit_points"
@@ -460,10 +462,9 @@ def load_affect_templates() -> list[dict]:
         seen_affect_ids.add(affect_id)
         normalized_affects.append({
             "affect_id": affect_id,
-            "name": name,
+            "descriptor": descriptor,
             "target": target,
             "affect_mode": affect_mode,
-            "affect_type": affect_type,
             "can_be_negative": can_be_negative,
             "damage_elements": damage_elements,
             "target_resource": target_resource,

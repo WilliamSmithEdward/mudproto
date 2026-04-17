@@ -10,13 +10,13 @@ Prefer broad, reusable templates. Parameterize behavior at the skill/spell level
 
 ## Usage
 
-In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a string template ID or an object containing `affect_id` plus override fields. Keep templates broad and place target, resource, duration, and tuning details on the ability entry rather than on the shared template.
+In a skill or spell JSON, add an `affect_ids` array. Each entry may be either a string template ID or an object containing `affect_id` plus override fields. Shared affect templates now use `descriptor` for the generic label, while the skill or spell `name` remains the source label shown first in the score display.
 
 ## Template Fields
 
 | Field | Description |
 |---|---|
-| `name` | Display name for the active affect |
+| `descriptor` | Generic descriptor shown in the active effect label |
 | `target` | `"self"` or `"target"` |
 | `affect_mode` | `"instant"`, `"timed"`, or `"battle_rounds"` |
 | `amount` | Base numeric amount; for dealt/received damage multipliers, values between $-1$ and $1$ are treated as signed deltas from $1.0$ |

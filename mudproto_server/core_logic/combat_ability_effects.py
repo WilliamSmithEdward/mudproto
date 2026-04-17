@@ -16,18 +16,18 @@ from models import ActiveAffectState, ActiveSupportEffectState, ClientSession, E
 from player_resources import get_player_resource_caps
 
 
-_AFFECT_TYPE_REGENERATION = "regeneration"
-_AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER = "damage_received_multiplier"
-_AFFECT_TYPE_DAMAGE_DEALT_MULTIPLIER = "damage_dealt_multiplier"
-_AFFECT_TYPE_EXTRA_HITS = "extra_hits"
-_AFFECT_TYPE_DAMAGE_REDUCTION = "damage_reduction"
+_AFFECT_ID_REGENERATION = "affect.regeneration"
+_AFFECT_ID_DAMAGE_RECEIVED = "affect.received-damage"
+_AFFECT_ID_DAMAGE_DEALT = "affect.dealt-damage"
+_AFFECT_ID_EXTRA_HITS = "affect.extra-hits"
+_AFFECT_ID_DAMAGE_REDUCTION = "affect.damage-reduction"
 _AFFECT_MODES = {"instant", "timed", "battle_rounds"}
-_AFFECT_TYPES = {
-    _AFFECT_TYPE_REGENERATION,
-    _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER,
-    _AFFECT_TYPE_DAMAGE_DEALT_MULTIPLIER,
-    _AFFECT_TYPE_EXTRA_HITS,
-    _AFFECT_TYPE_DAMAGE_REDUCTION,
+_SUPPORTED_AFFECT_IDS = {
+    _AFFECT_ID_REGENERATION,
+    _AFFECT_ID_DAMAGE_RECEIVED,
+    _AFFECT_ID_DAMAGE_DEALT,
+    _AFFECT_ID_EXTRA_HITS,
+    _AFFECT_ID_DAMAGE_REDUCTION,
 }
 
 
@@ -87,15 +87,15 @@ def _resolve_ability_affects(ability: dict) -> list[dict]:
         if not isinstance(affect_template, dict):
             continue
 
-        template_name = str(affect_template.get("name", affect_id)).strip() or affect_id
+        descriptor = str(affect_template.get("descriptor", affect_id)).strip() or affect_id
         ability_name = str(ability.get("name", "")).strip()
-        source_name = str(override_payload.get("name", ability_name)).strip() or template_name
+        source_name = str(override_payload.get("name", ability_name)).strip() or descriptor
 
         resolved_affect = dict(affect_template)
         resolved_affect.update(override_payload)
         resolved_affect["affect_id"] = affect_id
         resolved_affect["name"] = source_name
-        resolved_affect["affect_template_name"] = template_name
+        resolved_affect["descriptor"] = descriptor
         seen_affect_ids.add(affect_id)
         resolved_affects.append(resolved_affect)
 
@@ -153,7 +153,7 @@ def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState],
     normalized_damage_element = str(damage_element).strip().lower()
     resolved_multiplier = 1.0
     for effect in active_affects:
-        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_RECEIVED_MULTIPLIER:
+        if str(getattr(effect, "affect_id", "")).strip().lower() != _AFFECT_ID_DAMAGE_RECEIVED:
             continue
 
         effect_damage_elements = [
@@ -176,7 +176,7 @@ def _resolve_damage_dealt_multiplier(active_affects: list[ActiveAffectState], *,
     normalized_damage_element = str(damage_element).strip().lower()
     resolved_multiplier = 1.0
     for effect in active_affects:
-        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_DEALT_MULTIPLIER:
+        if str(getattr(effect, "affect_id", "")).strip().lower() != _AFFECT_ID_DAMAGE_DEALT:
             continue
 
         effect_damage_elements = [
@@ -213,7 +213,7 @@ def _resolve_extra_hits_from_affects(
     best_off = 0
     best_unarmed = 0
     for effect in active_affects:
-        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_EXTRA_HITS:
+        if str(getattr(effect, "affect_id", "")).strip().lower() != _AFFECT_ID_EXTRA_HITS:
             continue
         if not _is_affect_active(effect):
             continue
@@ -235,7 +235,7 @@ def _resolve_extra_hits_from_affects(
 def _resolve_damage_reduction_from_affects(active_affects: list[ActiveAffectState]) -> int:
     strongest_reduction = 0
     for effect in active_affects:
-        if str(getattr(effect, "affect_type", "")).strip().lower() != _AFFECT_TYPE_DAMAGE_REDUCTION:
+        if str(getattr(effect, "affect_id", "")).strip().lower() != _AFFECT_ID_DAMAGE_REDUCTION:
             continue
         if not _is_affect_active(effect):
             continue
@@ -244,7 +244,7 @@ def _resolve_damage_reduction_from_affects(active_affects: list[ActiveAffectStat
 
 
 def _apply_regeneration_tick(target: object, effect: ActiveAffectState) -> None:
-    if str(effect.affect_type).strip().lower() != _AFFECT_TYPE_REGENERATION:
+    if str(effect.affect_id).strip().lower() != _AFFECT_ID_REGENERATION:
         return
 
     amount = int(_roll_affect_amount(effect))
@@ -284,17 +284,15 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
         if target_scope != affect_target:
             continue
 
-        affect_type = str(affect.get("affect_type", "")).strip().lower()
-        if affect_type not in _AFFECT_TYPES:
+        affect_id = str(affect.get("affect_id", "")).strip().lower()
+        if affect_id not in _SUPPORTED_AFFECT_IDS:
             continue
 
         affect_mode = str(affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
         if affect_mode not in _AFFECT_MODES:
             continue
-
-        affect_id = str(affect.get("affect_id", "")).strip() or affect_type
-        affect_template_name = str(affect.get("affect_template_name", "")).strip() or affect_id
-        affect_name = str(affect.get("name", "")).strip() or affect_template_name
+        affect_descriptor = str(affect.get("descriptor", "")).strip() or affect_id
+        affect_name = str(affect.get("name", "")).strip() or affect_descriptor
         can_be_negative = bool(affect.get("can_be_negative", False))
         raw_damage_elements = affect.get("damage_elements", affect.get("damage_element", []))
         if isinstance(raw_damage_elements, str):
@@ -343,8 +341,8 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_id=affect_id,
                 affect_name=affect_name,
                 affect_mode=affect_mode,
-                affect_type=affect_type,
-                affect_template_name=affect_template_name,
+                affect_type=affect_id,
+                affect_descriptor=affect_descriptor,
                 can_be_negative=can_be_negative,
                 affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,
@@ -368,9 +366,9 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
             if active_affect.affect_id != affect_id:
                 continue
             active_affect.affect_name = affect_name
-            active_affect.affect_template_name = affect_template_name
+            active_affect.affect_descriptor = affect_descriptor
             active_affect.affect_mode = affect_mode
-            active_affect.affect_type = affect_type
+            active_affect.affect_type = affect_id
             active_affect.can_be_negative = can_be_negative
             active_affect.affect_damage_elements = affect_damage_elements
             active_affect.target_resource = target_resource
@@ -395,8 +393,8 @@ def _apply_ability_affects(*, actor: object, target: object, ability: dict, affe
                 affect_id=affect_id,
                 affect_name=affect_name,
                 affect_mode=affect_mode,
-                affect_type=affect_type,
-                affect_template_name=affect_template_name,
+                affect_type=affect_id,
+                affect_descriptor=affect_descriptor,
                 can_be_negative=can_be_negative,
                 affect_damage_elements=affect_damage_elements,
                 target_resource=target_resource,

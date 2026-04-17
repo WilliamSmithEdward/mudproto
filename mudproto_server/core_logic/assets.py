@@ -124,7 +124,7 @@ def _normalize_template_identity(raw_template: dict, *, context: str) -> tuple[s
 def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_attribute_ids: set[str]) -> dict:
     affect_id = str(raw_affect.get("affect_id", "")).strip().lower()
     affect_name = str(raw_affect.get("name", "")).strip()
-    affect_type = str(raw_affect.get("affect_type", "")).strip().lower()
+    affect_descriptor = str(raw_affect.get("descriptor", "")).strip()
     affect_target = str(raw_affect.get("target", "self")).strip().lower() or "self"
     affect_mode = str(raw_affect.get("affect_mode", "battle_rounds")).strip().lower() or "battle_rounds"
     raw_damage_filters = raw_affect.get("damage_elements", raw_affect.get("damage_element", []))
@@ -154,21 +154,19 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
 
     if not affect_id:
         raise ValueError(f"{context} affects must define affect_id.")
-    if affect_type not in {
-        "regeneration",
-        "damage_received_multiplier",
-        "damage_dealt_multiplier",
-        "extra_hits",
-        "damage_reduction",
+    if affect_id not in {
+        "affect.received-damage",
+        "affect.dealt-damage",
+        "affect.regeneration",
+        "affect.extra-hits",
+        "affect.damage-reduction",
     }:
-        raise ValueError(
-            f"{context} affect_type must be one of: regeneration, damage_received_multiplier, damage_dealt_multiplier, extra_hits, damage_reduction."
-        )
+        raise ValueError(f"{context} affect_id must reference a supported shared affect template.")
     if affect_target not in {"self", "target"}:
         raise ValueError(f"{context} affect target must be one of: self, target.")
     if affect_mode not in {"instant", "timed", "battle_rounds"}:
         raise ValueError(f"{context} affect_mode must be one of: instant, timed, battle_rounds.")
-    if affect_damage_elements and affect_type not in {"damage_received_multiplier", "damage_dealt_multiplier"}:
+    if affect_damage_elements and affect_id not in {"affect.received-damage", "affect.dealt-damage"}:
         raise ValueError(
             f"{context} damage element filters are only supported on damage_received_multiplier and damage_dealt_multiplier affects."
         )
@@ -199,7 +197,7 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
         )
     if amount_per_level_step != 0.0 and level_step <= 0:
         raise ValueError(f"{context} affects with amount_per_level_step must define level_step > 0.")
-    if affect_type == "extra_hits":
+    if affect_id == "affect.extra-hits":
         if extra_main_hand_hits <= 0 and extra_off_hand_hits <= 0 and extra_unarmed_hits <= 0:
             raise ValueError(f"{context} extra_hits affects must define at least one hit type > 0.")
         if hits_per_level_step > 0 and level_step <= 0:
@@ -208,7 +206,7 @@ def _normalize_resolved_affect(raw_affect: dict, *, context: str, configured_att
     return {
         "affect_id": affect_id,
         "name": affect_name,
-        "affect_type": affect_type,
+        "descriptor": affect_descriptor,
         "target": affect_target,
         "affect_mode": affect_mode,
         "can_be_negative": can_be_negative,

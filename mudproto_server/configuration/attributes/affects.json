@@ -1,30 +1,26 @@
 [
   {
     "affect_id": "affect.received-damage",
-    "name": "Received Damage",
+    "descriptor": "Damage Received",
     "affect_mode": "battle_rounds",
-    "affect_type": "damage_received_multiplier",
     "can_be_negative": true
   },
   {
     "affect_id": "affect.dealt-damage",
-    "name": "Dealt Damage",
+    "descriptor": "Damage Dealt",
     "affect_mode": "battle_rounds",
-    "affect_type": "damage_dealt_multiplier",
     "can_be_negative": true
   },
   {
     "affect_id": "affect.regeneration",
-    "name": "Regeneration",
+    "descriptor": "Regeneration",
     "affect_mode": "battle_rounds",
-    "affect_type": "regeneration",
     "can_be_negative": false
   },
   {
     "affect_id": "affect.extra-hits",
-    "name": "Extra Hits",
+    "descriptor": "Extra Hits",
     "affect_mode": "battle_rounds",
-    "affect_type": "extra_hits",
     "can_be_negative": false
   }
 ]

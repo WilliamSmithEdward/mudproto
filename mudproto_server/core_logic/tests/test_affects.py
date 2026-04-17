@@ -61,8 +61,9 @@ def test_pressure_point_asset_has_target_damage_vulnerability_affect() -> None:
 
     pressure_point_affect = get_affect_template_by_id("affect.received-damage")
     assert isinstance(pressure_point_affect, dict)
-    assert pressure_point_affect.get("affect_type") == "damage_received_multiplier"
-    assert pressure_point_affect.get("name") == "Received Damage"
+    assert pressure_point_affect.get("affect_id") == "affect.received-damage"
+    pressure_point_descriptor = str(pressure_point_affect.get("descriptor", "")).strip().lower()
+    assert set(pressure_point_descriptor.split()) == {"damage", "received"}
 
 
 def test_shared_affect_templates_stay_generic() -> None:
@@ -75,6 +76,10 @@ def test_shared_affect_templates_stay_generic() -> None:
     assert "target" not in dealt_damage
     assert "target" not in regeneration
     assert "target_resource" not in regeneration
+    assert "affect_type" not in received_damage
+    assert "affect_type" not in dealt_damage
+    assert received_damage.get("descriptor") == "Damage Received"
+    assert dealt_damage.get("descriptor") == "Damage Dealt"
     assert received_damage.get("can_be_negative") is True
     assert dealt_damage.get("can_be_negative") is True
     assert regeneration.get("can_be_negative") is False
@@ -102,8 +107,9 @@ def test_ice_storm_asset_has_aoe_damage_and_damage_dealt_debuff() -> None:
 
     ice_storm_affect = get_affect_template_by_id("affect.dealt-damage")
     assert isinstance(ice_storm_affect, dict)
-    assert ice_storm_affect.get("affect_type") == "damage_dealt_multiplier"
-    assert ice_storm_affect.get("name") == "Dealt Damage"
+    assert ice_storm_affect.get("affect_id") == "affect.dealt-damage"
+    ice_storm_descriptor = str(ice_storm_affect.get("descriptor", "")).strip().lower()
+    assert set(ice_storm_descriptor.split()) == {"damage", "dealt"}
 
 
 def test_asset_loader_rejects_inline_affects_payloads() -> None:
@@ -276,7 +282,7 @@ def test_pressure_point_applies_damage_received_multiplier_to_target(monkeypatch
 
     assert applied is True
     assert len(target.active_affects) == 1
-    assert target.active_affects[0].affect_type == "damage_received_multiplier"
+    assert target.active_affects[0].affect_id == "affect.received-damage"
 
     preview_damage = _preview_entity_damage_with_reduction(target, 10)
     assert preview_damage == 12
@@ -328,7 +334,7 @@ def test_ice_storm_applies_round_scaled_physical_damage_dealt_debuff(monkeypatch
     assert applied is True
     assert len(target_one.active_affects) == 1
     assert len(target_two.active_affects) == 1
-    assert target_one.active_affects[0].affect_type == "damage_dealt_multiplier"
+    assert target_one.active_affects[0].affect_id == "affect.dealt-damage"
     assert target_one.active_affects[0].remaining_rounds == 4
     assert target_two.active_affects[0].remaining_rounds == 4
 

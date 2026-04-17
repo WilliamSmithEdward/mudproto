@@ -61,17 +61,20 @@ def _resolve_effect_name(effect) -> str:
 
 def _resolve_effect_label(effect) -> str:
     effect_name = _resolve_effect_name(effect).strip().lower()
-    template_name = str(getattr(effect, "affect_template_name", "")).strip()
-    if not template_name:
+    template_name = str(getattr(effect, "affect_descriptor", "")).strip()
+    can_be_negative = bool(getattr(effect, "can_be_negative", False))
+    if not template_name or not can_be_negative:
         affect_id = str(getattr(effect, "affect_id", "")).strip().lower()
         if affect_id:
             affect_template = get_affect_template_by_id(affect_id)
             if isinstance(affect_template, dict):
-                template_name = str(affect_template.get("name", "")).strip()
+                if not template_name:
+                    template_name = str(affect_template.get("descriptor", "")).strip()
+                can_be_negative = can_be_negative or bool(affect_template.get("can_be_negative", False))
 
-    affect_type = str(getattr(effect, "affect_type", "")).strip().lower()
+    affect_id = str(getattr(effect, "affect_id", "")).strip().lower()
     normalized_template_name = template_name.lower()
-    if template_name and affect_type == "regeneration":
+    if template_name and affect_id == "affect.regeneration":
         resource = str(getattr(effect, "target_resource", "hit_points")).strip().lower() or "hit_points"
         resource_label = {
             "hit_points": "Health",
@@ -80,6 +83,13 @@ def _resolve_effect_label(effect) -> str:
         }.get(resource, resource.replace("_", " ").title())
         if resource_label.lower() not in normalized_template_name:
             template_name = f"{resource_label} {template_name}"
+
+    if template_name and can_be_negative:
+        amount = float(getattr(effect, "affect_amount", 0.0))
+        if amount < 0.0:
+            template_name = f"Reduced {template_name}"
+        elif amount > 0.0:
+            template_name = f"Increased {template_name}"
 
     if template_name and template_name.strip().lower() != effect_name:
         return template_name
