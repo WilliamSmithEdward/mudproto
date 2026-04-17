@@ -262,6 +262,151 @@
       min-width: 100px;
     }
 
+    #aliasesModal .modal-panel {
+      width: min(520px, 100%);
+    }
+
+    #aliasesModal .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 16px 16px;
+    }
+
+    #bindingsModal .modal-panel {
+      width: min(520px, 100%);
+    }
+
+    #bindingsModal .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 16px 16px;
+    }
+
+    .mapping-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 320px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0c0c0c;
+      scrollbar-color: #3a3a3a #070707;
+    }
+
+    .mapping-list::-webkit-scrollbar { width: 12px; }
+    .mapping-list::-webkit-scrollbar-track { background: #070707; }
+    .mapping-list::-webkit-scrollbar-thumb { background: #323232; border-radius: 999px; border: 2px solid #070707; }
+    .mapping-list::-webkit-scrollbar-thumb:hover { background: #454545; }
+
+    .mapping-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.92rem;
+    }
+
+    .mapping-row:last-child {
+      border-bottom: none;
+    }
+
+    .mapping-row:hover {
+      background: #141414;
+    }
+
+    .mapping-key {
+      flex: 0 0 auto;
+      min-width: 90px;
+      color: var(--accent);
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mapping-eq {
+      flex: 0 0 auto;
+      color: var(--muted);
+    }
+
+    .mapping-val {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mapping-del {
+      flex: 0 0 auto;
+      padding: 2px 7px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      color: var(--err);
+      border-color: #5d1d24;
+    }
+
+    .mapping-del:hover {
+      background: #2a1216;
+    }
+
+    .mapping-empty {
+      padding: 20px 10px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .mapping-form {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .mapping-form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mapping-form-field label {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .mapping-form-field input[type="text"] {
+      padding: 6px 8px;
+      font-size: 0.92rem;
+    }
+
+    .mapping-form-field.mapping-name-field {
+      flex: 0 0 auto;
+      width: 120px;
+    }
+
+    .mapping-form-field.mapping-expansion-field {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .mapping-form button {
+      padding: 6px 12px;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+
+    .mapping-close-row {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .mapping-close-row button {
+      min-width: 80px;
+    }
+
     .modal-placeholder {
       min-height: 116px;
       padding: 12px;
@@ -550,6 +695,56 @@
           <div class="prompt-actions">
             <button id="promptOkBtn" type="button">Save</button>
             <button id="promptCancelBtn" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="aliasesModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="aliasesTitle">
+        <div class="modal-header">
+          <span id="aliasesTitle">Aliases</span>
+        </div>
+        <div class="modal-body">
+          <div class="mapping-form">
+            <div class="mapping-form-field mapping-name-field">
+              <label for="aliasNameInput">Name</label>
+              <input id="aliasNameInput" type="text" placeholder="e.g. heal" />
+            </div>
+            <div class="mapping-form-field mapping-expansion-field">
+              <label for="aliasExpansionInput">Expansion</label>
+              <input id="aliasExpansionInput" type="text" placeholder="e.g. cast 'heal' %1" />
+            </div>
+            <button id="aliasAddBtn" type="button">Set</button>
+          </div>
+          <div id="aliasesList" class="mapping-list"></div>
+          <div class="mapping-close-row">
+            <button id="closeAliasesBtn" type="button">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="bindingsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="bindingsTitle">
+        <div class="modal-header">
+          <span id="bindingsTitle">Key Bindings</span>
+        </div>
+        <div class="modal-body">
+          <div class="mapping-form">
+            <div class="mapping-form-field mapping-name-field">
+              <label for="bindKeyInput">Key</label>
+              <input id="bindKeyInput" type="text" placeholder="e.g. f2" />
+            </div>
+            <div class="mapping-form-field mapping-expansion-field">
+              <label for="bindExpansionInput">Expansion</label>
+              <input id="bindExpansionInput" type="text" placeholder="e.g. flee" />
+            </div>
+            <button id="bindAddBtn" type="button">Set</button>
+          </div>
+          <div id="bindingsList" class="mapping-list"></div>
+          <div class="mapping-close-row">
+            <button id="closeBindingsBtn" type="button">Close</button>
           </div>
         </div>
       </div>
@@ -888,6 +1083,18 @@
         this.promptOkBtn = document.getElementById("promptOkBtn");
         this.promptCancelBtn = document.getElementById("promptCancelBtn");
         this.pendingPromptAction = null;
+        this.aliasesModal = document.getElementById("aliasesModal");
+        this.aliasesList = document.getElementById("aliasesList");
+        this.aliasNameInput = document.getElementById("aliasNameInput");
+        this.aliasExpansionInput = document.getElementById("aliasExpansionInput");
+        this.aliasAddBtn = document.getElementById("aliasAddBtn");
+        this.closeAliasesBtn = document.getElementById("closeAliasesBtn");
+        this.bindingsModal = document.getElementById("bindingsModal");
+        this.bindingsList = document.getElementById("bindingsList");
+        this.bindKeyInput = document.getElementById("bindKeyInput");
+        this.bindExpansionInput = document.getElementById("bindExpansionInput");
+        this.bindAddBtn = document.getElementById("bindAddBtn");
+        this.closeBindingsBtn = document.getElementById("closeBindingsBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
         this.configFileInput = document.getElementById("configFileInput");
@@ -929,6 +1136,22 @@
         });
         this.aliasesBtn.addEventListener("click", () => this.openAliasesModal());
         this.keyBindingsBtn.addEventListener("click", () => this.openKeyBindingsModal());
+        this.aliasAddBtn.addEventListener("click", () => this.submitAliasForm());
+        this.aliasExpansionInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") { this.submitAliasForm(); }
+        });
+        this.closeAliasesBtn.addEventListener("click", () => this.closeAliasesModal());
+        this.aliasesModal.addEventListener("click", (event) => {
+          if (event.target === this.aliasesModal) { this.closeAliasesModal(); }
+        });
+        this.bindAddBtn.addEventListener("click", () => this.submitBindForm());
+        this.bindExpansionInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") { this.submitBindForm(); }
+        });
+        this.closeBindingsBtn.addEventListener("click", () => this.closeBindingsModal());
+        this.bindingsModal.addEventListener("click", (event) => {
+          if (event.target === this.bindingsModal) { this.closeBindingsModal(); }
+        });
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
 
         this.settingsModal.addEventListener("click", (event) => {
@@ -1314,6 +1537,16 @@
         }
 
         if (event.key === "Escape") {
+          if (this.aliasesModal && !this.aliasesModal.classList.contains("hidden")) {
+            event.preventDefault();
+            this.closeAliasesModal();
+            return;
+          }
+          if (this.bindingsModal && !this.bindingsModal.classList.contains("hidden")) {
+            event.preventDefault();
+            this.closeBindingsModal();
+            return;
+          }
           if (this.helpModal && !this.helpModal.classList.contains("hidden")) {
             event.preventDefault();
             this.closeHelp();
@@ -1331,7 +1564,7 @@
         }
 
         const active = document.activeElement;
-        if (active === this.inputEl || active === this.serverUriEl) {
+        if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")) {
           return;
         }
 
@@ -1352,7 +1585,7 @@
         if (event.ctrlKey || event.metaKey || event.altKey) {
           return false;
         }
-        if ((this.helpModal && !this.helpModal.classList.contains("hidden")) || (this.settingsModal && !this.settingsModal.classList.contains("hidden"))) {
+        if ((this.helpModal && !this.helpModal.classList.contains("hidden")) || (this.settingsModal && !this.settingsModal.classList.contains("hidden")) || (this.aliasesModal && !this.aliasesModal.classList.contains("hidden")) || (this.bindingsModal && !this.bindingsModal.classList.contains("hidden"))) {
           return false;
         }
 
@@ -1648,11 +1881,152 @@
       }
 
       openAliasesModal() {
-        this.openHelp("aliases");
+        this.closeSettings();
+        this.aliasNameInput.value = "";
+        this.aliasExpansionInput.value = "";
+        this.renderAliasesList();
+        this.aliasesModal.classList.remove("hidden");
+        this.aliasesModal.setAttribute("aria-hidden", "false");
+        this.aliasNameInput.focus();
+      }
+
+      closeAliasesModal() {
+        this.aliasesModal.classList.add("hidden");
+        this.aliasesModal.setAttribute("aria-hidden", "true");
+      }
+
+      renderAliasesList() {
+        const entries = Object.entries(this.aliases).sort(([a], [b]) => a.localeCompare(b));
+        if (!entries.length) {
+          this.aliasesList.innerHTML = '<div class="mapping-empty">No aliases defined.</div>';
+          return;
+        }
+        this.aliasesList.innerHTML = entries.map(([name, expansion]) => {
+          const safeName = this.escapeHtml(name);
+          const safeExpansion = this.escapeHtml(expansion);
+          return `<div class="mapping-row"><span class="mapping-key" title="${safeName}">${safeName}</span><span class="mapping-eq">=</span><span class="mapping-val" title="${safeExpansion}">${safeExpansion}</span><button class="mapping-del" type="button" data-name="${safeName}" aria-label="Delete alias ${safeName}">✕</button></div>`;
+        }).join("");
+        this.aliasesList.querySelectorAll(".mapping-del").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const name = btn.getAttribute("data-name");
+            delete this.aliases[name];
+            this.persistClientConfig();
+            this.renderAliasesList();
+          });
+        });
+        this.aliasesList.querySelectorAll(".mapping-row").forEach((row) => {
+          const nameEl = row.querySelector(".mapping-key");
+          const valEl = row.querySelector(".mapping-val");
+          const editHandler = (event) => {
+            if (event.target.classList.contains("mapping-del")) { return; }
+            this.aliasNameInput.value = nameEl.textContent;
+            this.aliasExpansionInput.value = valEl.textContent;
+            this.aliasExpansionInput.focus();
+          };
+          nameEl.style.cursor = "pointer";
+          valEl.style.cursor = "pointer";
+          nameEl.addEventListener("click", editHandler);
+          valEl.addEventListener("click", editHandler);
+        });
+      }
+
+      submitAliasForm() {
+        const rawName = this.aliasNameInput.value.trim().toLowerCase();
+        const expansion = this.aliasExpansionInput.value.trim();
+        if (!rawName || rawName.startsWith("#")) {
+          this.aliasNameInput.focus();
+          return;
+        }
+        if (!expansion) {
+          this.aliasExpansionInput.focus();
+          return;
+        }
+        this.aliases[rawName] = expansion;
+        this.persistClientConfig();
+        this.aliasNameInput.value = "";
+        this.aliasExpansionInput.value = "";
+        this.renderAliasesList();
+        this.aliasNameInput.focus();
       }
 
       openKeyBindingsModal() {
-        this.openHelp("binds");
+        this.closeSettings();
+        this.bindKeyInput.value = "";
+        this.bindExpansionInput.value = "";
+        this.renderBindingsList();
+        this.bindingsModal.classList.remove("hidden");
+        this.bindingsModal.setAttribute("aria-hidden", "false");
+        this.bindKeyInput.focus();
+      }
+
+      closeBindingsModal() {
+        this.bindingsModal.classList.add("hidden");
+        this.bindingsModal.setAttribute("aria-hidden", "true");
+      }
+
+      renderBindingsList() {
+        const entries = Object.entries(this.keyBindings).sort(([a], [b]) => a.localeCompare(b));
+        if (!entries.length) {
+          this.bindingsList.innerHTML = '<div class="mapping-empty">No key bindings defined.</div>';
+          return;
+        }
+        this.bindingsList.innerHTML = entries.map(([key, expansion]) => {
+          const safeKey = this.escapeHtml(key);
+          const safeExpansion = this.escapeHtml(expansion);
+          return `<div class="mapping-row"><span class="mapping-key" title="${safeKey}">${safeKey}</span><span class="mapping-eq">=</span><span class="mapping-val" title="${safeExpansion}">${safeExpansion}</span><button class="mapping-del" type="button" data-name="${safeKey}" aria-label="Delete binding ${safeKey}">✕</button></div>`;
+        }).join("");
+        this.bindingsList.querySelectorAll(".mapping-del").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const key = btn.getAttribute("data-name");
+            delete this.keyBindings[key];
+            this.persistClientConfig();
+            this.renderBindingsList();
+          });
+        });
+        this.bindingsList.querySelectorAll(".mapping-row").forEach((row) => {
+          const keyEl = row.querySelector(".mapping-key");
+          const valEl = row.querySelector(".mapping-val");
+          const editHandler = (event) => {
+            if (event.target.classList.contains("mapping-del")) { return; }
+            this.bindKeyInput.value = keyEl.textContent;
+            this.bindExpansionInput.value = valEl.textContent;
+            this.bindExpansionInput.focus();
+          };
+          keyEl.style.cursor = "pointer";
+          valEl.style.cursor = "pointer";
+          keyEl.addEventListener("click", editHandler);
+          valEl.addEventListener("click", editHandler);
+        });
+      }
+
+      submitBindForm() {
+        const rawKey = this.bindKeyInput.value.trim();
+        const expansion = this.bindExpansionInput.value.trim();
+        const normalizedKey = normalizeBindKeyName(rawKey);
+        if (!normalizedKey) {
+          this.bindKeyInput.focus();
+          return;
+        }
+        if (normalizedKey === "f1") {
+          this.bindKeyInput.focus();
+          return;
+        }
+        if (!expansion) {
+          this.bindExpansionInput.focus();
+          return;
+        }
+        this.keyBindings[normalizedKey] = expansion;
+        this.persistClientConfig();
+        this.bindKeyInput.value = "";
+        this.bindExpansionInput.value = "";
+        this.renderBindingsList();
+        this.bindKeyInput.focus();
+      }
+
+      escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
       }
 
       setStatus(text, state) {
