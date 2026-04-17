@@ -199,7 +199,6 @@
 
     #helpModal .modal-panel {
       width: min(460px, 100%);
-      transition: width 0.15s ease;
     }
 
     #helpModal .modal-panel.help-wide {
@@ -431,19 +430,14 @@
     }
 
     .modal-back-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 6px;
-      padding: 4px 10px;
       font-size: 1rem;
-      cursor: pointer;
-      line-height: 1;
+      font-weight: 700;
+      min-width: 40px;
+      padding: 6px 10px;
     }
 
     .modal-back-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
+      background: #2a2a2a;
     }
 
     .modal-placeholder {
@@ -545,13 +539,6 @@
 
     .help-detail-card::-webkit-scrollbar-corner {
       background: #070707;
-    }
-
-    #helpBackBtn {
-      padding: 6px 10px;
-      font-size: 1rem;
-      font-weight: 700;
-      min-width: 40px;
     }
 
     .output-wrap {
@@ -700,7 +687,7 @@
         <div id="helpDetailView" class="modal-body help-view hidden">
           <div class="modal-section help-detail-layout">
             <div class="help-nav-row">
-              <button id="helpBackBtn" type="button" aria-label="Back to help sections">←</button>
+              <button id="helpBackBtn" type="button" class="modal-back-btn" aria-label="Back to help sections">←</button>
               <div id="helpDetailTitle" class="modal-section-title">Help Detail</div>
             </div>
             <div id="helpDetailContent" class="modal-placeholder help-text help-detail-card"></div>
@@ -1197,7 +1184,11 @@
 
         this.helpModal.addEventListener("click", (event) => {
           if (event.target === this.helpModal) {
-            this.closeHelp();
+            if (!this.helpDetailView.classList.contains("hidden")) {
+              this.showHelpHome();
+            } else {
+              this.closeHelp();
+            }
           }
         });
 
@@ -1586,7 +1577,11 @@
           }
           if (this.helpModal && !this.helpModal.classList.contains("hidden")) {
             event.preventDefault();
-            this.closeHelp();
+            if (!this.helpDetailView.classList.contains("hidden")) {
+              this.showHelpHome();
+            } else {
+              this.closeHelp();
+            }
             return;
           }
           if (this.settingsModal && !this.settingsModal.classList.contains("hidden")) {
