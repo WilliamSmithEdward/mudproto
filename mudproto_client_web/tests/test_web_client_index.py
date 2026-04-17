@@ -20,6 +20,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "height: calc(100vh - 28px);" in content
     assert "overflow: hidden;" in content
     assert "scrollbar-gutter: stable;" in content
+    assert "flex-wrap: nowrap;" in content
+    assert "white-space: nowrap;" in content
     assert "::-webkit-scrollbar" in content
     assert "scrollbar-color: #3a3a3a #070707;" in content
     assert "requestAnimationFrame" in content

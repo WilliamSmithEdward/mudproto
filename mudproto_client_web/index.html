@@ -58,9 +58,10 @@
 
     .toolbar {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: center;
       gap: 10px;
+      min-width: 0;
     }
 
     .status {
@@ -71,6 +72,8 @@
       background: var(--panel-2);
       color: var(--muted);
       font-size: 0.9rem;
+      white-space: nowrap;
+      flex: 0 0 auto;
     }
 
     .status.connected {
@@ -109,8 +112,8 @@
     }
 
     #serverUri {
-      min-width: min(560px, 100%);
-      flex: 1 1 460px;
+      min-width: 0;
+      flex: 1 1 auto;
     }
 
     button {
