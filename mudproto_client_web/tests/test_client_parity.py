@@ -75,3 +75,18 @@ def test_gui_and_web_clients_share_local_command_contract() -> None:
     assert "def on_history_down" in GUI_CLIENT_SOURCE
     assert "clear_output" in GUI_CLIENT_SOURCE
     assert "on_close" in GUI_CLIENT_SOURCE
+
+
+def test_gui_and_web_clients_share_settings_actions() -> None:
+    content = _read_web_source()
+
+    assert "Save Config" in content
+    assert "Save Config As..." in content
+    assert "Load Config" in content
+    assert "Focus Input" in content
+    assert "Clear Output" in content
+
+    assert "def save_config" in GUI_CLIENT_SOURCE
+    assert "def save_config_as" in GUI_CLIENT_SOURCE
+    assert "def load_config_from_dialog" in GUI_CLIENT_SOURCE
+    assert "def prompt_server_uri" in GUI_CLIENT_SOURCE

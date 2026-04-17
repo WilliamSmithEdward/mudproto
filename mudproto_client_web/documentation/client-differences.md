@@ -27,8 +27,8 @@ If any of those change, update both clients in the same pass and keep the parity
 - The web client runs inside the browser and keeps its main output area scrollable inside the page.
 
 ### Connection controls
-- The web client shows connect, disconnect, and server address controls in the page.
-- The desktop Python client connects through its configured settings and native window flow.
+- The web client shows a server address field, a single connect or disconnect toggle, and a burger button that opens a themed settings modal.
+- The desktop Python client uses a styled top menu bar with matching config actions and native file dialogs.
 
 ### Platform behavior
 - The desktop Python client includes Windows-specific DPI and focus handling.

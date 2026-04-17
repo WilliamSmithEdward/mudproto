@@ -6,7 +6,7 @@ import ssl
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 from datetime import datetime, timezone
 from typing import Any, TypeAlias
 
@@ -43,6 +43,8 @@ CLIENT_ROOT = Path(__file__).resolve().parent.parent
 SERVER_ROOT = CLIENT_ROOT / "mudproto_server"
 GUI_CONFIGURATION_ROOT = CLIENT_ROOT / "mudproto_client_gui" / "gui-configuration"
 CLIENT_GUI_SETTINGS_FILE = GUI_CONFIGURATION_ROOT / "server_info.json"
+CLIENT_GUI_CONFIG_FILE = GUI_CONFIGURATION_ROOT / "client_config.json"
+DEFAULT_CLIENT_CONFIG_FILENAME = "mudproto-client-config.json"
 SERVER_SETTINGS_FILE = SERVER_ROOT / "configuration" / "server" / "settings.json"
 
 
@@ -77,6 +79,40 @@ def _resolve_network_path(raw_path: str) -> Path:
     if str(raw_path).strip().replace("\\", "/").startswith("configuration/"):
         return SERVER_ROOT / path
     return CLIENT_ROOT / path
+
+
+def _normalize_aliases(raw_aliases: object) -> dict[str, str]:
+    if not isinstance(raw_aliases, dict):
+        return {}
+
+    aliases: dict[str, str] = {}
+    for raw_key, raw_value in raw_aliases.items():
+        key = str(raw_key).strip()
+        value = str(raw_value).strip()
+        if key and value:
+            aliases[key] = value
+    return aliases
+
+
+def _normalize_client_config(raw: object, *, fallback_server_uri: str | None = None) -> dict[str, Any]:
+    data = raw if isinstance(raw, dict) else {}
+    fallback = str(fallback_server_uri).strip() if fallback_server_uri else default_server_uri()
+    server_uri = str(data.get("server_uri", "")).strip() or fallback
+    return {
+        "version": 1,
+        "server_uri": server_uri,
+        "aliases": _normalize_aliases(data.get("aliases", {})),
+    }
+
+
+def _load_client_config(path: Path = CLIENT_GUI_CONFIG_FILE) -> dict[str, Any]:
+    return _normalize_client_config(_load_json_object(path))
+
+
+def _write_client_config(path: Path, config: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(_normalize_client_config(config), handle, indent=2)
 
 
 def default_server_uri() -> str:
@@ -168,12 +204,17 @@ def _extract_lines(payload: dict[str, Any], key: str) -> list[Line]:
 class MudProtoGuiClient:
     def __init__(self, root: tk.Tk, uri: str | None = None) -> None:
         self.root = root
-        self.uri = str(uri).strip() if uri and str(uri).strip() else default_server_uri()
+        self.client_config_path = CLIENT_GUI_CONFIG_FILE
+        stored_client_config = _load_client_config(self.client_config_path)
+        self.aliases = dict(stored_client_config.get("aliases", {}))
+        stored_uri = str(stored_client_config.get("server_uri", "")).strip()
+        self.uri = str(uri).strip() if uri and str(uri).strip() else (stored_uri or default_server_uri())
         self.websocket = None
         self.network_loop = asyncio.new_event_loop()
         self.network_thread = threading.Thread(target=self._run_network_loop, daemon=True)
         self._connecting = False
         self._closing = False
+        self._manual_disconnect = False
         self._reconnect_job: str | None = None
 
         self.root.title("MudProto GUI Client")
@@ -222,6 +263,94 @@ class MudProtoGuiClient:
 
         container = tk.Frame(self.root, bg="black")
         container.pack(fill="both", expand=True, padx=8, pady=8)
+
+        menu_frame = tk.Frame(
+            container,
+            bg="#090909",
+            highlightbackground="#262626",
+            highlightthickness=1,
+            bd=0,
+            padx=6,
+            pady=4,
+        )
+        menu_frame.pack(fill="x", pady=(0, 8))
+
+        menu_button_options = {
+            "bg": "#090909",
+            "fg": COLOR_MAP["bright_white"],
+            "activebackground": "#151515",
+            "activeforeground": COLOR_MAP["bright_white"],
+            "relief": "flat",
+            "bd": 0,
+            "font": self.base_font,
+            "padx": 8,
+            "pady": 4,
+            "highlightthickness": 0,
+        }
+        menu_options = {
+            "tearoff": False,
+            "bg": "#101010",
+            "fg": COLOR_MAP["bright_white"],
+            "activebackground": "#1e1e1e",
+            "activeforeground": COLOR_MAP["bright_white"],
+            "relief": "flat",
+            "bd": 1,
+        }
+
+        self.file_menu_button = tk.Menubutton(menu_frame, text="File", **menu_button_options)
+        self.file_menu_button.pack(side="left")
+        file_menu = tk.Menu(self.file_menu_button, **menu_options)
+        file_menu.add_command(label="Load Config...", command=self.load_config_from_dialog)
+        file_menu.add_command(label="Save Config", command=self.save_config)
+        file_menu.add_command(label="Save Config As...", command=self.save_config_as)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.on_close)
+        self.file_menu_button.configure(menu=file_menu)
+
+        self.edit_menu_button = tk.Menubutton(menu_frame, text="Edit", **menu_button_options)
+        self.edit_menu_button.pack(side="left")
+        edit_menu = tk.Menu(self.edit_menu_button, **menu_options)
+        edit_menu.add_command(label="Focus Input", command=self._restore_input_focus)
+        edit_menu.add_command(label="Clear Output", command=self.clear_output)
+        self.edit_menu_button.configure(menu=edit_menu)
+
+        self.connection_menu_button = tk.Menubutton(menu_frame, text="Connection", **menu_button_options)
+        self.connection_menu_button.pack(side="left")
+        connection_menu = tk.Menu(self.connection_menu_button, **menu_options)
+        connection_menu.add_command(label="Set Server URI...", command=self.prompt_server_uri)
+        connection_menu.add_command(label="Connect", command=self.connect)
+        connection_menu.add_command(label="Disconnect", command=self.disconnect)
+        self.connection_menu_button.configure(menu=connection_menu)
+
+        self.help_menu_button = tk.Menubutton(menu_frame, text="Help", **menu_button_options)
+        self.help_menu_button.pack(side="left")
+        help_menu = tk.Menu(self.help_menu_button, **menu_options)
+        help_menu.add_command(label="About Client Settings", command=self.show_about_dialog)
+        self.help_menu_button.configure(menu=help_menu)
+
+        self.connection_state_label = tk.Label(
+            menu_frame,
+            text="Disconnected",
+            bg="#101010",
+            fg=COLOR_MAP["bright_red"],
+            font=self.base_font,
+            padx=10,
+            pady=4,
+            highlightbackground="#262626",
+            highlightthickness=1,
+        )
+        self.connection_state_label.pack(side="right")
+
+        self.server_uri_label = tk.Label(
+            menu_frame,
+            text=f"Server: {self.uri}",
+            bg="#090909",
+            fg=COLOR_MAP["bright_cyan"],
+            font=self.base_font,
+            padx=8,
+            pady=4,
+        )
+        self.server_uri_label.pack(side="right")
 
         output_frame = tk.Frame(container, bg="black")
         output_frame.pack(fill="both", expand=True)
@@ -282,6 +411,101 @@ class MudProtoGuiClient:
         self.input_entry.bind("<Up>", self.on_history_up)
         self.input_entry.bind("<Down>", self.on_history_down)
         self.input_entry.focus_set()
+
+    def _build_client_config(self) -> dict[str, Any]:
+        return _normalize_client_config({
+            "version": 1,
+            "server_uri": self.uri,
+            "aliases": getattr(self, "aliases", {}),
+        })
+
+    def _persist_default_client_config(self) -> None:
+        try:
+            _write_client_config(self.client_config_path, self._build_client_config())
+        except Exception:
+            return
+
+    def _set_connection_indicator(self, text: str, fg: str = "bright_white") -> None:
+        if hasattr(self, "connection_state_label"):
+            self.connection_state_label.configure(text=text, fg=COLOR_MAP.get(fg, COLOR_MAP["bright_white"]))
+        if hasattr(self, "server_uri_label"):
+            self.server_uri_label.configure(text=f"Server: {self.uri}")
+
+    def _apply_client_config(self, config: dict[str, Any], *, announce: bool = True) -> None:
+        normalized = _normalize_client_config(config)
+        self.aliases = dict(normalized.get("aliases", {}))
+        self.uri = str(normalized.get("server_uri", self.uri)).strip() or default_server_uri()
+        self._set_connection_indicator("Connected" if self.websocket is not None else "Disconnected", "bright_green" if self.websocket is not None else "bright_red")
+        self._persist_default_client_config()
+        if announce:
+            self.append_system_message("Loaded client config. Reconnect to apply any server change.", fg="bright_green")
+
+    def save_config(self) -> None:
+        try:
+            _write_client_config(self.client_config_path, self._build_client_config())
+            self.append_system_message(f"Saved client config to {self.client_config_path.name}.", fg="bright_green")
+        except Exception as exc:
+            self.append_system_message(f"Failed to save client config: {exc}", fg="bright_red")
+
+    def save_config_as(self) -> None:
+        target = filedialog.asksaveasfilename(
+            title="Save MudProto Client Config",
+            initialdir=str(self.client_config_path.parent),
+            initialfile=DEFAULT_CLIENT_CONFIG_FILENAME,
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if not target:
+            return
+
+        try:
+            self.client_config_path = Path(target)
+            _write_client_config(self.client_config_path, self._build_client_config())
+            self.append_system_message(f"Saved client config to {self.client_config_path.name}.", fg="bright_green")
+        except Exception as exc:
+            self.append_system_message(f"Failed to save client config: {exc}", fg="bright_red")
+
+    def load_config_from_dialog(self) -> None:
+        target = filedialog.askopenfilename(
+            title="Load MudProto Client Config",
+            initialdir=str(self.client_config_path.parent),
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if not target:
+            return
+
+        try:
+            selected_path = Path(target)
+            loaded_config = _load_client_config(selected_path)
+            self.client_config_path = selected_path
+            self._apply_client_config(loaded_config)
+        except Exception as exc:
+            self.append_system_message(f"Failed to load client config: {exc}", fg="bright_red")
+
+    def prompt_server_uri(self) -> None:
+        new_uri = simpledialog.askstring("Server URI", "Enter the server WebSocket URI:", initialvalue=self.uri, parent=self.root)
+        if new_uri is None:
+            return
+
+        normalized_uri = str(new_uri).strip()
+        if not normalized_uri:
+            self.append_system_message("Server URI was left unchanged.", fg="bright_yellow")
+            return
+
+        self.uri = normalized_uri
+        self._set_connection_indicator("Connected" if self.websocket is not None else "Disconnected", "bright_green" if self.websocket is not None else "bright_red")
+        self._persist_default_client_config()
+        self.append_system_message(f"Server URI updated to {self.uri}", fg="bright_cyan")
+
+    def show_about_dialog(self) -> None:
+        messagebox.showinfo(
+            "MudProto Client Settings",
+            "The File menu can load and save portable client config packages.\n\n"
+            "Local commands stay client-side:\n"
+            "#clear\n"
+            "#quit",
+            parent=self.root,
+        )
 
     def _restore_input_focus(self) -> None:
         self._focus_restore_job = None
@@ -417,7 +641,7 @@ class MudProtoGuiClient:
         self._reconnect_job = None
 
     def _schedule_reconnect(self) -> None:
-        if self._closing or self.websocket is not None or self._connecting:
+        if self._closing or self._manual_disconnect or self.websocket is not None or self._connecting:
             return
         if self._reconnect_job is not None:
             return
@@ -440,9 +664,24 @@ class MudProtoGuiClient:
         if self._closing or self.websocket is not None or self._connecting:
             return
 
+        self._manual_disconnect = False
         self._cancel_reconnect()
         self._connecting = True
+        self._set_connection_indicator("Connecting", "bright_yellow")
+        self._persist_default_client_config()
         asyncio.run_coroutine_threadsafe(self._connect_async(), self.network_loop)
+
+    def disconnect(self) -> None:
+        self._manual_disconnect = True
+        self._cancel_reconnect()
+        self._connecting = False
+        self._set_connection_indicator("Disconnected", "bright_red")
+        self._append_local_status_line("Disconnected locally.", fg="bright_yellow")
+
+        try:
+            asyncio.run_coroutine_threadsafe(self._close_async(), self.network_loop)
+        except Exception:
+            pass
 
     async def _connect_async(self) -> None:
         if self._closing or self.websocket is not None:
@@ -453,11 +692,13 @@ class MudProtoGuiClient:
             ssl_context = build_client_ssl_context(self.uri)
             self.websocket = await websockets.connect(self.uri, ssl=ssl_context)
             self.root.after(0, self._cancel_reconnect)
+            self.root.after(0, self._set_connection_indicator, "Connected", "bright_green")
             self.root.after(0, self._set_prompt_text, "Connected. Waiting for server prompt...")
             self.root.after(0, self.append_system_message, f"Connected to {self.uri}", "bright_green")
             await self._receive_loop()
         except Exception as exc:
             self.websocket = None
+            self.root.after(0, self._set_connection_indicator, "Disconnected", "bright_red")
             self.root.after(0, self._set_prompt_text, "Disconnected")
             self.root.after(0, self.append_system_message, f"Connection error: {exc}", "bright_red")
         finally:
@@ -483,6 +724,7 @@ class MudProtoGuiClient:
             self.root.after(0, self.append_system_message, "Connection closed by server.", "bright_yellow")
         finally:
             self.websocket = None
+            self.root.after(0, self._set_connection_indicator, "Disconnected", "bright_red")
             self.root.after(0, self._set_prompt_text, "Disconnected")
 
     async def _send_text_async(self, text: str) -> None:
@@ -649,6 +891,7 @@ class MudProtoGuiClient:
     def on_close(self) -> None:
         self._closing = True
         self._cancel_reconnect()
+        self._persist_default_client_config()
 
         try:
             asyncio.run_coroutine_threadsafe(self._close_async(), self.network_loop)

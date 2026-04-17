@@ -15,7 +15,12 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "function buildInputMessage" in content
     assert "function renderDisplayMessage" in content
     assert 'id="connectionBtn"' in content
+    assert 'id="menuBtn"' in content
+    assert 'id="settingsModal"' in content
     assert "toggleConnection()" in content
+    assert "Save Config" in content
+    assert "Save Config As..." in content
+    assert "Load Config" in content
     assert "Structured protocol renderer" not in content
     assert "Pure HTML + CSS + JavaScript" not in content
     assert "Local controls:" not in content
@@ -43,6 +48,8 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert "MAX_OUTPUT_GROUPS = 400" in content
     assert "MAX_RENDER_QUEUE_GROUPS = 100" in content
     assert "MAX_COMMAND_HISTORY = 100" in content
+    assert 'window.localStorage.setItem("mudproto.clientConfig"' in content
+    assert "downloadClientConfig(fileName)" in content
     assert "pruneOutput()" in content
     assert "childElementCount > MAX_OUTPUT_GROUPS" in content
     assert "firstElementChild?.remove()" in content

@@ -258,6 +258,24 @@ def test_load_network_settings_prefers_client_gui_config(tmp_path, monkeypatch) 
     assert client_gui._load_network_settings()["host"] == "172.233.152.179"
 
 
+def test_client_config_round_trip_preserves_server_uri_and_aliases(tmp_path) -> None:
+    config_path = tmp_path / "client_config.json"
+    client_gui._write_client_config(
+        config_path,
+        {
+            "version": 1,
+            "server_uri": "wss://example.test:8765/",
+            "aliases": {"k": "kill", "gs": "get sword"},
+        },
+    )
+
+    loaded = client_gui._load_client_config(config_path)
+
+    assert loaded["version"] == 1
+    assert loaded["server_uri"] == "wss://example.test:8765/"
+    assert loaded["aliases"] == {"k": "kill", "gs": "get sword"}
+
+
 def test_default_server_uri_switches_to_wss_when_tls_enabled(monkeypatch) -> None:
     monkeypatch.setattr(client_gui, "_load_network_settings", lambda: {
         "host": "example.com",

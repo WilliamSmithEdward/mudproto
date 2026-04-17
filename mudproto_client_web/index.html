@@ -130,6 +130,61 @@
       background: #1e1e1e;
     }
 
+    #menuBtn {
+      font-size: 1.1rem;
+      line-height: 1;
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.72);
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-panel {
+      width: min(460px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .modal-note {
+      padding: 0 14px 14px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
     .output-wrap {
       display: flex;
       flex-direction: column;
@@ -227,8 +282,27 @@
       <label for="serverUri">Server</label>
       <input id="serverUri" type="text" spellcheck="false" aria-label="Server URI" />
       <button id="connectionBtn" type="button">Connect</button>
-      <button id="clearBtn" type="button">Clear Output</button>
+      <button id="menuBtn" type="button" aria-label="Open settings menu" title="Settings">☰</button>
       <div id="status" class="status disconnected">Disconnected</div>
+    </div>
+
+    <input id="configFileInput" type="file" accept=".json,application/json" hidden />
+
+    <div id="settingsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="modal-header">
+          <span id="settingsTitle">Client Settings</span>
+          <button id="closeSettingsBtn" type="button" aria-label="Close settings">×</button>
+        </div>
+        <div class="modal-actions">
+          <button id="saveConfigBtn" type="button">Save Config</button>
+          <button id="saveConfigAsBtn" type="button">Save Config As...</button>
+          <button id="loadConfigBtn" type="button">Load Config</button>
+          <button id="focusInputBtn" type="button">Focus Input</button>
+          <button id="clearOutputBtn" type="button">Clear Output</button>
+        </div>
+        <div class="modal-note">Local commands stay client-side: #clear, #quit</div>
+      </div>
     </div>
 
     <div class="output-wrap">
@@ -319,13 +393,23 @@
         this.statusEl = document.getElementById("status");
         this.serverUriEl = document.getElementById("serverUri");
         this.connectionBtn = document.getElementById("connectionBtn");
-        this.clearBtn = document.getElementById("clearBtn");
+        this.menuBtn = document.getElementById("menuBtn");
+        this.settingsModal = document.getElementById("settingsModal");
+        this.closeSettingsBtn = document.getElementById("closeSettingsBtn");
+        this.saveConfigBtn = document.getElementById("saveConfigBtn");
+        this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
+        this.loadConfigBtn = document.getElementById("loadConfigBtn");
+        this.focusInputBtn = document.getElementById("focusInputBtn");
+        this.clearOutputBtn = document.getElementById("clearOutputBtn");
+        this.configFileInput = document.getElementById("configFileInput");
+        this.aliases = {};
 
-        const savedUri = window.localStorage.getItem("mudproto.serverUri") || DEFAULT_SERVER_URI;
-        this.serverUriEl.value = savedUri;
+        const storedConfig = this.loadStoredClientConfig();
+        this.aliases = storedConfig.aliases || {};
+        this.serverUriEl.value = storedConfig.server_uri || window.localStorage.getItem("mudproto.serverUri") || DEFAULT_SERVER_URI;
 
         this.bindEvents();
-        this.appendSystemMessage(`Connecting to ${savedUri}...`, "bright_cyan");
+        this.appendSystemMessage(`Connecting to ${this.serverUriEl.value}...`, "bright_cyan");
         this.connect();
       }
 
@@ -333,7 +417,26 @@
         this.inputFormEl.addEventListener("submit", (event) => this.onSubmit(event));
         this.inputEl.addEventListener("keydown", (event) => this.onHistoryKey(event));
         this.connectionBtn.addEventListener("click", () => this.toggleConnection());
-        this.clearBtn.addEventListener("click", () => this.clearOutput());
+        this.menuBtn.addEventListener("click", () => this.openSettings());
+        this.closeSettingsBtn.addEventListener("click", () => this.closeSettings());
+        this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
+        this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
+        this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig());
+        this.focusInputBtn.addEventListener("click", () => {
+          this.closeSettings();
+          this.focusInput();
+        });
+        this.clearOutputBtn.addEventListener("click", () => {
+          this.clearOutput();
+          this.closeSettings();
+        });
+        this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
+
+        this.settingsModal.addEventListener("click", (event) => {
+          if (event.target === this.settingsModal) {
+            this.closeSettings();
+          }
+        });
 
         document.addEventListener("keydown", (event) => {
           if (event.defaultPrevented) {
@@ -342,6 +445,12 @@
 
           const active = document.activeElement;
           if (active === this.inputEl || active === this.serverUriEl) {
+            return;
+          }
+
+          if (event.key === "Escape" && this.settingsModal && !this.settingsModal.classList.contains("hidden")) {
+            event.preventDefault();
+            this.closeSettings();
             return;
           }
 
@@ -361,10 +470,121 @@
         window.addEventListener("beforeunload", () => this.disconnect(true));
       }
 
+      normalizeClientConfig(raw) {
+        const data = raw && typeof raw === "object" ? raw : {};
+        const aliases = data.aliases && typeof data.aliases === "object" ? Object.fromEntries(
+          Object.entries(data.aliases).filter(([key, value]) => String(key).trim() && String(value).trim())
+        ) : {};
+
+        return {
+          version: 1,
+          server_uri: typeof data.server_uri === "string" && data.server_uri.trim() ? data.server_uri.trim() : DEFAULT_SERVER_URI,
+          aliases,
+        };
+      }
+
+      loadStoredClientConfig() {
+        try {
+          const raw = window.localStorage.getItem("mudproto.clientConfig");
+          if (!raw) {
+            return this.normalizeClientConfig({});
+          }
+          return this.normalizeClientConfig(JSON.parse(raw));
+        } catch {
+          return this.normalizeClientConfig({});
+        }
+      }
+
+      buildClientConfig() {
+        return this.normalizeClientConfig({
+          version: 1,
+          server_uri: this.serverUriEl.value.trim() || DEFAULT_SERVER_URI,
+          aliases: this.aliases,
+        });
+      }
+
+      persistClientConfig() {
+        const config = this.buildClientConfig();
+        window.localStorage.setItem("mudproto.serverUri", config.server_uri);
+        window.localStorage.setItem("mudproto.clientConfig", JSON.stringify(config));
+        return config;
+      }
+
       currentUri() {
         const uri = this.serverUriEl.value.trim() || DEFAULT_SERVER_URI;
-        window.localStorage.setItem("mudproto.serverUri", uri);
+        this.serverUriEl.value = uri;
+        this.persistClientConfig();
         return uri;
+      }
+
+      openSettings() {
+        this.settingsModal.classList.remove("hidden");
+        this.settingsModal.setAttribute("aria-hidden", "false");
+      }
+
+      closeSettings() {
+        this.settingsModal.classList.add("hidden");
+        this.settingsModal.setAttribute("aria-hidden", "true");
+      }
+
+      saveConfig() {
+        this.downloadClientConfig("mudproto-client-config.json");
+      }
+
+      saveConfigAs() {
+        const suggestedName = window.prompt("Save config as...", "mudproto-client-config.json");
+        if (suggestedName === null) {
+          return;
+        }
+
+        let fileName = suggestedName.trim() || "mudproto-client-config.json";
+        if (!fileName.toLowerCase().endsWith(".json")) {
+          fileName += ".json";
+        }
+        this.downloadClientConfig(fileName);
+      }
+
+      downloadClientConfig(fileName) {
+        const config = this.persistClientConfig();
+        const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        this.appendSystemMessage(`Saved client config as ${fileName}.`, "bright_green");
+        this.closeSettings();
+      }
+
+      requestLoadConfig() {
+        this.configFileInput.value = "";
+        this.configFileInput.click();
+      }
+
+      loadConfigFromFile(event) {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) {
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(String(reader.result || "{}"));
+            const normalized = this.normalizeClientConfig(parsed);
+            this.aliases = normalized.aliases || {};
+            this.serverUriEl.value = normalized.server_uri;
+            this.persistClientConfig();
+            this.appendSystemMessage("Loaded client config. Reconnect to apply any server change.", "bright_green");
+            this.closeSettings();
+          } catch {
+            this.appendSystemMessage("Failed to load client config.", "bright_red");
+          }
+        };
+        reader.readAsText(file);
       }
 
       setStatus(text, state) {
