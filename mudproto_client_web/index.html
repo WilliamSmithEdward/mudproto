@@ -1255,7 +1255,7 @@
         this.actions = [];
         this.actionIdCounter = 0;
         this.actionFiringDepth = 0;
-        this.options = { echo_commands: false, echo_action_commands: false };
+        this.options = { echo_commands: true, echo_action_commands: true };
 
         const storedConfig = this.loadStoredClientConfig();
         this.aliases = storedConfig.aliases || {};
@@ -2362,8 +2362,8 @@
       normalizeOptions(raw) {
         const data = raw && typeof raw === "object" ? raw : {};
         return {
-          echo_commands: !!data.echo_commands,
-          echo_action_commands: !!data.echo_action_commands,
+          echo_commands: data.echo_commands !== false,
+          echo_action_commands: data.echo_action_commands !== false,
         };
       }
 
