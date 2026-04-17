@@ -374,6 +374,12 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
                     if session.login_room_id.strip():
                         session.player.current_room_id = session.login_room_id.strip()
                     end_combat(session)
+                    session.following_player_key = ""
+                    session.following_player_name = ""
+                    session.watch_player_key = ""
+                    session.watch_player_name = ""
+                    session.group_leader_key = ""
+                    session.group_member_keys.clear()
                     purge_nonpersistent_items(session, reason="offline_safe_disconnect")
                     save_player_state(session)
                     active_character_sessions.pop(character_key, None)

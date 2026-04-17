@@ -69,6 +69,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert 'localCommand === "#quit"' in content
     assert 'localCommand === "#unalias"' in content
     assert 'localCommand === "#unbind"' in content
+    assert '<select id="bindKeyInput">' in content
+    assert "populateBindKeyOptions()" in content
 
 
 def test_web_client_prunes_old_output_and_history() -> None:

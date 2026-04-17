@@ -320,7 +320,7 @@
 
     .mapping-key {
       flex: 0 0 auto;
-      min-width: 90px;
+      min-width: 130px;
       color: var(--accent);
       font-weight: 700;
       overflow: hidden;
@@ -377,14 +377,15 @@
       color: var(--muted);
     }
 
-    .mapping-form-field input[type="text"] {
+    .mapping-form-field input[type="text"],
+    .mapping-form-field select {
       padding: 6px 8px;
       font-size: 0.92rem;
     }
 
     .mapping-form-field.mapping-name-field {
       flex: 0 0 auto;
-      width: 120px;
+      width: 160px;
     }
 
     .mapping-form-field.mapping-expansion-field {
@@ -734,7 +735,7 @@
           <div class="mapping-form">
             <div class="mapping-form-field mapping-name-field">
               <label for="bindKeyInput">Key</label>
-              <input id="bindKeyInput" type="text" placeholder="e.g. f2" />
+              <select id="bindKeyInput"></select>
             </div>
             <div class="mapping-form-field mapping-expansion-field">
               <label for="bindExpansionInput">Expansion</label>
@@ -1951,12 +1952,21 @@
 
       openKeyBindingsModal() {
         this.closeSettings();
+        this.populateBindKeyOptions();
         this.bindKeyInput.value = "";
         this.bindExpansionInput.value = "";
         this.renderBindingsList();
         this.bindingsModal.classList.remove("hidden");
         this.bindingsModal.setAttribute("aria-hidden", "false");
         this.bindKeyInput.focus();
+      }
+
+      populateBindKeyOptions() {
+        const current = this.bindKeyInput.value;
+        const keys = [...SUPPORTED_BIND_KEYS].filter((k) => k !== "f1").sort();
+        this.bindKeyInput.innerHTML = '<option value="">-- select --</option>' +
+          keys.map((k) => `<option value="${k}">${k}</option>`).join("");
+        this.bindKeyInput.value = current || "";
       }
 
       closeBindingsModal() {
@@ -2000,22 +2010,17 @@
       }
 
       submitBindForm() {
-        const rawKey = this.bindKeyInput.value.trim();
+        const selectedKey = this.bindKeyInput.value;
+        if (!selectedKey) {
+          this.bindKeyInput.focus();
+          return;
+        }
         const expansion = this.bindExpansionInput.value.trim();
-        const normalizedKey = normalizeBindKeyName(rawKey);
-        if (!normalizedKey) {
-          this.bindKeyInput.focus();
-          return;
-        }
-        if (normalizedKey === "f1") {
-          this.bindKeyInput.focus();
-          return;
-        }
         if (!expansion) {
           this.bindExpansionInput.focus();
           return;
         }
-        this.keyBindings[normalizedKey] = expansion;
+        this.keyBindings[selectedKey] = expansion;
         this.persistClientConfig();
         this.bindKeyInput.value = "";
         this.bindExpansionInput.value = "";

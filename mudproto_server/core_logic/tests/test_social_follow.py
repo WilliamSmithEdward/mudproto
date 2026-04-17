@@ -575,3 +575,60 @@ def test_follower_is_notified_when_followed_player_dies(monkeypatch) -> None:
     assert "You stop following Orlandu." in _extract_display_text(notifications[0][1])
 
     _clear_session_registries()
+
+
+def test_hard_disconnect_clears_follow_and_group_state() -> None:
+    """Follow/group state is cleared when the offline loop reaches the safe-hours hard disconnect."""
+    _clear_session_registries()
+    follower, target = _register_room_pair()
+
+    follower.following_player_key = target.player_state_key
+    follower.following_player_name = target.authenticated_character_name
+    follower.group_leader_key = target.player_state_key
+    follower.watch_player_key = target.player_state_key
+    follower.watch_player_name = target.authenticated_character_name
+    target.group_member_keys.add(follower.player_state_key)
+
+    # Simulate the hard disconnect block from _offline_character_loop.
+    from combat_state import end_combat
+
+    follower.disconnected_by_server = True
+    follower.is_connected = False
+    end_combat(follower)
+    follower.following_player_key = ""
+    follower.following_player_name = ""
+    follower.watch_player_key = ""
+    follower.watch_player_name = ""
+    follower.group_leader_key = ""
+    follower.group_member_keys.clear()
+
+    assert follower.following_player_key == ""
+    assert follower.following_player_name == ""
+    assert follower.watch_player_key == ""
+    assert follower.watch_player_name == ""
+    assert follower.group_leader_key == ""
+    assert not follower.group_member_keys
+
+    _clear_session_registries()
+
+
+def test_soft_disconnect_preserves_follow_state(monkeypatch) -> None:
+    """Follow state survives the initial (soft) disconnect so groups can reform on reconnect."""
+    _clear_session_registries()
+    follower, target = _register_room_pair()
+
+    follower.following_player_key = target.player_state_key
+    follower.following_player_name = target.authenticated_character_name
+    follower.group_leader_key = target.player_state_key
+
+    import session_lifecycle
+    monkeypatch.setattr(session_lifecycle, "start_offline_character_processing", lambda _session: None)
+
+    from session_lifecycle import handle_client_disconnect
+    handle_client_disconnect(follower)
+
+    assert follower.following_player_key == target.player_state_key
+    assert follower.following_player_name == target.authenticated_character_name
+    assert follower.group_leader_key == target.player_state_key
+
+    _clear_session_registries()
