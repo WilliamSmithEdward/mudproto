@@ -63,6 +63,7 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert 'handleUnaliasCommand(commandText)' in content
     assert 'handleUnbindCommand(commandText)' in content
     assert 'normalizeBindKeyName(keyName)' in content
+    assert 'stripOuterBraces(expansion)' in content
     assert 'MAX_ALIAS_EXPANSION_DEPTH = 8' in content
     assert 'localCommand === "#clear"' in content
     assert 'localCommand === "#quit"' in content

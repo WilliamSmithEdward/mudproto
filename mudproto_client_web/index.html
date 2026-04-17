@@ -699,6 +699,14 @@
       return new RegExp(`^${escaped}$`, "i");
     }
 
+    function stripOuterBraces(text) {
+      const trimmed = String(text || "").trim();
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        return trimmed.slice(1, -1).trim();
+      }
+      return trimmed;
+    }
+
     function normalizeBindKeyName(keyName) {
       const raw = String(keyName || "").trim().toLowerCase().replace(/\s+/g, "");
       if (!raw) {
@@ -940,6 +948,7 @@
               "Examples:",
               "#alias heal cast 'heal' %1",
               "#alias prep stand;draw sword;cast 'armor'",
+              "#alias l {look north}",
               "#alias sayall gossip %0",
               "#alias mtell tell %1 [Tom says:] %r",
               "#alias h*                    List aliases starting with h",
@@ -954,6 +963,7 @@
               "- Expansions can contain semicolons to chain multiple commands",
               "- Aliases can trigger other aliases (up to 8 levels deep)",
               "- Quoted strings ('...' or \"...\") in expansions are preserved",
+              "- Outer {braces} around an expansion are stripped automatically",
               "- Alias names cannot start with # or contain spaces",
               "",
               "Removing Aliases:",
@@ -1246,7 +1256,7 @@
           return;
         }
         const lines = entries.map(([name, expansion]) => `  ${name} = ${expansion}`);
-        this.appendSystemMessage(`${header}\n${lines.join("\n")}\n`, "bright_cyan");
+        this.appendSystemMessage(`${header}\n${lines.join("\n")}`, "bright_cyan");
       }
 
       handleAliasCommand(commandText) {
@@ -1273,7 +1283,7 @@
           return;
         }
 
-        this.aliases[normalizedName] = expansion.trim();
+        this.aliases[normalizedName] = stripOuterBraces(expansion);
         this.persistClientConfig();
         this.appendSystemMessage(`${normalizedName} = ${this.aliases[normalizedName]}`, "bright_green");
       }
@@ -1325,7 +1335,7 @@
           return;
         }
 
-        this.keyBindings[normalizedKey] = expansion.trim();
+        this.keyBindings[normalizedKey] = stripOuterBraces(expansion);
         this.persistClientConfig();
         this.appendSystemMessage(`${normalizedKey} = ${this.keyBindings[normalizedKey]}`, "bright_green");
       }
