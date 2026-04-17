@@ -1392,7 +1392,7 @@
         for (let index = 0; index < segments.length; index += 1) {
           let commandText = segments[index];
           const { commandName, remainder } = splitLeadingToken(commandText);
-          const localCommand = commandName.toLowerCase();
+          const localCommand = this.resolveLocalCommand(commandName);
 
           if ((localCommand === "#alias" || localCommand === "#bind") && index < segments.length - 1) {
             try {
@@ -1411,6 +1411,20 @@
         }
       }
 
+      resolveLocalCommand(input) {
+        const commands = ["#alias", "#unalias", "#bind", "#unbind", "#clear", "#quit", "#help"];
+        const lowered = String(input || "").trim().toLowerCase();
+        if (!lowered.startsWith("#")) {
+          return lowered;
+        }
+        const exact = commands.find((cmd) => cmd === lowered);
+        if (exact) {
+          return exact;
+        }
+        const matches = commands.filter((cmd) => cmd.startsWith(lowered));
+        return matches.length === 1 ? matches[0] : lowered;
+      }
+
       dispatchCommand(commandText, depth = 0) {
         const normalizedText = String(commandText || "").trim();
         if (!normalizedText) {
@@ -1418,7 +1432,7 @@
         }
 
         const { commandName } = splitLeadingToken(normalizedText);
-        const localCommand = commandName.toLowerCase();
+        const localCommand = this.resolveLocalCommand(commandName);
 
         if (localCommand === "#clear") {
           this.clearOutput();
