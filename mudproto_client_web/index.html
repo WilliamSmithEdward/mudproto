@@ -217,17 +217,31 @@
       display: none;
     }
 
+    .help-home-layout,
+    .help-detail-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
     .help-nav-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .help-detail-card {
+      width: 100%;
+      min-height: 0;
     }
 
     #helpBackBtn {
       padding: 6px 10px;
       font-size: 1rem;
       font-weight: 700;
+      min-width: 40px;
     }
 
     .output-wrap {
@@ -364,19 +378,19 @@
           <button id="closeHelpBtn" type="button" aria-label="Close help">×</button>
         </div>
         <div id="helpHomeView" class="modal-body help-view">
-          <div class="modal-section">
+          <div class="modal-section help-home-layout">
             <div class="modal-section-title">Help Sections</div>
             <button id="openAliasesHelpBtn" type="button">Open Aliases Help</button>
             <button id="openBindsHelpBtn" type="button">Open Binds Help</button>
           </div>
         </div>
         <div id="helpDetailView" class="modal-body help-view hidden">
-          <div class="modal-section">
+          <div class="modal-section help-detail-layout">
             <div class="help-nav-row">
               <button id="helpBackBtn" type="button" aria-label="Back to help sections">←</button>
               <div id="helpDetailTitle" class="modal-section-title">Help Detail</div>
             </div>
-            <div id="helpDetailContent" class="modal-placeholder help-text"></div>
+            <div id="helpDetailContent" class="modal-placeholder help-text help-detail-card"></div>
           </div>
         </div>
       </div>
