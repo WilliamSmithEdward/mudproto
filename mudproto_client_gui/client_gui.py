@@ -322,13 +322,6 @@ class MudProtoGuiClient:
         self._add_menu_command(edit_menu, "Clear Output", self.clear_output)
         self.edit_menu_button.configure(menu=edit_menu)
 
-        self.configuration_menu_button = tk.Menubutton(menu_frame, text="Configuration", **menu_button_options)
-        self.configuration_menu_button.pack(side="left", padx=2)
-        configuration_menu = tk.Menu(self.configuration_menu_button, **menu_options)
-        self._add_menu_command(configuration_menu, "Aliases", self.open_aliases_modal_placeholder)
-        self._add_menu_command(configuration_menu, "Key Bindings", self.open_key_bindings_modal_placeholder)
-        self.configuration_menu_button.configure(menu=configuration_menu)
-
         self.connection_menu_button = tk.Menubutton(menu_frame, text="Connection", **menu_button_options)
         self.connection_menu_button.pack(side="left", padx=2)
         connection_menu = tk.Menu(self.connection_menu_button, **menu_options)
@@ -632,18 +625,6 @@ class MudProtoGuiClient:
         x = self.root.winfo_rootx() + max(20, (self.root.winfo_width() - dialog.winfo_width()) // 2)
         y = self.root.winfo_rooty() + max(20, (self.root.winfo_height() - dialog.winfo_height()) // 3)
         dialog.geometry(f"+{x}+{y}")
-
-    def open_aliases_modal_placeholder(self) -> None:
-        self._show_themed_message(
-            "Aliases",
-            "The aliases editor entry point is now ready. This will become the primary place to add, update, and delete aliases in a future step.",
-        )
-
-    def open_key_bindings_modal_placeholder(self) -> None:
-        self._show_themed_message(
-            "Key Bindings",
-            "The key bindings editor entry point is now ready. This will become the primary place to add, update, and delete key bindings in a future step.",
-        )
 
     def show_about_dialog(self) -> None:
         self._show_themed_message(

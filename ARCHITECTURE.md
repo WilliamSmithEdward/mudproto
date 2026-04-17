@@ -2,17 +2,17 @@
 
 ## Overview
 
-MudProto is an async WebSocket-based MUD (Multi-User Dungeon) server and
-GUI client, written in Python. The server is the sole owner of game meaning;
-the client is a dumb renderer.
+MudProto is an async WebSocket-based MUD (Multi-User Dungeon) server written
+in Python with a browser-based web client. The server is the sole owner of
+game meaning; the client is a dumb renderer.
 
 ---
 
 ## 1. Client / Server Boundary
 
-### Clients (`mudproto_client_gui/client_gui.py`)
+### Supported client (`mudproto_client_web/index.html`)
 
-The GUI client is a **generic renderer** - it contains zero game-specific logic.
+The web client is a **generic renderer** and contains zero game-specific logic.
 
 Responsibilities:
 - Open and maintain the WebSocket connection.
@@ -20,11 +20,11 @@ Responsibilities:
 - Render `display` messages and prompts.
 - Handle local-only client actions such as `#quit`.
 
-The GUI client renders structured payload in a Tk-based interface and should not
-know command semantics or gameplay rules.
+The supported browser client renders structured payload and should not know
+command semantics or gameplay rules.
 
-The old terminal client path was intentionally removed and is no longer an
-actively supported client path.
+MudProto is intentionally web-first so the project does not have to maintain
+two different player clients.
 
 ### Server (`mudproto_server/core_logic/`)
 
@@ -59,7 +59,7 @@ Responsibilities:
 ```json
 {
   "type": "input",
-  "source": "mudproto_client_gui",
+  "source": "mudproto_client_web",
   "timestamp": "2026-03-28T12:34:56Z",
   "payload": { "text": "look" }
 }
@@ -105,8 +105,8 @@ Display spacing is contract-driven by JSON only:
 ### Display Spacing Aesthetics
 
 MudProto intentionally treats blank lines as part of the UI contract, not as
-incidental formatting. Both the terminal and GUI clients should render the
-spacing supplied by the server exactly.
+incidental formatting. The supported web client should render the spacing
+supplied by the server exactly.
 
 Preferred conventions:
 - **Prompt block first**: the current prompt/status line stands alone.
@@ -707,8 +707,8 @@ Key behaviors:
 mudproto/
   ARCHITECTURE.md                # this file (canonical architecture doc)
   README.md
-  mudproto_client_gui/
-    client_gui.py                # supported Tk GUI client
+  mudproto_client_web/
+    index.html                   # supported browser client
   mudproto_server/
     core_logic/
       server.py                  # thin async server entry point and startup orchestration

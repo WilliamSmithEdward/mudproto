@@ -1,8 +1,0 @@
-{
-  "network": {
-    "host": "williamsmithe.com",
-    "port": 8765,
-    "tls_enabled": true,
-    "tls_verify_server": false
-  }
-}

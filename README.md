@@ -50,12 +50,13 @@ pip install -r requirements.txt
 # Start server
 python mudproto_server/core_logic/server.py
 
-# Start GUI client (new terminal)
-cd mudproto_client_gui
-python client_gui.py
+# Open the web client
+start mudproto_client_web/index.html      # Windows
+# open mudproto_client_web/index.html     # macOS
+# xdg-open mudproto_client_web/index.html # Linux
 ```
 
-Note: the old terminal client path was intentionally removed and should not be recreated.
+Note: MudProto is now web-first. The old terminal path is gone, and the desktop Python GUI has been retired.
 
 First commands to try:
 
@@ -64,6 +65,16 @@ First commands to try:
 - score
 - inventory
 - scan
+
+## Web-first direction
+
+MudProto now treats the browser client as the primary player interface to avoid maintaining two different clients.
+
+That means:
+
+- new client UX work should go into mudproto_client_web
+- client-side settings and quality-of-life features should be added in the web client
+- the retired Python GUI should not be brought back as a second actively maintained front end
 
 ## Current Gameplay Highlights
 
@@ -137,8 +148,6 @@ mudproto/
 ├── ARCHITECTURE.md
 ├── ASSET_GENERATION.md
 ├── LLM_CONTENT_GENERATION.md
-├── mudproto_client_gui/
-│   └── client_gui.py
 ├── mudproto_client_web/
 │   ├── index.html
 │   └── documentation/

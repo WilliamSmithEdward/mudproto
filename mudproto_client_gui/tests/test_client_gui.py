@@ -285,6 +285,9 @@ def test_python_client_uses_roomier_menu_spacing() -> None:
     assert "self.menu_font = (\"Consolas\", 11)" in source
     assert "file_menu.add_separator()" in source
     assert "connection_menu.add_separator()" in source
+    assert 'text="Configuration"' not in source
+    assert "def open_aliases_modal_placeholder" not in source
+    assert "def open_key_bindings_modal_placeholder" not in source
     assert "def _add_menu_spacer" not in source
     assert "def _add_menu_command" in source
     assert 'self._menu_item_spacer = tk.PhotoImage(width=1, height=22)' in source

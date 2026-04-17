@@ -120,7 +120,7 @@ def _generate_self_signed_certificate(private_key: rsa.RSAPrivateKey, settings: 
         x509.NameAttribute(NameOID.COMMON_NAME, common_name),
     ])
 
-    subject_alt_names = [x509.DNSName(name) for name in dns_names]
+    subject_alt_names: list[x509.GeneralName] = [x509.DNSName(name) for name in dns_names]
     subject_alt_names.extend(x509.IPAddress(ipaddress.ip_address(raw_ip)) for raw_ip in ip_addresses)
 
     return (
@@ -192,7 +192,7 @@ def main() -> None:
     print()
     print("Next steps:")
     print("1. Set 'tls_enabled' to true in settings.json.")
-    print("2. Restart the server and GUI client.")
+    print("2. Restart the server and reconnect the web client.")
     print("3. For stricter client verification, set 'tls_verify_server' to true.")
 
 
