@@ -172,11 +172,35 @@
       font-weight: 700;
     }
 
-    .modal-actions {
+    .modal-body {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
       padding: 14px;
+    }
+
+    .modal-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .modal-section-title {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .modal-placeholder {
+      min-height: 116px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0c0c0c;
+      color: var(--muted);
     }
 
     .output-wrap {
@@ -288,10 +312,17 @@
           <span id="settingsTitle">Client Settings</span>
           <button id="closeSettingsBtn" type="button" aria-label="Close settings">×</button>
         </div>
-        <div class="modal-actions">
-          <button id="saveConfigBtn" type="button">Save Config</button>
-          <button id="saveConfigAsBtn" type="button">Save Config As...</button>
-          <button id="loadConfigBtn" type="button">Load Config</button>
+        <div class="modal-body">
+          <div class="modal-section">
+            <div class="modal-section-title">Configuration</div>
+            <button id="saveConfigBtn" type="button">Save Config</button>
+            <button id="saveConfigAsBtn" type="button">Save Config As...</button>
+            <button id="loadConfigBtn" type="button">Load Config</button>
+          </div>
+          <div class="modal-section">
+            <div class="modal-section-title">Aliases</div>
+            <div class="modal-placeholder">Alias tools coming next.</div>
+          </div>
         </div>
       </div>
     </div>

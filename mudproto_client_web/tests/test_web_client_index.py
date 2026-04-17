@@ -21,6 +21,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "Save Config" in content
     assert "Save Config As..." in content
     assert "Load Config" in content
+    assert "Aliases" in content
+    assert "Alias tools coming next." in content
     assert "Local commands stay client-side" not in content
     assert "Focus Input" not in content
     assert "Clear Output" not in content
@@ -53,6 +55,8 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert "MAX_COMMAND_HISTORY = 100" in content
     assert 'window.localStorage.setItem("mudproto.clientConfig"' in content
     assert "downloadClientConfig(fileName)" in content
+    assert ".modal-body {" in content
+    assert ".modal-placeholder {" in content
     assert "pruneOutput()" in content
     assert "childElementCount > MAX_OUTPUT_GROUPS" in content
     assert "firstElementChild?.remove()" in content
