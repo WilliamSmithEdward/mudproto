@@ -179,12 +179,6 @@
       padding: 14px;
     }
 
-    .modal-note {
-      padding: 0 14px 14px;
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
     .output-wrap {
       display: flex;
       flex-direction: column;
@@ -298,10 +292,7 @@
           <button id="saveConfigBtn" type="button">Save Config</button>
           <button id="saveConfigAsBtn" type="button">Save Config As...</button>
           <button id="loadConfigBtn" type="button">Load Config</button>
-          <button id="focusInputBtn" type="button">Focus Input</button>
-          <button id="clearOutputBtn" type="button">Clear Output</button>
         </div>
-        <div class="modal-note">Local commands stay client-side: #clear, #quit</div>
       </div>
     </div>
 
@@ -399,8 +390,6 @@
         this.saveConfigBtn = document.getElementById("saveConfigBtn");
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
-        this.focusInputBtn = document.getElementById("focusInputBtn");
-        this.clearOutputBtn = document.getElementById("clearOutputBtn");
         this.configFileInput = document.getElementById("configFileInput");
         this.aliases = {};
 
@@ -422,14 +411,6 @@
         this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
         this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig());
-        this.focusInputBtn.addEventListener("click", () => {
-          this.closeSettings();
-          this.focusInput();
-        });
-        this.clearOutputBtn.addEventListener("click", () => {
-          this.clearOutput();
-          this.closeSettings();
-        });
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
 
         this.settingsModal.addEventListener("click", (event) => {

@@ -21,6 +21,9 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "Save Config" in content
     assert "Save Config As..." in content
     assert "Load Config" in content
+    assert "Local commands stay client-side" not in content
+    assert "Focus Input" not in content
+    assert "Clear Output" not in content
     assert "Structured protocol renderer" not in content
     assert "Pure HTML + CSS + JavaScript" not in content
     assert "Local controls:" not in content

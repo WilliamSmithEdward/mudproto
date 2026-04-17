@@ -83,8 +83,7 @@ def test_gui_and_web_clients_share_settings_actions() -> None:
     assert "Save Config" in content
     assert "Save Config As..." in content
     assert "Load Config" in content
-    assert "Focus Input" in content
-    assert "Clear Output" in content
+    assert "Focus Input" not in content
 
     assert "def save_config" in GUI_CLIENT_SOURCE
     assert "def save_config_as" in GUI_CLIENT_SOURCE
