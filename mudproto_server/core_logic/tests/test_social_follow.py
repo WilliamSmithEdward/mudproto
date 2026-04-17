@@ -591,7 +591,9 @@ def test_hard_disconnect_clears_follow_and_group_state() -> None:
 
     # Simulate the hard disconnect block from _offline_character_loop.
     from combat_state import end_combat
+    from session_lifecycle import _detach_from_group_leader
 
+    _detach_from_group_leader(follower)
     follower.disconnected_by_server = True
     follower.is_connected = False
     end_combat(follower)
@@ -608,6 +610,8 @@ def test_hard_disconnect_clears_follow_and_group_state() -> None:
     assert follower.watch_player_name == ""
     assert follower.group_leader_key == ""
     assert not follower.group_member_keys
+    # Leader side must also be cleaned up.
+    assert follower.player_state_key not in target.group_member_keys
 
     _clear_session_registries()
 
@@ -742,5 +746,231 @@ def test_group_form_does_not_readd_existing_member() -> None:
     text = _extract_display_text(response)
     assert "no eligible" in text.lower()
     assert leader.group_member_keys == {member_key}
+
+    _clear_session_registries()
+
+
+def test_hard_disconnect_removes_member_from_online_leader_group() -> None:
+    """When a member hard-disconnects, the online leader's group_member_keys is updated."""
+    _clear_session_registries()
+    follower, leader = _register_room_pair()
+    follower_key = follower.player_state_key
+
+    follower.following_player_key = leader.player_state_key
+    follower.following_player_name = leader.authenticated_character_name
+    follower.group_leader_key = leader.player_state_key
+    leader.group_member_keys.add(follower_key)
+
+    from session_lifecycle import _detach_from_group_leader
+
+    _detach_from_group_leader(follower)
+
+    assert follower_key not in leader.group_member_keys
+
+    _clear_session_registries()
+
+
+def test_hard_disconnect_removes_member_from_offline_leader_group() -> None:
+    """When a member hard-disconnects, an offline leader's group_member_keys is also updated."""
+    _clear_session_registries()
+    follower, leader = _register_room_pair()
+    follower_key = follower.player_state_key
+    leader_key = leader.player_state_key
+
+    follower.following_player_key = leader_key
+    follower.following_player_name = leader.authenticated_character_name
+    follower.group_leader_key = leader_key
+    leader.group_member_keys.add(follower_key)
+
+    # Move leader from connected_clients to active_character_sessions (offline).
+    connected_clients.pop(leader.client_id, None)
+    leader.is_connected = False
+    active_character_sessions[leader_key] = leader
+
+    from session_lifecycle import _detach_from_group_leader
+
+    _detach_from_group_leader(follower)
+
+    assert follower_key not in leader.group_member_keys
+
+    _clear_session_registries()
+
+
+def test_reset_session_to_login_detaches_from_leader_group() -> None:
+    """reset_session_to_login removes the session from the leader's group."""
+    _clear_session_registries()
+    follower, leader = _register_room_pair()
+    follower_key = follower.player_state_key
+
+    follower.following_player_key = leader.player_state_key
+    follower.following_player_name = leader.authenticated_character_name
+    follower.group_leader_key = leader.player_state_key
+    leader.group_member_keys.add(follower_key)
+
+    from session_lifecycle import reset_session_to_login
+
+    reset_session_to_login(follower)
+
+    assert follower_key not in leader.group_member_keys
+    assert follower.group_leader_key == ""
+    assert follower.following_player_key == ""
+
+    _clear_session_registries()
+
+
+def test_leader_hard_disconnect_clears_members_group_and_follow_state() -> None:
+    """When a group leader hard-disconnects, each member's group_leader_key and follow state is cleared."""
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Orlandu")
+    member1 = _make_session("client-m1", "Lucia")
+    member2 = _make_session("client-m2", "Ramza")
+    connected_clients[leader.client_id] = leader
+    connected_clients[member1.client_id] = member1
+    connected_clients[member2.client_id] = member2
+
+    leader_key = leader.player_state_key.strip().lower()
+    m1_key = member1.player_state_key.strip().lower()
+    m2_key = member2.player_state_key.strip().lower()
+
+    member1.following_player_key = leader.player_state_key
+    member1.following_player_name = leader.authenticated_character_name
+    member1.group_leader_key = leader_key
+    member2.following_player_key = leader.player_state_key
+    member2.following_player_name = leader.authenticated_character_name
+    member2.group_leader_key = leader_key
+    leader.group_member_keys = {m1_key, m2_key}
+
+    from session_lifecycle import _detach_group_members
+
+    _detach_group_members(leader)
+
+    assert member1.group_leader_key == ""
+    assert member1.following_player_key == ""
+    assert member1.following_player_name == ""
+    assert member2.group_leader_key == ""
+    assert member2.following_player_key == ""
+    assert member2.following_player_name == ""
+
+    _clear_session_registries()
+
+
+def test_leader_hard_disconnect_clears_offline_member_state() -> None:
+    """When a leader hard-disconnects, offline members also have group/follow state cleared."""
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Orlandu")
+    member = _make_session("client-member", "Lucia")
+    connected_clients[leader.client_id] = leader
+
+    leader_key = leader.player_state_key.strip().lower()
+    member_key = member.player_state_key.strip().lower()
+
+    member.following_player_key = leader.player_state_key
+    member.following_player_name = leader.authenticated_character_name
+    member.group_leader_key = leader_key
+    leader.group_member_keys = {member_key}
+
+    # Member is offline (in active_character_sessions, not connected_clients).
+    member.is_connected = False
+    active_character_sessions[member_key] = member
+
+    from session_lifecycle import _detach_group_members
+
+    _detach_group_members(leader)
+
+    assert member.group_leader_key == ""
+    assert member.following_player_key == ""
+    assert member.following_player_name == ""
+
+    _clear_session_registries()
+
+
+def test_reset_session_to_login_as_leader_clears_member_state() -> None:
+    """reset_session_to_login on a leader clears members' group/follow state."""
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Orlandu")
+    member = _make_session("client-member", "Lucia")
+    connected_clients[leader.client_id] = leader
+    connected_clients[member.client_id] = member
+
+    leader_key = leader.player_state_key.strip().lower()
+    member_key = member.player_state_key.strip().lower()
+
+    member.following_player_key = leader.player_state_key
+    member.following_player_name = leader.authenticated_character_name
+    member.group_leader_key = leader_key
+    leader.group_member_keys = {member_key}
+
+    from session_lifecycle import reset_session_to_login
+
+    reset_session_to_login(leader)
+
+    assert member.group_leader_key == ""
+    assert member.following_player_key == ""
+    assert not leader.group_member_keys
+
+    _clear_session_registries()
+
+
+def test_hard_disconnect_clears_watchers_of_departing_player() -> None:
+    """When a player hard-disconnects, connected watchers have their watch state cleared."""
+    _clear_session_registries()
+    watched = _make_session("client-watched", "Orlandu")
+    watcher = _make_session("client-watcher", "Lucia")
+    connected_clients[watched.client_id] = watched
+    connected_clients[watcher.client_id] = watcher
+
+    watcher.watch_player_key = watched.player_state_key
+    watcher.watch_player_name = watched.authenticated_character_name
+
+    from session_lifecycle import _clear_watchers_of
+
+    _clear_watchers_of(watched)
+
+    assert watcher.watch_player_key == ""
+    assert watcher.watch_player_name == ""
+
+    _clear_session_registries()
+
+
+def test_reset_session_to_login_clears_watchers() -> None:
+    """Logging out clears watch state on connected watchers."""
+    _clear_session_registries()
+    watched = _make_session("client-watched", "Orlandu")
+    watcher = _make_session("client-watcher", "Lucia")
+    connected_clients[watched.client_id] = watched
+    connected_clients[watcher.client_id] = watcher
+
+    watcher.watch_player_key = watched.player_state_key
+    watcher.watch_player_name = watched.authenticated_character_name
+
+    from session_lifecycle import reset_session_to_login
+
+    reset_session_to_login(watched)
+
+    assert watcher.watch_player_key == ""
+    assert watcher.watch_player_name == ""
+
+    _clear_session_registries()
+
+
+def test_clear_watchers_skips_unrelated_watchers() -> None:
+    """_clear_watchers_of only clears watchers of the specific departing player."""
+    _clear_session_registries()
+    player_a = _make_session("client-a", "Orlandu")
+    player_b = _make_session("client-b", "Lucia")
+    watcher = _make_session("client-watcher", "Ramza")
+    connected_clients[player_a.client_id] = player_a
+    connected_clients[player_b.client_id] = player_b
+    connected_clients[watcher.client_id] = watcher
+
+    watcher.watch_player_key = player_b.player_state_key
+    watcher.watch_player_name = player_b.authenticated_character_name
+
+    from session_lifecycle import _clear_watchers_of
+
+    _clear_watchers_of(player_a)
+
+    assert watcher.watch_player_key == player_b.player_state_key
+    assert watcher.watch_player_name == player_b.authenticated_character_name
 
     _clear_session_registries()

@@ -60,6 +60,65 @@ def _copy_runtime_state(source: ClientSession, target: ClientSession) -> None:
     attach_session_to_shared_world(target)
 
 
+def _detach_from_group_leader(session: ClientSession) -> None:
+    """Remove *session* from its group leader's member set, if any."""
+    leader_key = (session.group_leader_key or "").strip().lower()
+    if not leader_key:
+        return
+    member_key = (session.player_state_key or session.client_id).strip().lower()
+    if not member_key:
+        return
+    for candidate in connected_clients.values():
+        if not candidate.is_connected or candidate.disconnected_by_server:
+            continue
+        cand_key = (candidate.player_state_key or candidate.client_id).strip().lower()
+        if cand_key == leader_key:
+            candidate.group_member_keys.discard(member_key)
+            return
+    offline = active_character_sessions.get(leader_key)
+    if offline is not None:
+        offline.group_member_keys.discard(member_key)
+
+
+def _detach_group_members(session: ClientSession) -> None:
+    """Clear group_leader_key and follow state on every member when the leader departs."""
+    if not session.group_member_keys:
+        return
+    for member_key in list(session.group_member_keys):
+        member = _find_member_session(member_key)
+        if member is None:
+            continue
+        member.group_leader_key = ""
+        member.following_player_key = ""
+        member.following_player_name = ""
+
+
+def _find_member_session(member_key: str) -> ClientSession | None:
+    normalized = member_key.strip().lower()
+    if not normalized:
+        return None
+    for candidate in connected_clients.values():
+        if not candidate.is_authenticated:
+            continue
+        cand_key = (candidate.player_state_key or candidate.client_id).strip().lower()
+        if cand_key == normalized:
+            return candidate
+    return active_character_sessions.get(normalized)
+
+
+def _clear_watchers_of(session: ClientSession) -> None:
+    """Clear watch state on any connected session watching *session*."""
+    target_key = (session.player_state_key or session.client_id).strip().lower()
+    if not target_key:
+        return
+    for candidate in connected_clients.values():
+        if not candidate.is_authenticated or not candidate.is_connected or candidate.disconnected_by_server:
+            continue
+        if (candidate.watch_player_key or "").strip().lower() == target_key:
+            candidate.watch_player_key = ""
+            candidate.watch_player_name = ""
+
+
 def stop_offline_character_processing(character_key: str) -> None:
     normalized_key = character_key.strip().lower()
     if not normalized_key:
@@ -116,6 +175,8 @@ def hydrate_session_from_active_character(target_session: ClientSession, charact
 
 
 def _invalidate_replaced_session(session: ClientSession) -> None:
+    _detach_from_group_leader(session)
+    _detach_group_members(session)
     session.is_authenticated = False
     session.auth_stage = "awaiting_character_or_start"
     session.authenticated_character_name = ""
@@ -376,6 +437,9 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
                 previous_hit_points = hp_now
 
                 if safe_hours >= OFFLINE_SAFE_HOURS_TO_DISCONNECT:
+                    _detach_from_group_leader(session)
+                    _detach_group_members(session)
+                    _clear_watchers_of(session)
                     session.disconnected_by_server = True
                     session.is_connected = False
                     if session.login_room_id.strip():
@@ -434,6 +498,9 @@ def reset_session_to_login(session: ClientSession, *, purge_nonpersistent_items_
         active_character_sessions.pop(normalized_key, None)
         stop_offline_character_processing(normalized_key)
 
+    _detach_from_group_leader(session)
+    _detach_group_members(session)
+    _clear_watchers_of(session)
     session.is_authenticated = False
     session.auth_stage = "awaiting_character_or_start"
     session.authenticated_character_name = ""
