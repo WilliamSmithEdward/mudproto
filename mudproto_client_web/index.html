@@ -208,6 +208,60 @@
       letter-spacing: 0.04em;
     }
 
+    #confirmModal .modal-panel {
+      width: min(340px, 100%);
+    }
+
+    #confirmModal .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px 20px 20px;
+      text-align: center;
+    }
+
+    #confirmMessage {
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .confirm-actions button {
+      min-width: 100px;
+    }
+
+    #promptModal .modal-panel {
+      width: min(380px, 100%);
+    }
+
+    #promptModal .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px 20px 20px;
+      text-align: center;
+    }
+
+    #promptInput {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .prompt-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .prompt-actions button {
+      min-width: 100px;
+    }
+
     .modal-placeholder {
       min-height: 116px;
       padding: 12px;
@@ -439,6 +493,9 @@
             <button id="aliasesBtn" type="button">Aliases</button>
             <button id="keyBindingsBtn" type="button">Key Bindings</button>
           </div>
+          <div class="modal-section">
+            <button id="resetConfigBtn" type="button">Reset Config</button>
+          </div>
         </div>
       </div>
     </div>
@@ -463,6 +520,36 @@
               <div id="helpDetailTitle" class="modal-section-title">Help Detail</div>
             </div>
             <div id="helpDetailContent" class="modal-placeholder help-text help-detail-card"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirmModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="modal-header">
+          <span id="confirmTitle">Confirm</span>
+        </div>
+        <div class="modal-body">
+          <div id="confirmMessage"></div>
+          <div class="confirm-actions">
+            <button id="confirmYesBtn" type="button">Yes</button>
+            <button id="confirmNoBtn" type="button">No</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="promptModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="promptTitle">
+        <div class="modal-header">
+          <span id="promptTitle">Save Config As</span>
+        </div>
+        <div class="modal-body">
+          <input id="promptInput" type="text" />
+          <div class="prompt-actions">
+            <button id="promptOkBtn" type="button">Save</button>
+            <button id="promptCancelBtn" type="button">Cancel</button>
           </div>
         </div>
       </div>
@@ -709,6 +796,14 @@
       return new RegExp(`^${escaped}$`, "i");
     }
 
+    function stripOuterBraces(text) {
+      const trimmed = String(text || "").trim();
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        return trimmed.slice(1, -1).trim();
+      }
+      return trimmed;
+    }
+
     function normalizeBindKeyName(keyName) {
       const raw = String(keyName || "").trim().toLowerCase().replace(/\s+/g, "");
       if (!raw) {
@@ -757,6 +852,7 @@
         this.renderScheduled = false;
         this.autoScrollThresholdPx = 24;
         this.pendingLoadMode = "merge";
+        this.configFileName = window.localStorage.getItem("mudproto.configFileName") || "mudproto-client-config.json";
 
         this.outputEl = document.getElementById("output");
         this.inputEl = document.getElementById("commandInput");
@@ -781,6 +877,17 @@
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
         this.loadNewConfigBtn = document.getElementById("loadNewConfigBtn");
+        this.resetConfigBtn = document.getElementById("resetConfigBtn");
+        this.confirmModal = document.getElementById("confirmModal");
+        this.confirmMessage = document.getElementById("confirmMessage");
+        this.confirmYesBtn = document.getElementById("confirmYesBtn");
+        this.confirmNoBtn = document.getElementById("confirmNoBtn");
+        this.pendingConfirmAction = null;
+        this.promptModal = document.getElementById("promptModal");
+        this.promptInput = document.getElementById("promptInput");
+        this.promptOkBtn = document.getElementById("promptOkBtn");
+        this.promptCancelBtn = document.getElementById("promptCancelBtn");
+        this.pendingPromptAction = null;
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
         this.configFileInput = document.getElementById("configFileInput");
@@ -812,6 +919,14 @@
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
         this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig("merge"));
         this.loadNewConfigBtn.addEventListener("click", () => this.requestLoadNewConfig());
+        this.resetConfigBtn.addEventListener("click", () => this.resetConfig());
+        this.confirmYesBtn.addEventListener("click", () => this.resolveConfirm(true));
+        this.confirmNoBtn.addEventListener("click", () => this.resolveConfirm(false));
+        this.promptOkBtn.addEventListener("click", () => this.resolvePrompt(true));
+        this.promptCancelBtn.addEventListener("click", () => this.resolvePrompt(false));
+        this.promptInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") { this.resolvePrompt(true); }
+        });
         this.aliasesBtn.addEventListener("click", () => this.openAliasesModal());
         this.keyBindingsBtn.addEventListener("click", () => this.openKeyBindingsModal());
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
@@ -890,7 +1005,56 @@
         this.keyBindings = config.key_bindings;
         window.localStorage.setItem("mudproto.serverUri", config.server_uri);
         window.localStorage.setItem("mudproto.clientConfig", JSON.stringify(config));
+        window.localStorage.setItem("mudproto.configFileName", this.configFileName);
         return config;
+      }
+
+      showConfirm(message, onConfirm) {
+        this.confirmMessage.textContent = message;
+        this.pendingConfirmAction = onConfirm;
+        this.confirmModal.classList.remove("hidden");
+        this.confirmModal.setAttribute("aria-hidden", "false");
+      }
+
+      resolveConfirm(accepted) {
+        this.confirmModal.classList.add("hidden");
+        this.confirmModal.setAttribute("aria-hidden", "true");
+        if (accepted && typeof this.pendingConfirmAction === "function") {
+          this.pendingConfirmAction();
+        }
+        this.pendingConfirmAction = null;
+      }
+
+      showPrompt(title, defaultValue, onAccept) {
+        document.getElementById("promptTitle").textContent = title;
+        this.promptInput.value = defaultValue;
+        this.pendingPromptAction = onAccept;
+        this.promptModal.classList.remove("hidden");
+        this.promptModal.setAttribute("aria-hidden", "false");
+        this.promptInput.focus();
+        this.promptInput.select();
+      }
+
+      resolvePrompt(accepted) {
+        this.promptModal.classList.add("hidden");
+        this.promptModal.setAttribute("aria-hidden", "true");
+        if (accepted && typeof this.pendingPromptAction === "function") {
+          this.pendingPromptAction(this.promptInput.value);
+        }
+        this.pendingPromptAction = null;
+      }
+
+      resetConfig() {
+        this.closeSettings();
+        this.showConfirm("Reset all client settings to defaults?", () => {
+          const defaults = this.normalizeClientConfig({});
+          this.aliases = defaults.aliases;
+          this.keyBindings = defaults.key_bindings;
+          this.serverUriEl.value = defaults.server_uri;
+          this.configFileName = "mudproto-client-config.json";
+          this.persistClientConfig();
+          this.appendSystemMessage("Config reset to defaults.", "bright_green");
+        });
       }
 
       mergeClientConfig(currentConfig, incomingConfig) {
@@ -1066,20 +1230,19 @@
       }
 
       saveConfig() {
-        this.downloadClientConfig("mudproto-client-config.json");
+        this.downloadClientConfig(this.configFileName);
       }
 
       saveConfigAs() {
-        const suggestedName = window.prompt("Save config as...", "mudproto-client-config.json");
-        if (suggestedName === null) {
-          return;
-        }
-
-        let fileName = suggestedName.trim() || "mudproto-client-config.json";
-        if (!fileName.toLowerCase().endsWith(".json")) {
-          fileName += ".json";
-        }
-        this.downloadClientConfig(fileName);
+        this.closeSettings();
+        this.showPrompt("Save Config As", this.configFileName, (value) => {
+          let fileName = String(value || "").trim() || this.configFileName;
+          if (!fileName.toLowerCase().endsWith(".json")) {
+            fileName += ".json";
+          }
+          this.configFileName = fileName;
+          this.downloadClientConfig(fileName);
+        });
       }
 
       downloadClientConfig(fileName) {
@@ -1114,6 +1277,7 @@
           return;
         }
 
+        this.configFileName = file.name || "mudproto-client-config.json";
         const reader = new FileReader();
         reader.onload = () => {
           try {
@@ -1204,7 +1368,7 @@
 
         event.preventDefault();
         event.stopPropagation();
-        this.executeCommandLine(expansion, { depth: 0 });
+        this.executeCommandLine(stripOuterBraces(expansion), { depth: 0 });
         return true;
       }
 
@@ -1214,12 +1378,13 @@
       }
 
       resolveAliasExpansion(template, remainderText) {
+        const expansion = stripOuterBraces(template);
         const remainder = String(remainderText || "").trim();
         const args = parseCommandWords(remainder);
-        const highestReferenced = this.collectReferencedAliasPosition(template);
+        const highestReferenced = this.collectReferencedAliasPosition(expansion);
         const remainingText = highestReferenced > 0 ? args.slice(highestReferenced).join(" ") : remainder;
 
-        return String(template || "").replace(/%-([1-9])|%([0-9r])/gi, (_match, rangeToken, token) => {
+        return String(expansion || "").replace(/%-([1-9])|%([0-9r])/gi, (_match, rangeToken, token) => {
           if (rangeToken) {
             const fromIndex = Number(rangeToken) - 1;
             return args.slice(fromIndex).join(" ");
