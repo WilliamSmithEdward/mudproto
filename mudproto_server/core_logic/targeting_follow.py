@@ -345,7 +345,10 @@ def _form_group_from_followers(leader_session: ClientSession) -> list[ClientSess
     for candidate in connected_clients.values():
         if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
             continue
-        if _session_identity_key(candidate) == leader_key:
+        candidate_key = _session_identity_key(candidate)
+        if candidate_key == leader_key:
+            continue
+        if candidate_key in leader_session.group_member_keys:
             continue
         if not _is_following_leader_recursive(candidate, leader_session):
             continue

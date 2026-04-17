@@ -719,3 +719,28 @@ def test_leader_can_ungroup_disconnected_member() -> None:
     assert member.group_leader_key == ""
 
     _clear_session_registries()
+
+
+def test_group_form_does_not_readd_existing_member() -> None:
+    """'group form' after a reconnected member should not re-add them."""
+    _clear_session_registries()
+    leader = _make_session("client-leader", "Orlandu")
+    member = _make_session("client-member", "Lucia")
+    connected_clients[leader.client_id] = leader
+    connected_clients[member.client_id] = member
+
+    leader_key = (leader.player_state_key or leader.client_id).strip().lower()
+    member_key = (member.player_state_key or member.client_id).strip().lower()
+
+    member.following_player_key = leader.player_state_key
+    member.following_player_name = leader.authenticated_character_name
+    member.group_leader_key = leader_key
+    leader.group_member_keys = {member_key}
+
+    # Leader runs 'group form' — Lucia is already in the group.
+    response = social.handle_social_command(leader, "group", ["form"], "group form")
+    text = _extract_display_text(response)
+    assert "no eligible" in text.lower()
+    assert leader.group_member_keys == {member_key}
+
+    _clear_session_registries()
