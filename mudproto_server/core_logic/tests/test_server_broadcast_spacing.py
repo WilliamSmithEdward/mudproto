@@ -4,7 +4,7 @@ import asyncio
 from display_core import build_display, build_part
 from display_feedback import build_prompt_parts_default
 from models import ClientSession
-from server_broadcasts import _build_room_broadcast_messages, _normalize_prompt_spacing, _send_room_broadcast
+from server_broadcasts import _build_room_broadcast_messages, _inject_private_lines_into_outbound, _normalize_prompt_spacing, _send_room_broadcast
 from session_registry import connected_clients
 
 
@@ -132,6 +132,41 @@ def test_send_room_broadcast_applies_single_prompt_gap_with_private_lines() -> N
     prompt_lines = payload.get("prompt_lines")
     assert isinstance(prompt_lines, list)
     assert _line_text(prompt_lines[0]).endswith("> ")
+
+
+def test_private_experience_notification_keeps_blank_gap_before_separate_prompt() -> None:
+    from display_feedback import display_force_prompt
+
+    session = _make_session("client-private-xp-gap", name="Lucia")
+    session.pending_private_lines = [[build_part("You gain 55 experience.")]]
+
+    outbound = [
+        {
+            "type": "display",
+            "payload": {
+                "lines": [[build_part("An East Watch Reaver is dead!")], []],
+                "prompt_lines": [],
+            },
+        },
+        display_force_prompt(session),
+    ]
+
+    merged = _inject_private_lines_into_outbound(session, outbound)
+    messages = merged if isinstance(merged, list) else [merged]
+    assert len(messages) == 2
+
+    first_payload = messages[0].get("payload")
+    assert isinstance(first_payload, dict)
+    first_lines = first_payload.get("lines")
+    assert isinstance(first_lines, list)
+    assert _line_text(first_lines[-2]).endswith("You gain 55 experience.")
+    assert first_lines[-1] == []
+
+    second_payload = messages[1].get("payload")
+    assert isinstance(second_payload, dict)
+    prompt_lines = second_payload.get("prompt_lines")
+    assert isinstance(prompt_lines, list)
+    assert prompt_lines[0] == []
 
 
 def test_room_broadcast_keeps_fatal_attack_before_death_announcement() -> None:

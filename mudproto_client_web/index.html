@@ -669,6 +669,8 @@
         this.historyIndex = null;
         this.historyStash = "";
         this.outputEndsWithNewline = true;
+        this.trailingBlankLineCount = 0;
+        this.hasRenderedOutput = false;
         this.renderQueue = [];
         this.renderScheduled = false;
         this.autoScrollThresholdPx = 24;
@@ -1477,8 +1479,13 @@
         const fragment = document.createDocumentFragment();
 
         while (this.renderQueue.length) {
-          const lines = this.renderQueue.shift();
-          if (!Array.isArray(lines) || !lines.length) {
+          const queuedLines = this.renderQueue.shift();
+          if (!Array.isArray(queuedLines) || !queuedLines.length) {
+            continue;
+          }
+
+          const lines = this.normalizeBoundarySpacing(queuedLines);
+          if (!lines.length) {
             continue;
           }
 
@@ -1500,6 +1507,8 @@
           });
 
           this.outputEndsWithNewline = Array.isArray(lines[lines.length - 1]) && lines[lines.length - 1].length === 0;
+          this.trailingBlankLineCount = this.countTrailingBlankLines(lines);
+          this.hasRenderedOutput = true;
           fragment.appendChild(group);
         }
 
@@ -1510,19 +1519,45 @@
         }
       }
 
+      countLeadingBlankLines(lines) {
+        let count = 0;
+        while (count < lines.length && Array.isArray(lines[count]) && lines[count].length === 0) {
+          count += 1;
+        }
+        return count;
+      }
+
+      countTrailingBlankLines(lines) {
+        let count = 0;
+        for (let index = lines.length - 1; index >= 0; index -= 1) {
+          if (Array.isArray(lines[index]) && lines[index].length === 0) {
+            count += 1;
+            continue;
+          }
+          break;
+        }
+        return count;
+      }
+
       normalizeBoundarySpacing(lines) {
         if (!Array.isArray(lines)) {
           return [];
         }
 
         const normalizedLines = [...lines];
-        while (
-          this.outputEndsWithNewline
-          && normalizedLines.length > 1
-          && Array.isArray(normalizedLines[0])
-          && normalizedLines[0].length === 0
-        ) {
-          normalizedLines.shift();
+        const leadingBlankCount = this.countLeadingBlankLines(lines);
+        if (!leadingBlankCount) {
+          return normalizedLines;
+        }
+
+        if (!this.hasRenderedOutput) {
+          normalizedLines.splice(0, leadingBlankCount);
+          return normalizedLines;
+        }
+
+        const desiredLeadingBlankCount = !this.outputEndsWithNewline || this.trailingBlankLineCount < 2 ? 1 : 0;
+        if (leadingBlankCount > desiredLeadingBlankCount) {
+          normalizedLines.splice(0, leadingBlankCount - desiredLeadingBlankCount);
         }
 
         return normalizedLines;
@@ -1533,12 +1568,7 @@
           return;
         }
 
-        const normalizedLines = this.normalizeBoundarySpacing(lines);
-        if (!normalizedLines.length) {
-          return;
-        }
-
-        this.renderQueue.push(normalizedLines);
+        this.renderQueue.push(lines);
         if (this.renderQueue.length > MAX_RENDER_QUEUE_GROUPS) {
           this.renderQueue.splice(0, this.renderQueue.length - MAX_RENDER_QUEUE_GROUPS);
         }
@@ -1585,6 +1615,8 @@
         this.renderQueue = [];
         this.outputEl.textContent = "";
         this.outputEndsWithNewline = true;
+        this.trailingBlankLineCount = 0;
+        this.hasRenderedOutput = false;
         this.focusInput();
       }
     }
