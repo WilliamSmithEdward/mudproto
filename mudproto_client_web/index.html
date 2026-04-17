@@ -2500,41 +2500,34 @@
         });
       }
 
-      evaluateActionsForLine(lineText) {
+      collectActionEchoes(lineText) {
+        const results = [];
         if (this.actionFiringDepth >= MAX_ACTION_FIRE_DEPTH) {
-          return;
+          return results;
         }
         if (!this.actions.length) {
-          return;
+          return results;
         }
         const text = String(lineText || "");
         if (!text) {
-          return;
+          return results;
         }
         const textLower = text.toLowerCase();
-
-        this.actionFiringDepth += 1;
-        try {
-          for (const action of this.actions) {
-            const patternText = action.anchored ? action.pattern.slice(1) : action.pattern;
-            const patternLower = patternText.toLowerCase();
-            let matched = false;
-            if (action.anchored) {
-              matched = textLower.startsWith(patternLower);
-            } else {
-              matched = textLower.includes(patternLower);
-            }
-            if (matched) {
-              const resolved = this.resolveActionExpansion(action.expansion, text);
-              if (this.options.echo_action_commands) {
-                this.appendInlineEcho(` [action] ${resolved}`);
-              }
-              this.executeCommandLine(resolved, { depth: 0 });
-            }
+        for (const action of this.actions) {
+          const patternText = action.anchored ? action.pattern.slice(1) : action.pattern;
+          const patternLower = patternText.toLowerCase();
+          let matched = false;
+          if (action.anchored) {
+            matched = textLower.startsWith(patternLower);
+          } else {
+            matched = textLower.includes(patternLower);
           }
-        } finally {
-          this.actionFiringDepth -= 1;
+          if (matched) {
+            const resolved = this.resolveActionExpansion(action.expansion, text);
+            results.push(resolved);
+          }
         }
+        return results;
       }
 
       openActionsModal() {
@@ -2742,7 +2735,7 @@
           return;
         }
 
-        if (this.options.echo_commands) {
+        if (this.options.echo_commands && this.actionFiringDepth === 0) {
           this.appendInlineEcho(` ${text}`);
         }
         this.websocket.send(JSON.stringify(buildInputMessage(text)));
@@ -3006,18 +2999,56 @@
         if (promptLines.length) {
           renderedLines.push(...promptLines);
         }
-        if (renderedLines.length) {
+        if (!renderedLines.length) {
+          return;
+        }
+
+        if (!this.actions.length) {
           this.appendLineGroup(renderedLines);
-          if (this.actions.length) {
-            for (const line of renderedLines) {
-              const lineText = Array.isArray(line)
-                ? line.map((span) => (span && typeof span === "object" ? span.text || "" : "")).join("")
-                : "";
-              if (lineText) {
-                this.evaluateActionsForLine(lineText);
+          return;
+        }
+
+        const deferredActions = [];
+        for (const line of renderedLines) {
+          const lineText = Array.isArray(line)
+            ? line.map((span) => (span && typeof span === "object" ? span.text || "" : "")).join("")
+            : "";
+          if (lineText) {
+            const resolved = this.collectActionEchoes(lineText);
+            if (resolved.length) {
+              deferredActions.push({ afterLine: line, resolved });
+            }
+          }
+        }
+
+        if (!deferredActions.length) {
+          this.appendLineGroup(renderedLines);
+        } else {
+          const augmentedLines = [];
+          for (const line of renderedLines) {
+            augmentedLines.push(line);
+            const entry = deferredActions.find((d) => d.afterLine === line);
+            if (entry && this.options.echo_action_commands) {
+              for (const cmd of entry.resolved) {
+                const lastLine = augmentedLines[augmentedLines.length - 1];
+                if (Array.isArray(lastLine)) {
+                  lastLine.push({ text: `  [action] ${cmd}`, fg: "bright_black", bold: false });
+                }
               }
             }
           }
+          this.appendLineGroup(augmentedLines);
+        }
+
+        this.actionFiringDepth += 1;
+        try {
+          for (const entry of deferredActions) {
+            for (const cmd of entry.resolved) {
+              this.executeCommandLine(cmd, { depth: 0 });
+            }
+          }
+        } finally {
+          this.actionFiringDepth -= 1;
         }
       }
 

@@ -147,7 +147,7 @@ def test_web_client_action_trigger_system() -> None:
     assert "removeActionsMatching(searchPattern)" in content
     assert "showActionList(searchPattern)" in content
     assert "resolveActionExpansion(template, lineText)" in content
-    assert "evaluateActionsForLine(lineText)" in content
+    assert "collectActionEchoes(lineText)" in content
     assert "this.actionFiringDepth" in content
     assert "this.actionIdCounter" in content
     assert "this.actions" in content
@@ -179,7 +179,7 @@ def test_web_client_action_command_dispatch() -> None:
 def test_web_client_action_matching_in_render_pipeline() -> None:
     content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
 
-    assert "evaluateActionsForLine" in content
+    assert "collectActionEchoes" in content
     assert "actionFiringDepth >= MAX_ACTION_FIRE_DEPTH" in content
     assert "action.anchored" in content
     assert "textLower.startsWith(patternLower)" in content
@@ -209,4 +209,4 @@ def test_web_client_options_modal() -> None:
     assert '> ${text}' not in content  # no longer a line group echo
     assert 'appendInlineEcho' in content
     assert '` ${text}`' in content
-    assert '[action] ${resolved}' in content
+    assert '[action] ${cmd}' in content
