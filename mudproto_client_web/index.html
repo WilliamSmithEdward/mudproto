@@ -1470,12 +1470,35 @@ Binds use the same command pipeline as typed input.</div>
         }
       }
 
+      normalizeBoundarySpacing(lines) {
+        if (!Array.isArray(lines)) {
+          return [];
+        }
+
+        const normalizedLines = [...lines];
+        while (
+          this.outputEndsWithNewline
+          && normalizedLines.length > 1
+          && Array.isArray(normalizedLines[0])
+          && normalizedLines[0].length === 0
+        ) {
+          normalizedLines.shift();
+        }
+
+        return normalizedLines;
+      }
+
       appendLineGroup(lines) {
         if (!Array.isArray(lines) || !lines.length) {
           return;
         }
 
-        this.renderQueue.push(lines);
+        const normalizedLines = this.normalizeBoundarySpacing(lines);
+        if (!normalizedLines.length) {
+          return;
+        }
+
+        this.renderQueue.push(normalizedLines);
         if (this.renderQueue.length > MAX_RENDER_QUEUE_GROUPS) {
           this.renderQueue.splice(0, this.renderQueue.length - MAX_RENDER_QUEUE_GROUPS);
         }

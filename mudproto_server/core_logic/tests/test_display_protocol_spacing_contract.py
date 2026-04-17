@@ -92,6 +92,19 @@ def test_display_command_result_compact_skips_leading_blank() -> None:
     assert _line_text(lines[0]) == "Ready"
 
 
+def test_display_error_does_not_prepend_extra_blank_before_message() -> None:
+    from display_feedback import display_error
+
+    session = _make_session("client-error-spacing", authenticated=False)
+    outbound = display_error("No valid hostile targets in the room.", session)
+    payload = _extract_payload(outbound)
+
+    lines = payload.get("lines")
+    assert isinstance(lines, list)
+    assert lines
+    assert _line_text(lines[0]) == "No valid hostile targets in the room."
+
+
 def test_display_command_result_compact_without_prompt_has_trailing_blank_line() -> None:
     session = _make_session("client-command-compact-no-prompt")
     outbound = display_command_result(session, [build_part("ready")], compact=True, prompt_after=False)

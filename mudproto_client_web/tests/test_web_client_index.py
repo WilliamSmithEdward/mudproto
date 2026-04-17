@@ -81,6 +81,7 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'this.pendingLoadMode = "replace"' in content
     assert 'window.localStorage.setItem("mudproto.clientConfig"' in content
     assert "downloadClientConfig(fileName)" in content
+    assert "normalizeBoundarySpacing(lines)" in content
     assert ".modal-body {" in content
     assert ".modal-placeholder {" in content
     assert "pruneOutput()" in content

@@ -329,13 +329,11 @@ def display_error(
         prompt_after, prompt_parts = resolve_prompt_default(session, True)
 
     return build_display(
-        with_leading_blank_lines(
-            _build_lore_error_parts(
-                message,
-                session,
-                error_code=error_code,
-                error_context=error_context,
-            )
+        _build_lore_error_parts(
+            message,
+            session,
+            error_code=error_code,
+            error_context=error_context,
         ),
         prompt_after=prompt_after,
         prompt_parts=prompt_parts,
