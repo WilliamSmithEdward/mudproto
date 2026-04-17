@@ -1,6 +1,7 @@
 import asyncio
 import json
 import ssl
+from pathlib import Path
 from typing import Any, cast
 
 import mudproto_client_gui.client_gui as client_gui
@@ -274,6 +275,19 @@ def test_client_config_round_trip_preserves_server_uri_and_aliases(tmp_path) -> 
     assert loaded["version"] == 1
     assert loaded["server_uri"] == "wss://example.test:8765/"
     assert loaded["aliases"] == {"k": "kill", "gs": "get sword"}
+
+
+def test_python_client_uses_roomier_menu_spacing() -> None:
+    source = Path(client_gui.__file__).read_text(encoding="utf-8")
+
+    assert "MENU_BUTTON_PADX = 12" in source
+    assert "MENU_BUTTON_PADY = 6" in source
+    assert "self.menu_font = (\"Consolas\", 12)" in source
+    assert "file_menu.add_separator()" in source
+    assert "connection_menu.add_separator()" in source
+    assert 'self.connection_state_label.bind("<Enter>", self._show_connection_tooltip)' in source
+    assert 'self.connection_state_label.bind("<Leave>", self._hide_connection_tooltip)' in source
+    assert 'text=f"Server: {self.uri}"' not in source
 
 
 def test_default_server_uri_switches_to_wss_when_tls_enabled(monkeypatch) -> None:

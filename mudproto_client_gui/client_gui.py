@@ -39,6 +39,10 @@ COLOR_MAP = {
 
 RECONNECT_INTERVAL_MS = 5000
 OUTPUT_RIGHT_MARGIN_PX = 80
+MENU_BAR_PADX = 8
+MENU_BAR_PADY = 6
+MENU_BUTTON_PADX = 12
+MENU_BUTTON_PADY = 6
 CLIENT_ROOT = Path(__file__).resolve().parent.parent
 SERVER_ROOT = CLIENT_ROOT / "mudproto_server"
 GUI_CONFIGURATION_ROOT = CLIENT_ROOT / "mudproto_client_gui" / "gui-configuration"
@@ -223,6 +227,7 @@ class MudProtoGuiClient:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.base_font = ("Consolas", 11)
+        self.menu_font = ("Consolas", 12)
         self.bold_font = ("Consolas", 11, "bold")
         self.command_history: list[str] = []
         self.history_index: int | None = None
@@ -230,6 +235,7 @@ class MudProtoGuiClient:
         self.output_ends_with_newline = True
         self._focus_restore_job: str | None = None
         self._window_is_active = True
+        self._connection_tooltip: tk.Toplevel | None = None
 
         self._build_widgets()
         self.root.bind_all("<FocusIn>", self._on_window_activated, add="+")
@@ -270,8 +276,8 @@ class MudProtoGuiClient:
             highlightbackground="#262626",
             highlightthickness=1,
             bd=0,
-            padx=6,
-            pady=4,
+            padx=MENU_BAR_PADX,
+            pady=MENU_BAR_PADY,
         )
         menu_frame.pack(fill="x", pady=(0, 8))
 
@@ -282,9 +288,9 @@ class MudProtoGuiClient:
             "activeforeground": COLOR_MAP["bright_white"],
             "relief": "flat",
             "bd": 0,
-            "font": self.base_font,
-            "padx": 8,
-            "pady": 4,
+            "font": self.menu_font,
+            "padx": MENU_BUTTON_PADX,
+            "pady": MENU_BUTTON_PADY,
             "highlightthickness": 0,
         }
         menu_options = {
@@ -295,37 +301,39 @@ class MudProtoGuiClient:
             "activeforeground": COLOR_MAP["bright_white"],
             "relief": "flat",
             "bd": 1,
+            "font": self.menu_font,
+            "activeborderwidth": 0,
         }
 
         self.file_menu_button = tk.Menubutton(menu_frame, text="File", **menu_button_options)
-        self.file_menu_button.pack(side="left")
+        self.file_menu_button.pack(side="left", padx=(0, 2))
         file_menu = tk.Menu(self.file_menu_button, **menu_options)
-        file_menu.add_command(label="Load Config...", command=self.load_config_from_dialog)
-        file_menu.add_command(label="Save Config", command=self.save_config)
-        file_menu.add_command(label="Save Config As...", command=self.save_config_as)
+        file_menu.add_command(label="  Load Config...  ", command=self.load_config_from_dialog)
+        file_menu.add_command(label="  Save Config  ", command=self.save_config)
+        file_menu.add_command(label="  Save Config As...  ", command=self.save_config_as)
         file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.on_close)
+        file_menu.add_command(label="  Exit  ", command=self.on_close)
         self.file_menu_button.configure(menu=file_menu)
 
         self.edit_menu_button = tk.Menubutton(menu_frame, text="Edit", **menu_button_options)
-        self.edit_menu_button.pack(side="left")
+        self.edit_menu_button.pack(side="left", padx=2)
         edit_menu = tk.Menu(self.edit_menu_button, **menu_options)
-        edit_menu.add_command(label="Focus Input", command=self._restore_input_focus)
-        edit_menu.add_command(label="Clear Output", command=self.clear_output)
+        edit_menu.add_command(label="  Clear Output  ", command=self.clear_output)
         self.edit_menu_button.configure(menu=edit_menu)
 
         self.connection_menu_button = tk.Menubutton(menu_frame, text="Connection", **menu_button_options)
-        self.connection_menu_button.pack(side="left")
+        self.connection_menu_button.pack(side="left", padx=2)
         connection_menu = tk.Menu(self.connection_menu_button, **menu_options)
-        connection_menu.add_command(label="Set Server URI...", command=self.prompt_server_uri)
-        connection_menu.add_command(label="Connect", command=self.connect)
-        connection_menu.add_command(label="Disconnect", command=self.disconnect)
+        connection_menu.add_command(label="  Set Server URI...  ", command=self.prompt_server_uri)
+        connection_menu.add_separator()
+        connection_menu.add_command(label="  Connect  ", command=self.connect)
+        connection_menu.add_command(label="  Disconnect  ", command=self.disconnect)
         self.connection_menu_button.configure(menu=connection_menu)
 
         self.help_menu_button = tk.Menubutton(menu_frame, text="Help", **menu_button_options)
-        self.help_menu_button.pack(side="left")
+        self.help_menu_button.pack(side="left", padx=(2, 8))
         help_menu = tk.Menu(self.help_menu_button, **menu_options)
-        help_menu.add_command(label="About Client Settings", command=self.show_about_dialog)
+        help_menu.add_command(label="  About Client Settings  ", command=self.show_about_dialog)
         self.help_menu_button.configure(menu=help_menu)
 
         self.connection_state_label = tk.Label(
@@ -336,21 +344,13 @@ class MudProtoGuiClient:
             font=self.base_font,
             padx=10,
             pady=4,
+            cursor="hand2",
             highlightbackground="#262626",
             highlightthickness=1,
         )
-        self.connection_state_label.pack(side="right")
-
-        self.server_uri_label = tk.Label(
-            menu_frame,
-            text=f"Server: {self.uri}",
-            bg="#090909",
-            fg=COLOR_MAP["bright_cyan"],
-            font=self.base_font,
-            padx=8,
-            pady=4,
-        )
-        self.server_uri_label.pack(side="right")
+        self.connection_state_label.pack(side="right", padx=(8, 0))
+        self.connection_state_label.bind("<Enter>", self._show_connection_tooltip)
+        self.connection_state_label.bind("<Leave>", self._hide_connection_tooltip)
 
         output_frame = tk.Frame(container, bg="black")
         output_frame.pack(fill="both", expand=True)
@@ -426,10 +426,50 @@ class MudProtoGuiClient:
             return
 
     def _set_connection_indicator(self, text: str, fg: str = "bright_white") -> None:
+        self._hide_connection_tooltip()
         if hasattr(self, "connection_state_label"):
-            self.connection_state_label.configure(text=text, fg=COLOR_MAP.get(fg, COLOR_MAP["bright_white"]))
-        if hasattr(self, "server_uri_label"):
-            self.server_uri_label.configure(text=f"Server: {self.uri}")
+            self.connection_state_label.configure(
+                text=text,
+                fg=COLOR_MAP.get(fg, COLOR_MAP["bright_white"]),
+                cursor="hand2" if text == "Connected" else "arrow",
+            )
+
+    def _show_connection_tooltip(self, _event=None) -> None:
+        if not hasattr(self, "connection_state_label"):
+            return
+        if str(self.connection_state_label.cget("text")) != "Connected":
+            return
+        if self._connection_tooltip is not None:
+            return
+
+        try:
+            tooltip = tk.Toplevel(self.root)
+            tooltip.wm_overrideredirect(True)
+            tooltip.configure(bg="#101010", highlightbackground="#262626", highlightthickness=1)
+            tk.Label(
+                tooltip,
+                text=self.uri,
+                bg="#101010",
+                fg=COLOR_MAP["bright_cyan"],
+                font=self.base_font,
+                padx=8,
+                pady=4,
+            ).pack()
+            x = self.connection_state_label.winfo_rootx()
+            y = self.connection_state_label.winfo_rooty() + self.connection_state_label.winfo_height() + 6
+            tooltip.wm_geometry(f"+{x}+{y}")
+            self._connection_tooltip = tooltip
+        except tk.TclError:
+            self._connection_tooltip = None
+
+    def _hide_connection_tooltip(self, _event=None) -> None:
+        if self._connection_tooltip is None:
+            return
+        try:
+            self._connection_tooltip.destroy()
+        except tk.TclError:
+            pass
+        self._connection_tooltip = None
 
     def _apply_client_config(self, config: dict[str, Any], *, announce: bool = True) -> None:
         normalized = _normalize_client_config(config)
