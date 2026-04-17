@@ -253,14 +253,14 @@
     }
 
     .help-home-layout {
-      width: min(360px, 100%);
+      width: min(300px, 100%);
       align-items: center;
       text-align: center;
       margin: 0 auto;
     }
 
     .help-home-layout button {
-      width: min(340px, 100%);
+      width: min(280px, 100%);
     }
 
     .help-detail-layout {
@@ -621,6 +621,16 @@
         return { commandName: "", remainder: "" };
       }
 
+      if (trimmed.startsWith("{")) {
+        const close = trimmed.indexOf("}");
+        if (close !== -1) {
+          return {
+            commandName: trimmed.slice(1, close).trim(),
+            remainder: trimmed.slice(close + 1).trim(),
+          };
+        }
+      }
+
       const firstSpace = trimmed.search(/\s/);
       if (firstSpace === -1) {
         return { commandName: trimmed, remainder: "" };
@@ -697,14 +707,6 @@
         .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
         .replace(/\*/g, ".*");
       return new RegExp(`^${escaped}$`, "i");
-    }
-
-    function stripOuterBraces(text) {
-      const trimmed = String(text || "").trim();
-      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-        return trimmed.slice(1, -1).trim();
-      }
-      return trimmed;
     }
 
     function normalizeBindKeyName(keyName) {
@@ -949,6 +951,7 @@
               "#alias heal cast 'heal' %1",
               "#alias prep stand;draw sword;cast 'armor'",
               "#alias l {look north}",
+              "#alias {l n} {look north}",
               "#alias sayall gossip %0",
               "#alias mtell tell %1 [Tom says:] %r",
               "#alias h*                    List aliases starting with h",
@@ -956,15 +959,22 @@
               "Variables:",
               "%0        All text after the alias name",
               "%1..%9    Positional arguments",
+              "%-2..%-9  From that position onward (e.g. %-2 = %2 and beyond)",
               "%r        Remaining text after the highest referenced positional",
+              "",
+              "Grouping with {braces}:",
+              "- {braces} group multi-word names or expansions as one token",
+              "- #alias {l n} {look north}  creates alias 'l n' = 'look north'",
+              "- #alias l {look north}      creates alias 'l' = 'look north'",
+              "- Braces are stripped during parsing, not stored literally",
               "",
               "Behavior:",
               "- Aliases are case-insensitive and saved to your client config",
               "- Expansions can contain semicolons to chain multiple commands",
               "- Aliases can trigger other aliases (up to 8 levels deep)",
               "- Quoted strings ('...' or \"...\") in expansions are preserved",
-              "- Outer {braces} around an expansion are stripped automatically",
-              "- Alias names cannot start with # or contain spaces",
+              "- Longer alias names match first (e.g. 'l n' before 'l')",
+              "- Alias names cannot start with #",
               "",
               "Removing Aliases:",
               "#unalias <name>              Remove a single alias",
@@ -987,7 +997,7 @@
               "",
               "Examples:",
               "#bind f2 flee",
-              "#bind f5 cast 'heal' %0",
+              "#bind f5 {cast 'heal' %0}",
               "#bind pageup scan",
               "#bind numpad8 north",
               "#bind numpad_add down",
@@ -1209,7 +1219,11 @@
         const highestReferenced = this.collectReferencedAliasPosition(template);
         const remainingText = highestReferenced > 0 ? args.slice(highestReferenced).join(" ") : remainder;
 
-        return String(template || "").replace(/%([0-9r])/gi, (_match, token) => {
+        return String(template || "").replace(/%-([1-9])|%([0-9r])/gi, (_match, rangeToken, token) => {
+          if (rangeToken) {
+            const fromIndex = Number(rangeToken) - 1;
+            return args.slice(fromIndex).join(" ");
+          }
           const lowered = String(token).toLowerCase();
           if (lowered === "0") {
             return remainder;
@@ -1223,20 +1237,27 @@
       }
 
       applyAliasExpansion(command, depth = 0) {
-        const { commandName, remainder } = splitLeadingToken(command);
-        const aliasKey = commandName.toLowerCase();
-        const expansion = this.aliases[aliasKey];
-        if (!expansion) {
-          return false;
-        }
-        if (depth >= MAX_ALIAS_EXPANSION_DEPTH) {
-          this.appendSystemMessage("Alias recursion depth exceeded.", "bright_red");
+        const normalizedCommand = String(command || "").trim().toLowerCase();
+        const aliasKeys = Object.keys(this.aliases).sort((a, b) => b.length - a.length);
+        for (const aliasKey of aliasKeys) {
+          if (!normalizedCommand.startsWith(aliasKey)) {
+            continue;
+          }
+          const charAfter = command.charAt(aliasKey.length);
+          if (charAfter && !/\s/.test(charAfter)) {
+            continue;
+          }
+          const remainder = command.slice(aliasKey.length).trim();
+          const expansion = this.aliases[aliasKey];
+          if (depth >= MAX_ALIAS_EXPANSION_DEPTH) {
+            this.appendSystemMessage("Alias recursion depth exceeded.", "bright_red");
+            return true;
+          }
+          const resolved = this.resolveAliasExpansion(expansion, remainder);
+          this.executeCommandLine(resolved, { depth: depth + 1 });
           return true;
         }
-
-        const resolved = this.resolveAliasExpansion(expansion, remainder);
-        this.executeCommandLine(resolved, { depth: depth + 1 });
-        return true;
+        return false;
       }
 
       matchingEntries(mapping, pattern = "") {
@@ -1278,12 +1299,12 @@
         }
 
         const normalizedName = String(aliasName).trim().toLowerCase();
-        if (!normalizedName || normalizedName.startsWith("#") || /\s/.test(aliasName)) {
+        if (!normalizedName || normalizedName.startsWith("#")) {
           this.appendSystemMessage("Invalid alias name.", "bright_yellow");
           return;
         }
 
-        this.aliases[normalizedName] = stripOuterBraces(expansion);
+        this.aliases[normalizedName] = expansion.trim();
         this.persistClientConfig();
         this.appendSystemMessage(`${normalizedName} = ${this.aliases[normalizedName]}`, "bright_green");
       }
@@ -1335,7 +1356,7 @@
           return;
         }
 
-        this.keyBindings[normalizedKey] = stripOuterBraces(expansion);
+        this.keyBindings[normalizedKey] = expansion.trim();
         this.persistClientConfig();
         this.appendSystemMessage(`${normalizedKey} = ${this.keyBindings[normalizedKey]}`, "bright_green");
       }
@@ -1799,7 +1820,15 @@
         if (!this.outputEndsWithNewline) {
           lines.push([]);
         }
-        lines.push([{ text: String(text), fg, bold: false }]);
+        const textLines = String(text).split("\n");
+        for (const textLine of textLines) {
+          if (textLine === "") {
+            lines.push([]);
+          } else {
+            lines.push([{ text: textLine, fg, bold: false }]);
+          }
+        }
+        lines.push([]);
         lines.push([]);
         this.appendLineGroup(lines);
       }

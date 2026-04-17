@@ -63,7 +63,7 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert 'handleUnaliasCommand(commandText)' in content
     assert 'handleUnbindCommand(commandText)' in content
     assert 'normalizeBindKeyName(keyName)' in content
-    assert 'stripOuterBraces(expansion)' in content
+    assert 'trimmed.startsWith("{")' in content
     assert 'MAX_ALIAS_EXPANSION_DEPTH = 8' in content
     assert 'localCommand === "#clear"' in content
     assert 'localCommand === "#quit"' in content
@@ -99,8 +99,8 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert '#helpModal .modal-panel {' in content
     assert '#helpModal .modal-panel.help-wide {' in content
     assert 'width: min(760px, 100%);' in content
-    assert 'width: min(360px, 100%);' in content
-    assert 'width: min(340px, 100%);' in content
+    assert 'width: min(300px, 100%);' in content
+    assert 'width: min(280px, 100%);' in content
     assert 'max-width: 100%;' in content
     assert 'text-align: center;' in content
     assert '#helpDetailView.hidden {' in content
