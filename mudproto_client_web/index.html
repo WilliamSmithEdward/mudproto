@@ -111,6 +111,37 @@
       box-shadow: 0 0 0 1px rgba(97, 214, 214, 0.25);
     }
 
+    select {
+      background: #050505;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(97, 214, 214, 0.25);
+    }
+
+    select option {
+      background: #0c0c0c;
+      color: var(--text);
+    }
+
+    select::-webkit-scrollbar { width: 12px; }
+    select::-webkit-scrollbar-track { background: #070707; }
+    select::-webkit-scrollbar-thumb { background: #323232; border-radius: 999px; border: 2px solid #070707; }
+    select::-webkit-scrollbar-thumb:hover { background: #454545; }
+
     #serverUri {
       min-width: 0;
       flex: 1 1 auto;
@@ -399,13 +430,20 @@
       align-self: flex-end;
     }
 
-    .mapping-close-row {
-      display: flex;
-      justify-content: flex-end;
+    .modal-back-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      line-height: 1;
     }
 
-    .mapping-close-row button {
-      min-width: 80px;
+    .modal-back-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     .modal-placeholder {
@@ -704,6 +742,7 @@
     <div id="aliasesModal" class="modal hidden" aria-hidden="true">
       <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="aliasesTitle">
         <div class="modal-header">
+          <button id="aliasesBackBtn" type="button" class="modal-back-btn" aria-label="Back to settings">←</button>
           <span id="aliasesTitle">Aliases</span>
         </div>
         <div class="modal-body">
@@ -719,9 +758,6 @@
             <button id="aliasAddBtn" type="button">Set</button>
           </div>
           <div id="aliasesList" class="mapping-list"></div>
-          <div class="mapping-close-row">
-            <button id="closeAliasesBtn" type="button">Close</button>
-          </div>
         </div>
       </div>
     </div>
@@ -729,6 +765,7 @@
     <div id="bindingsModal" class="modal hidden" aria-hidden="true">
       <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="bindingsTitle">
         <div class="modal-header">
+          <button id="bindingsBackBtn" type="button" class="modal-back-btn" aria-label="Back to settings">←</button>
           <span id="bindingsTitle">Key Bindings</span>
         </div>
         <div class="modal-body">
@@ -744,9 +781,6 @@
             <button id="bindAddBtn" type="button">Set</button>
           </div>
           <div id="bindingsList" class="mapping-list"></div>
-          <div class="mapping-close-row">
-            <button id="closeBindingsBtn" type="button">Close</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1089,13 +1123,13 @@
         this.aliasNameInput = document.getElementById("aliasNameInput");
         this.aliasExpansionInput = document.getElementById("aliasExpansionInput");
         this.aliasAddBtn = document.getElementById("aliasAddBtn");
-        this.closeAliasesBtn = document.getElementById("closeAliasesBtn");
+        this.aliasesBackBtn = document.getElementById("aliasesBackBtn");
         this.bindingsModal = document.getElementById("bindingsModal");
         this.bindingsList = document.getElementById("bindingsList");
         this.bindKeyInput = document.getElementById("bindKeyInput");
         this.bindExpansionInput = document.getElementById("bindExpansionInput");
         this.bindAddBtn = document.getElementById("bindAddBtn");
-        this.closeBindingsBtn = document.getElementById("closeBindingsBtn");
+        this.bindingsBackBtn = document.getElementById("bindingsBackBtn");
         this.aliasesBtn = document.getElementById("aliasesBtn");
         this.keyBindingsBtn = document.getElementById("keyBindingsBtn");
         this.configFileInput = document.getElementById("configFileInput");
@@ -1141,17 +1175,17 @@
         this.aliasExpansionInput.addEventListener("keydown", (event) => {
           if (event.key === "Enter") { this.submitAliasForm(); }
         });
-        this.closeAliasesBtn.addEventListener("click", () => this.closeAliasesModal());
+        this.aliasesBackBtn.addEventListener("click", () => { this.closeAliasesModal(); this.openSettings(); });
         this.aliasesModal.addEventListener("click", (event) => {
-          if (event.target === this.aliasesModal) { this.closeAliasesModal(); }
+          if (event.target === this.aliasesModal) { this.closeAliasesModal(); this.openSettings(); }
         });
         this.bindAddBtn.addEventListener("click", () => this.submitBindForm());
         this.bindExpansionInput.addEventListener("keydown", (event) => {
           if (event.key === "Enter") { this.submitBindForm(); }
         });
-        this.closeBindingsBtn.addEventListener("click", () => this.closeBindingsModal());
+        this.bindingsBackBtn.addEventListener("click", () => { this.closeBindingsModal(); this.openSettings(); });
         this.bindingsModal.addEventListener("click", (event) => {
-          if (event.target === this.bindingsModal) { this.closeBindingsModal(); }
+          if (event.target === this.bindingsModal) { this.closeBindingsModal(); this.openSettings(); }
         });
         this.configFileInput.addEventListener("change", (event) => this.loadConfigFromFile(event));
 
@@ -1541,11 +1575,13 @@
           if (this.aliasesModal && !this.aliasesModal.classList.contains("hidden")) {
             event.preventDefault();
             this.closeAliasesModal();
+            this.openSettings();
             return;
           }
           if (this.bindingsModal && !this.bindingsModal.classList.contains("hidden")) {
             event.preventDefault();
             this.closeBindingsModal();
+            this.openSettings();
             return;
           }
           if (this.helpModal && !this.helpModal.classList.contains("hidden")) {

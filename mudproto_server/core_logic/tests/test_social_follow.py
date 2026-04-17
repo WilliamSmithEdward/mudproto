@@ -632,3 +632,34 @@ def test_soft_disconnect_preserves_follow_state(monkeypatch) -> None:
     assert follower.group_leader_key == target.player_state_key
 
     _clear_session_registries()
+
+
+def test_reconnect_copies_follow_state_to_new_session() -> None:
+    """Follow/group/watch state transfers to the new session via _copy_runtime_state on reconnect."""
+    _clear_session_registries()
+    follower, target = _register_room_pair()
+
+    follower.following_player_key = target.player_state_key
+    follower.following_player_name = target.authenticated_character_name
+    follower.group_leader_key = target.player_state_key
+    follower.watch_player_key = target.player_state_key
+    follower.watch_player_name = target.authenticated_character_name
+    follower.group_member_keys = {"some_member_key"}
+
+    from session_lifecycle import _copy_runtime_state
+    from models import ClientSession as FreshSession
+
+    new_session = FreshSession()
+
+    _copy_runtime_state(follower, new_session)
+
+    assert new_session.following_player_key == target.player_state_key
+    assert new_session.following_player_name == target.authenticated_character_name
+    assert new_session.group_leader_key == target.player_state_key
+    assert new_session.watch_player_key == target.player_state_key
+    assert new_session.watch_player_name == target.authenticated_character_name
+    assert new_session.group_member_keys == {"some_member_key"}
+    # Verify the set was copied, not shared.
+    assert new_session.group_member_keys is not follower.group_member_keys
+
+    _clear_session_registries()

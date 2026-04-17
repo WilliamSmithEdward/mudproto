@@ -49,6 +49,13 @@ def _copy_runtime_state(source: ClientSession, target: ClientSession) -> None:
     target.next_game_tick_monotonic = source.next_game_tick_monotonic
     target.next_non_combat_battleround_tick_monotonic = source.next_non_combat_battleround_tick_monotonic
 
+    target.following_player_key = source.following_player_key
+    target.following_player_name = source.following_player_name
+    target.watch_player_key = source.watch_player_key
+    target.watch_player_name = source.watch_player_name
+    target.group_leader_key = source.group_leader_key
+    target.group_member_keys = set(source.group_member_keys)
+
     # Keep world state shared for all sessions.
     attach_session_to_shared_world(target)
 
