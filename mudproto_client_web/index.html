@@ -380,6 +380,7 @@
       padding: 7px 10px;
       border-bottom: 1px solid var(--border);
       font-size: 0.92rem;
+      cursor: pointer;
     }
 
     .mapping-row:last-child {
@@ -2200,16 +2201,12 @@
         this.aliasesList.querySelectorAll(".mapping-row").forEach((row) => {
           const nameEl = row.querySelector(".mapping-key");
           const valEl = row.querySelector(".mapping-val");
-          const editHandler = (event) => {
+          row.addEventListener("click", (event) => {
             if (event.target.classList.contains("mapping-del")) { return; }
             this.aliasNameInput.value = nameEl.textContent;
             this.aliasExpansionInput.value = valEl.textContent;
             this.aliasExpansionInput.focus();
-          };
-          nameEl.style.cursor = "pointer";
-          valEl.style.cursor = "pointer";
-          nameEl.addEventListener("click", editHandler);
-          valEl.addEventListener("click", editHandler);
+          });
         });
       }
 
@@ -2278,16 +2275,12 @@
         this.bindingsList.querySelectorAll(".mapping-row").forEach((row) => {
           const keyEl = row.querySelector(".mapping-key");
           const valEl = row.querySelector(".mapping-val");
-          const editHandler = (event) => {
+          row.addEventListener("click", (event) => {
             if (event.target.classList.contains("mapping-del")) { return; }
             this.bindKeyInput.value = keyEl.textContent;
             this.bindExpansionInput.value = valEl.textContent;
             this.bindExpansionInput.focus();
-          };
-          keyEl.style.cursor = "pointer";
-          valEl.style.cursor = "pointer";
-          keyEl.addEventListener("click", editHandler);
-          valEl.addEventListener("click", editHandler);
+          });
         });
       }
 
@@ -2567,9 +2560,7 @@
           });
         });
         this.actionsList.querySelectorAll(".mapping-row").forEach((row, index) => {
-          const keyEl = row.querySelector(".mapping-key");
-          const valEl = row.querySelector(".mapping-val");
-          const editHandler = (event) => {
+          row.addEventListener("click", (event) => {
             if (event.target.classList.contains("mapping-del")) { return; }
             const action = this.actions[index];
             if (action) {
@@ -2578,11 +2569,7 @@
               this.actionPriorityInput.value = String(action.priority);
               this.actionExpansionInput.focus();
             }
-          };
-          keyEl.style.cursor = "pointer";
-          valEl.style.cursor = "pointer";
-          keyEl.addEventListener("click", editHandler);
-          valEl.addEventListener("click", editHandler);
+          });
         });
       }
 
