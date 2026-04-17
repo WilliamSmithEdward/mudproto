@@ -166,6 +166,15 @@
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
     }
 
+    #helpModal .modal-panel {
+      width: min(460px, 100%);
+      transition: width 0.15s ease;
+    }
+
+    #helpModal .modal-panel.help-wide {
+      width: min(760px, 100%);
+    }
+
     .modal-header {
       display: flex;
       align-items: center;
@@ -217,12 +226,47 @@
       display: none;
     }
 
+    #helpHomeView,
+    #helpDetailView {
+      display: block;
+      padding: 18px 20px 20px;
+    }
+
+    #helpHomeView.hidden,
+    #helpDetailView.hidden {
+      display: none;
+    }
+
+    #helpHomeView .modal-section,
+    #helpDetailView .modal-section {
+      width: 100%;
+      max-width: 100%;
+    }
+
     .help-home-layout,
     .help-detail-layout {
       display: flex;
       flex-direction: column;
       gap: 12px;
       min-width: 0;
+      margin: 0 auto;
+    }
+
+    .help-home-layout {
+      width: min(360px, 100%);
+      align-items: center;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    .help-home-layout button {
+      width: min(340px, 100%);
+    }
+
+    .help-detail-layout {
+      width: 100%;
+      max-width: 100%;
+      align-items: stretch;
     }
 
     .help-nav-row {
@@ -230,11 +274,39 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 4px;
+      width: 100%;
     }
 
     .help-detail-card {
       width: 100%;
-      min-height: 0;
+      height: 420px;
+      overflow-x: auto;
+      overflow-y: auto;
+      display: block;
+      scrollbar-color: #3a3a3a #070707;
+    }
+
+    .help-detail-card::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+
+    .help-detail-card::-webkit-scrollbar-track {
+      background: #070707;
+    }
+
+    .help-detail-card::-webkit-scrollbar-thumb {
+      background: #323232;
+      border-radius: 999px;
+      border: 2px solid #070707;
+    }
+
+    .help-detail-card::-webkit-scrollbar-thumb:hover {
+      background: #454545;
+    }
+
+    .help-detail-card::-webkit-scrollbar-corner {
+      background: #070707;
     }
 
     #helpBackBtn {
@@ -852,17 +924,99 @@
       showHelpHome() {
         this.helpHomeView.classList.remove("hidden");
         this.helpDetailView.classList.add("hidden");
+        this.helpModal.querySelector(".modal-panel").classList.remove("help-wide");
       }
 
       showHelpSection(sectionName) {
         const helpContent = {
           aliases: {
             title: "Alias Commands",
-            body: `#alias\n#alias <pattern>\n#alias <name> <expansion>\n\nExamples:\n#alias heal cast 'heal' %1\n#alias prep stand;draw sword;cast 'armor'\n#alias sayall gossip %0\n#alias mtell tell %1 [Tom says:] %r\n\nVariables:\n%0 = all text after the alias name\n%1..%9 = positional arguments\n%r = remaining text after the highest referenced positional variable`,
+            body: [
+              "Usage:",
+              "#alias                       List all aliases",
+              "#alias <pattern>             List aliases matching pattern (* wildcards)",
+              "#alias <name> <expansion>    Create or overwrite an alias",
+              "",
+              "Examples:",
+              "#alias heal cast 'heal' %1",
+              "#alias prep stand;draw sword;cast 'armor'",
+              "#alias sayall gossip %0",
+              "#alias mtell tell %1 [Tom says:] %r",
+              "#alias h*                    List aliases starting with h",
+              "",
+              "Variables:",
+              "%0        All text after the alias name",
+              "%1..%9    Positional arguments",
+              "%r        Remaining text after the highest referenced positional",
+              "",
+              "Behavior:",
+              "- Aliases are case-insensitive and saved to your client config",
+              "- Expansions can contain semicolons to chain multiple commands",
+              "- Aliases can trigger other aliases (up to 8 levels deep)",
+              "- Quoted strings ('...' or \"...\") in expansions are preserved",
+              "- Alias names cannot start with # or contain spaces",
+              "",
+              "Removing Aliases:",
+              "#unalias <name>              Remove a single alias",
+              "#unalias <pattern>           Remove aliases matching pattern",
+              "#unalias *                   Remove all aliases",
+              "",
+              "Other Local Commands:",
+              "#clear    Clear the output window",
+              "#quit     Disconnect and close",
+              "#help     Open this help window",
+            ].join("\n"),}
           },
           binds: {
-            title: "Bind Commands",
-            body: `#bind\n#bind <pattern>\n#bind <key> <expansion>\n\nExamples:\n#bind f2 flee\n#bind pageup scan\n#bind up north\n#bind numpad8 north\n\nNotes:\nf2-f12 and the listed navigation keys are supported.\nf1 is reserved and cannot be rebound.\nBinds use the same command pipeline as typed input.`,
+            title: "Key Bind Commands",
+            body: [
+              "Usage:",
+              "#bind                        List all key bindings",
+              "#bind <pattern>              List binds matching pattern (* wildcards)",
+              "#bind <key> <expansion>      Create or overwrite a key binding",
+              "",
+              "Examples:",
+              "#bind f2 flee",
+              "#bind f5 cast 'heal' %0",
+              "#bind pageup scan",
+              "#bind numpad8 north",
+              "#bind numpad_add down",
+              "",
+              "Supported Keys:",
+              "f2-f12  (f1 is reserved and cannot be rebound)",
+              "backspace, tab, esc",
+              "pageup, pagedown, end, home",
+              "up, down, left, right",
+              "insert, delete",
+              "numpad0-numpad9",
+              "numpad_multiply, numpad_add, numpad_subtract",
+              "numpad_decimal, numpad_divide",
+              "numlock, scrolllock",
+              "",
+              "Key Synonyms:",
+              "escape → esc       pgup → pageup      pgdn → pagedown",
+              "del → delete       ins → insert",
+              "arrowup → up       arrowdown → down",
+              "arrowleft → left   arrowright → right",
+              "",
+              "Default Bindings (when no config is saved):",
+              "numpad8 = north    numpad2 = south",
+              "numpad4 = west     numpad6 = east",
+              "numpad_subtract = up    numpad_add = down",
+              "",
+              "Behavior:",
+              "- Binds fire even while typing in the input field",
+              "- Binds are ignored when Ctrl, Alt, or Meta is held",
+              "- Binds are ignored while a modal is open",
+              "- Bound keys use the same command pipeline as typed input",
+              "  (alias expansion, semicolon chaining, and quoting all apply)",
+              "- Binds are case-insensitive and saved to your client config",
+              "",
+              "Removing Binds:",
+              "#unbind <key>                Remove a single key binding",
+              "#unbind <pattern>            Remove binds matching pattern",
+              "#unbind *                    Remove all key bindings",
+            ].join("\n"),
           },
         };
 
@@ -871,6 +1025,7 @@
         this.helpDetailContent.textContent = selected.body;
         this.helpHomeView.classList.add("hidden");
         this.helpDetailView.classList.remove("hidden");
+        this.helpModal.querySelector(".modal-panel").classList.add("help-wide");
       }
 
       openHelp(sectionName = "") {
@@ -1084,19 +1239,20 @@
         return entries.filter(([name]) => matcher.test(name));
       }
 
-      showMappingList(mapping, pattern, emptyMessage) {
+      showMappingList(mapping, pattern, emptyMessage, header) {
         const entries = this.matchingEntries(mapping, pattern);
         if (!entries.length) {
           this.appendSystemMessage(emptyMessage, "bright_yellow");
           return;
         }
-        this.appendSystemMessage(entries.map(([name, expansion]) => `${name} = ${expansion}`).join("\n"), "bright_cyan");
+        const lines = entries.map(([name, expansion]) => `  ${name} = ${expansion}`);
+        this.appendSystemMessage(`${header}\n${lines.join("\n")}\n`, "bright_cyan");
       }
 
       handleAliasCommand(commandText) {
         const { remainder } = splitLeadingToken(commandText);
         if (!remainder) {
-          this.showMappingList(this.aliases, "", "No aliases defined.");
+          this.showMappingList(this.aliases, "", "No aliases defined.", "-- Aliases --");
           return;
         }
 
@@ -1107,7 +1263,7 @@
         }
 
         if (!expansion) {
-          this.showMappingList(this.aliases, aliasName, `No aliases match ${aliasName}.`);
+          this.showMappingList(this.aliases, aliasName, `No aliases match ${aliasName}.`, "-- Aliases --");
           return;
         }
 
@@ -1122,10 +1278,29 @@
         this.appendSystemMessage(`${normalizedName} = ${this.aliases[normalizedName]}`, "bright_green");
       }
 
+      handleUnaliasCommand(commandText) {
+        const { remainder } = splitLeadingToken(commandText);
+        if (!remainder) {
+          this.appendSystemMessage("Usage: #unalias <name or pattern>", "bright_yellow");
+          return;
+        }
+        const pattern = remainder.trim().toLowerCase();
+        const removed = this.matchingEntries(this.aliases, pattern);
+        if (!removed.length) {
+          this.appendSystemMessage(`No aliases match ${pattern}.`, "bright_yellow");
+          return;
+        }
+        for (const [name] of removed) {
+          delete this.aliases[name];
+        }
+        this.persistClientConfig();
+        this.appendSystemMessage(`Removed ${removed.length} alias${removed.length > 1 ? "es" : ""}: ${removed.map(([n]) => n).join(", ")}`, "bright_green");
+      }
+
       handleBindCommand(commandText) {
         const { remainder } = splitLeadingToken(commandText);
         if (!remainder) {
-          this.showMappingList(this.keyBindings, "", "No binds defined.");
+          this.showMappingList(this.keyBindings, "", "No binds defined.", "-- Key Bindings --");
           return;
         }
 
@@ -1136,7 +1311,7 @@
         }
 
         if (!expansion) {
-          this.showMappingList(this.keyBindings, rawKeyName, `No binds match ${rawKeyName}.`);
+          this.showMappingList(this.keyBindings, rawKeyName, `No binds match ${rawKeyName}.`, "-- Key Bindings --");
           return;
         }
 
@@ -1153,6 +1328,25 @@
         this.keyBindings[normalizedKey] = expansion.trim();
         this.persistClientConfig();
         this.appendSystemMessage(`${normalizedKey} = ${this.keyBindings[normalizedKey]}`, "bright_green");
+      }
+
+      handleUnbindCommand(commandText) {
+        const { remainder } = splitLeadingToken(commandText);
+        if (!remainder) {
+          this.appendSystemMessage("Usage: #unbind <key or pattern>", "bright_yellow");
+          return;
+        }
+        const pattern = remainder.trim().toLowerCase();
+        const removed = this.matchingEntries(this.keyBindings, pattern);
+        if (!removed.length) {
+          this.appendSystemMessage(`No binds match ${pattern}.`, "bright_yellow");
+          return;
+        }
+        for (const [name] of removed) {
+          delete this.keyBindings[name];
+        }
+        this.persistClientConfig();
+        this.appendSystemMessage(`Removed ${removed.length} bind${removed.length > 1 ? "s" : ""}: ${removed.map(([n]) => n).join(", ")}`, "bright_green");
       }
 
       executeCommandLine(rawText, { depth = 0 } = {}) {
@@ -1221,8 +1415,18 @@
           return;
         }
 
+        if (localCommand === "#unalias") {
+          this.handleUnaliasCommand(commandText);
+          return;
+        }
+
+        if (localCommand === "#unbind") {
+          this.handleUnbindCommand(commandText);
+          return;
+        }
+
         if (localCommand.startsWith("#")) {
-          this.appendSystemMessage("Unknown local command. Available: #clear, #quit, #alias, #bind, #help.", "bright_yellow");
+          this.appendSystemMessage("Unknown local command. Available: #alias, #unalias, #bind, #unbind, #clear, #quit, #help.", "bright_yellow");
           return;
         }
 
