@@ -111,8 +111,7 @@ def test_chat_messages_use_neutral_colors(monkeypatch) -> None:
         response = dispatch_command(speaker, "sa hello there")
         assert _extract_display_colors(response) == {"bright_white"}
         response_lines = _extract_display_lines(response)
-        assert response_lines[0] == []
-        assert response_lines[1] != []
+        assert response_lines[0] != []
         payload = response.get("payload")
         assert isinstance(payload, dict)
         prompt_lines = payload.get("prompt_lines")
@@ -125,8 +124,7 @@ def test_chat_messages_use_neutral_colors(monkeypatch) -> None:
     assert len(notifications) == 1
     assert _extract_display_colors(notifications[0][1]) == {"bright_white"}
     notification_lines = _extract_display_lines(notifications[0][1])
-    assert notification_lines[0] == []
-    assert notification_lines[1] != []
+    assert notification_lines[0] != []
     notification_payload = notifications[0][1].get("payload")
     assert isinstance(notification_payload, dict)
     notification_prompt_lines = notification_payload.get("prompt_lines")

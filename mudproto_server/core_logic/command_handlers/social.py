@@ -77,7 +77,7 @@ def _build_actor_quote_parts(actor_name: str, verb_text: str, spoken_text: str) 
 
 
 def _display_chat_message(session: ClientSession, parts: list[dict]) -> dict:
-    return display_command_result(session, parts)
+    return display_command_result(session, parts, compact=True)
 
 
 def _resolve_online_player_session(selector_text: str) -> tuple[ClientSession | None, str | None]:
