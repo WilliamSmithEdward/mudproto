@@ -818,7 +818,7 @@
   "rooms": [
     {
       "room_id": "west-road-rise",
-      "title": "West Road \u2014 Ridgeline Climb",
+      "name": "West Road \u2014 Ridgeline Climb",
       "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
       "zone_id": "zone.west-road",
       "npcs": [
@@ -836,7 +836,7 @@
     },
     {
       "room_id": "room.north-approach-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "North Approach",
+      "name": "North Approach",
       "description": "A narrow hunter's trace cuts off the ridge and climbs toward darker ground under a fringe of leaning pines. Boot prints, horse droppings, and old ash say the trail sees hard traffic despite the scrub meant to hide it. Somewhere ahead, wood knocks softly against wood in the wind like watch slats tapping together.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -853,7 +853,7 @@
     },
     {
       "room_id": "room.switchback-scramble-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Switchback Scramble",
+      "name": "Switchback Scramble",
       "description": "The path doubles back over itself in cramped shelves hacked into the slope, forcing every ascent into a slow exposed weave. Loose shale skitters down into thorn and bramble below with every misplaced step. Someone has hammered black-feather charms into the posts here, half warning and half boast.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -870,7 +870,7 @@
     },
     {
       "room_id": "room.thorn-ditch-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Thorn Ditch",
+      "name": "Thorn Ditch",
       "description": "A dry ditch choked with thorn bundles and sharpened stakes bars the last easy run toward the fort. Old blood blackens some of the lower points where less careful attackers were fed into the hedge. A crude plank crossing leads on toward heavier works at the crest.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -887,7 +887,7 @@
     },
     {
       "room_id": "room.outer-picket-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Outer Picket",
+      "name": "Outer Picket",
       "description": "Stunted pikes and ragged warning pennons mark a rough outer picket where sentries can see the whole climb below. The wind here carries smoke, tallow, and the iron stink of butchered game from inside the walls. Ahead, a wagon jam and a cut in the palisade form the only clear way forward.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -904,7 +904,7 @@
     },
     {
       "room_id": "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Broken Wagon Choke",
+      "name": "Broken Wagon Choke",
       "description": "Two ruined wagons have been dragged nose to nose to narrow the way into a splintered killing lane. Arrow scars and soot blooms on the boards show this choke has stopped more than one bold rush. Beyond it, the black palisade rises at full height around the fort proper.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -921,7 +921,7 @@
     },
     {
       "room_id": "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Palisade Gate",
+      "name": "Palisade Gate",
       "description": "The gate is nothing noble, only heavy timber lashed in iron and black pitch beneath a skull-nailed lintel. Fresh axe marks along the posts suggest the bandits repair what siege and weather keep trying to undo. The main yard opens just inside while side tracks run along the inner wall.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -938,7 +938,7 @@
     },
     {
       "room_id": "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "South Yard",
+      "name": "South Yard",
       "description": "Hard-packed mud spreads through the lower yard where carts, boots, and dragged bodies have all churned the same ground smooth. Cooking smoke hangs low between sheds and tether posts while rough laughter bounces off the timber walls. The yard branches west to the kennels, east to the cookfires, and north toward the fort's harsher heart.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -961,7 +961,7 @@
     },
     {
       "room_id": "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Kennel Lane",
+      "name": "Kennel Lane",
       "description": "A rank side lane runs under the western palisade where chained posts, bone piles, and overturned troughs line the wall. The smell is old grease, wet fur, and fresh fear worked into the planks by years of use. A stair tower rises at the far corner while the barracks squat just beyond the lane.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -979,7 +979,7 @@
     },
     {
       "room_id": "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Cookfire Square",
+      "name": "Cookfire Square",
       "description": "Three stone-ringed fires burn in this square around spits, black kettles, and hacked blocks sticky with grease. The fort feeds itself on stolen cattle, bad grain, and whatever else its riders drag home. An eastern corner platform looms over the smoke while store sheds crowd the way north.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -997,7 +997,7 @@
     },
     {
       "room_id": "room.raider-barracks-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Raider Barracks",
+      "name": "Raider Barracks",
       "description": "Low bunks, rolled cloaks, and stolen kit are crammed into a drafty hall built more for exhaustion than comfort. Names, threats, and victory tallies have been carved into every post within arm's reach. The room opens back toward the lane and up toward the west wall where the night watch broods.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1014,7 +1014,7 @@
     },
     {
       "room_id": "room.spoils-shed-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Spoils Shed",
+      "name": "Spoils Shed",
       "description": "Shelves bow under sacks, lamp oil, torn banners, and half-sorted plunder from a dozen roads and hamlets. Anything fine has been picked clean already, leaving only the useful, the ugly, and the bloodstained. A rough path runs west toward the armory and north into the eastern wall quarter.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1032,7 +1032,7 @@
     },
     {
       "room_id": "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Armory Lean-To",
+      "name": "Armory Lean-To",
       "description": "A long lean-to of warped boards shelters weapon racks, shield stacks, and buckets of arrow shafts gone damp at the fletching. Most of the gear here is patched together from battlefield salvage and caravan dead. The way north opens into the central yard while side lanes run to both halves of the fort.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1051,7 +1051,7 @@
     },
     {
       "room_id": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Central Yard",
+      "name": "Central Yard",
       "description": "The fort's middle is an open churn of mud and trampled ash ringed by watch platforms at every quarter. A chained iron brazier squats in the center, cold for now, with grooves worn into the ground around it by old ritual movement. From here the whole place feels built to drive blood and fear inward toward one final reckoning.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1126,7 +1126,7 @@
     },
     {
       "room_id": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "West Wall Walk",
+      "name": "West Wall Walk",
       "description": "A timber catwalk runs the length of the western palisade, flexing underfoot above the kennel stink and barracks noise below. The parapet slots here give a long cruel view back down the climbing trail to the road. The northwest corner hardens into a true bastion while the southwest tower stair drops near the lower yard.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1145,7 +1145,7 @@
     },
     {
       "room_id": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "East Wall Walk",
+      "name": "East Wall Walk",
       "description": "The eastern wall walk smells of lamp pitch and cold smoke from signal fires left to smolder between watches. Boards here are newer, less warped, and marked with knife scratches counting raids and caravan burns. A tower stair climbs at the far corner while the square below feeds back toward the middle of the fort.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1164,7 +1164,7 @@
     },
     {
       "room_id": "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "North Yard",
+      "name": "North Yard",
       "description": "The mud thins here into hard trampled earth beneath the shadow of the inner keep and the highest wall crowns. Command traffic seems to have passed this way for years, wearing a disciplined channel through the otherwise ugly fort. The keep looms close, though its deeper door looks sealed until some harsher rite is met.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1182,7 +1182,7 @@
     },
     {
       "room_id": "room.southwest-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Southwest Tower Stairs",
+      "name": "Southwest Tower Stairs",
       "description": "A cramped spiral of timber and pegged steps climbs inside the southwest corner tower, every riser worn hollow by hurried boots. The tower shaft smells of wet rope and stale lamp oil with the lane's animal reek rising from below. Above, open air and hard laughter leak down from the firing platform.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1199,7 +1199,7 @@
     },
     {
       "room_id": "room.southwest-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Southwest Tower Crown",
+      "name": "Southwest Tower Crown",
       "description": "The tower top is a cramped ring of planks and murder slits overlooking the whole lower ascent into the fort. Old hooks, chain lengths, and snapped grapnels hang from the rail as trophies and tools alike. This corner has the feel of a butcher's favorite block, kept ready for whatever climbs within reach.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1215,7 +1215,7 @@
     },
     {
       "room_id": "room.northwest-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Northwest Bastion",
+      "name": "Northwest Bastion",
       "description": "The northwest corner broadens into a reinforced firing shelf where signal braziers, spare fuel, and stacked darts sit ready at hand. Char and soot stain the planks here darker than anywhere else in the fort. From this angle the whole western country looks like kindling waiting on a spark.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1232,7 +1232,7 @@
     },
     {
       "room_id": "room.northwest-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Northwest Parapet",
+      "name": "Northwest Parapet",
       "description": "A higher fighting lip crowns the bastion, narrow and blackened where sentries once lay flat behind the crenels. The wind snaps loose ember ash across the boards and carries it away over the ridge beyond. No one stands here long without feeling the pull of arson and distance.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [],
@@ -1243,7 +1243,7 @@
     },
     {
       "room_id": "room.northeast-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Northeast Tower Stairs",
+      "name": "Northeast Tower Stairs",
       "description": "Sharp ladder-stairs climb the northeast tower through a skin of cold wind slipping between warped boards. Thin nails and broken knife points have been driven into the beams as makeshift omens or trophies. The upper platform waits in a hush that feels watched even before it is seen.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1260,7 +1260,7 @@
     },
     {
       "room_id": "room.northeast-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Northeast Tower Crown",
+      "name": "Northeast Tower Crown",
       "description": "This high tower platform is all angles, slits, and narrow shadows where a killer can vanish between blinks. Spent darts crunch underfoot beside old rainwater trapped in the grain of the planks. It is the kind of place built for patient murder rather than defense.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1276,7 +1276,7 @@
     },
     {
       "room_id": "room.southeast-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Southeast Bastion",
+      "name": "Southeast Bastion",
       "description": "The southeast corner has been half turned into a mean little shrine, half into a fighting shelf, with bones and shields sharing the same wall pegs. Pitch smoke coils around a cracked icon set in the timber as if devotion and intimidation have merged here. Every sound seems to strike the boards harder in this corner than anywhere else.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1293,7 +1293,7 @@
     },
     {
       "room_id": "room.southeast-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Southeast Parapet",
+      "name": "Southeast Parapet",
       "description": "A narrow lip of fighting space hangs above the cookfire smoke and lets the whole southern yard be watched at once. Wind rattles a string of split prayer boards tied to the rail, each one inked with a name someone meant to remember or curse. The view back toward the gate makes clear how any retreat would become a slaughter.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [],
@@ -1304,7 +1304,7 @@
     },
     {
       "room_id": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Keep Threshold",
+      "name": "Keep Threshold",
       "description": "The inner keep begins in a heavy timber throat where black doors, iron chains, and scarred posts crowd together with no wasted ornament. Everything here feels built for command, intimidation, and quick executions when command fails. The deeper hall ahead carries the cold stillness of someone important waiting to be reached.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [],
@@ -1318,7 +1318,7 @@
     },
     {
       "room_id": "room.hall-of-plunder-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Hall of Plunder",
+      "name": "Hall of Plunder",
       "description": "Long tables, cracked chests, campaign maps, and hanging trophies turn this inner hall into a ledger of organized theft. The fort's raids were not random from here, but weighed, chosen, and sent outward with patient cruelty. A final chamber lies deeper in, behind the place where orders became blood.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1335,7 +1335,7 @@
     },
     {
       "room_id": "room.keep-heart-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Keep Heart",
+      "name": "Keep Heart",
       "description": "The center chamber of the fort is a hard square of scarred beams and black banner cloth, dominated by a raised plank dais and a rack of extinguished signal horns. Every wall bears the mark of councils, punishments, and final decisions handed down without appeal. Now the whole room feels poised on the knife-edge between conquest and collapse.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [],
@@ -1346,7 +1346,7 @@
     },
     {
       "room_id": "room.cistern-undercroft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Cistern Undercroft",
+      "name": "Cistern Undercroft",
       "description": "Cold dark stone replaces timber here around a half-covered cistern sunk below the keep's command rooms. Drips echo off the water and vanish into a gloom that smells of wet lime, mildew, and hidden old stores. This is where a prudent warlord keeps what should not be seen by the fort above.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [
@@ -1362,7 +1362,7 @@
     },
     {
       "room_id": "room.rope-loft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-      "title": "Rope Loft",
+      "name": "Rope Loft",
       "description": "A cramped loft above the threshold holds spare tackle, signal cords, rolled nets, and a hooked mechanism for the keep's chained inner door. Dust and old hemp fuzz drift in shafts of light through the roof boards. It is the sort of practical overhead space that only matters when a fort is trying not to die.",
       "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
       "npcs": [

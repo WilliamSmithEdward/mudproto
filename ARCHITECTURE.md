@@ -582,7 +582,7 @@ Display messages are built across `display_core.py`, `display_feedback.py`, `dis
 
 Key builders:
 - `build_display()` / `build_display_lines()` - assemble final protocol payloads with structural `lines`.
-- `display_room()` - room title, description, exits, NPCs, corpses, items,
+- `display_room()` - room name, description, exits, NPCs, corpses, items,
   coins, other players.
 - `display_inventory()`, `display_equipment()`, `display_attributes()`.
 - `build_prompt_parts()` - HP/vigor/mana (color-coded), coins, XP-to-next,

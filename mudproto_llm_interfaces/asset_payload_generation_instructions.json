@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.20",
-  "generated_at_utc": "2026-04-18T20:50:15.441288+00:00",
+  "generated_at_utc": "2026-04-18T21:16:42.728163+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -251,7 +251,7 @@
     "Descriptions should be concise, usable in-game, and support the intended fantasy atmosphere.",
     "Room descriptions should be 3-4 sentences in length and should tie directly into the theme of their zone.",
     "Room interconnections should feel natural and navigationally believable, with adjacency that makes sense for the fiction and layout of the area.",
-    "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
+    "Room names, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
     "Combat/support context strings should be ready for player-facing text.",
     "Combat/support context strings should be perspective-safe for both 'you' and named targets, avoiding recipient-relative nouns like 'your foe'.",
     "Include optional flavor-only interaction hooks (for example room or NPC keyword actions with noop-style output text) when they naturally fit the scene.",
@@ -1236,7 +1236,7 @@
           "type": "string",
           "required": true
         },
-        "title": {
+        "name": {
           "type": "string",
           "required": true
         },
@@ -3179,7 +3179,7 @@
       "rooms": [
         {
           "room_id": "start",
-          "title": "Prototype Chamber",
+          "name": "Prototype Chamber",
           "description": "A plain stone chamber used for early server testing. A stout western gate bars a road beyond, while scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
           "zone_id": "zone.prototype-core",
           "keyword_actions": [
@@ -3321,7 +3321,7 @@
         },
         {
           "room_id": "west-road",
-          "title": "West Road",
+          "name": "West Road",
           "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
           "zone_id": "zone.west-road",
           "items": [],
@@ -3371,7 +3371,7 @@
         },
         {
           "room_id": "west-road-curve",
-          "title": "West Road \u2014 Southward Bend",
+          "name": "West Road \u2014 Southward Bend",
           "description": "The packed-earth road bends sharply south here where a mossy waystone heeled over long ago. Deep cart ruts cut through the verge on either side.",
           "zone_id": "zone.west-road",
           "npcs": [
@@ -3388,7 +3388,7 @@
         },
         {
           "room_id": "west-road-defile",
-          "title": "West Road \u2014 Stone Defile",
+          "name": "West Road \u2014 Stone Defile",
           "description": "The road squeezes through a narrow cut between two weathered stone banks, overhung by tangles of briar and twisted root. The footing is treacherous where loose scree has spilled across the path.",
           "zone_id": "zone.west-road",
           "npcs": [
@@ -3405,7 +3405,7 @@
         },
         {
           "room_id": "west-road-ford",
-          "title": "West Road \u2014 Muddy Ford",
+          "name": "West Road \u2014 Muddy Ford",
           "description": "A shallow brook cuts straight across the road here, its stepping stones slick with algae and mud churned up by travellers. The road resumes on the far bank, bending north.",
           "zone_id": "zone.west-road",
           "npcs": [
@@ -3423,7 +3423,7 @@
         },
         {
           "room_id": "west-road-rise",
-          "title": "West Road \u2014 Ridgeline Climb",
+          "name": "West Road \u2014 Ridgeline Climb",
           "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
           "zone_id": "zone.west-road",
           "npcs": [
@@ -3440,7 +3440,7 @@
         },
         {
           "room_id": "west-road-clearing",
-          "title": "West Road \u2014 Old Clearing",
+          "name": "West Road \u2014 Old Clearing",
           "description": "The road opens onto a wide, overgrown clearing where old milestone markers lean at angles in the weedy verge. A cold wind moves through the long grass and there is nothing but empty country beyond.",
           "zone_id": "zone.west-road",
           "npcs": [
@@ -3456,7 +3456,7 @@
         },
         {
           "room_id": "hatch-loft",
-          "title": "Hidden Loft",
+          "name": "Hidden Loft",
           "description": "Dusty rafters and a narrow service ledge overlook the prototype chamber below.",
           "zone_id": "zone.prototype-core",
           "items": [
@@ -3471,7 +3471,7 @@
         },
         {
           "room_id": "south-market",
-          "title": "South Market",
+          "name": "South Market",
           "description": "A sheltered trade nook of canvas awnings and tidy crates opens here, warm with lamplight and the scent of oil and leather.",
           "zone_id": "zone.prototype-core",
           "npcs": [
@@ -3486,7 +3486,7 @@
         },
         {
           "room_id": "hall",
-          "title": "Northern Hall",
+          "name": "Northern Hall",
           "description": "A narrow hall of cold stone extends here, quiet and still.",
           "zone_id": "zone.northern-wing",
           "npcs": [
@@ -3502,7 +3502,7 @@
         },
         {
           "room_id": "east-watch",
-          "title": "Eastern Watch",
+          "name": "Eastern Watch",
           "description": "A long watch corridor lit by guttering iron braziers and scarred by old blade marks.",
           "zone_id": "zone.northern-wing",
           "npcs": [
@@ -3517,7 +3517,7 @@
         },
         {
           "room_id": "sanctum",
-          "title": "Whispering Sanctum",
+          "name": "Whispering Sanctum",
           "description": "Rune-etched stone and drifting embers hum with unstable arcane current.",
           "zone_id": "zone.whispering-sanctum",
           "npcs": [
@@ -3533,7 +3533,7 @@
         },
         {
           "room_id": "reliquary",
-          "title": "Ashen Reliquary",
+          "name": "Ashen Reliquary",
           "description": "Obsidian pillars and old cinder braziers crowd this sunken vault, where warded steel hums like a storm about to break.",
           "zone_id": "zone.whispering-sanctum",
           "npcs": [
@@ -3863,7 +3863,7 @@
           "support_dice_sides": 20,
           "support_roll_modifier": 30,
           "support_scaling_attribute_id": "wis",
-          "support_scaling_multiplier": 1.0,
+          "support_scaling_multiplier": 4.0,
           "support_mode": "instant",
           "support_context": "A sudden wave of restorative light surges through you, mending injuries at once."
         },
@@ -3879,7 +3879,8 @@
           "level_scaling_multiplier": 1.0,
           "support_effect": "heal",
           "support_amount": 1,
-          "support_mode": "instant",
+          "support_mode": "battle_rounds",
+          "duration_rounds": 3,
           "support_context": "A pale ward settles around you, knitting your wounds with each heartbeat of battle.",
           "observer_action": "[actor_name] focuses deeply, weaving a regeneration ward.",
           "observer_context": "A pale ward settles around [actor_object], knitting wounds with each heartbeat of battle.",
@@ -3887,7 +3888,7 @@
             {
               "affect_id": "affect.regeneration",
               "name": "Regeneration Ward",
-              "target": "self",
+              "target": "target",
               "affect_mode": "battle_rounds",
               "target_resource": "hit_points",
               "amount": 0,
@@ -4353,7 +4354,7 @@
           "rooms": [
             {
               "room_id": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Sunken Oratory",
+              "name": "Sunken Oratory",
               "description": "A hidden chamber of cracked icons and old bronze lamps lies beneath the vault, the air cool and powder-dry.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4396,7 +4397,7 @@
             },
             {
               "room_id": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Censer Stair",
+              "name": "Censer Stair",
               "description": "Broad steps descend between rows of hanging censers gone cold but not entirely scentless.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4412,7 +4413,7 @@
             },
             {
               "room_id": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Soot Cloister",
+              "name": "Soot Cloister",
               "description": "Ash lies in the corners like drifts of black snow beneath a ring of bent columns.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4428,7 +4429,7 @@
             },
             {
               "room_id": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Bone Archive",
+              "name": "Bone Archive",
               "description": "Long niches filled with tagged bones line the walls, catalogued in a hand now long returned to dust.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4444,7 +4445,7 @@
             },
             {
               "room_id": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Mourner Crossing",
+              "name": "Mourner Crossing",
               "description": "Four passages meet around a basin where the residue of old offerings has hardened into a dark crust.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4462,7 +4463,7 @@
             },
             {
               "room_id": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Candle-Riven Crypt",
+              "name": "Candle-Riven Crypt",
               "description": "Stone biers crowd this chamber, each crowned with candles that have melted into pale wrecks.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4478,7 +4479,7 @@
             },
             {
               "room_id": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Ossuary Run",
+              "name": "Ossuary Run",
               "description": "A long aisle of stacked skulls stretches ahead, the mortar between them darkened by age and smoke.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4495,7 +4496,7 @@
             },
             {
               "room_id": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Silent Ambulatory",
+              "name": "Silent Ambulatory",
               "description": "A narrow walking path curves behind old shrine walls where every footfall seems too loud.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4506,7 +4507,7 @@
             },
             {
               "room_id": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Cracked Vestry",
+              "name": "Cracked Vestry",
               "description": "Rotting vestments hang from iron hooks here, their hems fixed in place by old ash and wax.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4522,7 +4523,7 @@
             },
             {
               "room_id": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Relic Sluice",
+              "name": "Relic Sluice",
               "description": "A stone channel once used to wash sacred objects now carries only ash-streaked trickles of stale water.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4539,7 +4540,7 @@
             },
             {
               "room_id": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Dust Choir",
+              "name": "Dust Choir",
               "description": "Tiered stone benches rise in a semicircle where singers once answered one another in funeral hymn.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4556,7 +4557,7 @@
             },
             {
               "room_id": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Penitent Descent",
+              "name": "Penitent Descent",
               "description": "The stairs here narrow and steepen, forcing any traveler into a bowed and careful posture.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4572,7 +4573,7 @@
             },
             {
               "room_id": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Black-Oil Nave",
+              "name": "Black-Oil Nave",
               "description": "A thick sheen of old lamp oil paints the floor here, reflecting a dim and wavering darkness.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4589,7 +4590,7 @@
             },
             {
               "room_id": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Sarcophagus Turn",
+              "name": "Sarcophagus Turn",
               "description": "Massive stone coffers hem the corridor so tightly that it twists between them in sharp angles.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4606,7 +4607,7 @@
             },
             {
               "room_id": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Hollow Transept",
+              "name": "Hollow Transept",
               "description": "The chamber widens under a ribbed ceiling where every whisper climbs and returns thin and strange.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4623,7 +4624,7 @@
             },
             {
               "room_id": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Weeping Apse",
+              "name": "Weeping Apse",
               "description": "Mineral tears crawl down the rear wall here and patter softly into shallow bowls of stone.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4640,7 +4641,7 @@
             },
             {
               "room_id": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Keeper's Cells",
+              "name": "Keeper's Cells",
               "description": "Small stone cells open off the passage here, each containing a stool, a lamp niche, and nothing else.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4656,7 +4657,7 @@
             },
             {
               "room_id": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Cindered Bridge",
+              "name": "Cindered Bridge",
               "description": "A narrow span of scorched stone crosses a drop filled with broken lamps and old incense braziers.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4667,7 +4668,7 @@
             },
             {
               "room_id": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Lock-Ward",
+              "name": "Lock-Ward",
               "description": "Bronze seals and ward-scripts cover the walls here, all bent toward a single deeper chamber.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4684,7 +4685,7 @@
             },
             {
               "room_id": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Deep Crypt Approach",
+              "name": "Deep Crypt Approach",
               "description": "The air grows colder here and the last of the old incense gives way to the mineral scent of sealed stone.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -4701,7 +4702,7 @@
             },
             {
               "room_id": "room.penitent-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-              "title": "Penitent Sepulcher",
+              "name": "Penitent Sepulcher",
               "description": "A final chamber of kneeling effigies and sealed black stone lies here, watched over by the last custodian of the lower dead.",
               "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
               "exits": {
@@ -5267,7 +5268,7 @@
           "rooms": [
             {
               "room_id": "room.mire-threshold-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Mire Threshold",
+              "name": "Mire Threshold",
               "description": "South of the ford, the road sinks into mud darkened by emerald seep and old enchantment. Ferns crowd the path in unnaturally even ranks, and every leaf glitters with a sickly green sheen. Somewhere deeper in the wood, small voices laugh in perfect harmony and then go silent.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5287,7 +5288,7 @@
             },
             {
               "room_id": "room.crooked-moss-trail-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Crooked Moss Trail",
+              "name": "Crooked Moss Trail",
               "description": "Twisted cedars lean over this narrow trail until their moss curtains brush the shoulders of anyone who passes. The ground here is soft with black water and crushed clover, marked by too many hoofprints for any ordinary herd. A sweet perfume hangs in the air, almost enough to hide the smell of rot.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5312,7 +5313,7 @@
             },
             {
               "room_id": "room.split-root-bend-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Split-Root Bend",
+              "name": "Split-Root Bend",
               "description": "A pair of great roots split the path and force travelers into a sharp bend beneath low emerald boughs. Thin lights drift between the trunks like fireflies, but they move with the patience of watchers rather than insects. The forest feels arranged, as if every branch has been taught where to grow.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5333,7 +5334,7 @@
             },
             {
               "room_id": "room.whisper-nettles-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Whisper Nettles",
+              "name": "Whisper Nettles",
               "description": "Nettle walls sway on either side of the path without any wind to move them. Their tiny blossoms glow a pale green and whisper together in voices too soft to catch. Beneath the perfume of the flowers lies the iron smell of blood and wet bark.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5357,7 +5358,7 @@
             },
             {
               "room_id": "room.emerald-hollow-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Emerald Hollow",
+              "name": "Emerald Hollow",
               "description": "The trees open for a breath here, revealing a hollow drowned in green light that never reaches the sky above. Mushrooms cling to fallen logs like little lanterns, and the mud is churned by panicked animal tracks. Something in this clearing has been feeding fear back into the wood for a very long time.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5382,7 +5383,7 @@
             },
             {
               "room_id": "room.briar-pinch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Briar Pinch",
+              "name": "Briar Pinch",
               "description": "The path narrows between thorn-heavy hedges that bow inward like clasped fingers. Every branch is threaded with bright silk and snagged tufts of fur from beasts driven through the gap. Faint laughter echoes from somewhere overhead and never seems to come from the same direction twice.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5406,7 +5407,7 @@
             },
             {
               "room_id": "room.foxfire-notch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Foxfire Notch",
+              "name": "Foxfire Notch",
               "description": "A shelf of higher ground breaks the bog here, marked by foxfire fungus that paints the roots in cold green flame. The light makes every shadow look deeper than it should, and every hollow looks like a place where something crouches. Even the insects keep to the edges of this notch.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5430,7 +5431,7 @@
             },
             {
               "room_id": "room.crooked-fern-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Crooked Fern Lane",
+              "name": "Crooked Fern Lane",
               "description": "Bent ferns crowd the trail until it feels more tunnel than path. Their undersides flash silver-green each time they move, as if a hundred hidden eyes are blinking at once. Broken stems and trampled moss suggest that larger things are forced through here by smaller masters.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5455,7 +5456,7 @@
             },
             {
               "room_id": "room.drowned-roots-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Drowned Roots",
+              "name": "Drowned Roots",
               "description": "Pools of still water fill the low spots between exposed roots, reflecting not the canopy above but streaks of emerald light from deeper in the maze. Rot-soft timber sinks underfoot with a slow sucking sound. The place feels waterlogged with glamour as much as mire.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5479,7 +5480,7 @@
             },
             {
               "room_id": "room.stag-run-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Stag Run",
+              "name": "Stag Run",
               "description": "The undergrowth is flattened into a broad run cut by antlers, tusks, and clawed paws alike. The beasts that pass through here do not move like creatures at ease in their own forest. They charge where the faeries send them, and the torn earth remembers every rush.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5500,7 +5501,7 @@
             },
             {
               "room_id": "room.lantern-moss-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Lantern Moss Circle",
+              "name": "Lantern Moss Circle",
               "description": "A circle of pale moss surrounds a dead cedar whose limbs are hung with glowing seedpods. Each pod pulses in time with the others, casting rings of sick green light across the clearing. It has the feel of a warding place turned inside out.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5520,7 +5521,7 @@
             },
             {
               "room_id": "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Hushgrove Fork",
+              "name": "Hushgrove Fork",
               "description": "Several game trails knot together beneath a canopy so thick the air turns dim and damp. Even the dripping water seems muffled here, as though the grove is listening to itself breathe. Tiny footprints lace the mud between the larger tracks of dominated beasts.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5544,7 +5545,7 @@
             },
             {
               "room_id": "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Glassleaf Corridor",
+              "name": "Glassleaf Corridor",
               "description": "Tall glassleaf shrubs line this corridor, their translucent blades catching the green light and throwing it back in jagged shards. Every movement scatters reflections that look like wings darting just out of sight. The air is cool here, but the silence has a predatory edge.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5565,7 +5566,7 @@
             },
             {
               "room_id": "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Moonrot Basin",
+              "name": "Moonrot Basin",
               "description": "This basin sags low enough to hold a shallow slick of moon-pale fungus and black water. The trunks around it are painted with streaks of phosphorescent mold that make the whole hollow glow from below. Whatever fell here long ago never fully left the soil.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5590,7 +5591,7 @@
             },
             {
               "room_id": "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Antler Brake",
+              "name": "Antler Brake",
               "description": "Splintered branches and bark-scored trunks turn this stretch of wood into a natural killing lane. The signs of antlers and tusks are everywhere, but there is nothing wild in the pattern they make. These beasts do not hunt for hunger here.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5610,7 +5611,7 @@
             },
             {
               "room_id": "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Thistledown Squeeze",
+              "name": "Thistledown Squeeze",
               "description": "The path squeezes between root walls feathered with thistle and mold. A constant shiver runs through the blossoms, sending luminous dust into the air like powdered glass. Breathing too deeply feels like taking the forest inside your chest.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5634,7 +5635,7 @@
             },
             {
               "room_id": "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Emerald Switchback",
+              "name": "Emerald Switchback",
               "description": "The trail doubles back on itself through trunks wrapped in climbing emerald ivy. Every turn looks half-familiar, as though the wood wants travelers to mistrust their own memory. Thin bells ring somewhere ahead and then impossibly far behind.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5658,7 +5659,7 @@
             },
             {
               "room_id": "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Pixie Snare",
+              "name": "Pixie Snare",
               "description": "Fine strands of glamour shimmer between the trees here, almost invisible until they catch the light. Bones of rabbits and birds lie in the grass beneath them, each one picked clean with impossible neatness. Whatever rules this maze prefers its victims slowed before they scream.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5678,7 +5679,7 @@
             },
             {
               "room_id": "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Rotvine Arch",
+              "name": "Rotvine Arch",
               "description": "A heavy arch of living vines bridges the path, woven so tightly it looks almost deliberate. Small white flowers bloom along the thorns and drip nectar that smells sweeter than anything this corrupted place should offer. The sweetness only makes the menace feel closer.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5702,7 +5703,7 @@
             },
             {
               "room_id": "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Cold Fern Crossing",
+              "name": "Cold Fern Crossing",
               "description": "Cold mist pours across the crossing from unseen hollows and coils around every ankle like pale fingers. Ferns bend under beads of green-lit water that never seem to fall. The whole place feels like a threshold no creature enters willingly twice.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5722,7 +5723,7 @@
             },
             {
               "room_id": "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Hollow Reed Path",
+              "name": "Hollow Reed Path",
               "description": "Reeds and black grass crowd a narrow ribbon of firm ground between sucking pools. Their dry whispering never stops, and now and then it resolves into a word that vanishes before it can be trusted. Hoofprints press deep here, turned sharply by commands not their own.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5746,7 +5747,7 @@
             },
             {
               "room_id": "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Serpent Bark Lane",
+              "name": "Serpent Bark Lane",
               "description": "The bark on the trees ahead twists in serpent-like spirals as if the trunks themselves are trying to turn and watch. Slick green lichen paints the roots, and every branch hangs too low over the path. It feels less like walking through woods than through a throat.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5770,7 +5771,7 @@
             },
             {
               "room_id": "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Crowned Stump Circle",
+              "name": "Crowned Stump Circle",
               "description": "A massive stump rises in the center of this clearing, ringed with old mushrooms and polished by tiny feet. Crude crowns of woven reed and thorn have been set around it in mock ceremony. The air here carries the playfulness of children and the malice of a court.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5790,7 +5791,7 @@
             },
             {
               "room_id": "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Shattered Menhir",
+              "name": "Shattered Menhir",
               "description": "A blackened standing stone leans from the earth at an accusing angle, its surface split by veins of green crystal. The menhir hums faintly, and nearby leaves twitch in rhythm with the sound. Someone, or something, has been using this place to bend the wood into obedience.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5822,7 +5823,7 @@
             },
             {
               "room_id": "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Bramble Veil",
+              "name": "Bramble Veil",
               "description": "Curtains of hanging briar create a shifting wall of thorns and blossoms around the path. Each strand moves on its own, brushing open and closed like a breathing veil. The scent is intoxicating, but the hooked spines beneath the flowers promise a worse truth.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5846,7 +5847,7 @@
             },
             {
               "room_id": "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Hunting Hush",
+              "name": "Hunting Hush",
               "description": "No bird calls here, and even the insects fall quiet beneath the dark spread of the canopy. The mud is scarred by pacing paws and cloven hooves waiting for a command to spring. This is a hunting ground trained into patience.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5870,7 +5871,7 @@
             },
             {
               "room_id": "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Silver Mold Descent",
+              "name": "Silver Mold Descent",
               "description": "Silver mold sheets the roots and fallen timber in a damp metallic sheen. The slope beneath it is treacherous, forcing every step to be measured while unseen things circle just out of view. Green light leaks down the incline like poisoned moonwater.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5894,7 +5895,7 @@
             },
             {
               "room_id": "room.velvet-mire-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Velvet Mire",
+              "name": "Velvet Mire",
               "description": "A shallow mire spreads across the trail, its surface filmed with velvet moss that looks soft enough to lie upon. Beneath that softness, the mud seizes at every boot and exhales bubbles that smell of grave earth. The glamour here is almost compassionate, which makes it worse.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5918,7 +5919,7 @@
             },
             {
               "room_id": "room.cracked-idol-grove-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Cracked Idol Grove",
+              "name": "Cracked Idol Grove",
               "description": "Broken idol fragments jut from the loam, carved with old woodland faces worn blank by time and spite. Someone has crowned them with flowers and antlers in a parody of reverence. Whatever sacredness once lived here now serves another throne.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5942,7 +5943,7 @@
             },
             {
               "room_id": "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Pale Moss Switchyard",
+              "name": "Pale Moss Switchyard",
               "description": "Several narrow paths braid together in pale moss before veering apart again under the same dim green glow. Nothing in this switchyard feels accidental, not the leaning trunks, not the arching roots, not the way sound folds back on itself. The maze begins to think like a palace even here.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5967,7 +5968,7 @@
             },
             {
               "room_id": "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Whispering Yews",
+              "name": "Whispering Yews",
               "description": "Ancient yews close ranks in this section of the wood, their bark furrowed like old knotted hands. Whispering moves through them in long breaths that sound uncomfortably like counsel. Every branch points deeper inward, toward something royal and cruel.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -5993,7 +5994,7 @@
             },
             {
               "room_id": "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Royal Spoor",
+              "name": "Royal Spoor",
               "description": "The mud here is stamped with finer tracks: narrow boots, clawed slippers, and the sharp hoofmarks of beasts driven in circles on patrol. Strips of green silk have been tied to branches as if to mark a road for nobility alone. The palace is still unseen, but its discipline has reached this far.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6018,7 +6019,7 @@
             },
             {
               "room_id": "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Guard-Patrolled Glade",
+              "name": "Guard-Patrolled Glade",
               "description": "This glade is broad enough for maneuver, and that alone makes it feel dangerous. Broken reeds, patrol routes, and arrow-straight beast runs cut across the grass in overlapping patterns. It is the first place in the maze that feels openly militarized.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6043,7 +6044,7 @@
             },
             {
               "room_id": "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Thorn Banner Walk",
+              "name": "Thorn Banner Walk",
               "description": "Tall thorn poles rise from the earth here, each hung with scraps of green-and-silver cloth that never quite stop fluttering. The banners mark a road, but they also mark ownership. The forest beyond them no longer pretends to be anything but conquered.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6067,7 +6068,7 @@
             },
             {
               "room_id": "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Moonglass Clearing",
+              "name": "Moonglass Clearing",
               "description": "A clearing of pale stones and mirror-bright puddles gleams beneath the boughs like a fallen patch of moonlight. The reflections in the water lag behind reality by a heartbeat, making every motion look haunted. Somewhere nearby, courtly voices murmur with brittle amusement.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6092,7 +6093,7 @@
             },
             {
               "room_id": "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Court of Twin Wings",
+              "name": "Court of Twin Wings",
               "description": "The maze finally yields to a formal clearing where thorn arches and luminous flowers have been shaped into a cruel imitation of courtly grace. Moon-bright petals drift across the ground, but every stem hides a barb and every shadow hides movement. This is where Gianda's royal blood waits in judgment before the palace proper.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6117,7 +6118,7 @@
             },
             {
               "room_id": "room.palace-approach-bridge-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Palace Approach Bridge",
+              "name": "Palace Approach Bridge",
               "description": "An elegant bridge of rootwood spans a black stream and leads toward the hidden palace at last. Beyond it, the trees are trimmed rather than wild, though the corruption has only made the symmetry more unsettling. The green light here feels ceremonial, as if trespass itself is an offense against the crown.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6138,7 +6139,7 @@
             },
             {
               "room_id": "room.emerald-gate-lawn-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Emerald Gate Lawn",
+              "name": "Emerald Gate Lawn",
               "description": "Manicured grass spreads before an emerald gate half-grown from living hedge and polished stone. Delicate faerie craftsmanship shows in every curve, but the roots beneath the lawn writhe like restrained serpents. This is beauty stripped of innocence and set to guard a tyrant's home.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6162,7 +6163,7 @@
             },
             {
               "room_id": "room.royal-hedge-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Royal Hedge Walk",
+              "name": "Royal Hedge Walk",
               "description": "High hedges channel the approach into precise lines meant for processions rather than pilgrims. Leaves clipped into elegant spirals drip with luminous dew that burns where it falls. The palace is close enough now that its glow stains the underside of every branch.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6183,7 +6184,7 @@
             },
             {
               "room_id": "room.sentry-arbor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Sentry Arbor",
+              "name": "Sentry Arbor",
               "description": "A cluster of pale-barked trees has been trained into an arbor where sentries can watch the approach without revealing themselves. Feathers, petals, and old blood mingle in the moss below. Even stillness here has the posture of a drawn weapon.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6203,7 +6204,7 @@
             },
             {
               "room_id": "room.outer-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Outer Court",
+              "name": "Outer Court",
               "description": "Low walls of green-veined stone ring this outer court in a shape too graceful to trust. Statues of faeries and beasts stand together in poses of false harmony, all of them cracked through the eyes. The place feels less like a welcome and more like a warning polished to brilliance.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6228,7 +6229,7 @@
             },
             {
               "room_id": "room.mirror-pool-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Mirror Pool Court",
+              "name": "Mirror Pool Court",
               "description": "A mirrored pool fills the center of this court, perfectly still despite the wind threading through the surrounding columns. The water reflects a palace grander and more whole than the one that stands above it. Looking too long makes the real place feel like the lesser truth.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6261,7 +6262,7 @@
             },
             {
               "room_id": "room.colonnade-of-wings-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Colonnade of Wings",
+              "name": "Colonnade of Wings",
               "description": "Slender columns shaped like folded wings hold a roof of silver leaves over this passage. Their bases are wrapped in thorny vines that pulse with emerald light, as though the palace itself has a bloodstream. Every footstep returns as a softened echo, deferential and cold.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6285,7 +6286,7 @@
             },
             {
               "room_id": "room.audience-vestibule-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Audience Vestibule",
+              "name": "Audience Vestibule",
               "description": "This vestibule was built for petitioners to wait beneath impossible beauty and measured fear. Its polished floor is scattered with petals that never wilt and dust that never settles. The air tastes faintly of perfume, rain, and old enchantment gone feral.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6305,7 +6306,7 @@
             },
             {
               "room_id": "room.shattered-conservatory-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Shattered Conservatory",
+              "name": "Shattered Conservatory",
               "description": "Broken glass roofs and strangled trellises mark what was once a place of cultivated wonder. Rare blossoms now bloom through cracked stone in colors too bright for anything living and too hungry for anything gentle. The ruin feels tended, as if destruction here is part of the aesthetic.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6325,7 +6326,7 @@
             },
             {
               "room_id": "room.thorn-throne-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Thorn Throne Corridor",
+              "name": "Thorn Throne Corridor",
               "description": "The corridor ahead narrows beneath carved arches shaped like thorns curling into crowns. Green fire burns in sconces without heat, throwing long regal shadows along the walls. Every step deeper feels less like exploration and more like entering a sentence already spoken.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6349,7 +6350,7 @@
             },
             {
               "room_id": "room.moon-canopy-hall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Moon Canopy Hall",
+              "name": "Moon Canopy Hall",
               "description": "A vaulted hall opens beneath a canopy of silvered branches woven through the ceiling like a second forest. Their leaves chime softly against one another, making the space sound almost holy until the tone turns sharp. Court magic has made the palace remember the woods only to dominate them better.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6369,7 +6370,7 @@
             },
             {
               "room_id": "room.monarch-antechamber-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Monarch Antechamber",
+              "name": "Monarch Antechamber",
               "description": "This chamber stands just short of the throne, dressed in silk, polished rootwood, and crystal lamps that glow like captive moons. The silence is disciplined here, the kind that falls when everyone knows power is only a door away. Even the air seems to wait for permission to move.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6394,7 +6395,7 @@
             },
             {
               "room_id": "room.throne-orchard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Throne Orchard",
+              "name": "Throne Orchard",
               "description": "Pale trees rise from black soil set within elegant stone borders, their branches trained into a perfect orchard beneath the roofless sky. Each trunk bears tiny cuts where glamour and blood have fed the same roots. The throne room lies just beyond, and the entire orchard leans toward it like a court bowing low.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -6426,7 +6427,7 @@
             },
             {
               "room_id": "room.gianda-throne-room-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
-              "title": "Gianda's Throne Room",
+              "name": "Gianda's Throne Room",
               "description": "Gianda's throne rests upon living roots braided into a dais beneath a vaulted crown of emerald crystal and silver branchwork. Curtains of luminous vine divide the chamber into layers of green haze, hiding attendants and angles of attack until the last possible breath. This room is beautiful in the way venom can be beautiful, and everything in it knows whom it serves.",
               "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
               "exits": {
@@ -7290,7 +7291,7 @@
           "rooms": [
             {
               "room_id": "west-road-rise",
-              "title": "West Road \u2014 Ridgeline Climb",
+              "name": "West Road \u2014 Ridgeline Climb",
               "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
               "zone_id": "zone.west-road",
               "npcs": [
@@ -7308,7 +7309,7 @@
             },
             {
               "room_id": "room.north-approach-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "North Approach",
+              "name": "North Approach",
               "description": "A narrow hunter's trace cuts off the ridge and climbs toward darker ground under a fringe of leaning pines. Boot prints, horse droppings, and old ash say the trail sees hard traffic despite the scrub meant to hide it. Somewhere ahead, wood knocks softly against wood in the wind like watch slats tapping together.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7325,7 +7326,7 @@
             },
             {
               "room_id": "room.switchback-scramble-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Switchback Scramble",
+              "name": "Switchback Scramble",
               "description": "The path doubles back over itself in cramped shelves hacked into the slope, forcing every ascent into a slow exposed weave. Loose shale skitters down into thorn and bramble below with every misplaced step. Someone has hammered black-feather charms into the posts here, half warning and half boast.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7342,7 +7343,7 @@
             },
             {
               "room_id": "room.thorn-ditch-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Thorn Ditch",
+              "name": "Thorn Ditch",
               "description": "A dry ditch choked with thorn bundles and sharpened stakes bars the last easy run toward the fort. Old blood blackens some of the lower points where less careful attackers were fed into the hedge. A crude plank crossing leads on toward heavier works at the crest.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7359,7 +7360,7 @@
             },
             {
               "room_id": "room.outer-picket-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Outer Picket",
+              "name": "Outer Picket",
               "description": "Stunted pikes and ragged warning pennons mark a rough outer picket where sentries can see the whole climb below. The wind here carries smoke, tallow, and the iron stink of butchered game from inside the walls. Ahead, a wagon jam and a cut in the palisade form the only clear way forward.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7376,7 +7377,7 @@
             },
             {
               "room_id": "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Broken Wagon Choke",
+              "name": "Broken Wagon Choke",
               "description": "Two ruined wagons have been dragged nose to nose to narrow the way into a splintered killing lane. Arrow scars and soot blooms on the boards show this choke has stopped more than one bold rush. Beyond it, the black palisade rises at full height around the fort proper.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7393,7 +7394,7 @@
             },
             {
               "room_id": "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Palisade Gate",
+              "name": "Palisade Gate",
               "description": "The gate is nothing noble, only heavy timber lashed in iron and black pitch beneath a skull-nailed lintel. Fresh axe marks along the posts suggest the bandits repair what siege and weather keep trying to undo. The main yard opens just inside while side tracks run along the inner wall.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7410,7 +7411,7 @@
             },
             {
               "room_id": "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "South Yard",
+              "name": "South Yard",
               "description": "Hard-packed mud spreads through the lower yard where carts, boots, and dragged bodies have all churned the same ground smooth. Cooking smoke hangs low between sheds and tether posts while rough laughter bounces off the timber walls. The yard branches west to the kennels, east to the cookfires, and north toward the fort's harsher heart.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7433,7 +7434,7 @@
             },
             {
               "room_id": "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Kennel Lane",
+              "name": "Kennel Lane",
               "description": "A rank side lane runs under the western palisade where chained posts, bone piles, and overturned troughs line the wall. The smell is old grease, wet fur, and fresh fear worked into the planks by years of use. A stair tower rises at the far corner while the barracks squat just beyond the lane.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7451,7 +7452,7 @@
             },
             {
               "room_id": "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Cookfire Square",
+              "name": "Cookfire Square",
               "description": "Three stone-ringed fires burn in this square around spits, black kettles, and hacked blocks sticky with grease. The fort feeds itself on stolen cattle, bad grain, and whatever else its riders drag home. An eastern corner platform looms over the smoke while store sheds crowd the way north.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7469,7 +7470,7 @@
             },
             {
               "room_id": "room.raider-barracks-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Raider Barracks",
+              "name": "Raider Barracks",
               "description": "Low bunks, rolled cloaks, and stolen kit are crammed into a drafty hall built more for exhaustion than comfort. Names, threats, and victory tallies have been carved into every post within arm's reach. The room opens back toward the lane and up toward the west wall where the night watch broods.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7486,7 +7487,7 @@
             },
             {
               "room_id": "room.spoils-shed-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Spoils Shed",
+              "name": "Spoils Shed",
               "description": "Shelves bow under sacks, lamp oil, torn banners, and half-sorted plunder from a dozen roads and hamlets. Anything fine has been picked clean already, leaving only the useful, the ugly, and the bloodstained. A rough path runs west toward the armory and north into the eastern wall quarter.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7504,7 +7505,7 @@
             },
             {
               "room_id": "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Armory Lean-To",
+              "name": "Armory Lean-To",
               "description": "A long lean-to of warped boards shelters weapon racks, shield stacks, and buckets of arrow shafts gone damp at the fletching. Most of the gear here is patched together from battlefield salvage and caravan dead. The way north opens into the central yard while side lanes run to both halves of the fort.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7523,7 +7524,7 @@
             },
             {
               "room_id": "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Central Yard",
+              "name": "Central Yard",
               "description": "The fort's middle is an open churn of mud and trampled ash ringed by watch platforms at every quarter. A chained iron brazier squats in the center, cold for now, with grooves worn into the ground around it by old ritual movement. From here the whole place feels built to drive blood and fear inward toward one final reckoning.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7598,7 +7599,7 @@
             },
             {
               "room_id": "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "West Wall Walk",
+              "name": "West Wall Walk",
               "description": "A timber catwalk runs the length of the western palisade, flexing underfoot above the kennel stink and barracks noise below. The parapet slots here give a long cruel view back down the climbing trail to the road. The northwest corner hardens into a true bastion while the southwest tower stair drops near the lower yard.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7617,7 +7618,7 @@
             },
             {
               "room_id": "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "East Wall Walk",
+              "name": "East Wall Walk",
               "description": "The eastern wall walk smells of lamp pitch and cold smoke from signal fires left to smolder between watches. Boards here are newer, less warped, and marked with knife scratches counting raids and caravan burns. A tower stair climbs at the far corner while the square below feeds back toward the middle of the fort.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7636,7 +7637,7 @@
             },
             {
               "room_id": "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "North Yard",
+              "name": "North Yard",
               "description": "The mud thins here into hard trampled earth beneath the shadow of the inner keep and the highest wall crowns. Command traffic seems to have passed this way for years, wearing a disciplined channel through the otherwise ugly fort. The keep looms close, though its deeper door looks sealed until some harsher rite is met.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7654,7 +7655,7 @@
             },
             {
               "room_id": "room.southwest-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Southwest Tower Stairs",
+              "name": "Southwest Tower Stairs",
               "description": "A cramped spiral of timber and pegged steps climbs inside the southwest corner tower, every riser worn hollow by hurried boots. The tower shaft smells of wet rope and stale lamp oil with the lane's animal reek rising from below. Above, open air and hard laughter leak down from the firing platform.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7671,7 +7672,7 @@
             },
             {
               "room_id": "room.southwest-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Southwest Tower Crown",
+              "name": "Southwest Tower Crown",
               "description": "The tower top is a cramped ring of planks and murder slits overlooking the whole lower ascent into the fort. Old hooks, chain lengths, and snapped grapnels hang from the rail as trophies and tools alike. This corner has the feel of a butcher's favorite block, kept ready for whatever climbs within reach.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7687,7 +7688,7 @@
             },
             {
               "room_id": "room.northwest-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Northwest Bastion",
+              "name": "Northwest Bastion",
               "description": "The northwest corner broadens into a reinforced firing shelf where signal braziers, spare fuel, and stacked darts sit ready at hand. Char and soot stain the planks here darker than anywhere else in the fort. From this angle the whole western country looks like kindling waiting on a spark.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7704,7 +7705,7 @@
             },
             {
               "room_id": "room.northwest-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Northwest Parapet",
+              "name": "Northwest Parapet",
               "description": "A higher fighting lip crowns the bastion, narrow and blackened where sentries once lay flat behind the crenels. The wind snaps loose ember ash across the boards and carries it away over the ridge beyond. No one stands here long without feeling the pull of arson and distance.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [],
@@ -7715,7 +7716,7 @@
             },
             {
               "room_id": "room.northeast-tower-stairs-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Northeast Tower Stairs",
+              "name": "Northeast Tower Stairs",
               "description": "Sharp ladder-stairs climb the northeast tower through a skin of cold wind slipping between warped boards. Thin nails and broken knife points have been driven into the beams as makeshift omens or trophies. The upper platform waits in a hush that feels watched even before it is seen.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7732,7 +7733,7 @@
             },
             {
               "room_id": "room.northeast-tower-crown-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Northeast Tower Crown",
+              "name": "Northeast Tower Crown",
               "description": "This high tower platform is all angles, slits, and narrow shadows where a killer can vanish between blinks. Spent darts crunch underfoot beside old rainwater trapped in the grain of the planks. It is the kind of place built for patient murder rather than defense.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7748,7 +7749,7 @@
             },
             {
               "room_id": "room.southeast-bastion-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Southeast Bastion",
+              "name": "Southeast Bastion",
               "description": "The southeast corner has been half turned into a mean little shrine, half into a fighting shelf, with bones and shields sharing the same wall pegs. Pitch smoke coils around a cracked icon set in the timber as if devotion and intimidation have merged here. Every sound seems to strike the boards harder in this corner than anywhere else.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7765,7 +7766,7 @@
             },
             {
               "room_id": "room.southeast-parapet-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Southeast Parapet",
+              "name": "Southeast Parapet",
               "description": "A narrow lip of fighting space hangs above the cookfire smoke and lets the whole southern yard be watched at once. Wind rattles a string of split prayer boards tied to the rail, each one inked with a name someone meant to remember or curse. The view back toward the gate makes clear how any retreat would become a slaughter.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [],
@@ -7776,7 +7777,7 @@
             },
             {
               "room_id": "room.keep-threshold-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Keep Threshold",
+              "name": "Keep Threshold",
               "description": "The inner keep begins in a heavy timber throat where black doors, iron chains, and scarred posts crowd together with no wasted ornament. Everything here feels built for command, intimidation, and quick executions when command fails. The deeper hall ahead carries the cold stillness of someone important waiting to be reached.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [],
@@ -7790,7 +7791,7 @@
             },
             {
               "room_id": "room.hall-of-plunder-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Hall of Plunder",
+              "name": "Hall of Plunder",
               "description": "Long tables, cracked chests, campaign maps, and hanging trophies turn this inner hall into a ledger of organized theft. The fort's raids were not random from here, but weighed, chosen, and sent outward with patient cruelty. A final chamber lies deeper in, behind the place where orders became blood.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7807,7 +7808,7 @@
             },
             {
               "room_id": "room.keep-heart-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Keep Heart",
+              "name": "Keep Heart",
               "description": "The center chamber of the fort is a hard square of scarred beams and black banner cloth, dominated by a raised plank dais and a rack of extinguished signal horns. Every wall bears the mark of councils, punishments, and final decisions handed down without appeal. Now the whole room feels poised on the knife-edge between conquest and collapse.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [],
@@ -7818,7 +7819,7 @@
             },
             {
               "room_id": "room.cistern-undercroft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Cistern Undercroft",
+              "name": "Cistern Undercroft",
               "description": "Cold dark stone replaces timber here around a half-covered cistern sunk below the keep's command rooms. Drips echo off the water and vanish into a gloom that smells of wet lime, mildew, and hidden old stores. This is where a prudent warlord keeps what should not be seen by the fort above.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -7834,7 +7835,7 @@
             },
             {
               "room_id": "room.rope-loft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-              "title": "Rope Loft",
+              "name": "Rope Loft",
               "description": "A cramped loft above the threshold holds spare tackle, signal cords, rolled nets, and a hooked mechanism for the keep's chained inner door. Dust and old hemp fuzz drift in shafts of light through the roof boards. It is the sort of practical overhead space that only matters when a fort is trying not to die.",
               "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
               "npcs": [
@@ -8371,7 +8372,7 @@
           "rooms": [
             {
               "room_id": "start",
-              "title": "Prototype Chamber",
+              "name": "Prototype Chamber",
               "description": "A plain stone chamber used for early server testing. A stout western gate bars a road beyond, while scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
               "zone_id": "zone.prototype-core",
               "exits": {
@@ -8384,7 +8385,7 @@
             },
             {
               "room_id": "room.blackwatch-descent-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Blackwatch Descent",
+              "name": "Blackwatch Descent",
               "description": "A steep stair of damp stone falls away beneath the chamber, the air below heavy with oil smoke and chapel ash.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8395,7 +8396,7 @@
             },
             {
               "room_id": "room.ashen-landing-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Ashen Landing",
+              "name": "Ashen Landing",
               "description": "Boot-scuffed stone opens into a low checkpoint where cressets spit dull orange light across ash-streaked walls.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8412,7 +8413,7 @@
             },
             {
               "room_id": "room.watch-barracks-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Watch Barracks",
+              "name": "Watch Barracks",
               "description": "Narrow bunks and open weapon racks line this severe barracks, all kept with unnerving order.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8427,7 +8428,7 @@
             },
             {
               "room_id": "room.shroud-corridor-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Shroud Corridor",
+              "name": "Shroud Corridor",
               "description": "Black hanging cloth breaks the corridor into blind pockets of shadow where whispers seem to linger after breath has passed.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8440,7 +8441,7 @@
             },
             {
               "room_id": "room.storage-vault-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Storage Vault",
+              "name": "Storage Vault",
               "description": "Crates of lamp oil, burial cloth, and dried rations are stacked behind reinforced beams blackened by old smoke.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8450,7 +8451,7 @@
             },
             {
               "room_id": "room.prayer-cell-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Prayer Cell",
+              "name": "Prayer Cell",
               "description": "A narrow chamber of kneeling stones and guttered candles, where soot-dark icons stare from the walls.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8465,7 +8466,7 @@
             },
             {
               "room_id": "room.crypt-gate-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Crypt Gate",
+              "name": "Crypt Gate",
               "description": "A heavy iron gate marks the inner threshold, flanked by cracked grave tablets and braziers burning low blue flame.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8481,7 +8482,7 @@
             },
             {
               "room_id": "room.ossuary-walk-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Ossuary Walk",
+              "name": "Ossuary Walk",
               "description": "Wall niches of old bones stretch into the dark, every skull turned outward as if keeping count.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8498,7 +8499,7 @@
             },
             {
               "room_id": "room.acolyte-cloister-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Acolyte Cloister",
+              "name": "Acolyte Cloister",
               "description": "A ring of curtained alcoves surrounds a basin of black water disturbed by slow drifting ash.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8513,7 +8514,7 @@
             },
             {
               "room_id": "room.sunken-nave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Sunken Nave",
+              "name": "Sunken Nave",
               "description": "The floor drops into a half-flooded chapel nave where shattered pews lean beneath hanging chains and dim censers.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8530,7 +8531,7 @@
             },
             {
               "room_id": "room.revenant-crypt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Revenant Crypt",
+              "name": "Revenant Crypt",
               "description": "A low tomb chamber choked with pitch smoke and old funerary cloth, the stone lids here all broken from within.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8545,7 +8546,7 @@
             },
             {
               "room_id": "room.black-altar-approach-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Black Altar Approach",
+              "name": "Black Altar Approach",
               "description": "Steps of worn basalt descend toward a dark altar hall where thin bells ring without any hand to move them.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -8561,7 +8562,7 @@
             },
             {
               "room_id": "room.night-altar-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-              "title": "Night Altar",
+              "name": "Night Altar",
               "description": "A black altar stands beneath a vaulted apse of smoke and bone chandeliers, where the outpost's final rite still labors to continue.",
               "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
               "exits": {
@@ -9658,7 +9659,7 @@
           "rooms": [
             {
               "room_id": "hall",
-              "title": "Northern Hall",
+              "name": "Northern Hall",
               "description": "A narrow hall of cold stone extends here, quiet and still.",
               "zone_id": "zone.northern-wing",
               "exits": {
@@ -9675,7 +9676,7 @@
             },
             {
               "room_id": "room.desert-threshold-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Desert Threshold",
+              "name": "Desert Threshold",
               "description": "Cold stone gives way to dry heat and drifting grit where a cracked breach opens onto a pale waste of wind-cut sand.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9686,7 +9687,7 @@
             },
             {
               "room_id": "room.wind-cut-pass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Wind-Cut Pass",
+              "name": "Wind-Cut Pass",
               "description": "Tall shelves of sandstone rise on either side, funneling the wind into a harsh steady moan.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9703,7 +9704,7 @@
             },
             {
               "room_id": "room.half-buried-waymarker-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Half-Buried Waymarker",
+              "name": "Half-Buried Waymarker",
               "description": "The broken top of an old marker stone juts from the sand, its chiseled face almost erased by years of abrasion.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9719,7 +9720,7 @@
             },
             {
               "room_id": "room.dune-shelf-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Dune Shelf",
+              "name": "Dune Shelf",
               "description": "A high shelf of packed sand overlooks rippling basins of gold and white beneath a punishing sky.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9730,7 +9731,7 @@
             },
             {
               "room_id": "room.sunken-caravan-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Sunken Caravan",
+              "name": "Sunken Caravan",
               "description": "Rotted wagon frames and half-exposed crates lie trapped in a bowl of sand where a caravan met the desert and lost.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9750,7 +9751,7 @@
             },
             {
               "room_id": "room.glassbone-hollow-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Glassbone Hollow",
+              "name": "Glassbone Hollow",
               "description": "The sand here has fused into slick dark glass around white ribs of some vast dead thing.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9766,7 +9767,7 @@
             },
             {
               "room_id": "room.whisper-dune-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Whisper Dune",
+              "name": "Whisper Dune",
               "description": "A long crescent dune sighs with each passing gust, spilling fine sand in hushed curtains down its face.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9777,7 +9778,7 @@
             },
             {
               "room_id": "room.dried-cistern-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Dried Cistern",
+              "name": "Dried Cistern",
               "description": "A circular pit lined with ancient stone yawns open here, empty now but cool at its shadowed bottom.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9794,7 +9795,7 @@
             },
             {
               "room_id": "room.mirage-flats-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Mirage Flats",
+              "name": "Mirage Flats",
               "description": "Heat ripples turn the horizon liquid here, making false towers shimmer in and out of existence.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9811,7 +9812,7 @@
             },
             {
               "room_id": "room.basalt-teeth-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Basalt Teeth",
+              "name": "Basalt Teeth",
               "description": "Black stone spires erupt from the sand like a buried jaw, their shadows sharp and cold against the dunes.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9831,7 +9832,7 @@
             },
             {
               "room_id": "room.buried-stair-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Buried Stair",
+              "name": "Buried Stair",
               "description": "Long sandstone steps descend beneath the dune at an angle too precise to be natural, half-hidden under veils of grit.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9841,7 +9842,7 @@
             },
             {
               "room_id": "room.sealed-breach-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Sealed Breach",
+              "name": "Sealed Breach",
               "description": "A shattered wall segment lies beneath drifts of sand, revealing a worked passage concealed behind ruined masonry.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9858,7 +9859,7 @@
             },
             {
               "room_id": "room.hidden-gate-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Hidden Gate",
+              "name": "Hidden Gate",
               "description": "A narrow gate of bronze and pale stone stands here beneath the dunes, nearly invisible until one is almost upon it.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9875,7 +9876,7 @@
             },
             {
               "room_id": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Outer Court",
+              "name": "Outer Court",
               "description": "A buried court opens beneath a cracked dome where disciplined steps have kept the dust from swallowing the floor.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9892,7 +9893,7 @@
             },
             {
               "room_id": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Prayer Walk",
+              "name": "Prayer Walk",
               "description": "A pillared corridor runs beneath painted oaths and sun motifs dimmed by long concealment.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9909,7 +9910,7 @@
             },
             {
               "room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Training Yard",
+              "name": "Training Yard",
               "description": "Sand has been swept into neat circles here for drills, and practice scars mark every shield post and standing stone.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "keyword_actions": [
@@ -9956,7 +9957,7 @@
             },
             {
               "room_id": "room.lamp-hall-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Lamp Hall",
+              "name": "Lamp Hall",
               "description": "Rows of hooded lamps cast a warm, restrained gold over supply shelves and carefully maintained armor stands.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -9972,7 +9973,7 @@
             },
             {
               "room_id": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Reliquary Vault",
+              "name": "Reliquary Vault",
               "description": "Broken reliquaries and scattered seals lie in disarray here, and a wrong heat pulses from the chamber's center.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "keyword_actions": [
@@ -10049,7 +10050,7 @@
             },
             {
               "room_id": "room.commander-chamber-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Commander Chamber",
+              "name": "Commander Chamber",
               "description": "Maps, prayer tablets, and carefully stacked weapons fill this hidden command room with quiet readiness.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {
@@ -10065,7 +10066,7 @@
             },
             {
               "room_id": "room.sunwell-sanctuary-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-              "title": "Sunwell Sanctuary",
+              "name": "Sunwell Sanctuary",
               "description": "A circular basin of clear water mirrors a shaft of hidden light above, filling the chamber with a calm radiant hush.",
               "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
               "exits": {

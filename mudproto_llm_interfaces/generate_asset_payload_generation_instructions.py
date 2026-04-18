@@ -336,7 +336,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Descriptions should be concise, usable in-game, and support the intended fantasy atmosphere.",
             "Room descriptions should be 3-4 sentences in length and should tie directly into the theme of their zone.",
             "Room interconnections should feel natural and navigationally believable, with adjacency that makes sense for the fiction and layout of the area.",
-            "Room titles, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
+            "Room names, spell names, skill names, and NPC names should feel vivid, flavorful, and memorable while fitting MudProto's tone.",
             "Combat/support context strings should be ready for player-facing text.",
             "Combat/support context strings should be perspective-safe for both 'you' and named targets, avoiding recipient-relative nouns like 'your foe'.",
             "Include optional flavor-only interaction hooks (for example room or NPC keyword actions with noop-style output text) when they naturally fit the scene.",

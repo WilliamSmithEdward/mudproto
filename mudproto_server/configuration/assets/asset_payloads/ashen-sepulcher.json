@@ -386,7 +386,7 @@
   "rooms": [
     {
       "room_id": "room.sunken-oratory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Sunken Oratory",
+      "name": "Sunken Oratory",
       "description": "A hidden chamber of cracked icons and old bronze lamps lies beneath the vault, the air cool and powder-dry.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -429,7 +429,7 @@
     },
     {
       "room_id": "room.censer-stair-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Censer Stair",
+      "name": "Censer Stair",
       "description": "Broad steps descend between rows of hanging censers gone cold but not entirely scentless.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -445,7 +445,7 @@
     },
     {
       "room_id": "room.soot-cloister-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Soot Cloister",
+      "name": "Soot Cloister",
       "description": "Ash lies in the corners like drifts of black snow beneath a ring of bent columns.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -461,7 +461,7 @@
     },
     {
       "room_id": "room.bone-archive-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Bone Archive",
+      "name": "Bone Archive",
       "description": "Long niches filled with tagged bones line the walls, catalogued in a hand now long returned to dust.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -477,7 +477,7 @@
     },
     {
       "room_id": "room.mourner-crossing-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Mourner Crossing",
+      "name": "Mourner Crossing",
       "description": "Four passages meet around a basin where the residue of old offerings has hardened into a dark crust.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -495,7 +495,7 @@
     },
     {
       "room_id": "room.candle-riven-crypt-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Candle-Riven Crypt",
+      "name": "Candle-Riven Crypt",
       "description": "Stone biers crowd this chamber, each crowned with candles that have melted into pale wrecks.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -511,7 +511,7 @@
     },
     {
       "room_id": "room.ossuary-run-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Ossuary Run",
+      "name": "Ossuary Run",
       "description": "A long aisle of stacked skulls stretches ahead, the mortar between them darkened by age and smoke.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -528,7 +528,7 @@
     },
     {
       "room_id": "room.silent-ambulatory-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Silent Ambulatory",
+      "name": "Silent Ambulatory",
       "description": "A narrow walking path curves behind old shrine walls where every footfall seems too loud.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -539,7 +539,7 @@
     },
     {
       "room_id": "room.cracked-vestry-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Cracked Vestry",
+      "name": "Cracked Vestry",
       "description": "Rotting vestments hang from iron hooks here, their hems fixed in place by old ash and wax.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -555,7 +555,7 @@
     },
     {
       "room_id": "room.relic-sluice-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Relic Sluice",
+      "name": "Relic Sluice",
       "description": "A stone channel once used to wash sacred objects now carries only ash-streaked trickles of stale water.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -572,7 +572,7 @@
     },
     {
       "room_id": "room.dust-choir-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Dust Choir",
+      "name": "Dust Choir",
       "description": "Tiered stone benches rise in a semicircle where singers once answered one another in funeral hymn.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -589,7 +589,7 @@
     },
     {
       "room_id": "room.penitent-descent-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Penitent Descent",
+      "name": "Penitent Descent",
       "description": "The stairs here narrow and steepen, forcing any traveler into a bowed and careful posture.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -605,7 +605,7 @@
     },
     {
       "room_id": "room.black-oil-nave-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Black-Oil Nave",
+      "name": "Black-Oil Nave",
       "description": "A thick sheen of old lamp oil paints the floor here, reflecting a dim and wavering darkness.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -622,7 +622,7 @@
     },
     {
       "room_id": "room.sarcophagus-turn-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Sarcophagus Turn",
+      "name": "Sarcophagus Turn",
       "description": "Massive stone coffers hem the corridor so tightly that it twists between them in sharp angles.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -639,7 +639,7 @@
     },
     {
       "room_id": "room.hollow-transept-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Hollow Transept",
+      "name": "Hollow Transept",
       "description": "The chamber widens under a ribbed ceiling where every whisper climbs and returns thin and strange.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -656,7 +656,7 @@
     },
     {
       "room_id": "room.weeping-apse-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Weeping Apse",
+      "name": "Weeping Apse",
       "description": "Mineral tears crawl down the rear wall here and patter softly into shallow bowls of stone.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -673,7 +673,7 @@
     },
     {
       "room_id": "room.keepers-cells-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Keeper's Cells",
+      "name": "Keeper's Cells",
       "description": "Small stone cells open off the passage here, each containing a stool, a lamp niche, and nothing else.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -689,7 +689,7 @@
     },
     {
       "room_id": "room.cindered-bridge-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Cindered Bridge",
+      "name": "Cindered Bridge",
       "description": "A narrow span of scorched stone crosses a drop filled with broken lamps and old incense braziers.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -700,7 +700,7 @@
     },
     {
       "room_id": "room.lock-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Lock-Ward",
+      "name": "Lock-Ward",
       "description": "Bronze seals and ward-scripts cover the walls here, all bent toward a single deeper chamber.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -717,7 +717,7 @@
     },
     {
       "room_id": "room.deep-crypt-approach-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Deep Crypt Approach",
+      "name": "Deep Crypt Approach",
       "description": "The air grows colder here and the last of the old incense gives way to the mineral scent of sealed stone.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {
@@ -734,7 +734,7 @@
     },
     {
       "room_id": "room.penitent-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-      "title": "Penitent Sepulcher",
+      "name": "Penitent Sepulcher",
       "description": "A final chamber of kneeling effigies and sealed black stone lies here, watched over by the last custodian of the lower dead.",
       "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
       "exits": {

@@ -60,7 +60,7 @@ def test_room_object_rejects_empty_object_id(monkeypatch) -> None:
     raw_rooms = [
         {
             "room_id": "test.room-empty-obj-id",
-            "title": "Test Room",
+            "name": "Test Room",
             "description": "A test room.",
             "zone_id": "test-zone",
             "room_objects": [
@@ -83,7 +83,7 @@ def test_room_object_rejects_empty_name(monkeypatch) -> None:
     raw_rooms = [
         {
             "room_id": "test.room-empty-obj-name",
-            "title": "Test Room",
+            "name": "Test Room",
             "description": "A test room.",
             "zone_id": "test-zone",
             "room_objects": [
@@ -104,7 +104,7 @@ def test_title_casing_applied_to_synthetic_room_object(monkeypatch) -> None:
     raw_rooms = [
         {
             "room_id": "test.title-case-room",
-            "title": "Test Room",
+            "name": "Test Room",
             "description": "A test room.",
             "zone_id": "test-zone",
             "room_objects": [
@@ -126,7 +126,7 @@ def test_titlecase_preserves_small_words_in_room_objects(monkeypatch) -> None:
     raw_rooms = [
         {
             "room_id": "test.small-words-room",
-            "title": "hall of the fallen king",
+            "name": "hall of the fallen king",
             "description": "A test room.",
             "zone_id": "test-zone",
             "room_objects": [
@@ -140,7 +140,7 @@ def test_titlecase_preserves_small_words_in_room_objects(monkeypatch) -> None:
     ]
 
     rooms = _load_rooms_with_raw(monkeypatch, raw_rooms)
-    assert rooms[0]["title"] == "Hall of the Fallen King"
+    assert rooms[0]["name"] == "Hall of the Fallen King"
     assert rooms[0]["room_objects"][0]["name"] == "Statue of the Fallen King"
 
 
@@ -198,11 +198,11 @@ def test_all_zone_names_are_title_cased() -> None:
             )
 
 
-def test_all_room_titles_are_title_cased() -> None:
+def test_all_room_names_are_title_cased() -> None:
     assets.load_rooms.cache_clear()
     for room in assets.load_rooms():
-        title = str(room.get("title", "")).strip()
-        if title:
-            assert title == to_title_case(title), (
-                f"Room '{room.get('room_id', '?')}' title '{title}' is not title-cased."
+        name = str(room.get("name", "")).strip()
+        if name:
+            assert name == to_title_case(name), (
+                f"Room '{room.get('room_id', '?')}' name '{name}' is not title-cased."
             )

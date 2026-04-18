@@ -121,7 +121,7 @@ def display_score(session: ClientSession) -> dict:
     class_name = _resolve_player_class_name(session.player.class_id)
     character_name = session.authenticated_character_name or "Unknown"
     room = get_room(session.player.current_room_id)
-    room_name = room.title if room is not None else "Unknown"
+    room_name = room.name if room is not None else "Unknown"
     posture_label = _resolve_posture_label(session)
 
     hp_now = max(0, int(session.status.hit_points))

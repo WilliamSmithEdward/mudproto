@@ -1066,7 +1066,7 @@
   "rooms": [
     {
       "room_id": "hall",
-      "title": "Northern Hall",
+      "name": "Northern Hall",
       "description": "A narrow hall of cold stone extends here, quiet and still.",
       "zone_id": "zone.northern-wing",
       "exits": {
@@ -1083,7 +1083,7 @@
     },
     {
       "room_id": "room.desert-threshold-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Desert Threshold",
+      "name": "Desert Threshold",
       "description": "Cold stone gives way to dry heat and drifting grit where a cracked breach opens onto a pale waste of wind-cut sand.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1094,7 +1094,7 @@
     },
     {
       "room_id": "room.wind-cut-pass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Wind-Cut Pass",
+      "name": "Wind-Cut Pass",
       "description": "Tall shelves of sandstone rise on either side, funneling the wind into a harsh steady moan.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1111,7 +1111,7 @@
     },
     {
       "room_id": "room.half-buried-waymarker-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Half-Buried Waymarker",
+      "name": "Half-Buried Waymarker",
       "description": "The broken top of an old marker stone juts from the sand, its chiseled face almost erased by years of abrasion.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1127,7 +1127,7 @@
     },
     {
       "room_id": "room.dune-shelf-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Dune Shelf",
+      "name": "Dune Shelf",
       "description": "A high shelf of packed sand overlooks rippling basins of gold and white beneath a punishing sky.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1138,7 +1138,7 @@
     },
     {
       "room_id": "room.sunken-caravan-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Sunken Caravan",
+      "name": "Sunken Caravan",
       "description": "Rotted wagon frames and half-exposed crates lie trapped in a bowl of sand where a caravan met the desert and lost.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1158,7 +1158,7 @@
     },
     {
       "room_id": "room.glassbone-hollow-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Glassbone Hollow",
+      "name": "Glassbone Hollow",
       "description": "The sand here has fused into slick dark glass around white ribs of some vast dead thing.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1174,7 +1174,7 @@
     },
     {
       "room_id": "room.whisper-dune-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Whisper Dune",
+      "name": "Whisper Dune",
       "description": "A long crescent dune sighs with each passing gust, spilling fine sand in hushed curtains down its face.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1185,7 +1185,7 @@
     },
     {
       "room_id": "room.dried-cistern-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Dried Cistern",
+      "name": "Dried Cistern",
       "description": "A circular pit lined with ancient stone yawns open here, empty now but cool at its shadowed bottom.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1202,7 +1202,7 @@
     },
     {
       "room_id": "room.mirage-flats-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Mirage Flats",
+      "name": "Mirage Flats",
       "description": "Heat ripples turn the horizon liquid here, making false towers shimmer in and out of existence.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1219,7 +1219,7 @@
     },
     {
       "room_id": "room.basalt-teeth-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Basalt Teeth",
+      "name": "Basalt Teeth",
       "description": "Black stone spires erupt from the sand like a buried jaw, their shadows sharp and cold against the dunes.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1239,7 +1239,7 @@
     },
     {
       "room_id": "room.buried-stair-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Buried Stair",
+      "name": "Buried Stair",
       "description": "Long sandstone steps descend beneath the dune at an angle too precise to be natural, half-hidden under veils of grit.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1249,7 +1249,7 @@
     },
     {
       "room_id": "room.sealed-breach-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Sealed Breach",
+      "name": "Sealed Breach",
       "description": "A shattered wall segment lies beneath drifts of sand, revealing a worked passage concealed behind ruined masonry.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1266,7 +1266,7 @@
     },
     {
       "room_id": "room.hidden-gate-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Hidden Gate",
+      "name": "Hidden Gate",
       "description": "A narrow gate of bronze and pale stone stands here beneath the dunes, nearly invisible until one is almost upon it.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1283,7 +1283,7 @@
     },
     {
       "room_id": "room.outer-court-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Outer Court",
+      "name": "Outer Court",
       "description": "A buried court opens beneath a cracked dome where disciplined steps have kept the dust from swallowing the floor.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1300,7 +1300,7 @@
     },
     {
       "room_id": "room.prayer-walk-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Prayer Walk",
+      "name": "Prayer Walk",
       "description": "A pillared corridor runs beneath painted oaths and sun motifs dimmed by long concealment.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1317,7 +1317,7 @@
     },
     {
       "room_id": "room.training-yard-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Training Yard",
+      "name": "Training Yard",
       "description": "Sand has been swept into neat circles here for drills, and practice scars mark every shield post and standing stone.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "keyword_actions": [
@@ -1364,7 +1364,7 @@
     },
     {
       "room_id": "room.lamp-hall-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Lamp Hall",
+      "name": "Lamp Hall",
       "description": "Rows of hooded lamps cast a warm, restrained gold over supply shelves and carefully maintained armor stands.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1380,7 +1380,7 @@
     },
     {
       "room_id": "room.reliquary-vault-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Reliquary Vault",
+      "name": "Reliquary Vault",
       "description": "Broken reliquaries and scattered seals lie in disarray here, and a wrong heat pulses from the chamber's center.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "keyword_actions": [
@@ -1457,7 +1457,7 @@
     },
     {
       "room_id": "room.commander-chamber-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Commander Chamber",
+      "name": "Commander Chamber",
       "description": "Maps, prayer tablets, and carefully stacked weapons fill this hidden command room with quiet readiness.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {
@@ -1473,7 +1473,7 @@
     },
     {
       "room_id": "room.sunwell-sanctuary-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-      "title": "Sunwell Sanctuary",
+      "name": "Sunwell Sanctuary",
       "description": "A circular basin of clear water mirrors a shaft of hidden light above, filling the chamber with a calm radiant hush.",
       "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
       "exits": {

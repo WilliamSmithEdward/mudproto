@@ -184,7 +184,7 @@ def display_exits(session: ClientSession, room: Room) -> dict:
         direction_width = max(len(str(direction).strip().title()) for direction, _ in exit_items)
         for direction, destination_room_id in exit_items:
             destination_room = get_room(destination_room_id)
-            destination_label = destination_room.title if destination_room is not None else str(destination_room_id)
+            destination_label = destination_room.name if destination_room is not None else str(destination_room_id)
             parts.extend([
                 newline_part(),
                 build_part(f"[{_direction_short_label(direction)}]", "display_room.exits.direction_short", True),
@@ -365,7 +365,7 @@ def display_room(session: ClientSession, room: Room) -> dict:
     prompt_after, prompt_parts = resolve_prompt_default(session, True)
 
     parts = [
-        build_part(room.title, "display_room.room.title", True),
+        build_part(room.name, "display_room.room.name", True),
         newline_part(),
         build_part(room.description, "display_room.room.description"),
     ]

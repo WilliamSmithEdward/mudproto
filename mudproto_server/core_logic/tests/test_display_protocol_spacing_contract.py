@@ -130,7 +130,7 @@ def test_display_combat_round_result_has_trailing_blank_line() -> None:
 
 def test_display_room_and_score_start_with_explicit_blank_line() -> None:
     session = _make_session("client-room-score")
-    room = Room(room_id="custom-room", title="Custom Room", description="A test room.")
+    room = Room(room_id="custom-room", name="Custom Room", description="A test room.")
 
     room_outbound = display_room(session, room)
     room_payload = _extract_payload(room_outbound)
@@ -151,11 +151,11 @@ def test_display_room_and_score_start_with_explicit_blank_line() -> None:
     assert _line_text(score_prompt_lines[1]).endswith("> ")
 
 
-def test_prepended_room_message_keeps_single_blank_before_room_title() -> None:
+def test_prepended_room_message_keeps_single_blank_before_room_name() -> None:
     import room_actions
 
     session = _make_session("client-room-prefix")
-    room = Room(room_id="custom-room", title="Custom Room", description="A test room.")
+    room = Room(room_id="custom-room", name="Custom Room", description="A test room.")
 
     outbound = display_room(session, room)
     room_actions._prepend_message(outbound, "The magic circle flares beneath your feet and whisks you away.")

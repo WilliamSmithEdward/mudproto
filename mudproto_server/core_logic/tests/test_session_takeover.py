@@ -83,7 +83,7 @@ def test_complete_login_replaces_all_other_sessions_for_same_character(monkeypat
     monkeypatch.setattr(session_lifecycle, "purge_nonpersistent_items", lambda _session, reason="": 0)
     monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
     monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: None)
-    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, name="Start", description="A start room."))
     monkeypatch.setattr(
         session_lifecycle,
         "display_room",
@@ -163,7 +163,7 @@ def test_complete_login_resets_loaded_posture_to_standing(monkeypatch) -> None:
     monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: None)
     monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
     monkeypatch.setattr(session_lifecycle, "disconnect_other_character_sessions", lambda _session, _character_key: None)
-    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, name="Start", description="A start room."))
     monkeypatch.setattr(
         session_lifecycle,
         "display_room",
@@ -208,7 +208,7 @@ def test_complete_login_resets_resumed_posture_to_standing(monkeypatch) -> None:
     monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: None)
     monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
     monkeypatch.setattr(session_lifecycle, "disconnect_other_character_sessions", lambda _session, _character_key: None)
-    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, name="Start", description="A start room."))
     monkeypatch.setattr(
         session_lifecycle,
         "display_room",
@@ -257,7 +257,7 @@ def test_complete_login_announces_connection_to_room_peers(monkeypatch) -> None:
     monkeypatch.setattr(session_lifecycle, "purge_nonpersistent_items", lambda _session, reason="": 0)
     monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
     monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: None)
-    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, name="Start", description="A start room."))
     monkeypatch.setattr(
         session_lifecycle,
         "display_room",

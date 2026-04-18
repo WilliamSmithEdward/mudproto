@@ -29,7 +29,7 @@ def _render_keyword_text(message: str, *, session: ClientSession, room: Room | N
 
     replacements = {
         "[player_name]": session.authenticated_character_name.strip() or "traveller",
-        "[room_title]": getattr(room, "title", "") or "",
+        "[room_name]": getattr(room, "name", "") or "",
         "[npc_name]": actor_name.strip(),
     }
     for token, value in replacements.items():

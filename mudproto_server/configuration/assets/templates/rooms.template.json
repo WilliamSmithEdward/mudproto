@@ -10,7 +10,7 @@
         "type": "string",
         "required": true
       },
-      "title": {
+      "name": {
         "type": "string",
         "required": true
       },

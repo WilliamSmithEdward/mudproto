@@ -56,7 +56,7 @@ def test_sleeping_does_not_block_non_observation_verbs() -> None:
 
 def test_look_direction_prefixes_take_precedence_over_matching_targets(monkeypatch) -> None:
     session = _make_session("client-observe-direction", "Lucia")
-    monkeypatch.setattr(observation, "get_room", lambda _room_id: Room(room_id="start", title="Start", description="A room."))
+    monkeypatch.setattr(observation, "get_room", lambda _room_id: Room(room_id="start", name="Start", description="A room."))
     monkeypatch.setattr(observation, "_resolve_owned_item_selector", lambda *_args, **_kwargs: (None, None, None))
     monkeypatch.setattr(observation, "_resolve_room_ground_item_selector", lambda *_args, **_kwargs: (None, None))
     monkeypatch.setattr(observation, "resolve_room_object_selector", lambda *_args, **_kwargs: (None, None))
@@ -121,7 +121,7 @@ def test_look_and_examine_do_not_match_hidden_wear_slot_keywords(monkeypatch) ->
         )
     }
 
-    monkeypatch.setattr(observation, "get_room", lambda _room_id: Room(room_id="start", title="Start", description="A room."))
+    monkeypatch.setattr(observation, "get_room", lambda _room_id: Room(room_id="start", name="Start", description="A room."))
 
     look_outbound = handle_observation_command(session, "look", ["chest"], "look chest")
     examine_outbound = handle_observation_command(session, "examine", ["chest"], "examine chest")

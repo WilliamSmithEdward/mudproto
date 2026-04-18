@@ -1002,7 +1002,7 @@ def load_rooms() -> list[dict]:
             raise ValueError("Room asset entries must be objects.")
 
         room_id = raw_room.get("room_id")
-        title = raw_room.get("title")
+        name = raw_room.get("name", raw_room.get("title"))
         description = raw_room.get("description")
         zone_id = str(raw_room.get("zone_id", "")).strip()
         exits = raw_room.get("exits", {})
@@ -1018,8 +1018,8 @@ def load_rooms() -> list[dict]:
             raise ValueError("Room asset entries must include a non-empty string room_id.")
         if normalized_room_id in normalized_rooms_by_id and not is_payload_override:
             raise ValueError(f"Duplicate room_id in room assets: {room_id}")
-        if not isinstance(title, str) or not title.strip():
-            raise ValueError(f"Room asset '{room_id}' must include a non-empty title.")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"Room asset '{room_id}' must include a non-empty name.")
         if not isinstance(description, str) or not description.strip():
             raise ValueError(f"Room asset '{room_id}' must include a non-empty description.")
         if not zone_id:
@@ -1208,7 +1208,7 @@ def load_rooms() -> list[dict]:
             ordered_room_ids.append(normalized_room_id)
         normalized_rooms_by_id[normalized_room_id] = {
             "room_id": room_id,
-            "title": to_title_case(title.strip()),
+            "name": to_title_case(name.strip()),
             "description": description,
             "zone_id": zone_id,
             "exits": merged_exits,

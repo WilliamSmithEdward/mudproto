@@ -380,7 +380,7 @@ A **list** of rooms.
 ```json
 {
   "room_id": "hall",
-  "title": "Northern Hall",
+  "name": "Northern Hall",
   "description": "A narrow hall of cold stone extends here, quiet and still.",
   "zone_id": "zone.northern-wing",
   "npcs": [

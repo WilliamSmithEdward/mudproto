@@ -76,7 +76,7 @@
   "display_room.player_summary.title": "bright_cyan",
   "display_room.status.verb": "bright_white",
   "display_room.status.label": "bright_yellow",
-  "display_room.room.title": "bright_green",
+  "display_room.room.name": "bright_green",
   "display_room.room.description": "bright_white",
   "display_room.section.heading": "bright_white",
   "display_room.section.bullet": "bright_white",

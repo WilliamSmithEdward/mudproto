@@ -6,7 +6,7 @@ from assets import get_gear_template_by_id, get_item_template_by_id, load_rooms,
 @dataclass
 class Room:
     room_id: str
-    title: str
+    name: str
     description: str
     zone_id: str = ""
     exits: dict[str, str] = field(default_factory=dict)
@@ -64,7 +64,7 @@ def build_default_world() -> WorldState:
     for room_data in load_rooms():
         room = Room(
             room_id=room_data["room_id"],
-            title=room_data["title"],
+            name=room_data["name"],
             description=room_data["description"],
             zone_id=room_data.get("zone_id", ""),
             exits=room_data["exits"],

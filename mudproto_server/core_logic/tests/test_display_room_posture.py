@@ -58,7 +58,7 @@ def _find_part_color(outbound: dict | list[dict], snippet: str) -> str | None:
 
 def test_display_room_shows_npc_posture_labels(monkeypatch) -> None:
     viewer = _make_session("client-viewer", "Lucia")
-    room = Room(room_id="start", title="Start", description="A room.")
+    room = Room(room_id="start", name="Start", description="A room.")
 
     standing_entity = EntityState(
         entity_id="entity-standing",
@@ -112,7 +112,7 @@ def test_display_room_shows_npc_posture_labels(monkeypatch) -> None:
 
 def test_display_room_shows_player_posture_labels(monkeypatch) -> None:
     viewer = _make_session("client-viewer", "Lucia")
-    room = Room(room_id="start", title="Start", description="A room.")
+    room = Room(room_id="start", name="Start", description="A room.")
 
     standing_player = _make_session("client-standing", "Ragnar")
     sitting_player = _make_session("client-sitting", "Beatrix")
@@ -141,7 +141,7 @@ def test_display_room_shows_player_posture_labels(monkeypatch) -> None:
 
 def test_display_room_groups_corpses_with_ground_items(monkeypatch) -> None:
     viewer = _make_session("client-viewer-ground", "Lucia")
-    room = Room(room_id="start", title="Start", description="A room.")
+    room = Room(room_id="start", name="Start", description="A room.")
     corpse = CorpseState(
         corpse_id="corpse-1",
         source_entity_id="bandit-1",

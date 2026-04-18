@@ -153,7 +153,7 @@ def test_complete_login_does_not_auto_add_class_kit_passives_for_loaded_characte
     monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
     monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
     monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: [])
-    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, name="Start", description="A start room."))
 
     session_lifecycle.complete_login(
         session,
@@ -184,7 +184,7 @@ def test_complete_login_shows_blank_line_above_welcome_back(monkeypatch) -> None
     monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
     monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
     monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: [])
-    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, name="Start", description="A start room."))
     monkeypatch.setattr(
         session_lifecycle,
         "display_room",
@@ -234,7 +234,7 @@ def test_complete_login_preserves_loaded_passives_for_existing_character(monkeyp
     monkeypatch.setattr(session_lifecycle, "register_authenticated_character_session", lambda _session: None)
     monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
     monkeypatch.setattr(session_lifecycle, "maybe_auto_engage_current_room", lambda _session: [])
-    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, title="Start", description="A start room."))
+    monkeypatch.setattr(session_lifecycle, "get_room", lambda room_id: Room(room_id=room_id, name="Start", description="A start room."))
 
     session_lifecycle.complete_login(
         session,

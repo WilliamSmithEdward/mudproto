@@ -1,7 +1,7 @@
 [
   {
     "room_id": "start",
-    "title": "Prototype Chamber",
+    "name": "Prototype Chamber",
     "description": "A plain stone chamber used for early server testing. A stout western gate bars a road beyond, while scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
     "zone_id": "zone.prototype-core",
     "keyword_actions": [
@@ -109,7 +109,7 @@
   },
   {
     "room_id": "west-road",
-    "title": "West Road",
+    "name": "West Road",
     "description": "A weathered road of packed earth and broken stone stretches westward past the gate, quiet beneath a pale open sky.",
     "zone_id": "zone.west-road",
     "items": [],
@@ -149,7 +149,7 @@
   },
   {
     "room_id": "west-road-curve",
-    "title": "West Road — Southward Bend",
+    "name": "West Road — Southward Bend",
     "description": "The packed-earth road bends sharply south here where a mossy waystone heeled over long ago. Deep cart ruts cut through the verge on either side.",
     "zone_id": "zone.west-road",
     "npcs": [
@@ -166,7 +166,7 @@
   },
   {
     "room_id": "west-road-defile",
-    "title": "West Road — Stone Defile",
+    "name": "West Road — Stone Defile",
     "description": "The road squeezes through a narrow cut between two weathered stone banks, overhung by tangles of briar and twisted root. The footing is treacherous where loose scree has spilled across the path.",
     "zone_id": "zone.west-road",
     "npcs": [
@@ -183,7 +183,7 @@
   },
   {
     "room_id": "west-road-ford",
-    "title": "West Road — Muddy Ford",
+    "name": "West Road — Muddy Ford",
     "description": "A shallow brook cuts straight across the road here, its stepping stones slick with algae and mud churned up by travellers. The road resumes on the far bank, bending north.",
     "zone_id": "zone.west-road",
     "npcs": [
@@ -201,7 +201,7 @@
   },
   {
     "room_id": "west-road-rise",
-    "title": "West Road — Ridgeline Climb",
+    "name": "West Road — Ridgeline Climb",
     "description": "The road climbs steeply here as it winds up a low ridge, loose stones clattering underfoot beneath a grey and overcast sky. A broken dry-stone wall flanks the uphill side.",
     "zone_id": "zone.west-road",
     "npcs": [
@@ -218,7 +218,7 @@
   },
   {
     "room_id": "west-road-clearing",
-    "title": "West Road — Old Clearing",
+    "name": "West Road — Old Clearing",
     "description": "The road opens onto a wide, overgrown clearing where old milestone markers lean at angles in the weedy verge. A cold wind moves through the long grass and there is nothing but empty country beyond.",
     "zone_id": "zone.west-road",
     "npcs": [
@@ -234,7 +234,7 @@
   },
   {
     "room_id": "hatch-loft",
-    "title": "Hidden Loft",
+    "name": "Hidden Loft",
     "description": "Dusty rafters and a narrow service ledge overlook the prototype chamber below.",
     "zone_id": "zone.prototype-core",
     "items": [
@@ -249,7 +249,7 @@
   },
   {
     "room_id": "south-market",
-    "title": "South Market",
+    "name": "South Market",
     "description": "A sheltered trade nook of canvas awnings and tidy crates opens here, warm with lamplight and the scent of oil and leather.",
     "zone_id": "zone.prototype-core",
     "npcs": [
@@ -264,7 +264,7 @@
   },
   {
     "room_id": "hall",
-    "title": "Northern Hall",
+    "name": "Northern Hall",
     "description": "A narrow hall of cold stone extends here, quiet and still.",
     "zone_id": "zone.northern-wing",
     "npcs": [
@@ -280,7 +280,7 @@
   },
   {
     "room_id": "east-watch",
-    "title": "Eastern Watch",
+    "name": "Eastern Watch",
     "description": "A long watch corridor lit by guttering iron braziers and scarred by old blade marks.",
     "zone_id": "zone.northern-wing",
     "npcs": [
@@ -295,7 +295,7 @@
   },
   {
     "room_id": "sanctum",
-    "title": "Whispering Sanctum",
+    "name": "Whispering Sanctum",
     "description": "Rune-etched stone and drifting embers hum with unstable arcane current.",
     "zone_id": "zone.whispering-sanctum",
     "npcs": [
@@ -311,7 +311,7 @@
   },
   {
     "room_id": "reliquary",
-    "title": "Ashen Reliquary",
+    "name": "Ashen Reliquary",
     "description": "Obsidian pillars and old cinder braziers crowd this sunken vault, where warded steel hums like a storm about to break.",
     "zone_id": "zone.whispering-sanctum",
     "npcs": [

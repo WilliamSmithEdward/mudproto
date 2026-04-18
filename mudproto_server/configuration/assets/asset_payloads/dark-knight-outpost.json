@@ -481,7 +481,7 @@
   "rooms": [
     {
       "room_id": "start",
-      "title": "Prototype Chamber",
+      "name": "Prototype Chamber",
       "description": "A plain stone chamber used for early server testing. A stout western gate bars a road beyond, while scuff marks and a worn pull-ring on the sealed iron hatch overhead suggest it can be worked open by hand.",
       "zone_id": "zone.prototype-core",
       "exits": {
@@ -494,7 +494,7 @@
     },
     {
       "room_id": "room.blackwatch-descent-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Blackwatch Descent",
+      "name": "Blackwatch Descent",
       "description": "A steep stair of damp stone falls away beneath the chamber, the air below heavy with oil smoke and chapel ash.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -505,7 +505,7 @@
     },
     {
       "room_id": "room.ashen-landing-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Ashen Landing",
+      "name": "Ashen Landing",
       "description": "Boot-scuffed stone opens into a low checkpoint where cressets spit dull orange light across ash-streaked walls.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -522,7 +522,7 @@
     },
     {
       "room_id": "room.watch-barracks-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Watch Barracks",
+      "name": "Watch Barracks",
       "description": "Narrow bunks and open weapon racks line this severe barracks, all kept with unnerving order.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -537,7 +537,7 @@
     },
     {
       "room_id": "room.shroud-corridor-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Shroud Corridor",
+      "name": "Shroud Corridor",
       "description": "Black hanging cloth breaks the corridor into blind pockets of shadow where whispers seem to linger after breath has passed.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -550,7 +550,7 @@
     },
     {
       "room_id": "room.storage-vault-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Storage Vault",
+      "name": "Storage Vault",
       "description": "Crates of lamp oil, burial cloth, and dried rations are stacked behind reinforced beams blackened by old smoke.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -560,7 +560,7 @@
     },
     {
       "room_id": "room.prayer-cell-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Prayer Cell",
+      "name": "Prayer Cell",
       "description": "A narrow chamber of kneeling stones and guttered candles, where soot-dark icons stare from the walls.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -575,7 +575,7 @@
     },
     {
       "room_id": "room.crypt-gate-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Crypt Gate",
+      "name": "Crypt Gate",
       "description": "A heavy iron gate marks the inner threshold, flanked by cracked grave tablets and braziers burning low blue flame.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -591,7 +591,7 @@
     },
     {
       "room_id": "room.ossuary-walk-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Ossuary Walk",
+      "name": "Ossuary Walk",
       "description": "Wall niches of old bones stretch into the dark, every skull turned outward as if keeping count.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -608,7 +608,7 @@
     },
     {
       "room_id": "room.acolyte-cloister-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Acolyte Cloister",
+      "name": "Acolyte Cloister",
       "description": "A ring of curtained alcoves surrounds a basin of black water disturbed by slow drifting ash.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -623,7 +623,7 @@
     },
     {
       "room_id": "room.sunken-nave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Sunken Nave",
+      "name": "Sunken Nave",
       "description": "The floor drops into a half-flooded chapel nave where shattered pews lean beneath hanging chains and dim censers.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -640,7 +640,7 @@
     },
     {
       "room_id": "room.revenant-crypt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Revenant Crypt",
+      "name": "Revenant Crypt",
       "description": "A low tomb chamber choked with pitch smoke and old funerary cloth, the stone lids here all broken from within.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -655,7 +655,7 @@
     },
     {
       "room_id": "room.black-altar-approach-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Black Altar Approach",
+      "name": "Black Altar Approach",
       "description": "Steps of worn basalt descend toward a dark altar hall where thin bells ring without any hand to move them.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {
@@ -671,7 +671,7 @@
     },
     {
       "room_id": "room.night-altar-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-      "title": "Night Altar",
+      "name": "Night Altar",
       "description": "A black altar stands beneath a vaulted apse of smoke and bone chandeliers, where the outpost's final rite still labors to continue.",
       "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
       "exits": {

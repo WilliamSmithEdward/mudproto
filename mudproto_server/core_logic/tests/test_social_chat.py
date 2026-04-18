@@ -83,9 +83,9 @@ def _clear_session_registries() -> None:
 
 def _install_room_map(monkeypatch) -> None:
     room_map = {
-        "room-a": Room(room_id="room-a", title="Room A", description="", zone_id="zone-alpha"),
-        "room-b": Room(room_id="room-b", title="Room B", description="", zone_id="zone-alpha"),
-        "room-c": Room(room_id="room-c", title="Room C", description="", zone_id="zone-beta"),
+        "room-a": Room(room_id="room-a", name="Room A", description="", zone_id="zone-alpha"),
+        "room-b": Room(room_id="room-b", name="Room B", description="", zone_id="zone-alpha"),
+        "room-c": Room(room_id="room-c", name="Room C", description="", zone_id="zone-beta"),
     }
     monkeypatch.setattr(social, "get_room", lambda room_id: room_map.get(room_id))
 

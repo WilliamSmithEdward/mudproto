@@ -46,8 +46,8 @@ def test_pack_members_move_together(monkeypatch) -> None:
     _setup(monkeypatch)
     room_ids = ["room-a", "room-b"]
     _install_rooms({
-        "room-a": Room(room_id="room-a", title="Room A", description="", zone_id="z", exits={"east": "room-b"}),
-        "room-b": Room(room_id="room-b", title="Room B", description="", zone_id="z", exits={"west": "room-a"}),
+        "room-a": Room(room_id="room-a", name="Room A", description="", zone_id="z", exits={"east": "room-b"}),
+        "room-b": Room(room_id="room-b", name="Room B", description="", zone_id="z", exits={"west": "room-a"}),
     })
 
     alpha = _make_entity("npc-alpha", "Wolf", "room-a",
@@ -74,9 +74,9 @@ def test_pack_member_in_different_room_is_not_dragged(monkeypatch) -> None:
     _setup(monkeypatch)
     room_ids = ["room-a", "room-b", "room-c"]
     _install_rooms({
-        "room-a": Room(room_id="room-a", title="Room A", description="", zone_id="z", exits={"east": "room-b"}),
-        "room-b": Room(room_id="room-b", title="Room B", description="", zone_id="z", exits={"west": "room-a", "east": "room-c"}),
-        "room-c": Room(room_id="room-c", title="Room C", description="", zone_id="z", exits={"west": "room-b"}),
+        "room-a": Room(room_id="room-a", name="Room A", description="", zone_id="z", exits={"east": "room-b"}),
+        "room-b": Room(room_id="room-b", name="Room B", description="", zone_id="z", exits={"west": "room-a", "east": "room-c"}),
+        "room-c": Room(room_id="room-c", name="Room C", description="", zone_id="z", exits={"west": "room-b"}),
     })
 
     alpha = _make_entity("npc-alpha", "Wolf", "room-a",
@@ -106,8 +106,8 @@ def test_engaged_pack_member_left_behind(monkeypatch) -> None:
     _setup(monkeypatch)
     room_ids = ["room-a", "room-b"]
     _install_rooms({
-        "room-a": Room(room_id="room-a", title="Room A", description="", zone_id="z", exits={"east": "room-b"}),
-        "room-b": Room(room_id="room-b", title="Room B", description="", zone_id="z", exits={"west": "room-a"}),
+        "room-a": Room(room_id="room-a", name="Room A", description="", zone_id="z", exits={"east": "room-b"}),
+        "room-b": Room(room_id="room-b", name="Room B", description="", zone_id="z", exits={"west": "room-a"}),
     })
 
     alpha = _make_entity("npc-alpha", "Wolf", "room-a",
@@ -138,9 +138,9 @@ def test_no_pack_id_wander_independently(monkeypatch) -> None:
     _setup(monkeypatch)
     room_ids = ["room-a", "room-b", "room-c"]
     _install_rooms({
-        "room-a": Room(room_id="room-a", title="Room A", description="", zone_id="z", exits={"east": "room-b", "west": "room-c"}),
-        "room-b": Room(room_id="room-b", title="Room B", description="", zone_id="z", exits={"west": "room-a"}),
-        "room-c": Room(room_id="room-c", title="Room C", description="", zone_id="z", exits={"east": "room-a"}),
+        "room-a": Room(room_id="room-a", name="Room A", description="", zone_id="z", exits={"east": "room-b", "west": "room-c"}),
+        "room-b": Room(room_id="room-b", name="Room B", description="", zone_id="z", exits={"west": "room-a"}),
+        "room-c": Room(room_id="room-c", name="Room C", description="", zone_id="z", exits={"east": "room-a"}),
     })
 
     alpha = _make_entity("npc-alpha", "Bandit", "room-a",
@@ -175,9 +175,9 @@ def test_different_pack_ids_wander_separately(monkeypatch) -> None:
     _setup(monkeypatch)
     room_ids = ["room-a", "room-b", "room-c"]
     _install_rooms({
-        "room-a": Room(room_id="room-a", title="Room A", description="", zone_id="z", exits={"east": "room-b", "west": "room-c"}),
-        "room-b": Room(room_id="room-b", title="Room B", description="", zone_id="z", exits={"west": "room-a"}),
-        "room-c": Room(room_id="room-c", title="Room C", description="", zone_id="z", exits={"east": "room-a"}),
+        "room-a": Room(room_id="room-a", name="Room A", description="", zone_id="z", exits={"east": "room-b", "west": "room-c"}),
+        "room-b": Room(room_id="room-b", name="Room B", description="", zone_id="z", exits={"west": "room-a"}),
+        "room-c": Room(room_id="room-c", name="Room C", description="", zone_id="z", exits={"east": "room-a"}),
     })
 
     alpha = _make_entity("npc-alpha", "Wolf", "room-a",
@@ -212,8 +212,8 @@ def test_dead_pack_member_not_moved(monkeypatch) -> None:
     _setup(monkeypatch)
     room_ids = ["room-a", "room-b"]
     _install_rooms({
-        "room-a": Room(room_id="room-a", title="Room A", description="", zone_id="z", exits={"east": "room-b"}),
-        "room-b": Room(room_id="room-b", title="Room B", description="", zone_id="z", exits={"west": "room-a"}),
+        "room-a": Room(room_id="room-a", name="Room A", description="", zone_id="z", exits={"east": "room-b"}),
+        "room-b": Room(room_id="room-b", name="Room B", description="", zone_id="z", exits={"west": "room-a"}),
     })
 
     alpha = _make_entity("npc-alpha", "Wolf", "room-a",
