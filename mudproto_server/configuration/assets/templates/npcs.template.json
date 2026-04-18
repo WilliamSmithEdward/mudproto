@@ -491,6 +491,12 @@
         "required": false,
         "default": [],
         "notes": "Room IDs this NPC is allowed to wander between. The NPC will only move to rooms that are both in this list AND directly reachable via its current room's exits. All listed rooms should form a connected subgraph."
+      },
+      "wander_pack_id": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "notes": "When set, all NPCs sharing the same wander_pack_id in the same room move together as a pack when any one of them triggers a wander. Leave empty for independent wandering."
       }
     }
   }

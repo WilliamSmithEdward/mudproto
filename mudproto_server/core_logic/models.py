@@ -266,6 +266,7 @@ class EntityState:
     is_sleeping: bool = False
     wander_chance: float = 0.0
     wander_room_ids: list[str] = field(default_factory=list)
+    wander_pack_id: str = ""
 
 
 def _build_default_equipment_state() -> EquipmentState:

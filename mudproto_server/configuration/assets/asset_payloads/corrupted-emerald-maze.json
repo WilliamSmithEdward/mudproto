@@ -1,0 +1,1737 @@
+{
+  "payload_id": "payload.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+  "description": "A 50-room corrupted emerald forest maze south of West Road — Muddy Ford, ending at Gianda's hidden faerie palace.",
+  "gear": [],
+  "items": [],
+  "spells": [
+    {
+      "spell_id": "spell.corrupted-pollen-burst-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Corrupted Pollen Burst",
+      "school": "glamour",
+      "description": "A burst of enthralling pollen that rakes the whole room with corrupt faerie magic.",
+      "element": "nature",
+      "mana_cost": 20,
+      "spell_type": "damage",
+      "cast_type": "aoe",
+      "damage_dice_count": 5,
+      "damage_dice_sides": 8,
+      "damage_modifier": 8,
+      "damage_scaling_attribute_id": "wis",
+      "damage_scaling_multiplier": 0.8,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] swallowed in a choking burst of corrupted pollen!",
+      "cooldown_rounds": 2
+    },
+    {
+      "spell_id": "spell.emerald-starfall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Emerald Starfall",
+      "school": "astral glamour",
+      "description": "A rain of hard green starfire cast across the whole chamber.",
+      "element": "arcane",
+      "mana_cost": 26,
+      "spell_type": "damage",
+      "cast_type": "aoe",
+      "damage_dice_count": 6,
+      "damage_dice_sides": 8,
+      "damage_modifier": 12,
+      "damage_scaling_attribute_id": "wis",
+      "damage_scaling_multiplier": 1.0,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] raked by a rain of emerald starfire!",
+      "cooldown_rounds": 3
+    },
+    {
+      "spell_id": "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Mind-Thorn Lance",
+      "school": "glamour",
+      "description": "A focused lance of royal glamour that pierces thought and flesh together.",
+      "element": "arcane",
+      "mana_cost": 18,
+      "spell_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 7,
+      "damage_dice_sides": 7,
+      "damage_modifier": 14,
+      "damage_scaling_attribute_id": "wis",
+      "damage_scaling_multiplier": 1.0,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] pierced through by a cruel lance of mind-thorn glamour!",
+      "cooldown_rounds": 1
+    },
+    {
+      "spell_id": "spell.verdant-ruin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Verdant Ruin",
+      "school": "royal wildcraft",
+      "description": "A single target curse that blooms into painful emerald fractures.",
+      "element": "nature",
+      "mana_cost": 24,
+      "spell_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 8,
+      "damage_dice_sides": 8,
+      "damage_modifier": 18,
+      "damage_scaling_attribute_id": "wis",
+      "damage_scaling_multiplier": 1.1,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] split by violent emerald growth from within!",
+      "cooldown_rounds": 2
+    },
+    {
+      "spell_id": "spell.monarchs-cascade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Monarch's Cascade",
+      "school": "royal glamour",
+      "description": "Gianda calls down layered waves of imperial faerie force across the whole room.",
+      "element": "arcane",
+      "mana_cost": 34,
+      "spell_type": "damage",
+      "cast_type": "aoe",
+      "damage_dice_count": 8,
+      "damage_dice_sides": 9,
+      "damage_modifier": 20,
+      "damage_scaling_attribute_id": "wis",
+      "damage_scaling_multiplier": 1.15,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] battered by Gianda's cascading royal magic!",
+      "cooldown_rounds": 3
+    },
+    {
+      "spell_id": "spell.regal-bloom-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Regal Bloom",
+      "school": "royal wildcraft",
+      "description": "The monarch drinks from the corrupted life of her palace and mends herself.",
+      "element": "restoration",
+      "mana_cost": 22,
+      "spell_type": "support",
+      "cast_type": "self",
+      "support_effect": "heal",
+      "support_amount": 120,
+      "support_mode": "instant",
+      "support_context": "[a/an] [verb] wrapped in a regal bloom of stolen life!",
+      "observer_action": "[actor_name] spreads [actor_possessive] hands and draws green radiance from the palace.",
+      "observer_context": ""
+    }
+  ],
+  "skills": [
+    {
+      "skill_id": "skill.briar-gore-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Briar Gore",
+      "description": "A brutal driving hit that tosses the target into thorn and root.",
+      "element": "physical",
+      "skill_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 5,
+      "damage_dice_sides": 7,
+      "damage_modifier": 10,
+      "vigor_cost": 10,
+      "scaling_attribute_id": "str",
+      "scaling_multiplier": 0.8,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] smashed backward into biting briars by the charge!",
+      "observer_action": "[actor_name] lowers [actor_possessive] head and drives forward in a savage rush.",
+      "observer_context": "",
+      "cooldown_rounds": 2,
+      "target_posture": "sitting"
+    },
+    {
+      "skill_id": "skill.thorn-trample-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Thorn Trample",
+      "description": "A crushing rush that leaves the target tangled and off-balance.",
+      "element": "physical",
+      "skill_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 6,
+      "damage_dice_sides": 6,
+      "damage_modifier": 12,
+      "vigor_cost": 12,
+      "scaling_attribute_id": "str",
+      "scaling_multiplier": 0.9,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] driven into the ground beneath trampling hooves!",
+      "observer_action": "[actor_name] surges through in a trampling storm of muscle and mud.",
+      "observer_context": "",
+      "cooldown_rounds": 2,
+      "target_lag_rounds": 1,
+      "target_posture": "resting"
+    },
+    {
+      "skill_id": "skill.mindlash-feint-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Mindlash Feint",
+      "description": "A cruel royal feint that snaps the target's focus before the real blow lands.",
+      "element": "arcane",
+      "skill_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 5,
+      "damage_dice_sides": 8,
+      "damage_modifier": 14,
+      "vigor_cost": 8,
+      "scaling_attribute_id": "dex",
+      "scaling_multiplier": 0.9,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] snapped sideways by a feint that lashes both body and mind!",
+      "observer_action": "[actor_name] blurs sideways and lashes out with a spiteful royal feint.",
+      "observer_context": "",
+      "cooldown_rounds": 2,
+      "target_lag_rounds": 1
+    },
+    {
+      "skill_id": "skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Wingstorm Veil",
+      "description": "A screen of razor-fast wings and glamour that blunts incoming harm.",
+      "element": "arcane",
+      "skill_type": "support",
+      "cast_type": "self",
+      "vigor_cost": 10,
+      "support_effect": "damage_reduction",
+      "support_amount": 22,
+      "support_mode": "battle_rounds",
+      "duration_rounds": 3,
+      "support_context": "[a/an] [verb] hidden behind a shrieking veil of wings and glamour!",
+      "observer_action": "[actor_name] whips up a veil of luminous wings.",
+      "observer_context": "",
+      "cooldown_rounds": 4
+    },
+    {
+      "skill_id": "skill.crownbreak-swipe-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Crownbreak Swipe",
+      "description": "A punishing close-range strike used by faerie nobility to finish staggered prey.",
+      "element": "physical",
+      "skill_type": "damage",
+      "cast_type": "target",
+      "damage_dice_count": 6,
+      "damage_dice_sides": 7,
+      "damage_modifier": 16,
+      "vigor_cost": 10,
+      "scaling_attribute_id": "dex",
+      "scaling_multiplier": 0.8,
+      "level_scaling_multiplier": 1.0,
+      "damage_context": "[a/an] [verb] carved open by a contemptuous royal swipe!",
+      "observer_action": "[actor_name] steps in with regal contempt and slashes hard.",
+      "observer_context": "",
+      "cooldown_rounds": 2
+    }
+  ],
+  "npcs": [
+    {
+      "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "thornbound boar",
+      "is_named": false,
+      "max_hit_points": 260,
+      "power_level": 30,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 4,
+      "armor_class": 16,
+      "coin_reward": 20,
+      "experience_reward": 140,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 40,
+      "skill_use_chance": 0.4,
+      "skill_ids": [
+        "skill.thorn-trample-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.12,
+      "wander_room_ids": [
+        "room.crooked-moss-trail-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.split-root-bend-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.whisper-nettles-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-hollow-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.briar-pinch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.foxfire-notch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.crooked-fern-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.drowned-roots-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.stag-run-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.lantern-moss-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "enspelled stag",
+      "is_named": false,
+      "max_hit_points": 240,
+      "power_level": 31,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 5,
+      "armor_class": 15,
+      "coin_reward": 18,
+      "experience_reward": 145,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 44,
+      "skill_use_chance": 0.42,
+      "skill_ids": [
+        "skill.briar-gore-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.1,
+      "wander_room_ids": [
+        "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.velvet-mire-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cracked-idol-grove-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.crownscar-bear-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "crownscar bear",
+      "is_named": false,
+      "max_hit_points": 320,
+      "power_level": 33,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 6,
+      "armor_class": 18,
+      "coin_reward": 28,
+      "experience_reward": 190,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 52,
+      "skill_use_chance": 0.45,
+      "skill_ids": [
+        "skill.briar-gore-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.thorn-trample-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.08,
+      "wander_room_ids": [
+        "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.velvet-mire-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cracked-idol-grove-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "canker pixie",
+      "is_named": false,
+      "max_hit_points": 150,
+      "power_level": 30,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 13,
+      "coin_reward": 24,
+      "experience_reward": 150,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_mana": 120,
+      "spell_use_chance": 0.46,
+      "spell_ids": [
+        "spell.corrupted-pollen-burst-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "gloam faerie",
+      "is_named": false,
+      "max_hit_points": 180,
+      "power_level": 32,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 4,
+      "armor_class": 14,
+      "coin_reward": 30,
+      "experience_reward": 175,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 24,
+      "max_mana": 150,
+      "skill_use_chance": 0.25,
+      "skill_ids": [
+        "skill.mindlash-feint-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.5,
+      "spell_ids": [
+        "spell.emerald-starfall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "royal guard faerie",
+      "is_named": false,
+      "max_hit_points": 260,
+      "power_level": 35,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 7,
+      "armor_class": 18,
+      "coin_reward": 42,
+      "experience_reward": 240,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 60,
+      "max_mana": 110,
+      "skill_use_chance": 0.36,
+      "skill_ids": [
+        "skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.crownbreak-swipe-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.3,
+      "spell_ids": [
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.1,
+      "wander_room_ids": [
+        "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.palace-approach-bridge-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-gate-lawn-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.royal-hedge-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.sentry-arbor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.outer-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "throne attendant faerie",
+      "is_named": false,
+      "max_hit_points": 220,
+      "power_level": 36,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 5,
+      "armor_class": 16,
+      "coin_reward": 45,
+      "experience_reward": 260,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_mana": 170,
+      "spell_use_chance": 0.55,
+      "spell_ids": [
+        "spell.corrupted-pollen-burst-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.emerald-starfall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.aurelian-faerie-prince-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Aurelian, Faerie Prince",
+      "is_named": true,
+      "corpse_label_style": "possessive",
+      "max_hit_points": 420,
+      "power_level": 40,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 9,
+      "armor_class": 20,
+      "coin_reward": 110,
+      "experience_reward": 650,
+      "is_aggro": true,
+      "pronoun_possessive": "his",
+      "max_vigor": 70,
+      "max_mana": 220,
+      "skill_use_chance": 0.35,
+      "skill_ids": [
+        "skill.mindlash-feint-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.crownbreak-swipe-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.52,
+      "spell_ids": [
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.verdant-ruin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.serelyth-faerie-princess-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Serelyth, Faerie Princess",
+      "is_named": true,
+      "corpse_label_style": "possessive",
+      "max_hit_points": 390,
+      "power_level": 40,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 8,
+      "armor_class": 19,
+      "coin_reward": 110,
+      "experience_reward": 650,
+      "is_aggro": true,
+      "pronoun_possessive": "her",
+      "max_vigor": 40,
+      "max_mana": 260,
+      "skill_use_chance": 0.2,
+      "skill_ids": [
+        "skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.58,
+      "spell_ids": [
+        "spell.corrupted-pollen-burst-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.emerald-starfall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.gianda-the-faerie-monarch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Gianda, The Faerie Monarch",
+      "is_named": true,
+      "corpse_label_style": "possessive",
+      "max_hit_points": 620,
+      "power_level": 45,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 10,
+      "armor_class": 23,
+      "coin_reward": 220,
+      "experience_reward": 1200,
+      "is_aggro": true,
+      "pronoun_possessive": "her",
+      "max_vigor": 80,
+      "max_mana": 360,
+      "skill_use_chance": 0.32,
+      "skill_ids": [
+        "skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.crownbreak-swipe-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.62,
+      "spell_ids": [
+        "spell.monarchs-cascade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.regal-bloom-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    }
+  ],
+  "rooms": [
+    {
+      "room_id": "room.mire-threshold-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Mire Threshold",
+      "description": "South of the ford, the road sinks into mud darkened by emerald seep and old enchantment. Ferns crowd the path in unnaturally even ranks, and every leaf glitters with a sickly green sheen. Somewhere deeper in the wood, small voices laugh in perfect harmony and then go silent.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "west-road-ford",
+        "south": "room.crooked-moss-trail-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.crooked-moss-trail-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Crooked Moss Trail",
+      "description": "Twisted cedars lean over this narrow trail until their moss curtains brush the shoulders of anyone who passes. The ground here is soft with black water and crushed clover, marked by too many hoofprints for any ordinary herd. A sweet perfume hangs in the air, almost enough to hide the smell of rot.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.mire-threshold-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.split-root-bend-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.emerald-hollow-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.split-root-bend-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Split-Root Bend",
+      "description": "A pair of great roots split the path and force travelers into a sharp bend beneath low emerald boughs. Thin lights drift between the trunks like fireflies, but they move with the patience of watchers rather than insects. The forest feels arranged, as if every branch has been taught where to grow.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.crooked-moss-trail-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.whisper-nettles-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "west": "room.briar-pinch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.whisper-nettles-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Whisper Nettles",
+      "description": "Nettle walls sway on either side of the path without any wind to move them. Their tiny blossoms glow a pale green and whisper together in voices too soft to catch. Beneath the perfume of the flowers lies the iron smell of blood and wet bark.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.split-root-bend-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.foxfire-notch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.emerald-hollow-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Emerald Hollow",
+      "description": "The trees open for a breath here, revealing a hollow drowned in green light that never reaches the sky above. Mushrooms cling to fallen logs like little lanterns, and the mud is churned by panicked animal tracks. Something in this clearing has been feeding fear back into the wood for a very long time.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.crooked-moss-trail-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.drowned-roots-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.crooked-fern-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.briar-pinch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Briar Pinch",
+      "description": "The path narrows between thorn-heavy hedges that bow inward like clasped fingers. Every branch is threaded with bright silk and snagged tufts of fur from beasts driven through the gap. Faint laughter echoes from somewhere overhead and never seems to come from the same direction twice.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "east": "room.split-root-bend-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.stag-run-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.foxfire-notch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Foxfire Notch",
+      "description": "A shelf of higher ground breaks the bog here, marked by foxfire fungus that paints the roots in cold green flame. The light makes every shadow look deeper than it should, and every hollow looks like a place where something crouches. Even the insects keep to the edges of this notch.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.whisper-nettles-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.lantern-moss-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.crooked-fern-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Crooked Fern Lane",
+      "description": "Bent ferns crowd the trail until it feels more tunnel than path. Their undersides flash silver-green each time they move, as if a hundred hidden eyes are blinking at once. Broken stems and trampled moss suggest that larger things are forced through here by smaller masters.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.emerald-hollow-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.drowned-roots-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Drowned Roots",
+      "description": "Pools of still water fill the low spots between exposed roots, reflecting not the canopy above but streaks of emerald light from deeper in the maze. Rot-soft timber sinks underfoot with a slow sucking sound. The place feels waterlogged with glamour as much as mire.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.emerald-hollow-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.stag-run-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Stag Run",
+      "description": "The undergrowth is flattened into a broad run cut by antlers, tusks, and clawed paws alike. The beasts that pass through here do not move like creatures at ease in their own forest. They charge where the faeries send them, and the torn earth remembers every rush.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.briar-pinch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.lantern-moss-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Lantern Moss Circle",
+      "description": "A circle of pale moss surrounds a dead cedar whose limbs are hung with glowing seedpods. Each pod pulses in time with the others, casting rings of sick green light across the clearing. It has the feel of a warding place turned inside out.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.foxfire-notch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 2
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Hushgrove Fork",
+      "description": "Several game trails knot together beneath a canopy so thick the air turns dim and damp. Even the dripping water seems muffled here, as though the grove is listening to itself breathe. Tiny footprints lace the mud between the larger tracks of dominated beasts.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.crooked-fern-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Glassleaf Corridor",
+      "description": "Tall glassleaf shrubs line this corridor, their translucent blades catching the green light and throwing it back in jagged shards. Every movement scatters reflections that look like wings darting just out of sight. The air is cool here, but the silence has a predatory edge.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.crooked-fern-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Moonrot Basin",
+      "description": "This basin sags low enough to hold a shallow slick of moon-pale fungus and black water. The trunks around it are painted with streaks of phosphorescent mold that make the whole hollow glow from below. Whatever fell here long ago never fully left the soil.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "north": "room.drowned-roots-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Antler Brake",
+      "description": "Splintered branches and bark-scored trunks turn this stretch of wood into a natural killing lane. The signs of antlers and tusks are everywhere, but there is nothing wild in the pattern they make. These beasts do not hunt for hunger here.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.stag-run-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.crownscar-bear-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Thistledown Squeeze",
+      "description": "The path squeezes between root walls feathered with thistle and mold. A constant shiver runs through the blossoms, sending luminous dust into the air like powdered glass. Breathing too deeply feels like taking the forest inside your chest.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.stag-run-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Emerald Switchback",
+      "description": "The trail doubles back on itself through trunks wrapped in climbing emerald ivy. Every turn looks half-familiar, as though the wood wants travelers to mistrust their own memory. Thin bells ring somewhere ahead and then impossibly far behind.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.lantern-moss-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Pixie Snare",
+      "description": "Fine strands of glamour shimmer between the trees here, almost invisible until they catch the light. Bones of rabbits and birds lie in the grass beneath them, each one picked clean with impossible neatness. Whatever rules this maze prefers its victims slowed before they scream.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 2
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Rotvine Arch",
+      "description": "A heavy arch of living vines bridges the path, woven so tightly it looks almost deliberate. Small white flowers bloom along the thorns and drip nectar that smells sweeter than anything this corrupted place should offer. The sweetness only makes the menace feel closer.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Cold Fern Crossing",
+      "description": "Cold mist pours across the crossing from unseen hollows and coils around every ankle like pale fingers. Ferns bend under beads of green-lit water that never seem to fall. The whole place feels like a threshold no creature enters willingly twice.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.crownscar-bear-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Hollow Reed Path",
+      "description": "Reeds and black grass crowd a narrow ribbon of firm ground between sucking pools. Their dry whispering never stops, and now and then it resolves into a word that vanishes before it can be trusted. Hoofprints press deep here, turned sharply by commands not their own.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Serpent Bark Lane",
+      "description": "The bark on the trees ahead twists in serpent-like spirals as if the trunks themselves are trying to turn and watch. Slick green lichen paints the roots, and every branch hangs too low over the path. It feels less like walking through woods than through a throat.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.velvet-mire-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Crowned Stump Circle",
+      "description": "A massive stump rises in the center of this clearing, ringed with old mushrooms and polished by tiny feet. Crude crowns of woven reed and thorn have been set around it in mock ceremony. The air here carries the playfulness of children and the malice of a court.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.cracked-idol-grove-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Shattered Menhir",
+      "description": "A blackened standing stone leans from the earth at an accusing angle, its surface split by veins of green crystal. The menhir hums faintly, and nearby leaves twitch in rhythm with the sound. Someone, or something, has been using this place to bend the wood into obedience.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.crownscar-bear-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [
+        {
+          "object_id": "obj.black-glass-menhir-7f9a2d9a",
+          "name": "black glass menhir",
+          "keywords": [
+            "menhir",
+            "stone",
+            "obelisk"
+          ],
+          "description": "The menhir is warm despite the damp air, and green crystal veins pulse faintly beneath its cracked surface. Runes have been cut into the stone and then deliberately scarred, as if an older woodland ward was broken and rewritten for faerie dominion.",
+          "debug_only": false
+        }
+      ],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Bramble Veil",
+      "description": "Curtains of hanging briar create a shifting wall of thorns and blossoms around the path. Each strand moves on its own, brushing open and closed like a breathing veil. The scent is intoxicating, but the hooked spines beneath the flowers promise a worse truth.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Hunting Hush",
+      "description": "No bird calls here, and even the insects fall quiet beneath the dark spread of the canopy. The mud is scarred by pacing paws and cloven hooves waiting for a command to spring. This is a hunting ground trained into patience.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Silver Mold Descent",
+      "description": "Silver mold sheets the roots and fallen timber in a damp metallic sheen. The slope beneath it is treacherous, forcing every step to be measured while unseen things circle just out of view. Green light leaks down the incline like poisoned moonwater.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.crownscar-bear-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.velvet-mire-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Velvet Mire",
+      "description": "A shallow mire spreads across the trail, its surface filmed with velvet moss that looks soft enough to lie upon. Beneath that softness, the mud seizes at every boot and exhales bubbles that smell of grave earth. The glamour here is almost compassionate, which makes it worse.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.cracked-idol-grove-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Cracked Idol Grove",
+      "description": "Broken idol fragments jut from the loam, carved with old woodland faces worn blank by time and spite. Someone has crowned them with flowers and antlers in a parody of reverence. Whatever sacredness once lived here now serves another throne.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Pale Moss Switchyard",
+      "description": "Several narrow paths braid together in pale moss before veering apart again under the same dim green glow. Nothing in this switchyard feels accidental, not the leaning trunks, not the arching roots, not the way sound folds back on itself. The maze begins to think like a palace even here.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Whispering Yews",
+      "description": "Ancient yews close ranks in this section of the wood, their bark furrowed like old knotted hands. Whispering moves through them in long breaths that sound uncomfortably like counsel. Every branch points deeper inward, toward something royal and cruel.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "north": "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Royal Spoor",
+      "description": "The mud here is stamped with finer tracks: narrow boots, clawed slippers, and the sharp hoofmarks of beasts driven in circles on patrol. Strips of green silk have been tied to branches as if to mark a road for nobility alone. The palace is still unseen, but its discipline has reached this far.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "north": "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Guard-Patrolled Glade",
+      "description": "This glade is broad enough for maneuver, and that alone makes it feel dangerous. Broken reeds, patrol routes, and arrow-straight beast runs cut across the grass in overlapping patterns. It is the first place in the maze that feels openly militarized.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "north": "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.crownscar-bear-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Thorn Banner Walk",
+      "description": "Tall thorn poles rise from the earth here, each hung with scraps of green-and-silver cloth that never quite stop fluttering. The banners mark a road, but they also mark ownership. The forest beyond them no longer pretends to be anything but conquered.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Moonglass Clearing",
+      "description": "A clearing of pale stones and mirror-bright puddles gleams beneath the boughs like a fallen patch of moonlight. The reflections in the water lag behind reality by a heartbeat, making every motion look haunted. Somewhere nearby, courtly voices murmur with brittle amusement.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "north": "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Court of Twin Wings",
+      "description": "The maze finally yields to a formal clearing where thorn arches and luminous flowers have been shaped into a cruel imitation of courtly grace. Moon-bright petals drift across the ground, but every stem hides a barb and every shadow hides movement. This is where Gianda's royal blood waits in judgment before the palace proper.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "north": "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.palace-approach-bridge-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.aurelian-faerie-prince-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.serelyth-faerie-princess-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.palace-approach-bridge-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Palace Approach Bridge",
+      "description": "An elegant bridge of rootwood spans a black stream and leads toward the hidden palace at last. Beyond it, the trees are trimmed rather than wild, though the corruption has only made the symmetry more unsettling. The green light here feels ceremonial, as if trespass itself is an offense against the crown.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.emerald-gate-lawn-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.royal-hedge-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 2
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.emerald-gate-lawn-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Emerald Gate Lawn",
+      "description": "Manicured grass spreads before an emerald gate half-grown from living hedge and polished stone. Delicate faerie craftsmanship shows in every curve, but the roots beneath the lawn writhe like restrained serpents. This is beauty stripped of innocence and set to guard a tyrant's home.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.palace-approach-bridge-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.outer-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.royal-hedge-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Royal Hedge Walk",
+      "description": "High hedges channel the approach into precise lines meant for processions rather than pilgrims. Leaves clipped into elegant spirals drip with luminous dew that burns where it falls. The palace is close enough now that its glow stains the underside of every branch.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.palace-approach-bridge-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.sentry-arbor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.mirror-pool-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.sentry-arbor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Sentry Arbor",
+      "description": "A cluster of pale-barked trees has been trained into an arbor where sentries can watch the approach without revealing themselves. Feathers, petals, and old blood mingle in the moss below. Even stillness here has the posture of a drawn weapon.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.royal-hedge-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.colonnade-of-wings-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 2
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.outer-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Outer Court",
+      "description": "Low walls of green-veined stone ring this outer court in a shape too graceful to trust. Statues of faeries and beasts stand together in poses of false harmony, all of them cracked through the eyes. The place feels less like a welcome and more like a warning polished to brilliance.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.emerald-gate-lawn-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.mirror-pool-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.audience-vestibule-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.mirror-pool-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Mirror Pool Court",
+      "description": "A mirrored pool fills the center of this court, perfectly still despite the wind threading through the surrounding columns. The water reflects a palace grander and more whole than the one that stands above it. Looking too long makes the real place feel like the lesser truth.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.royal-hedge-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "west": "room.outer-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.shattered-conservatory-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [
+        {
+          "object_id": "obj.mirror-pool-7f9a2d9a",
+          "name": "mirror pool",
+          "keywords": [
+            "pool",
+            "water",
+            "mirror"
+          ],
+          "description": "The pool reflects a palace untouched by corruption, bright and regal and impossibly serene. The illusion fails only when something in the water blinks before the reflection does.",
+          "debug_only": false
+        }
+      ],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.colonnade-of-wings-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Colonnade of Wings",
+      "description": "Slender columns shaped like folded wings hold a roof of silver leaves over this passage. Their bases are wrapped in thorny vines that pulse with emerald light, as though the palace itself has a bloodstream. Every footstep returns as a softened echo, deferential and cold.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.sentry-arbor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.thorn-throne-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.audience-vestibule-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Audience Vestibule",
+      "description": "This vestibule was built for petitioners to wait beneath impossible beauty and measured fear. Its polished floor is scattered with petals that never wilt and dust that never settles. The air tastes faintly of perfume, rain, and old enchantment gone feral.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.outer-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.moon-canopy-hall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.shattered-conservatory-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Shattered Conservatory",
+      "description": "Broken glass roofs and strangled trellises mark what was once a place of cultivated wonder. Rare blossoms now bloom through cracked stone in colors too bright for anything living and too hungry for anything gentle. The ruin feels tended, as if destruction here is part of the aesthetic.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.mirror-pool-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.monarch-antechamber-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 2
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.thorn-throne-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Thorn Throne Corridor",
+      "description": "The corridor ahead narrows beneath carved arches shaped like thorns curling into crowns. Green fire burns in sconces without heat, throwing long regal shadows along the walls. Every step deeper feels less like exploration and more like entering a sentence already spoken.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.colonnade-of-wings-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.throne-orchard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.moon-canopy-hall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Moon Canopy Hall",
+      "description": "A vaulted hall opens beneath a canopy of silvered branches woven through the ceiling like a second forest. Their leaves chime softly against one another, making the space sound almost holy until the tone turns sharp. Court magic has made the palace remember the woods only to dominate them better.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.audience-vestibule-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.monarch-antechamber-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.monarch-antechamber-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Monarch Antechamber",
+      "description": "This chamber stands just short of the throne, dressed in silk, polished rootwood, and crystal lamps that glow like captive moons. The silence is disciplined here, the kind that falls when everyone knows power is only a door away. Even the air seems to wait for permission to move.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.moon-canopy-hall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "south": "room.shattered-conservatory-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.gianda-throne-room-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.throne-orchard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Throne Orchard",
+      "description": "Pale trees rise from black soil set within elegant stone borders, their branches trained into a perfect orchard beneath the roofless sky. Each trunk bears tiny cuts where glamour and blood have fed the same roots. The throne room lies just beyond, and the entire orchard leans toward it like a court bowing low.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "north": "room.thorn-throne-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "east": "room.gianda-throne-room-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 2
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [
+        {
+          "object_id": "obj.bloodfed-orchard-tree-7f9a2d9a",
+          "name": "bloodfed orchard tree",
+          "keywords": [
+            "tree",
+            "orchard",
+            "blood"
+          ],
+          "description": "Its bark has been scored with many small deliberate cuts, and each scar gleams with hardened emerald sap. The tree has been fed offerings for a long time, and it has learned to lean toward the throne.",
+          "debug_only": false
+        }
+      ],
+      "exit_details": []
+    },
+    {
+      "room_id": "room.gianda-throne-room-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "title": "Gianda's Throne Room",
+      "description": "Gianda's throne rests upon living roots braided into a dais beneath a vaulted crown of emerald crystal and silver branchwork. Curtains of luminous vine divide the chamber into layers of green haze, hiding attendants and angles of attack until the last possible breath. This room is beautiful in the way venom can be beautiful, and everything in it knows whom it serves.",
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "exits": {
+        "west": "room.monarch-antechamber-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "north": "room.throne-orchard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      },
+      "npcs": [
+        {
+          "npc_id": "npc.gianda-the-faerie-monarch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        },
+        {
+          "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 2
+        },
+        {
+          "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "keyword_actions": [],
+      "room_objects": [],
+      "exit_details": []
+    }
+  ],
+  "zones": [
+    {
+      "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "The Corrupted Emerald Maze",
+      "repopulate_game_hours": 24,
+      "reset_player_flags": [],
+      "reset_world_flags": [],
+      "reset_container_template_ids": [],
+      "repopulation_blocking_item_template_ids": [],
+      "repopulation_block_cooldown_game_hours": 0,
+      "flag_spawns": []
+    }
+  ]
+}

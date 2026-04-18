@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.18",
+        "version": "2.19",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
         "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
@@ -211,6 +211,7 @@ def build_instruction_payload() -> dict[str, object]:
                 "NPCs support room_communications with audience control (private, room, both) plus player/world flag gating, flag mutation, and item-based gating (required_item_template_ids, excluded_item_template_ids).",
                 "NPCs support keyword_actions for interactive commands, including noop, grant_item, remove_item, award_experience, teleport_player, and exit reveal/hide actions. Keyword actions also support item-based gating.",
                 "NPCs support wandering via wander_chance and wander_room_ids (movement is constrained to directly connected exits that are also in wander_room_ids).",
+                "NPCs sharing the same wander_pack_id in the same room wander together as a pack. When any pack member triggers a wander, all same-room pack members with that pack ID move to the same destination. Engaged pack members are left behind.",
                 "Merchants support limited stock with quantity/base_quantity per inventory entry, and periodic restocking via merchant_restock_game_hours."
             ],
             "items_and_containers": [
@@ -283,6 +284,7 @@ def build_instruction_payload() -> dict[str, object]:
             "Skills with target_lag_rounds > 0 inflict command lag on the target when hit. The attacking entity also self-lags for the same number of rounds, blocking its special abilities but not its melee attacks.",
             "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
             "NPCs that are currently engaged in combat with any player will not wander.",
+            "To make NPCs wander as a pack, give them the same wander_pack_id value. All pack members should share the same wander_room_ids so they can travel the same routes. Pack members engaged in combat are left behind when the rest of the pack moves.",
             "Zones support a flag_spawns array for conditional NPC spawns triggered by world flag state. Each entry spawns an NPC into a specific room immediately after any NPC death that sets world flags, provided the NPC (by npc_id) is not already alive in the target room. Use this for scripted encounter progressions such as spawning a boss when a mini boss dies.",
             "flag_spawns entries fire every time the flag conditions are met and no matching NPC is alive in the room. To ensure a boss spawns exactly once per cycle, use reset_world_flags on repopulation to clear the trigger flags, which prevents the boss from re-spawning until the zone resets.",
             "When is_named is true, also set corpse_label_style to possessive so the corpse renders as the NPC's possessive name form.",

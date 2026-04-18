@@ -92,7 +92,13 @@ def _find_exit_direction(from_room_id: str, to_room_id: str) -> str | None:
 async def _process_npc_wandering() -> None:
     from grammar import with_article
     from server_movement import DIRECTION_OPPOSITES, _format_arrival_origin
+
+    # Track entities already moved this tick (pack members dragged along).
+    moved_entity_ids: set[str] = set()
+
     for entity in list(shared_world_entities.values()):
+        if entity.entity_id in moved_entity_ids:
+            continue
         if not getattr(entity, "is_alive", False):
             continue
 
@@ -131,35 +137,60 @@ async def _process_npc_wandering() -> None:
 
         origin_room_id = entity.room_id
         dest_room_id = random.choice(candidates)
-        entity.room_id = dest_room_id
 
-        entity_label = with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))
+        # Collect pack members: same wander_pack_id, same room, alive, not engaged.
+        pack_entities = [entity]
+        pack_id = getattr(entity, "wander_pack_id", "")
+        if pack_id:
+            for other in shared_world_entities.values():
+                if other.entity_id == entity.entity_id:
+                    continue
+                if other.entity_id in moved_entity_ids:
+                    continue
+                if not getattr(other, "is_alive", False):
+                    continue
+                if other.room_id != origin_room_id:
+                    continue
+                if getattr(other, "wander_pack_id", "") != pack_id:
+                    continue
+                if _entity_is_engaged_by_any_player(other.entity_id):
+                    continue
+                pack_entities.append(other)
+
+        # Move all pack members to the same destination.
+        for member in pack_entities:
+            member.room_id = dest_room_id
+            moved_entity_ids.add(member.entity_id)
+
         leave_dir = _find_exit_direction(origin_room_id, dest_room_id)
         arrive_dir = DIRECTION_OPPOSITES.get(leave_dir, "") if leave_dir else ""
         if not arrive_dir:
             arrive_dir = _find_exit_direction(dest_room_id, origin_room_id)
 
-        if leave_dir:
-            leave_parts = [
-                build_part(entity_label, "feedback.text"),
-                build_part(f" leaves {leave_dir}.", "feedback.text"),
-            ]
-        else:
-            leave_parts = [build_part(f"{entity_label} wanders off.", "feedback.text")]
+        for member in pack_entities:
+            entity_label = with_article(member.name, capitalize=True, is_named=getattr(member, "is_named", None))
 
-        if arrive_dir:
-            arrival_origin = _format_arrival_origin(arrive_dir)
-            arrive_parts = [
-                build_part(entity_label, "feedback.text"),
-                build_part(f" arrives from {arrival_origin}.", "feedback.text"),
-            ]
-        else:
-            arrive_parts = [build_part(f"{entity_label} wanders in.", "feedback.text")]
+            if leave_dir:
+                leave_parts = [
+                    build_part(entity_label, "feedback.text"),
+                    build_part(f" leaves {leave_dir}.", "feedback.text"),
+                ]
+            else:
+                leave_parts = [build_part(f"{entity_label} wanders off.", "feedback.text")]
 
-        for peer in _iter_room_sessions(origin_room_id):
-            await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))
-        for peer in _iter_room_sessions(dest_room_id):
-            await send_outbound(peer.websocket, _npc_wander_display(arrive_parts, peer))
+            if arrive_dir:
+                arrival_origin = _format_arrival_origin(arrive_dir)
+                arrive_parts = [
+                    build_part(entity_label, "feedback.text"),
+                    build_part(f" arrives from {arrival_origin}.", "feedback.text"),
+                ]
+            else:
+                arrive_parts = [build_part(f"{entity_label} wanders in.", "feedback.text")]
+
+            for peer in _iter_room_sessions(origin_room_id):
+                await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))
+            for peer in _iter_room_sessions(dest_room_id):
+                await send_outbound(peer.websocket, _npc_wander_display(arrive_parts, peer))
 
 
 def get_next_game_tick_monotonic() -> float | None:
