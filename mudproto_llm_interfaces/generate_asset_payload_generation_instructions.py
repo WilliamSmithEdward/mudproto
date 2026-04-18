@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.17",
+        "version": "2.18",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
         "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
@@ -193,22 +193,42 @@ def build_instruction_payload() -> dict[str, object]:
                 "Skills and spells support cast_type values self, target, and aoe (subject to asset-specific type constraints).",
                 "Damage and support abilities support rich player-facing context strings (damage_context, support_context, observer_action, observer_context).",
                 "Damage abilities support secondary restore effects via restore_effect/restore_ratio/restore_context fields.",
-                "Skills support lag and cooldown controls including lag_rounds, cooldown_rounds, cooldown_hours, and target_lag_rounds.",
+                "Skills support cooldown controls including cooldown_rounds, cooldown_hours, and target_lag_rounds. lag_rounds is supported but currently only enforced for NPC entities, not players.",
                 "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
-                "Support effects include heal, vigor, mana, and legacy flat damage_reduction on skills when explicitly desired. Skills and spells also support affect-based status behavior via affect_ids, using shared templates such as affect.received-damage, affect.dealt-damage, affect.regeneration, and affect.extra-hits. Affect entries may be plain ids or override objects with affect_id plus tuning fields.",
-                "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as affect.received-damage and affect.dealt-damage."
+                "Support effects include heal, vigor, mana, damage_reduction, and extra_unarmed_hits on skills when explicitly desired. Skills and spells also support affect-based status behavior via affect_ids, using shared templates such as affect.received-damage, affect.dealt-damage, affect.regeneration, and affect.extra-hits. Affect entries may be plain ids or override objects with affect_id plus tuning fields.",
+                "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as affect.received-damage and affect.dealt-damage.",
+                "Skills support a target_posture field that forces the target into standing, sitting, resting, or sleeping on a successful hit. Non-standing postures take increased damage and deal reduced damage.",
+                "Skills with usable_out_of_combat set to true can be used outside of combat for support effects.",
+                "Weapons support on-hit damage procs: room-wide (on_hit_room_damage_*) and single-target (on_hit_target_damage_*) with configurable chance, dice, and messages.",
+                "Casting a spell during combat skips the player's next melee attack round.",
+                "Spells support cooldown_rounds for NPC entity spell cooldowns; player spell cooldowns are not currently enforced."
             ],
             "npc_behavior_and_content": [
                 "NPCs support aggro/ally/peaceful roles, merchant inventories and pricing, combat loadouts, and loot/inventory drops.",
-                "NPCs support room_communications with audience control (private, room, both) plus player/world flag gating and mutation.",
-                "NPCs support keyword_actions for interactive commands, including noop/grant_item/teleport_player and exit reveal/hide actions.",
-                "NPCs support wandering via wander_chance and wander_room_ids (movement is constrained to directly connected exits that are also in wander_room_ids)."
+                "NPCs support conditional aggro via aggro_player_flags: players with matching flags are auto-engaged on entering the NPC's room.",
+                "NPCs support flag mutation on combat events: set_player_flags_on_hostile_action (when a player attacks the NPC), set_player_flags_on_death (on the killer), and set_world_flags_on_death (global). set_world_flags_on_death is critical for flag_spawns boss chains.",
+                "NPCs support corpse_label_style (generic or possessive) to control corpse naming independently of is_named.",
+                "NPCs support room_communications with audience control (private, room, both) plus player/world flag gating, flag mutation, and item-based gating (required_item_template_ids, excluded_item_template_ids).",
+                "NPCs support keyword_actions for interactive commands, including noop, grant_item, remove_item, award_experience, teleport_player, and exit reveal/hide actions. Keyword actions also support item-based gating.",
+                "NPCs support wandering via wander_chance and wander_room_ids (movement is constrained to directly connected exits that are also in wander_room_ids).",
+                "Merchants support limited stock with quantity/base_quantity per inventory entry, and periodic restocking via merchant_restock_game_hours."
+            ],
+            "items_and_containers": [
+                "Items support item_type values: consumable, potion, key, misc, and container.",
+                "Consumable and potion items support affect_ids to apply status effects on use, using the same affect system as skills and spells.",
+                "Key items have lock_ids matching lock_id values on exit_details or container items. Keys support consume_on_use to be destroyed after a successful unlock.",
+                "Container items support open/close/lock/unlock state, contents (default items spawned inside), coins, and portable (whether the container can be picked up).",
+                "Items support decay_game_hours for automatic expiry after a number of game hours, whether carried, dropped, or stored.",
+                "Item coin_value is the base monetary value used by merchant pricing with buy_markup and sell_ratio multipliers."
             ],
             "rooms_and_interactions": [
                 "Rooms support seeded NPCs, seeded items, room_objects, keyword_actions, and exit_details metadata/state.",
                 "Exit details support close/open and lock/unlock state (including lock_id, can_lock, is_closed, is_locked, and optional message overrides).",
                 "Room exits support only north/south/east/west/up/down directions; diagonals are not supported.",
-                "Flavor-only interactions are supported through keyword_actions with noop-style messages and can be used for atmospheric commands like look shrine."
+                "Keyword actions support noop, grant_item, remove_item, award_experience, teleport_player, and room exit reveal/hide action types.",
+                "Keyword actions and room_communications support item-based gating via required_item_template_ids and excluded_item_template_ids.",
+                "Flavor-only interactions are supported through keyword_actions with noop-style messages and can be used for atmospheric commands like look shrine.",
+                "Room objects are inspectable objects that respond to look commands with keywords and descriptions."
             ],
             "zones_and_world_state": [
                 "Zones support periodic repopulation via repopulate_game_hours.",
@@ -264,12 +284,21 @@ def build_instruction_payload() -> dict[str, object]:
             "NPCs with wander_chance > 0 and a non-empty wander_room_ids list will periodically move between rooms. All rooms in wander_room_ids should form a connected subgraph via their exits so the NPC can actually traverse between them. The NPC will only move to rooms that are both in wander_room_ids AND directly reachable via its current room's exits.",
             "NPCs that are currently engaged in combat with any player will not wander.",
             "Zones support a flag_spawns array for conditional NPC spawns triggered by world flag state. Each entry spawns an NPC into a specific room immediately after any NPC death that sets world flags, provided the NPC (by npc_id) is not already alive in the target room. Use this for scripted encounter progressions such as spawning a boss when a mini boss dies.",
-            "flag_spawns entries fire every time the flag conditions are met and no matching NPC is alive in the room. To ensure a boss spawns exactly once per cycle, use reset_world_flags on repopulation to clear the trigger flags, which prevents the boss from re-spawning until the zone resets."
+            "flag_spawns entries fire every time the flag conditions are met and no matching NPC is alive in the room. To ensure a boss spawns exactly once per cycle, use reset_world_flags on repopulation to clear the trigger flags, which prevents the boss from re-spawning until the zone resets.",
+            "When is_named is true, also set corpse_label_style to possessive so the corpse renders as the NPC's possessive name form.",
+            "NPCs that should set world flags on death must include set_world_flags_on_death in the NPC template. This is the mechanism that triggers flag_spawns rules.",
+            "When designing faction or reputation NPCs, use aggro_player_flags to make NPCs auto-attack players who have been flagged by hostile actions against their faction, and set_player_flags_on_hostile_action to apply the flag when a player attacks.",
+            "Key items should have lock_ids that match the lock_id on the corresponding exit_details or container item they are meant to unlock.",
+            "Container items placed in rooms should generally set portable to false for large environmental containers like chests.",
+            "When creating quest items or keys that should not persist indefinitely, set decay_game_hours or consume_on_use as appropriate.",
+            "Keyword action types grant_item, remove_item, and award_experience each have specific required fields: grant_item needs template_id (and optional quantity, if_missing), remove_item needs template_id (and optional quantity), and award_experience needs amount.",
+            "Consumable and potion items can apply status effects via affect_ids using the same affect system as skills and spells."
         ],
         "cross_reference_requirements": [
             "rooms[].zone_id must match a zone_id in the base assets or this payload.",
             "rooms[].npcs[].npc_id must match an NPC in the base assets or this payload.",
             "rooms[].exits[direction] must point to a valid room_id.",
+            "rooms[].items[].template_id must match an item template_id in the base assets or this payload.",
             "npcs[].main_hand_weapon.template_id and npcs[].off_hand_weapon.template_id must match gear template_id values.",
             "npcs[].inventory_items[].template_id and npcs[].merchant_inventory[].template_id must match a gear or item template_id.",
             "npcs[].spell_ids[] must match spell_id values.",
@@ -277,7 +306,12 @@ def build_instruction_payload() -> dict[str, object]:
             "spells[].damage_scaling_attribute_id and skills[].scaling_attribute_id should use valid attribute ids such as str, dex, con, int, or wis.",
             "npcs[].wander_room_ids[] must match valid room_id values in the base assets or this payload.",
             "zones[].flag_spawns[].npc_id must match an NPC template in the base assets or this payload.",
-            "zones[].flag_spawns[].room_id must match a room that belongs to this zone."
+            "zones[].flag_spawns[].room_id must match a room that belongs to this zone.",
+            "npcs[].keyword_actions[].required_item_template_ids[] and excluded_item_template_ids[] must match item template_id values.",
+            "npcs[].room_communications[].required_item_template_ids[] and excluded_item_template_ids[] must match item template_id values.",
+            "rooms[].keyword_actions[].required_item_template_ids[] and excluded_item_template_ids[] must match item template_id values.",
+            "items[].lock_ids[] on key items must match lock_id values on exit_details or container items.",
+            "items[].affect_ids[] on consumable/potion items must match valid affect template ids."
         ],
         "authoring_order": [
             "Create gear, items, spells, and skills first.",

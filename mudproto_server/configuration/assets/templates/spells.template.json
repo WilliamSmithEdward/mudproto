@@ -230,6 +230,13 @@
         "type": "string",
         "required": false,
         "default": ""
+      },
+      "cooldown_rounds": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "Combat-round-based cooldown for NPC spell use. When set, NPC entities cannot reuse this spell until this many rounds have passed. Player spell cooldowns are not currently enforced."
       }
     }
   }

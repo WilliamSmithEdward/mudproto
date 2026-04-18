@@ -139,9 +139,10 @@
           "vigor",
           "mana",
           "damage_reduction",
+          "extra_unarmed_hits",
           ""
         ],
-        "notes": "Use empty string when the skill is affect-only (all behavior defined by affect_ids)."
+        "notes": "Use empty string when the skill is affect-only (all behavior defined by affect_ids). extra_unarmed_hits requires support_level_step > 0."
       },
       "affect_ids": {
         "type": "array[string]",
@@ -196,7 +197,8 @@
         "type": "integer",
         "required": false,
         "default": 0,
-        "minimum": 0
+        "minimum": 0,
+        "notes": "Lag rounds applied after using the skill. Currently only applies to NPC entities; player skill lag is not enforced."
       },
       "cooldown_rounds": {
         "type": "integer",
@@ -231,6 +233,13 @@
         "default": 0,
         "minimum": 0,
         "notes": "Bonus support amount granted per support_level_step interval of character levels."
+      },
+      "target_posture": {
+        "type": "string",
+        "required": false,
+        "default": "",
+        "allowed_values": ["standing", "sitting", "resting", "sleeping", ""],
+        "notes": "When set, forces the target into this posture on a successful hit. Sitting, resting, and sleeping targets take increased damage and deal reduced damage."
       }
     }
   }

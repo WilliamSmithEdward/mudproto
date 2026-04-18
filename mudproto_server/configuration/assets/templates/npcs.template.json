@@ -92,6 +92,37 @@
         "required": false,
         "default": false
       },
+      "aggro_player_flags": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "When a player with any of these player flags enters the NPC's room, the NPC auto-engages them in combat."
+      },
+      "set_player_flags_on_hostile_action": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "Player flags set on the attacking player when they initiate combat against this NPC."
+      },
+      "set_player_flags_on_death": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "Player flags set on the killing player when this NPC dies."
+      },
+      "set_world_flags_on_death": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "World flags set when this NPC dies. Critical for flag_spawns chains where killing one NPC triggers spawning of the next."
+      },
+      "corpse_label_style": {
+        "type": "string",
+        "required": false,
+        "default": "generic",
+        "allowed_values": ["generic", "possessive"],
+        "notes": "Controls corpse naming. generic produces 'the corpse of a Goblin', possessive produces 'Brother Cleft's corpse'. Typically use possessive for is_named NPCs."
+      },
       "respawn": {
         "type": "boolean",
         "required": false,
@@ -321,6 +352,18 @@
             "type": "string",
             "required": true,
             "notes": "Shown when the configured trigger fires, such as a player entering the NPC's room."
+          },
+          "required_item_template_ids": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Player must have all of these items in inventory or equipment for this communication to fire."
+          },
+          "excluded_item_template_ids": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Communication is suppressed if the player has any of these items."
           }
         }
       },
@@ -328,7 +371,7 @@
         "type": "array[object]",
         "required": false,
         "default": [],
-        "notes": "NPC-side command triggers. Uses the same structure as room keyword_actions and supports `noop` and `grant_item` actions as well as room exit reveal/hide actions.",
+        "notes": "NPC-side command triggers. Uses the same structure as room keyword_actions and supports noop, grant_item, remove_item, award_experience, teleport_player, and room exit reveal/hide actions.",
         "entry_schema": {
           "keywords": {
             "type": "array[string]",
@@ -393,7 +436,19 @@
           "actions": {
             "type": "array[object]",
             "required": true,
-            "notes": "Supports `noop`, `grant_item`, `teleport_player`, and the standard room exit action types."
+            "notes": "Supports noop, grant_item, remove_item, award_experience, teleport_player, and the standard room exit reveal/hide action types."
+          },
+          "required_item_template_ids": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Player must have all of these items in inventory or equipment for this action to be available."
+          },
+          "excluded_item_template_ids": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Action is unavailable if the player has any of these items."
           }
         }
       },

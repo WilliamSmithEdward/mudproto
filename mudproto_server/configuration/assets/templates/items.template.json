@@ -218,7 +218,21 @@
         "type": "integer",
         "required": false,
         "default": 0,
-        "minimum": 0
+        "minimum": 0,
+        "notes": "Base monetary value used by merchant pricing. Merchants apply their buy_markup and sell_ratio multipliers to this value."
+      },
+      "coins": {
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "notes": "For containers, initial coin contents spawned inside when the container is created or reset."
+      },
+      "affect_ids": {
+        "type": "array[string]",
+        "required": false,
+        "default": [],
+        "notes": "For consumables and potions, affect references applied to the user on use. Entries may be strings or objects with affect_id plus override fields. Uses the same affect system as skills and spells."
       },
       "use_lag_seconds": {
         "type": "number",

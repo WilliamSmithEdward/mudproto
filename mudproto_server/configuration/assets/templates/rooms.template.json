@@ -49,25 +49,262 @@
         "type": "array[object]",
         "required": false,
         "default": [],
-        "description": "Optional ground items seeded into the room when the world or zone initializes. Each entry should include template_id and optional count."
+        "description": "Optional ground items seeded into the room when the world or zone initializes.",
+        "entry_schema": {
+          "template_id": {
+            "type": "string",
+            "required": true,
+            "notes": "Must match an existing gear or item template id."
+          },
+          "count": {
+            "type": "integer",
+            "required": false,
+            "default": 1,
+            "minimum": 1
+          }
+        }
       },
       "keyword_actions": {
         "type": "array[object]",
         "required": false,
         "default": [],
-        "description": "Supports standard keyword action fields plus optional debug_only boolean to include an action only when gameplay.debug_mode is enabled in server settings."
+        "description": "Room-side command triggers. Supports optional debug_only boolean to include an action only when gameplay.debug_mode is enabled in server settings.",
+        "entry_schema": {
+          "keywords": {
+            "type": "array[string]",
+            "required": true
+          },
+          "message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "already_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "refresh_view": {
+            "type": "string",
+            "required": false,
+            "default": "none",
+            "allowed_values": ["none", "exits", "room"]
+          },
+          "required_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "excluded_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "set_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "clear_player_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "required_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "excluded_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "set_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "clear_world_flags": {
+            "type": "array[string]",
+            "required": false,
+            "default": []
+          },
+          "required_item_template_ids": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Player must have all of these items in inventory or equipment for this action to be available."
+          },
+          "excluded_item_template_ids": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Action is unavailable if the player has any of these items."
+          },
+          "actions": {
+            "type": "array[object]",
+            "required": true,
+            "notes": "Supports noop, grant_item, remove_item, award_experience, teleport_player, and room exit reveal/hide action types."
+          },
+          "debug_only": {
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "notes": "When true, this keyword action is only available when gameplay.debug_mode is enabled in server settings."
+          }
+        }
       },
       "room_objects": {
         "type": "array[object]",
         "required": false,
         "default": [],
-        "description": "Supports optional debug_only boolean to include an object only when gameplay.debug_mode is enabled in server settings."
+        "description": "Inspectable objects in the room that respond to look commands.",
+        "entry_schema": {
+          "object_id": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "name": {
+            "type": "string",
+            "required": true
+          },
+          "keywords": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Words the player can use to look at this object, e.g. ['shrine', 'altar']."
+          },
+          "description": {
+            "type": "string",
+            "required": true,
+            "notes": "Text shown when the player looks at this object."
+          },
+          "debug_only": {
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "notes": "When true, this room object is only present when gameplay.debug_mode is enabled in server settings."
+          }
+        }
       },
       "exit_details": {
         "type": "array[object]",
         "required": false,
         "default": [],
-        "description": "Optional exit metadata/state. Supports close/open and lock/unlock behavior, including lock_id, can_lock, is_closed, is_locked, and optional message overrides. Grammar defaults are generated from the exit name/type/direction when omitted."
+        "description": "Optional exit metadata/state. Supports close/open and lock/unlock behavior. Grammar defaults are generated from the exit name/type/direction when omitted.",
+        "entry_schema": {
+          "direction": {
+            "type": "string",
+            "required": true,
+            "allowed_values": ["north", "south", "east", "west", "up", "down"]
+          },
+          "name": {
+            "type": "string",
+            "required": false,
+            "default": "",
+            "notes": "Display name for the exit, e.g. 'iron gate', 'wooden door'."
+          },
+          "exit_type": {
+            "type": "string",
+            "required": false,
+            "default": "exit",
+            "notes": "Describes the type of exit for grammar purposes, e.g. 'door', 'gate', 'hatch'."
+          },
+          "keywords": {
+            "type": "array[string]",
+            "required": false,
+            "default": [],
+            "notes": "Words the player can use to target this exit with open/close/lock/unlock commands."
+          },
+          "can_close": {
+            "type": "boolean",
+            "required": false,
+            "default": true
+          },
+          "can_lock": {
+            "type": "boolean",
+            "required": false,
+            "default": "true when lock_id is provided"
+          },
+          "lock_id": {
+            "type": "string",
+            "required": false,
+            "default": "",
+            "notes": "The lock id that a matching key item can lock or unlock."
+          },
+          "is_closed": {
+            "type": "boolean",
+            "required": false,
+            "default": false
+          },
+          "is_locked": {
+            "type": "boolean",
+            "required": false,
+            "default": false
+          },
+          "open_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "close_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "lock_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "unlock_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "closed_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "locked_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "needs_key_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "must_close_to_lock_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "already_open_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "already_closed_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "already_locked_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          },
+          "already_unlocked_message": {
+            "type": "string",
+            "required": false,
+            "default": ""
+          }
+        }
       }
     }
   }

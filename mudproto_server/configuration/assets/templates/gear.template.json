@@ -36,6 +36,12 @@
         "required": false,
         "default": []
       },
+      "persistent": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "notes": "When false, the gear item is purged from character inventory/equipment on permanent disconnect or logout-style cleanup flows."
+      },
       "weapon_type": {
         "type": "string",
         "required": false,
