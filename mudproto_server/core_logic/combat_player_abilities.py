@@ -619,9 +619,10 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 f"Spell '{spell_name}' must have duration_rounds > 0.",
                 session,
             ), False
-        if support_amount <= 0 and support_dice_count <= 0:
+        has_affect_ids = bool(spell.get("affect_ids"))
+        if support_amount <= 0 and support_dice_count <= 0 and not has_affect_ids:
             return display_error(
-                f"Spell '{spell_name}' must define support_amount and/or support_dice_count.",
+                f"Spell '{spell_name}' must define support_amount, support_dice_count, or affect_ids.",
                 session,
             ), False
         if not support_context:

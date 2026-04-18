@@ -1730,9 +1730,9 @@ def load_spells() -> list[dict]:
             raise ValueError(
                 f"Spell asset '{spell_id}' support_effect must be one of: heal, vigor, mana."
             )
-        if spell_type == "support" and support_amount <= 0 and support_dice_count <= 0:
+        if spell_type == "support" and support_amount <= 0 and support_dice_count <= 0 and not affect_ids:
             raise ValueError(
-                f"Spell asset '{spell_id}' support spells must define support_amount and/or support_dice_count."
+                f"Spell asset '{spell_id}' support spells must define support_amount, support_dice_count, or affect_ids."
             )
         if spell_type == "support" and support_mode == "timed" and duration_hours <= 0:
             raise ValueError(f"Spell asset '{spell_id}' support spells must have duration_hours > 0.")
