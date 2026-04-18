@@ -1,5 +1,3 @@
-import random
-
 from attribute_config import get_posture_regeneration_bonus_multiplier, load_regeneration_config
 from combat_ability_effects import _process_player_game_hour_affects
 from inventory import tick_item_decay_map

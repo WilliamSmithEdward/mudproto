@@ -31,14 +31,13 @@ _SUPPORTED_AFFECT_IDS = {
 }
 
 
-def _entity_has_active_ongoing_support_effect(entity: EntityState, effect_id: str) -> bool:
-    normalized_effect_id = str(effect_id).strip().lower()
-    if not normalized_effect_id:
+def _entity_has_active_ongoing_support_effect(entity: EntityState, effect_name: str) -> bool:
+    normalized_name = str(effect_name).strip().lower()
+    if not normalized_name:
         return False
 
     for active_affect in list(entity.active_affects):
-        affect_id = str(getattr(active_affect, "affect_id", "")).strip().lower()
-        if not affect_id:
+        if str(getattr(active_affect, "affect_name", "")).strip().lower() != normalized_name:
             continue
 
         affect_mode = str(getattr(active_affect, "affect_mode", "timed")).strip().lower() or "timed"
@@ -909,8 +908,8 @@ def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
             continue
 
         support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
-        effect_id = normalized_spell_id or str(spell.get("name", "")).strip()
-        if support_mode in {"timed", "battle_rounds"} and effect_id and _entity_has_active_ongoing_support_effect(entity, effect_id):
+        effect_name = str(spell.get("name", "")).strip()
+        if support_mode in {"timed", "battle_rounds"} and effect_name and _entity_has_active_ongoing_support_effect(entity, effect_name):
             continue
 
         available_spells.append(spell)
@@ -919,16 +918,12 @@ def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
     if available_spells and random.random() < spell_chance:
         spell = random.choice(available_spells)
         support_effect = str(spell.get("support_effect", "")).strip().lower()
-        rolled_support_amount, dice_count, dice_sides, roll_modifier, scaling_bonus = _roll_entity_support_amount(
+        rolled_support_amount, _, _, _, _ = _roll_entity_support_amount(
             entity,
             spell,
             support_effect,
         )
         support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
-        duration_hours = max(0, int(spell.get("duration_hours", 0)))
-        duration_rounds = max(0, int(spell.get("duration_rounds", 0)))
-        spell_id = str(spell.get("spell_id", spell.get("name", ""))).strip() or str(spell.get("name", "Spell")).strip() or "Spell"
-        spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
 
         entity.mana = max(0, int(entity.mana) - max(0, int(spell.get("mana_cost", 0))))
 
@@ -964,8 +959,8 @@ def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
             continue
 
         support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
-        effect_id = normalized_skill_id or str(skill.get("name", "")).strip()
-        if support_mode in {"timed", "battle_rounds"} and effect_id and _entity_has_active_ongoing_support_effect(entity, effect_id):
+        effect_name = str(skill.get("name", "")).strip()
+        if support_mode in {"timed", "battle_rounds"} and effect_name and _entity_has_active_ongoing_support_effect(entity, effect_name):
             continue
 
         available_skills.append(skill)
@@ -976,10 +971,6 @@ def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
         support_effect = str(skill.get("support_effect", "")).strip().lower()
         total_support_amount = max(0, int(skill.get("support_amount", 0)) + _resolve_entity_skill_scale_bonus(entity, skill))
         support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
-        duration_hours = max(0, int(skill.get("duration_hours", 0)))
-        duration_rounds = max(0, int(skill.get("duration_rounds", 0)))
-        skill_id = str(skill.get("skill_id", skill.get("name", ""))).strip() or str(skill.get("name", "Skill")).strip() or "Skill"
-        skill_name = str(skill.get("name", "Skill")).strip() or "Skill"
 
         entity.vigor = max(0, int(entity.vigor) - max(0, int(skill.get("vigor_cost", 0))))
 

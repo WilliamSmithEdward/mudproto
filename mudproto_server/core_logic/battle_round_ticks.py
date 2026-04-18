@@ -2,7 +2,6 @@ import asyncio
 
 from combat_ability_effects import _process_player_battle_round_affects
 from models import ClientSession
-from player_resources import get_player_resource_caps
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
 
 

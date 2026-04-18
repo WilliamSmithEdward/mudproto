@@ -72,8 +72,8 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         cast_type = str(skill.get("cast_type", "target")).strip().lower() or "target"
         support_mode = str(skill.get("support_mode", "instant")).strip().lower() or "instant"
         if skill_type == "support" and cast_type == "self" and support_mode in {"timed", "battle_rounds"}:
-            effect_id = str(skill.get("skill_id", "")).strip() or str(skill.get("name", "")).strip()
-            if _entity_has_active_ongoing_support_effect(entity, effect_id):
+            effect_name = str(skill.get("name", "")).strip()
+            if _entity_has_active_ongoing_support_effect(entity, effect_name):
                 continue
 
         available_skills.append(skill)
@@ -240,8 +240,8 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
         cast_type = str(spell.get("cast_type", "target")).strip().lower() or "target"
         support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
         if spell_type == "support" and cast_type == "self" and support_mode in {"timed", "battle_rounds"}:
-            effect_id = str(spell.get("spell_id", "")).strip() or str(spell.get("name", "")).strip()
-            if _entity_has_active_ongoing_support_effect(entity, effect_id):
+            effect_name = str(spell.get("name", "")).strip()
+            if _entity_has_active_ongoing_support_effect(entity, effect_name):
                 continue
 
         available_spells.append(spell)
@@ -286,7 +286,7 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
             if support_amount <= 0 and support_dice_count <= 0:
                 return False
 
-            rolled_support_amount, dice_count, dice_sides, roll_modifier, scaling_bonus = _roll_entity_support_amount(
+            rolled_support_amount, _, _, _, _ = _roll_entity_support_amount(
                 entity,
                 spell,
                 support_effect,
