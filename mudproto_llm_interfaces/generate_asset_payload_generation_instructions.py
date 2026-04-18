@@ -198,7 +198,7 @@ def build_instruction_payload() -> dict[str, object]:
                 "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
                 "Support effects include heal, vigor, mana, damage_reduction, and extra_unarmed_hits on skills when explicitly desired. Skills and spells also support affect-based status behavior via affect_ids, using shared templates such as affect.received-damage, affect.dealt-damage, affect.regeneration, and affect.extra-hits. Affect entries may be plain ids or override objects with affect_id plus tuning fields.",
                 "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as affect.received-damage and affect.dealt-damage.",
-                "Skills support a target_posture field that forces the target into standing, sitting, resting, or sleeping on a successful hit. Non-standing postures take increased damage and deal reduced damage.",
+                "Skills support a target_posture field that forces the target into sitting on a successful hit. Sitting targets take increased damage and deal reduced damage.",
                 "Skills with usable_out_of_combat set to true can be used outside of combat for support effects.",
                 "Weapons support on-hit damage procs: room-wide (on_hit_room_damage_*) and single-target (on_hit_target_damage_*) with configurable chance, dice, and messages.",
                 "Casting a spell during combat skips the player's next melee attack round.",

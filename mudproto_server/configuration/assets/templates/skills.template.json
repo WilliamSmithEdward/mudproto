@@ -238,8 +238,8 @@
         "type": "string",
         "required": false,
         "default": "",
-        "allowed_values": ["standing", "sitting", "resting", "sleeping", ""],
-        "notes": "When set, forces the target into this posture on a successful hit. Sitting, resting, and sleeping targets take increased damage and deal reduced damage."
+        "allowed_values": ["sitting", ""],
+        "notes": "When set to sitting, forces the target into sitting posture on a successful hit. Sitting targets take increased damage and deal reduced damage."
       }
     }
   }

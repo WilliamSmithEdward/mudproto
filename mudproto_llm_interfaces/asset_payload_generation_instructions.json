@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.20",
-  "generated_at_utc": "2026-04-18T20:34:38.673135+00:00",
+  "generated_at_utc": "2026-04-18T20:50:15.441288+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -113,7 +113,7 @@
       "Support skills can scale over level steps using support_level_step and support_amount_per_level_step.",
       "Support effects include heal, vigor, mana, damage_reduction, and extra_unarmed_hits on skills when explicitly desired. Skills and spells also support affect-based status behavior via affect_ids, using shared templates such as affect.received-damage, affect.dealt-damage, affect.regeneration, and affect.extra-hits. Affect entries may be plain ids or override objects with affect_id plus tuning fields.",
       "Skills and spells support an element field (e.g. physical, storm, fire, restoration) used by element-aware affects such as affect.received-damage and affect.dealt-damage.",
-      "Skills support a target_posture field that forces the target into standing, sitting, resting, or sleeping on a successful hit. Non-standing postures take increased damage and deal reduced damage.",
+      "Skills support a target_posture field that forces the target into sitting on a successful hit. Sitting targets take increased damage and deal reduced damage.",
       "Skills with usable_out_of_combat set to true can be used outside of combat for support effects.",
       "Weapons support on-hit damage procs: room-wide (on_hit_room_damage_*) and single-target (on_hit_target_damage_*) with configurable chance, dice, and messages.",
       "Casting a spell during combat skips the player's next melee attack round.",
@@ -1790,13 +1790,10 @@
           "required": false,
           "default": "",
           "allowed_values": [
-            "standing",
             "sitting",
-            "resting",
-            "sleeping",
             ""
           ],
-          "notes": "When set, forces the target into this posture on a successful hit. Sitting, resting, and sleeping targets take increased damage and deal reduced damage."
+          "notes": "When set to sitting, forces the target into sitting posture on a successful hit. Sitting targets take increased damage and deal reduced damage."
         }
       }
     },
@@ -4886,7 +4883,7 @@
               "observer_context": "",
               "cooldown_rounds": 2,
               "target_lag_rounds": 1,
-              "target_posture": "resting"
+              "target_posture": "sitting"
             },
             {
               "skill_id": "skill.mindlash-feint-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
