@@ -79,7 +79,7 @@
     "support_dice_sides": 20,
     "support_roll_modifier": 30,
     "support_scaling_attribute_id": "wis",
-    "support_scaling_multiplier": 1.0,
+    "support_scaling_multiplier": 4.0,
     "support_mode": "instant",
     "support_context": "A sudden wave of restorative light surges through you, mending injuries at once."
   },
@@ -103,7 +103,7 @@
       {
         "affect_id": "affect.regeneration",
         "name": "Regeneration Ward",
-        "target": "self",
+        "target": "target",
         "affect_mode": "battle_rounds",
         "target_resource": "hit_points",
         "amount": 0,

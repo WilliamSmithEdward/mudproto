@@ -687,6 +687,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
             else:
                 _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="self")
+                _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
             observer_lines = [
                 _resolve_observer_action_line(
                     actor_name,
@@ -780,6 +781,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
         else:
             _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="self")
+            _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
         observer_lines = [
             _resolve_observer_action_line(
                 actor_name,

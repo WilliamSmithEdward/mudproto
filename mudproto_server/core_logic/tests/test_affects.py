@@ -615,3 +615,133 @@ def test_centered_guard_affect_uses_skill_side_override_details() -> None:
 
     assert len(session.active_affects) == 1
     assert session.active_affects[0].remaining_rounds == 3
+
+
+def test_support_spell_self_cast_applies_target_scoped_affect() -> None:
+    """Self-casting a support spell with a target-scoped affect should apply it to self."""
+    from combat_ability_effects import _apply_ability_affects
+
+    session = _make_session("client-self-regen", "Caster")
+    spell = {
+        "spell_id": "spell.test-regen-ward",
+        "name": "Test Regen Ward",
+        "spell_type": "support",
+        "support_effect": "heal",
+        "support_amount": 1,
+        "support_mode": "instant",
+        "affect_ids": [{
+            "affect_id": "affect.regeneration",
+            "name": "Test Regen Ward",
+            "target": "target",
+            "affect_mode": "battle_rounds",
+            "target_resource": "hit_points",
+            "amount": 0,
+            "dice_count": 1,
+            "dice_sides": 10,
+            "roll_modifier": 5,
+            "duration_rounds": 3,
+        }],
+    }
+
+    _apply_ability_affects(actor=session, target=session, ability=spell, affect_target="self")
+    _apply_ability_affects(actor=session, target=session, ability=spell, affect_target="target")
+
+    assert len(session.active_affects) == 1
+    assert session.active_affects[0].affect_id == "affect.regeneration"
+    assert session.active_affects[0].remaining_rounds == 3
+
+
+def test_support_spell_targeted_cast_applies_affect_to_target_not_caster(monkeypatch) -> None:
+    """Casting a support spell on another player must apply the affect to the target."""
+    caster = _make_session("client-caster-targeted", "Caster")
+    target = _make_session("client-target-targeted", "Receiver")
+    caster.status.mana = 100
+
+    spell = {
+        "spell_id": "spell.test-regen-ward",
+        "name": "Test Regen Ward",
+        "school": "Restoration",
+        "spell_type": "support",
+        "element": "restoration",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "support_effect": "heal",
+        "support_amount": 1,
+        "support_mode": "instant",
+        "support_context": "A ward settles around you.",
+        "affect_ids": [{
+            "affect_id": "affect.regeneration",
+            "name": "Test Regen Ward",
+            "target": "target",
+            "affect_mode": "battle_rounds",
+            "target_resource": "hit_points",
+            "amount": 0,
+            "dice_count": 1,
+            "dice_sides": 10,
+            "roll_modifier": 5,
+            "duration_rounds": 3,
+        }],
+    }
+
+    monkeypatch.setattr(
+        player_abilities,
+        "_resolve_room_player_selector",
+        lambda _session, _target_name, require_exact_name=True: (target, None),
+    )
+    monkeypatch.setattr(display_feedback, "display_command_result", lambda *_a, **_kw: {})
+
+    _, applied = player_abilities.cast_spell(caster, spell, "Receiver")
+
+    assert applied is True
+    assert len(target.active_affects) == 1, "Affect should be on target"
+    assert target.active_affects[0].affect_id == "affect.regeneration"
+    assert target.active_affects[0].remaining_rounds == 3
+    assert len(caster.active_affects) == 0, "Caster should NOT have the target-scoped affect"
+
+
+def test_support_spell_targeted_cast_timed_applies_affect_to_target(monkeypatch) -> None:
+    """Non-instant (timed/battle_rounds) targeted support applies affects to target."""
+    caster = _make_session("client-caster-timed", "Caster")
+    target = _make_session("client-target-timed", "Receiver")
+    caster.status.mana = 100
+
+    spell = {
+        "spell_id": "spell.test-timed-ward",
+        "name": "Test Timed Ward",
+        "school": "Restoration",
+        "spell_type": "support",
+        "element": "restoration",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "support_effect": "heal",
+        "support_amount": 5,
+        "support_mode": "battle_rounds",
+        "duration_rounds": 4,
+        "support_context": "A ward settles around you.",
+        "affect_ids": [{
+            "affect_id": "affect.regeneration",
+            "name": "Test Timed Ward",
+            "target": "target",
+            "affect_mode": "battle_rounds",
+            "target_resource": "hit_points",
+            "amount": 0,
+            "dice_count": 1,
+            "dice_sides": 10,
+            "roll_modifier": 5,
+            "duration_rounds": 3,
+        }],
+    }
+
+    monkeypatch.setattr(
+        player_abilities,
+        "_resolve_room_player_selector",
+        lambda _session, _target_name, require_exact_name=True: (target, None),
+    )
+    monkeypatch.setattr(display_feedback, "display_command_result", lambda *_a, **_kw: {})
+
+    _, applied = player_abilities.cast_spell(caster, spell, "Receiver")
+
+    assert applied is True
+    assert len(target.active_affects) == 1, "Affect should be on target"
+    assert target.active_affects[0].affect_id == "affect.regeneration"
+    assert len(caster.active_affects) == 0, "Caster should NOT have the target-scoped affect"
