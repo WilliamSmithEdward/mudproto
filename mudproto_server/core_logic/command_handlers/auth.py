@@ -4,7 +4,7 @@ from .character_creation import (
     start_character_creation,
 )
 from display_feedback import display_error
-from display_prompts import build_existing_password_prompt, initial_auth_prompt, login_prompt
+from display_prompts import build_existing_password_prompt, initial_auth_prompt
 from models import ClientSession
 from player_state_db import (
     get_character_by_name,

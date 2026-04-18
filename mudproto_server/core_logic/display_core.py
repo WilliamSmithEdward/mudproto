@@ -293,18 +293,3 @@ def build_display_lines(
                 existing_lines.extend([[] for _ in range(trailing_empty_count)])
 
     return outbound
-
-
-def display_text(
-    text: str,
-    *,
-    fg: str = "display_core.default_fg",
-    bold: bool = False,
-    prompt_after: bool = False,
-    prompt_parts: list[dict] | None = None,
-) -> dict:
-    return build_display(
-        [build_part(text, fg, bold)],
-        prompt_after=prompt_after,
-        prompt_parts=prompt_parts,
-    )

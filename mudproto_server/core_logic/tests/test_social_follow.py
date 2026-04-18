@@ -109,6 +109,7 @@ def test_follow_self_notifies_previous_leader_when_loop_running(monkeypatch) -> 
         return True
 
     monkeypatch.setattr(social, "send_outbound", fake_send_outbound)
+    monkeypatch.setattr(targeting_follow, "send_outbound", fake_send_outbound)
 
     async def _scenario() -> None:
         response = social.handle_social_command(follower, "fol", ["self"], "fol self")

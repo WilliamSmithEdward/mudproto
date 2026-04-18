@@ -119,11 +119,13 @@ def end_combat(session: ClientSession) -> None:
             sync_entity_target_player(entity)
 
 
-def _active_player_flags(session: ClientSession) -> set[str]:
+def _active_player_flags(session: ClientSession | None) -> set[str]:
+    if session is None:
+        return set()
     return {
-        " ".join(str(flag).strip().lower().split())
-        for flag, enabled in getattr(session.player, "interaction_flags", {}).items()
-        if enabled and str(flag).strip()
+        str(flag_key).strip().lower()
+        for flag_key, is_enabled in dict(getattr(session.player, "interaction_flags", {}) or {}).items()
+        if str(flag_key).strip() and bool(is_enabled)
     }
 
 

@@ -16,6 +16,7 @@ from targeting_follow import (
     _find_followed_player_session,
     _form_group_from_followers,
     _list_group_member_sessions,
+    _notify_unfollow_target,
     _remove_session_from_group,
     _resolve_room_player_selector,
     _resolve_group_leader_session,
@@ -160,39 +161,6 @@ def _notify_follow_target(target_session: ClientSession, follower_name: str) -> 
         asyncio.get_running_loop().create_task(send_outbound(target_session.websocket, notification))
     except RuntimeError:
         # No running loop: skip best-effort realtime notification.
-        return
-
-
-def _notify_unfollow_target(target_session: ClientSession, follower_name: str) -> None:
-    if not target_session.is_connected or target_session.disconnected_by_server:
-        return
-
-    resolved_name = str(follower_name).strip() or "Someone"
-    notification = display_command_result(target_session, [
-        build_part(resolved_name, "feedback.value", True),
-        build_part(" stops following you.", "feedback.text"),
-    ])
-
-    try:
-        asyncio.get_running_loop().create_task(send_outbound(target_session.websocket, notification))
-    except RuntimeError:
-        return
-
-
-def _notify_follow_stopped(session: ClientSession, followed_name: str) -> None:
-    if not session.is_connected or session.disconnected_by_server:
-        return
-
-    resolved_name = str(followed_name).strip() or "them"
-    notification = display_command_result(session, [
-        build_part("You stop following ", "feedback.text"),
-        build_part(resolved_name, "feedback.value", True),
-        build_part(".", "feedback.text"),
-    ])
-
-    try:
-        asyncio.get_running_loop().create_task(send_outbound(session.websocket, notification))
-    except RuntimeError:
         return
 
 

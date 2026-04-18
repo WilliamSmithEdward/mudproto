@@ -102,38 +102,6 @@ def get_equipped_off_hand(session: ClientSession) -> ItemState | None:
     return session.equipment.equipped_items.get(item_id)
 
 
-def get_held_weapon(session: ClientSession) -> ItemState | None:
-    main_hand = get_equipped_main_hand(session)
-    if main_hand is not None and main_hand.slot == "weapon":
-        return main_hand
-
-    off_hand = get_equipped_off_hand(session)
-    if off_hand is not None and off_hand.slot == "weapon":
-        return off_hand
-
-    return None
-
-
-def get_worn_item_for_slot(session: ClientSession, wear_slot: str) -> ItemState | None:
-    normalized_slot = wear_slot.strip().lower()
-    if not normalized_slot:
-        return None
-
-    slot_keys = [normalized_slot]
-    if normalized_slot in DEFAULT_WEAR_SLOTS:
-        slot_keys = _get_wear_slot_keys(normalized_slot)
-
-    for slot_key in slot_keys:
-        item_id = session.equipment.worn_item_ids.get(slot_key)
-        if item_id is None:
-            continue
-        item = session.equipment.equipped_items.get(item_id)
-        if item is not None:
-            return item
-
-    return None
-
-
 def list_worn_items(session: ClientSession) -> list[tuple[str, ItemState]]:
     worn: list[tuple[str, ItemState]] = []
 

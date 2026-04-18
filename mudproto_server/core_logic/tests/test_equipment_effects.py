@@ -1,6 +1,6 @@
 import combat
 from equipment_logic import get_player_effective_attributes, unequip_item, wear_item
-from inventory import build_equippable_item_from_template, is_item_equippable
+from inventory import build_equippable_item_from_template
 from models import ClientSession, EntityState, ItemState
 from player_resources import get_player_resource_caps
 

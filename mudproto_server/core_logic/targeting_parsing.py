@@ -2,7 +2,6 @@
 
 import re
 
-from abilities import _list_known_skills, _list_known_spells, _resolve_skill_by_name, _resolve_spell_by_name
 from equipment_logic import HAND_BOTH, HAND_MAIN, HAND_OFF, resolve_wear_slot_alias
 
 

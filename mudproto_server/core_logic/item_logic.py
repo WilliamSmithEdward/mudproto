@@ -36,12 +36,6 @@ def _build_item_reference_parts(item, *, fg: str | None = None) -> list[dict]:
     ]
 
 
-def _display_corpse_examination(session: ClientSession, corpse) -> OutboundResult:
-    from containers import display_container_examination
-
-    return display_container_examination(session, corpse)
-
-
 def _resolve_item_location_label(session: ClientSession, item: ItemState, *, default_label: str = "Inventory") -> str:
     if (
         session.equipment.equipped_main_hand_id == item.item_id

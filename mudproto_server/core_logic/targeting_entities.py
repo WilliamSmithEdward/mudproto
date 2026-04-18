@@ -34,10 +34,6 @@ def _entity_name_keywords(name: str) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
 
 
-def _build_corpse_label(source_name: str, corpse_label_style: str = "generic", *, is_named: bool = False) -> str:
-    return build_corpse_label(source_name, corpse_label_style, is_named=is_named)
-
-
 def _corpse_keywords(corpse: CorpseState) -> set[str]:
     keywords = _entity_name_keywords(corpse.source_name)
     keywords.add("corpse")
@@ -213,7 +209,7 @@ def resolve_room_corpse_selector(
         partial_match: CorpseState | None = None
         for corpse in room_corpses:
             corpse_names = {
-                _build_corpse_label(
+                build_corpse_label(
                     corpse.source_name,
                     getattr(corpse, "corpse_label_style", "generic"),
                     is_named=bool(getattr(corpse, "is_named", False)),
@@ -316,8 +312,3 @@ def resolve_corpse_item_selector(corpse: CorpseState, selector_text: str) -> tup
         return matches[requested_index - 1], None
 
     return matches[0], None
-
-
-def find_room_entity_by_name(session: ClientSession, room_id: str, search_text: str) -> EntityState | None:
-    entity, _ = resolve_room_entity_selector(session, room_id, search_text, living_only=True)
-    return entity

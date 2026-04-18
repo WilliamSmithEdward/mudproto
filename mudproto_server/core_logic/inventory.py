@@ -426,3 +426,33 @@ def resolve_equipment_selector(session: ClientSession, selector: str) -> tuple[I
         return matches[requested_index - 1], None
 
     return matches[0], None
+
+
+def _split_selector_and_key(selector_text: str) -> tuple[str, str | None]:
+    cleaned = " ".join(str(selector_text).strip().split())
+    if not cleaned:
+        return "", None
+
+    parts = re.split(r"\s+with\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)
+    if len(parts) == 2:
+        return parts[0].strip(), parts[1].strip() or None
+    return cleaned, None
+
+
+def _find_matching_key_item(session: ClientSession, lock_id: str, key_selector: str | None = None):
+    normalized_lock_id = str(lock_id).strip().lower()
+    if not normalized_lock_id:
+        return None
+
+    selector_tokens = [token.lower() for token in re.findall(r"[a-zA-Z0-9]+", key_selector or "")]
+    candidate_items = list(session.inventory_items.values())
+    candidate_items.sort(key=lambda item: (item.name.lower(), item.item_id))
+
+    for item in candidate_items:
+        if not item_unlocks_lock(item, normalized_lock_id):
+            continue
+        if selector_tokens and not all(token in get_item_keywords(item) for token in selector_tokens):
+            continue
+        return item
+
+    return None

@@ -2,16 +2,11 @@ import json
 import sqlite3
 import hashlib
 import secrets
-from datetime import datetime, timezone
 
 from grammar import normalize_player_gender
 from models import ActiveAffectState, ClientSession, ItemState
 from experience import get_level_for_experience
-from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH, _utc_now_iso
 
 
 def _connect() -> sqlite3.Connection:

@@ -1,5 +1,5 @@
 from attribute_config import load_combat_severity_config
-from grammar import indefinite_article, to_third_person, with_article
+from grammar import to_third_person, with_article
 from settings import PLAYER_REFERENCE_MAX_HP
 
 

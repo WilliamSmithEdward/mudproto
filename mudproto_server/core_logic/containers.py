@@ -9,7 +9,7 @@ from typing import Literal
 from display_core import build_menu_table_parts, build_part, newline_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from grammar import with_article
-from inventory import consume_item_on_use, get_item_keywords, hydrate_misc_item_from_template, item_unlocks_lock, parse_item_selector
+from inventory import _find_matching_key_item, _split_selector_and_key, consume_item_on_use, get_item_keywords, hydrate_misc_item_from_template, parse_item_selector
 from item_logic import _build_item_reference_parts, _item_highlight_color
 from models import ClientSession, CorpseState, ItemState
 from targeting_entities import resolve_room_corpse_selector
@@ -506,36 +506,6 @@ def put_item_into_container(session: ClientSession, item_selector: str, containe
         build_part(_container_reference_text(container), "containers.item.label", True),
         build_part(".", "feedback.text"),
     ])
-
-
-def _split_selector_and_key(selector_text: str) -> tuple[str, str | None]:
-    cleaned = " ".join(str(selector_text).strip().split())
-    if not cleaned:
-        return "", None
-
-    parts = re.split(r"\s+with\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)
-    if len(parts) == 2:
-        return parts[0].strip(), parts[1].strip() or None
-    return cleaned, None
-
-
-def _find_matching_key_item(session: ClientSession, lock_id: str, key_selector: str | None = None):
-    normalized_lock_id = str(lock_id).strip().lower()
-    if not normalized_lock_id:
-        return None
-
-    selector_tokens = [token.lower() for token in re.findall(r"[a-zA-Z0-9]+", key_selector or "")]
-    candidate_items = list(session.inventory_items.values())
-    candidate_items.sort(key=lambda item: (item.name.lower(), item.item_id))
-
-    for item in candidate_items:
-        if not item_unlocks_lock(item, normalized_lock_id):
-            continue
-        if selector_tokens and not all(token in get_item_keywords(item) for token in selector_tokens):
-            continue
-        return item
-
-    return None
 
 
 def handle_container_command(

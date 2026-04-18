@@ -8,6 +8,7 @@ from world import get_room
 
 from display_core import build_display, build_menu_table_parts, build_part, newline_part, with_leading_blank_lines
 from display_feedback import resolve_prompt_default
+from display_room import _resolve_posture_label
 
 
 PANEL_INNER_WIDTH = 34
@@ -35,16 +36,6 @@ def _resource_color(current: int, maximum: int) -> str:
     if ratio <= 0.5:
         return "display_character.resource.medium"
     return "display_character.resource.high"
-
-
-def _resolve_posture_label(session: ClientSession) -> str:
-    if bool(getattr(session, "is_sleeping", False)):
-        return "Sleeping"
-    if bool(getattr(session, "is_resting", False)):
-        return "Resting"
-    if bool(getattr(session, "is_sitting", False)):
-        return "Sitting"
-    return "Standing"
 
 
 def _resolve_effect_name(effect) -> str:
@@ -118,7 +109,11 @@ def display_score(session: ClientSession) -> dict:
     character_name = session.authenticated_character_name or "Unknown"
     room = get_room(session.player.current_room_id)
     room_name = room.name if room is not None else "Unknown"
-    posture_label = _resolve_posture_label(session)
+    posture_label = _resolve_posture_label(
+        is_sitting=bool(getattr(session, "is_sitting", False)),
+        is_resting=bool(getattr(session, "is_resting", False)),
+        is_sleeping=bool(getattr(session, "is_sleeping", False)),
+    ).title()
 
     hp_now = max(0, int(session.status.hit_points))
     hp_cap = max(1, int(caps["hit_points"]))

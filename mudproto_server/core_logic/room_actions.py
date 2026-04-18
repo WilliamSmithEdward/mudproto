@@ -2,6 +2,7 @@
 
 from attribute_config import player_class_uses_mana
 from assets import get_gear_template_by_id, get_item_template_by_id, get_npc_template_by_id
+from combat_state import _active_player_flags
 from display_core import build_line, build_part, newline_part, parts_to_lines
 from display_feedback import display_command_result, display_error
 from experience import award_experience
@@ -9,6 +10,7 @@ from display_room import display_exits, display_room
 from inventory import build_equippable_item_from_template, build_misc_item_from_template
 from models import ClientSession
 from player_resources import roll_level_resource_gains
+from server_broadcasts import _line_text
 from session_registry import shared_world_flags
 from targeting_entities import list_room_entities
 from world import Room, get_room
@@ -35,16 +37,6 @@ def _render_keyword_text(message: str, *, session: ClientSession, room: Room | N
     for token, value in replacements.items():
         rendered = rendered.replace(token, value)
     return rendered
-
-
-def _active_player_flags(session: ClientSession | None) -> set[str]:
-    if session is None:
-        return set()
-    return {
-        str(flag_key).strip().lower()
-        for flag_key, is_enabled in dict(getattr(session.player, "interaction_flags", {}) or {}).items()
-        if str(flag_key).strip() and bool(is_enabled)
-    }
 
 
 def _active_world_flags() -> set[str]:
@@ -439,10 +431,6 @@ def get_room_enter_communications(
     return entries
 
 
-def _line_text(line: list[dict]) -> str:
-    return "".join(str(part.get("text", "")) for part in line if isinstance(part, dict)).strip()
-
-
 def insert_room_communication_lines(outbound: dict, communication_lines: list[list[dict]]) -> dict:
     payload = outbound.get("payload") if isinstance(outbound, dict) else None
     if not isinstance(payload, dict):
@@ -460,11 +448,11 @@ def insert_room_communication_lines(outbound: dict, communication_lines: list[li
     section_headers = {"You see here:", "Players here:", "Corpses:", "Coin pile:", "Items on ground:", "On the ground:"}
     insert_index = len(normalized_existing)
     for index, line in enumerate(normalized_existing):
-        if _line_text(line) in section_headers:
+        if _line_text(line).strip() in section_headers:
             insert_index = index
             break
 
-    if insert_index > 0 and _line_text(normalized_existing[insert_index - 1]):
+    if insert_index > 0 and _line_text(normalized_existing[insert_index - 1]).strip():
         normalized_insert = [[]] + normalized_insert
 
     while normalized_insert and insert_index < len(normalized_existing) and not normalized_insert[-1] and not normalized_existing[insert_index]:
