@@ -126,7 +126,7 @@ def build_instruction_payload() -> dict[str, object]:
 
     return {
         "interface_id": "mudproto.asset-payload-generator",
-        "version": "2.19",
+        "version": "2.20",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
         "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
@@ -172,6 +172,7 @@ def build_instruction_payload() -> dict[str, object]:
                 "skills[].skill_id",
                 "npcs[].npc_id",
                 "rooms[].room_id",
+                "rooms[].room_objects[].object_id",
                 "zones[].zone_id"
             ],
             "reference_rule": "All cross-references inside the payload must use the same GUID-suffixed IDs, unless the payload is intentionally overriding an existing base-game asset by reusing its original ID.",
@@ -229,7 +230,8 @@ def build_instruction_payload() -> dict[str, object]:
                 "Keyword actions support noop, grant_item, remove_item, award_experience, teleport_player, and room exit reveal/hide action types.",
                 "Keyword actions and room_communications support item-based gating via required_item_template_ids and excluded_item_template_ids.",
                 "Flavor-only interactions are supported through keyword_actions with noop-style messages and can be used for atmospheric commands like look shrine.",
-                "Room objects are inspectable objects that respond to look commands with keywords and descriptions."
+                "Room objects are inspectable objects that respond to look commands with keywords and descriptions.",
+                "Every room_objects entry must have a non-empty object_id, name, and description. The server rejects room_objects with blank or missing values for any of these fields."
             ],
             "zones_and_world_state": [
                 "Zones support periodic repopulation via repopulate_game_hours.",
@@ -258,6 +260,8 @@ def build_instruction_payload() -> dict[str, object]:
             "Every asset section must be present and must be a JSON array, even when empty.",
             "Deliver the final output as a downloadable `.json` file suitable for saving into `mudproto_server/configuration/assets/asset_payloads/`.",
             "Conform every asset and the top-level payload exactly to the provided schemas with no deviation.",
+            "Never leave any ID field (template_id, spell_id, skill_id, npc_id, room_id, zone_id, object_id) as an empty string. Every ID must be a meaningful, non-blank value.",
+            "Never leave name or description fields as empty strings on any asset entry. Every name and description must contain meaningful text.",
             "Only use fields supported by the schemas below.",
             "Do not invent, rename, reorder semantically, or omit schema-defined structure beyond what the schemas explicitly allow.",
             "Some fields are only appropriate for certain NPC types; for example merchant and selling-related properties should only appear on merchant-style NPCs, and peaceful flags should only be used when the NPC concept actually calls for them.",
@@ -295,6 +299,12 @@ def build_instruction_payload() -> dict[str, object]:
             "When creating quest items or keys that should not persist indefinitely, set decay_game_hours or consume_on_use as appropriate.",
             "Keyword action types grant_item, remove_item, and award_experience each have specific required fields: grant_item needs template_id (and optional quantity, if_missing), remove_item needs template_id (and optional quantity), and award_experience needs amount.",
             "Consumable and potion items can apply status effects via affect_ids using the same affect system as skills and spells."
+        ],
+        "data_integrity": [
+            "Every asset entry must have a non-empty primary ID (template_id, spell_id, skill_id, npc_id, room_id, zone_id, or object_id for room_objects). The server rejects any asset with a blank or missing ID.",
+            "Every asset entry that has a name field must provide a non-empty name string. The server rejects assets with blank or missing names.",
+            "Every room_objects entry must include non-empty object_id, name, and description fields.",
+            "Room object names are automatically title-cased by the server on load, so payloads should use lowercase or title case names."
         ],
         "cross_reference_requirements": [
             "rooms[].zone_id must match a zone_id in the base assets or this payload.",
@@ -336,7 +346,8 @@ def build_instruction_payload() -> dict[str, object]:
             "Avoid redundant consumables, spells, and skills that duplicate existing mechanics under a new name unless the user explicitly requests a distinct variant or override.",
             "Gear bonus authoring should also stay broad and reusable: prefer direct stat bonuses over bespoke one-off effect labels.",
             "Boss-gated zones should be progression-safe: no always-open bypass to the finale, no missing prerequisite flags, and no pre-spawned final boss when the design calls for an unlock.",
-            "Avoid overpowered numbers unless explicitly requested."
+            "Avoid overpowered numbers unless explicitly requested.",
+            "Before returning the final JSON, verify that every asset has a non-empty primary ID and non-empty name. This is the most common cause of server-side validation failures."
         ],
         "asset_schemas": asset_schemas,
         "reference_docs": [

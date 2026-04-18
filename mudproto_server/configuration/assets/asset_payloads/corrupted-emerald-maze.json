@@ -151,7 +151,7 @@
       "observer_context": "",
       "cooldown_rounds": 2,
       "target_lag_rounds": 1,
-      "target_posture": "resting"
+      "target_posture": "sitting"
     },
     {
       "skill_id": "skill.mindlash-feint-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",

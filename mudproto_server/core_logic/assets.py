@@ -4,6 +4,7 @@ from pathlib import Path
 
 from attribute_config import get_affect_template_by_id, load_attributes, load_equipment_effects, load_weapon_type_config
 from settings import CONFIGURABLE_ASSET_ROOT, DEBUG_MODE
+from titlecase import titlecase as to_title_case
 
 
 SERVER_ROOT = Path(__file__).resolve().parent
@@ -112,7 +113,7 @@ def _normalize_keywords(raw_keywords: object, *, context: str) -> list[str]:
 
 def _normalize_template_identity(raw_template: dict, *, context: str) -> tuple[str, str, list[str]]:
     template_id = str(raw_template.get("template_id", "")).strip()
-    name = str(raw_template.get("name", "")).strip()
+    name = to_title_case(str(raw_template.get("name", "")).strip())
     if not template_id:
         raise ValueError(f"{context} must include a non-empty string template_id.")
     if not name:
@@ -623,7 +624,7 @@ def load_zones() -> list[dict]:
             raise ValueError("Zone asset entries must be objects.")
 
         zone_id = str(raw_zone.get("zone_id", "")).strip()
-        name = str(raw_zone.get("name", "")).strip()
+        name = to_title_case(str(raw_zone.get("name", "")).strip())
         normalized_zone_id = zone_id.lower()
         is_payload_override = _is_asset_payload_override(raw_zone)
         if not zone_id:
@@ -1070,7 +1071,7 @@ def load_rooms() -> list[dict]:
                 continue
 
             object_id = str(raw_room_object.get("object_id", "")).strip()
-            object_name = str(raw_room_object.get("name", "")).strip()
+            object_name = to_title_case(str(raw_room_object.get("name", "")).strip())
             object_description = str(raw_room_object.get("description", "")).strip()
             if not object_id:
                 raise ValueError(f"Room asset '{room_id}' room_objects entries must include object_id.")
@@ -1103,7 +1104,7 @@ def load_rooms() -> list[dict]:
                 raise ValueError(f"Room asset '{room_id}' exit details must include direction.")
 
             exit_type = str(raw_exit_detail.get("exit_type", "exit")).strip().lower() or "exit"
-            name = str(raw_exit_detail.get("name", "")).strip()
+            name = to_title_case(str(raw_exit_detail.get("name", "")).strip())
             raw_exit_keywords = raw_exit_detail.get("keywords", [])
             if raw_exit_keywords is None:
                 raw_exit_keywords = []
@@ -1207,7 +1208,7 @@ def load_rooms() -> list[dict]:
             ordered_room_ids.append(normalized_room_id)
         normalized_rooms_by_id[normalized_room_id] = {
             "room_id": room_id,
-            "title": title,
+            "title": to_title_case(title.strip()),
             "description": description,
             "zone_id": zone_id,
             "exits": merged_exits,
@@ -1285,7 +1286,7 @@ def load_npc_templates() -> list[dict]:
         if normalized_npc_id in normalized_npcs_by_id and not is_payload_override:
             raise ValueError(f"Duplicate npc_id in npc assets: {npc_id}")
 
-        name = str(raw_npc.get("name", "")).strip()
+        name = to_title_case(str(raw_npc.get("name", "")).strip())
         if not name:
             raise ValueError(f"NPC '{npc_id}' must define name.")
 
@@ -1748,7 +1749,7 @@ def load_spells() -> list[dict]:
 
         normalized_spells_by_id[normalized_spell_id] = {
             "spell_id": spell_id.strip(),
-            "name": name.strip(),
+            "name": to_title_case(name.strip()),
             "school": school,
             "description": str(raw_spell.get("description", "")).strip(),
             "mana_cost": mana_cost,
@@ -1967,7 +1968,7 @@ def load_skills() -> list[dict]:
 
         normalized_skills_by_id[normalized_skill_id] = {
             "skill_id": skill_id.strip(),
-            "name": name.strip(),
+            "name": to_title_case(name.strip()),
             "description": str(raw_skill.get("description", "")).strip(),
             "skill_type": skill_type,
             "element": element,
