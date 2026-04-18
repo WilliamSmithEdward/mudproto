@@ -1,4 +1,4 @@
-from combat_observer import _resolve_combat_context
+from combat_observer import _attach_room_broadcast_lines, _resolve_combat_context
 
 
 def test_resolve_combat_context_preserves_exclamation() -> None:
@@ -30,3 +30,15 @@ def test_resolve_combat_context_cinder_kiss_template_for_player_target() -> None
         verb="are",
     )
     assert text == "You are torn into by a hungry spear of cinders!"
+
+
+def test_attach_room_broadcast_lines_sets_broadcast_flag() -> None:
+    outbound: dict = {"type": "display", "payload": {"lines": []}}
+    _attach_room_broadcast_lines(outbound, ["Gandalf casts fireball."])
+    assert outbound["payload"]["broadcast_to_room"] is True
+
+
+def test_attach_room_broadcast_lines_sets_flag_even_with_empty_lines() -> None:
+    outbound: dict = {"type": "display", "payload": {"lines": []}}
+    _attach_room_broadcast_lines(outbound, [])
+    assert outbound["payload"]["broadcast_to_room"] is True

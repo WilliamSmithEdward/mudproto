@@ -22,7 +22,7 @@ from server_broadcasts import (
     _broadcast_non_combat_outbound_to_room,
     _inject_private_lines_into_outbound,
     _iter_room_sessions,
-    _looks_like_skill_spell_or_item_action,
+    _should_broadcast_to_room,
 )
 from display_core import build_display, build_part
 from server_movement import _handle_movement_side_effects
@@ -227,7 +227,7 @@ async def command_scheduler_loop(session: ClientSession) -> None:
                 await _handle_movement_side_effects(session, result, send_outbound)
                 result = _inject_private_lines_into_outbound(session, result)
                 await send_outbound(session.websocket, result)
-                if _looks_like_skill_spell_or_item_action(queued_command.command_text, result):
+                if _should_broadcast_to_room(result):
                     await _broadcast_non_combat_outbound_to_room(session, result, send_outbound)
                 continue
 

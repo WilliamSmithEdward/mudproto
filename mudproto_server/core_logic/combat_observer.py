@@ -36,6 +36,8 @@ def _attach_room_broadcast_lines(
     if broadcast_lines:
         payload["room_broadcast_lines"] = broadcast_lines
 
+    payload["broadcast_to_room"] = True
+
     if isinstance(recipient_lines_by_client_id, dict) and recipient_lines_by_client_id:
         personalized_lines: dict[str, list[list[dict]]] = {}
         for client_id, recipient_lines in recipient_lines_by_client_id.items():

@@ -4,7 +4,7 @@ import asyncio
 from display_core import build_display, build_part
 from display_feedback import build_prompt_parts_default
 from models import ClientSession
-from server_broadcasts import _build_room_broadcast_messages, _inject_private_lines_into_outbound, _normalize_prompt_spacing, _send_room_broadcast
+from server_broadcasts import _build_room_broadcast_messages, _inject_private_lines_into_outbound, _normalize_prompt_spacing, _send_room_broadcast, _should_broadcast_to_room
 from session_registry import connected_clients
 
 
@@ -197,3 +197,45 @@ def test_room_broadcast_keeps_fatal_attack_before_death_announcement() -> None:
         "A Crowbanner Reaver stabs Lucia extremely hard.",
         "Lucia is dead!",
     ]
+
+
+# ---------------------------------------------------------------------------
+# _should_broadcast_to_room
+# ---------------------------------------------------------------------------
+
+
+def test_should_broadcast_true_when_flag_set_on_single_dict() -> None:
+    outbound = {"type": "display", "payload": {"broadcast_to_room": True}}
+    assert _should_broadcast_to_room(outbound) is True
+
+
+def test_should_broadcast_true_when_flag_set_in_list() -> None:
+    outbound = [
+        {"type": "display", "payload": {}},
+        {"type": "display", "payload": {"broadcast_to_room": True}},
+    ]
+    assert _should_broadcast_to_room(outbound) is True
+
+
+def test_should_broadcast_false_when_flag_missing() -> None:
+    outbound = {"type": "display", "payload": {"lines": []}}
+    assert _should_broadcast_to_room(outbound) is False
+
+
+def test_should_broadcast_false_when_flag_explicitly_false() -> None:
+    outbound = {"type": "display", "payload": {"broadcast_to_room": False}}
+    assert _should_broadcast_to_room(outbound) is False
+
+
+def test_should_broadcast_false_for_empty_list() -> None:
+    assert _should_broadcast_to_room([]) is False
+
+
+def test_should_broadcast_false_when_no_payload() -> None:
+    outbound = {"type": "display"}
+    assert _should_broadcast_to_room(outbound) is False
+
+
+def test_should_broadcast_false_for_non_dict_payload() -> None:
+    outbound = {"type": "display", "payload": "not-a-dict"}
+    assert _should_broadcast_to_room(outbound) is False

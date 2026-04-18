@@ -700,12 +700,15 @@ def resolve_combat_round(
             if room_broadcast_lines:
                 payload["additional_room_broadcast_lines"] = room_broadcast_lines
 
+        payload["broadcast_to_room"] = True
         return result
 
     result = display_combat_round_result(session, parts)
     payload = result.get("payload") if isinstance(result, dict) else None
-    if isinstance(payload, dict) and room_broadcast_lines:
-        payload["additional_room_broadcast_lines"] = room_broadcast_lines
+    if isinstance(payload, dict):
+        if room_broadcast_lines:
+            payload["additional_room_broadcast_lines"] = room_broadcast_lines
+        payload["broadcast_to_room"] = True
 
     _schedule_next_combat_round(session)
     return result

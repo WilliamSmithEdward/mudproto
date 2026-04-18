@@ -14,7 +14,7 @@ from protocol import validate_message
 from server_broadcasts import (
     _broadcast_non_combat_outbound_to_room,
     _inject_private_lines_into_outbound,
-    _looks_like_skill_spell_or_item_action,
+    _should_broadcast_to_room,
 )
 from server_loops import (
     combat_round_loop,
@@ -195,7 +195,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
             if message.get("type") == "input":
                 payload = message.get("payload", {})
                 input_text = payload.get("text") if isinstance(payload, dict) else None
-                if isinstance(input_text, str) and session.is_authenticated and _looks_like_skill_spell_or_item_action(input_text, response):
+                if isinstance(input_text, str) and session.is_authenticated and _should_broadcast_to_room(response):
                     await _broadcast_non_combat_outbound_to_room(session, response, send_outbound)
     except websockets.ConnectionClosed:
         pass

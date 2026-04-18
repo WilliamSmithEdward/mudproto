@@ -60,6 +60,7 @@ def _attach_movement_metadata(
     direction: str,
     action: str,
     allow_followers: bool,
+    broadcast_to_room: bool = False,
 ) -> OutboundResult:
     message = outbound[0] if isinstance(outbound, list) and outbound else outbound
     payload = message.get("payload") if isinstance(message, dict) else None
@@ -71,6 +72,8 @@ def _attach_movement_metadata(
             "action": str(action).strip().lower() or "leaves",
             "allow_followers": bool(allow_followers),
         }
+        if broadcast_to_room:
+            payload["broadcast_to_room"] = True
     return outbound
 
 
@@ -101,11 +104,15 @@ def flee(session: ClientSession) -> OutboundResult:
         return display_error("There is nowhere to flee.", session)
 
     if random.random() >= FLEE_SUCCESS_CHANCE:
-        return display_command_result(session, [
+        failed_result = display_command_result(session, [
             build_part("You try to flee from ", "feedback.text"),
             build_part(entity.name),
             build_part(", but fail.", "feedback.text"),
         ])
+        failed_payload = failed_result.get("payload") if isinstance(failed_result, dict) else None
+        if isinstance(failed_payload, dict):
+            failed_payload["broadcast_to_room"] = True
+        return failed_result
 
     flee_direction, next_room_id = random.choice(exits)
     next_room = get_room(next_room_id)
@@ -140,6 +147,7 @@ def flee(session: ClientSession) -> OutboundResult:
         direction=normalize_direction(flee_direction),
         action="flees",
         allow_followers=False,
+        broadcast_to_room=True,
     )
 
 

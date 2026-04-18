@@ -330,5 +330,6 @@ def _use_misc_item(session: ClientSession, selector: str, *, verb: str = "use") 
                 build_part(observer_context, "item_logic.use.text"),
             ])
         payload["room_broadcast_lines"] = parts_to_lines(room_parts)
+        payload["broadcast_to_room"] = True
 
     return result

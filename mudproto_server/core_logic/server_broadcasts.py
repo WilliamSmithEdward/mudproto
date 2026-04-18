@@ -3,12 +3,22 @@
 import copy
 import re
 
-from command_handlers.parsing import parse_command
 from display_core import build_display_lines, resolve_display_color
 from display_feedback import build_prompt_lines_default, build_prompt_parts_default
 from grammar import third_personize_text, to_third_person
 from models import ClientSession
 from session_registry import connected_clients
+
+
+def _should_broadcast_to_room(outbound: dict | list[dict]) -> bool:
+    messages = outbound if isinstance(outbound, list) else [outbound]
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        payload = message.get("payload")
+        if isinstance(payload, dict) and bool(payload.get("broadcast_to_room", False)):
+            return True
+    return False
 
 
 def _iter_room_sessions(room_id: str, *, exclude_client_ids: set[str] | None = None) -> list[ClientSession]:
@@ -252,46 +262,6 @@ def _build_room_broadcast_messages(origin_session: ClientSession, outbound: dict
         broadcast_messages.append(copied_message)
 
     return broadcast_messages
-
-
-def _looks_like_skill_spell_or_item_action(command_text: str, outbound: dict | list[dict]) -> bool:
-    messages = outbound if isinstance(outbound, list) else [outbound]
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-
-        lines = payload.get("lines")
-        if not isinstance(lines, list):
-            continue
-        text = "\n".join(_line_text(line) for line in lines if isinstance(line, list)).strip()
-        if text.startswith("Error:"):
-            return False
-
-    verb, _args = parse_command(command_text)
-    if verb in {
-        "attack", "ki", "kil", "kill", "flee",
-        "assist", "ass", "assi", "assis",
-        "cast", "c", "ca", "cas", "use",
-    }:
-        return True
-
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        payload = message.get("payload")
-        if not isinstance(payload, dict):
-            continue
-        lines = payload.get("lines")
-        if not isinstance(lines, list):
-            continue
-        text = "\n".join(_line_text(line) for line in lines if isinstance(line, list)).strip().lower()
-        if text.startswith("you cast ") or text.startswith("you use "):
-            return True
-
-    return False
 
 
 def _extract_display_lines(message: dict | None) -> list[list[dict]]:
