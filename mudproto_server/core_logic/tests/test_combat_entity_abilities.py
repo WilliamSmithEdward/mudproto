@@ -1,5 +1,5 @@
 import combat_entity_abilities as entity_abilities
-from models import ActiveSupportEffectState, ClientSession, EntityState
+from models import ActiveAffectState, ClientSession, EntityState
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -30,12 +30,13 @@ def test_entity_does_not_recast_active_timed_support_spell(monkeypatch) -> None:
     entity.spell_ids = ["spell.regeneration-ward"]
     entity.spell_use_chance = 1.0
     entity.mana = 100
-    entity.active_support_effects.append(ActiveSupportEffectState(
-        spell_id="spell.regeneration-ward",
-        spell_name="Regeneration Ward",
-        support_mode="timed",
-        support_effect="heal",
-        support_amount=10,
+    entity.active_affects.append(ActiveAffectState(
+        affect_id="affect.regeneration",
+        affect_name="Regeneration Ward",
+        affect_mode="timed",
+        affect_type="regeneration",
+        target_resource="hit_points",
+        affect_amount=10,
         remaining_hours=2,
     ))
 
@@ -68,13 +69,12 @@ def test_entity_does_not_recast_active_round_support_skill(monkeypatch) -> None:
     entity.skill_ids = ["skill.centered-guard"]
     entity.skill_use_chance = 1.0
     entity.vigor = 100
-    entity.active_support_effects.append(ActiveSupportEffectState(
-        spell_id="skill.centered-guard",
-        spell_name="Centered Guard",
-        support_mode="battle_rounds",
-        support_effect="damage_reduction",
-        support_amount=2,
-        remaining_hours=0,
+    entity.active_affects.append(ActiveAffectState(
+        affect_id="affect.damage-reduction",
+        affect_name="Centered Guard",
+        affect_mode="battle_rounds",
+        affect_type="damage_reduction",
+        affect_amount=2,
         remaining_rounds=2,
     ))
 

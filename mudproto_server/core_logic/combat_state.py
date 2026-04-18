@@ -5,7 +5,7 @@ import random
 import uuid
 
 from assets import get_gear_template_by_id
-from combat_ability_effects import _process_entity_battle_round_support_effects, process_entity_battle_round_tick
+from combat_ability_effects import process_entity_battle_round_tick
 from display_core import build_display, build_part, resolve_display_color, with_leading_blank_lines
 from inventory import build_equippable_item_from_template
 from models import ClientSession, CorpseState, EntityState, ItemState

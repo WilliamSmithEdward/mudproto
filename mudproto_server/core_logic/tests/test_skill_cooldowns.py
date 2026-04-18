@@ -1,7 +1,7 @@
 import combat_state
 import battle_round_ticks
 from combat_state import _process_combat_round_timers
-from models import ActiveAffectState, ActiveSupportEffectState, ClientSession
+from models import ActiveAffectState, ClientSession
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -77,16 +77,16 @@ def test_combat_and_non_combat_battleround_parity(monkeypatch) -> None:
     def _make_session_with_activity(client_id: str) -> ClientSession:
         session = _make_session(client_id, "Parity")
         session.combat.skill_cooldowns["skill.bash"] = 5
-        effect = ActiveSupportEffectState(
-            spell_id="regen",
-            spell_name="Regen",
-            support_mode="battle_rounds",
-            support_effect="heal",
-            support_amount=10,
-            remaining_hours=0,
+        effect = ActiveAffectState(
+            affect_id="affect.regeneration",
+            affect_name="Regen",
+            affect_mode="battle_rounds",
+            affect_type="regeneration",
+            target_resource="hit_points",
+            affect_amount=10,
             remaining_rounds=4,
         )
-        session.active_support_effects.append(effect)
+        session.active_affects.append(effect)
         return session
 
     class _FakeLoop:
@@ -114,8 +114,8 @@ def test_combat_and_non_combat_battleround_parity(monkeypatch) -> None:
         _process_combat_round_timers(session_c, [])
 
     assert session_c.combat.skill_cooldowns == session_nc.combat.skill_cooldowns
-    assert len(session_c.active_support_effects) == len(session_nc.active_support_effects)
-    for ec, enc in zip(session_c.active_support_effects, session_nc.active_support_effects):
+    assert len(session_c.active_affects) == len(session_nc.active_affects)
+    for ec, enc in zip(session_c.active_affects, session_nc.active_affects):
         assert ec.remaining_rounds == enc.remaining_rounds
 
 

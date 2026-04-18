@@ -12,7 +12,7 @@ from attribute_config import (
 )
 from assets import get_skill_by_id, get_spell_by_id
 from equipment_logic import get_player_effective_attribute
-from models import ActiveAffectState, ActiveSupportEffectState, ClientSession, EntityState
+from models import ActiveAffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 
 
@@ -36,15 +36,15 @@ def _entity_has_active_ongoing_support_effect(entity: EntityState, effect_id: st
     if not normalized_effect_id:
         return False
 
-    for active_effect in list(getattr(entity, "active_support_effects", [])):
-        active_effect_id = str(getattr(active_effect, "spell_id", "")).strip().lower()
-        if active_effect_id != normalized_effect_id:
+    for active_affect in list(entity.active_affects):
+        affect_id = str(getattr(active_affect, "affect_id", "")).strip().lower()
+        if not affect_id:
             continue
 
-        support_mode = str(getattr(active_effect, "support_mode", "timed")).strip().lower() or "timed"
-        if support_mode == "battle_rounds" and int(getattr(active_effect, "remaining_rounds", 0)) > 0:
+        affect_mode = str(getattr(active_affect, "affect_mode", "timed")).strip().lower() or "timed"
+        if affect_mode == "battle_rounds" and int(getattr(active_affect, "remaining_rounds", 0)) > 0:
             return True
-        if support_mode == "timed" and int(getattr(active_effect, "remaining_hours", 0)) > 0:
+        if affect_mode == "timed" and int(getattr(active_affect, "remaining_hours", 0)) > 0:
             return True
 
     return False
@@ -595,36 +595,6 @@ def _roll_entity_support_amount(
     return max(0, rolled_amount), dice_count, dice_sides, roll_modifier, scaling_bonus
 
 
-def _roll_support_effect_amount(effect: ActiveSupportEffectState) -> int:
-    rolled_amount = int(effect.support_amount)
-    rolled_amount += int(effect.support_roll_modifier)
-    rolled_amount += int(effect.support_scaling_bonus)
-
-    dice_count = max(0, int(effect.support_dice_count))
-    dice_sides = max(0, int(effect.support_dice_sides))
-    if dice_count > 0 and dice_sides > 0:
-        rolled_amount += sum(random.randint(1, dice_sides) for _ in range(dice_count))
-
-    return max(0, rolled_amount)
-
-
-def _resolve_active_damage_reduction(effects: list[ActiveSupportEffectState]) -> int:
-    strongest_reduction = 0
-    for effect in effects:
-        if str(getattr(effect, "support_effect", "")).strip().lower() != "damage_reduction":
-            continue
-
-        support_mode = str(getattr(effect, "support_mode", "instant")).strip().lower() or "instant"
-        if support_mode == "timed" and int(getattr(effect, "remaining_hours", 0)) <= 0:
-            continue
-        if support_mode == "battle_rounds" and int(getattr(effect, "remaining_rounds", 0)) <= 0:
-            continue
-
-        strongest_reduction = max(strongest_reduction, _roll_support_effect_amount(effect))
-
-    return max(0, strongest_reduction)
-
-
 def _apply_player_damage_with_reduction(session: ClientSession, amount: int, *, damage_element: str = "physical") -> int:
     incoming_damage = max(0, int(amount))
     if incoming_damage <= 0:
@@ -650,10 +620,8 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int, *, 
         damage_element=damage_element,
     ))
 
-    support_reduction = _resolve_active_damage_reduction(list(session.active_support_effects))
     affect_reduction = _resolve_damage_reduction_from_affects(list(session.active_affects))
-    total_reduction = max(support_reduction, affect_reduction)
-    reduced_damage = max(0, incoming_damage - total_reduction)
+    reduced_damage = max(0, incoming_damage - affect_reduction)
     damage_dealt = min(max(0, int(session.status.hit_points)), reduced_damage)
     session.status.hit_points = max(0, int(session.status.hit_points) - reduced_damage)
     return max(0, damage_dealt)
@@ -694,11 +662,8 @@ def _resolve_entity_damage_values(entity: EntityState, amount: int, *, damage_el
         damage_element=damage_element,
     ))
 
-    active_effects = list(getattr(entity, "active_support_effects", []))
-    support_reduction = _resolve_active_damage_reduction(active_effects)
     affect_reduction = _resolve_damage_reduction_from_affects(list(entity.active_affects))
-    total_reduction = max(support_reduction, affect_reduction)
-    reduced_damage = max(0, incoming_damage - total_reduction)
+    reduced_damage = max(0, incoming_damage - affect_reduction)
     return incoming_damage, reduced_damage
 
 
@@ -786,19 +751,6 @@ def _resolve_posture_dealt_damage_multiplier(*, is_sitting: bool, is_resting: bo
     return max(0.0, posture_damage_multiplier)
 
 
-def _process_entity_battle_round_support_effects(entity: EntityState) -> None:
-    for effect in list(entity.active_support_effects):
-        if effect.support_mode != "battle_rounds":
-            continue
-
-        rolled_amount = _roll_support_effect_amount(effect)
-        _apply_entity_secondary_restore(entity, effect.support_effect, rolled_amount)
-
-        effect.remaining_rounds -= 1
-        if effect.remaining_rounds <= 0:
-            entity.active_support_effects.remove(effect)
-
-
 def _process_entity_battle_round_affects(entity: EntityState) -> None:
     for affect in list(entity.active_affects):
         if affect.affect_mode != "battle_rounds":
@@ -839,7 +791,6 @@ def _process_player_game_hour_affects(session: ClientSession) -> list[str]:
 def process_entity_battle_round_tick(entity: EntityState, elapsed_rounds: int = 1) -> None:
     rounds = max(0, int(elapsed_rounds))
     for _ in range(rounds):
-        _process_entity_battle_round_support_effects(entity)
         _process_entity_battle_round_affects(entity)
         for cooldowns in (entity.skill_cooldowns, entity.spell_cooldowns):
             for key, remaining in list(cooldowns.items()):
@@ -983,37 +934,6 @@ def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
 
         if support_mode == "instant":
             _apply_entity_secondary_restore(entity, support_effect, rolled_support_amount)
-        elif support_mode in {"timed", "battle_rounds"}:
-            refreshed = False
-            for active_effect in entity.active_support_effects:
-                if active_effect.spell_id != spell_id:
-                    continue
-                active_effect.support_mode = support_mode
-                active_effect.support_effect = support_effect
-                active_effect.support_amount = max(0, int(spell.get("support_amount", 0)))
-                active_effect.support_dice_count = dice_count
-                active_effect.support_dice_sides = dice_sides
-                active_effect.support_roll_modifier = roll_modifier
-                active_effect.support_scaling_bonus = scaling_bonus
-                active_effect.remaining_hours = duration_hours
-                active_effect.remaining_rounds = duration_rounds
-                refreshed = True
-                break
-
-            if not refreshed:
-                entity.active_support_effects.append(ActiveSupportEffectState(
-                    spell_id=spell_id,
-                    spell_name=spell_name,
-                    support_mode=support_mode,
-                    support_effect=support_effect,
-                    support_amount=max(0, int(spell.get("support_amount", 0))),
-                    support_dice_count=dice_count,
-                    support_dice_sides=dice_sides,
-                    support_roll_modifier=roll_modifier,
-                    support_scaling_bonus=scaling_bonus,
-                    remaining_hours=duration_hours,
-                    remaining_rounds=duration_rounds,
-                ))
 
         _apply_ability_affects(actor=entity, target=entity, ability=spell, affect_target="self")
         _set_entity_spell_cooldown(entity, spell)
@@ -1065,37 +985,6 @@ def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
 
         if support_mode == "instant":
             _apply_entity_secondary_restore(entity, support_effect, total_support_amount)
-        elif support_mode in {"timed", "battle_rounds"}:
-            refreshed = False
-            for active_effect in entity.active_support_effects:
-                if active_effect.spell_id != skill_id:
-                    continue
-                active_effect.support_mode = support_mode
-                active_effect.support_effect = support_effect
-                active_effect.support_amount = total_support_amount
-                active_effect.support_dice_count = 0
-                active_effect.support_dice_sides = 0
-                active_effect.support_roll_modifier = 0
-                active_effect.support_scaling_bonus = 0
-                active_effect.remaining_hours = duration_hours
-                active_effect.remaining_rounds = duration_rounds
-                refreshed = True
-                break
-
-            if not refreshed:
-                entity.active_support_effects.append(ActiveSupportEffectState(
-                    spell_id=skill_id,
-                    spell_name=skill_name,
-                    support_mode=support_mode,
-                    support_effect=support_effect,
-                    support_amount=total_support_amount,
-                    support_dice_count=0,
-                    support_dice_sides=0,
-                    support_roll_modifier=0,
-                    support_scaling_bonus=0,
-                    remaining_hours=duration_hours,
-                    remaining_rounds=duration_rounds,
-                ))
 
         _apply_ability_affects(actor=entity, target=entity, ability=skill, affect_target="self")
         _set_entity_skill_cooldown(entity, skill)
@@ -1108,17 +997,6 @@ def _entity_try_use_noncombat_restorative_support(entity: EntityState) -> bool:
 def process_entity_game_hour_tick(entity: EntityState) -> None:
     _apply_entity_passive_regeneration(entity)
     _entity_try_use_noncombat_restorative_support(entity)
-
-    for effect in list(entity.active_support_effects):
-        if effect.support_mode != "timed":
-            continue
-
-        rolled_amount = _roll_support_effect_amount(effect)
-        _apply_entity_secondary_restore(entity, effect.support_effect, rolled_amount)
-
-        effect.remaining_hours -= 1
-        if effect.remaining_hours <= 0:
-            entity.active_support_effects.remove(effect)
 
     for affect in list(entity.active_affects):
         if affect.affect_mode != "timed":

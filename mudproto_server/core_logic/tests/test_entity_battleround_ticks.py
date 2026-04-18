@@ -1,6 +1,6 @@
 import combat_ability_effects
 from combat_ability_effects import process_entity_battle_round_tick, process_entity_game_hour_tick
-from models import ActiveSupportEffectState, EntityState
+from models import ActiveAffectState, EntityState
 
 
 def _make_entity(entity_id: str, name: str) -> EntityState:
@@ -27,26 +27,26 @@ def test_entity_battleround_tick_decrements_skill_and_spell_cooldowns() -> None:
 def test_entity_battleround_tick_applies_support_and_clears_expired() -> None:
     entity = _make_entity("entity-priest", "Priest")
     entity.hit_points = 50
-    entity.active_support_effects.append(ActiveSupportEffectState(
-        spell_id="spell.regen",
-        spell_name="Regeneration",
-        support_mode="battle_rounds",
-        support_effect="heal",
-        support_amount=5,
-        remaining_hours=0,
+    entity.active_affects.append(ActiveAffectState(
+        affect_id="affect.regeneration",
+        affect_name="Regeneration",
+        affect_mode="battle_rounds",
+        affect_type="regeneration",
+        target_resource="hit_points",
+        affect_amount=5,
         remaining_rounds=2,
     ))
 
     process_entity_battle_round_tick(entity)
 
     assert entity.hit_points == 55
-    assert len(entity.active_support_effects) == 1
-    assert entity.active_support_effects[0].remaining_rounds == 1
+    assert len(entity.active_affects) == 1
+    assert entity.active_affects[0].remaining_rounds == 1
 
     process_entity_battle_round_tick(entity)
 
     assert entity.hit_points == 60
-    assert len(entity.active_support_effects) == 0
+    assert len(entity.active_affects) == 0
 
 
 def test_entity_game_hour_tick_applies_passive_regeneration() -> None:

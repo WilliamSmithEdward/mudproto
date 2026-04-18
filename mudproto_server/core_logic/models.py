@@ -52,21 +52,6 @@ class CombatState:
 
 
 @dataclass
-class ActiveSupportEffectState:
-    spell_id: str
-    spell_name: str
-    support_mode: str
-    support_effect: str
-    support_amount: int
-    remaining_hours: int
-    support_dice_count: int = 0
-    support_dice_sides: int = 0
-    support_roll_modifier: int = 0
-    support_scaling_bonus: int = 0
-    remaining_rounds: int = 0
-
-
-@dataclass
 class ActiveAffectState:
     affect_id: str
     affect_name: str
@@ -259,7 +244,6 @@ class EntityState:
     spell_ids: list[str] = field(default_factory=list)
     spell_cooldowns: dict[str, int] = field(default_factory=dict)
     spell_lag_rounds_remaining: int = 0
-    active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     active_affects: list[ActiveAffectState] = field(default_factory=list)
     is_sitting: bool = False
     is_resting: bool = False
@@ -299,7 +283,6 @@ class ClientSession:
     known_spell_ids: list[str] = field(default_factory=list)
     known_skill_ids: list[str] = field(default_factory=list)
     known_passive_ids: list[str] = field(default_factory=list)
-    active_support_effects: list[ActiveSupportEffectState] = field(default_factory=list)
     active_affects: list[ActiveAffectState] = field(default_factory=list)
     next_game_tick_monotonic: Optional[float] = None
     next_non_combat_battleround_tick_monotonic: Optional[float] = None

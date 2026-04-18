@@ -111,7 +111,7 @@
         "dice_sides": 21,
         "roll_modifier": 39,
         "scaling_attribute_id": "wis",
-        "scaling_multiplier": 1.0,
+        "scaling_multiplier": 4.0,
         "duration_rounds": 3
       }
     ]

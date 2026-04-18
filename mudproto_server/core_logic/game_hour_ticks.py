@@ -8,15 +8,6 @@ from equipment_logic import get_player_effective_attribute
 from player_resources import get_player_resource_caps
 
 
-def _roll_support_effect_amount(effect) -> int:
-    total = int(effect.support_amount) + int(effect.support_roll_modifier) + int(effect.support_scaling_bonus)
-    dice_count = max(0, int(effect.support_dice_count))
-    dice_sides = max(0, int(effect.support_dice_sides))
-    if dice_count > 0 and dice_sides > 0:
-        total += sum(random.randint(1, dice_sides) for _ in range(dice_count))
-    return max(0, total)
-
-
 def process_game_hour_tick(session: ClientSession) -> list[str]:
     expired_spell_names: list[str] = []
     expired_inventory_items = tick_item_decay_map(session.inventory_items)
@@ -82,24 +73,6 @@ def process_game_hour_tick(session: ClientSession) -> list[str]:
             continue
 
         setattr(session.status, status_field, min(max_value, current_value + regen_amount))
-
-    for effect in list(session.active_support_effects):
-        if effect.support_mode != "timed":
-            continue
-
-        applied_amount = _roll_support_effect_amount(effect)
-
-        if effect.support_effect == "heal":
-            session.status.hit_points = min(caps["hit_points"], session.status.hit_points + applied_amount)
-        elif effect.support_effect == "vigor":
-            session.status.vigor = min(caps["vigor"], session.status.vigor + applied_amount)
-        elif effect.support_effect == "mana":
-            session.status.mana = min(caps["mana"], session.status.mana + applied_amount)
-
-        effect.remaining_hours -= 1
-        if effect.remaining_hours <= 0:
-            session.active_support_effects.remove(effect)
-            expired_spell_names.append(effect.spell_name)
 
     expired_spell_names.extend(_process_player_game_hour_affects(session))
 

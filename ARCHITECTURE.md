@@ -151,7 +151,7 @@ Level gains: +10HP +5V +6M
 | `server_broadcasts.py` | Observer-facing room broadcast generation, private-line injection, prompt spacing, and unified room-round display helpers. |
 | `server_movement.py` | Movement notices, follower propagation, arrival/departure messaging, and post-move room refresh handling. |
 | `protocol.py` | Envelope construction (`build_response`) and validation (`validate_message`). Timestamp helper `utc_now_iso()`. |
-| `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveSupportEffectState`, `ActiveAffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
+| `models.py` | Core dataclasses: `ClientSession`, `ItemState`, `EntityState`, `EquipmentState`, `CombatState`, `CorpseState`, `ActiveAffectState`, `PlayerState`, `PlayerStatus`, `PlayerCombatState`. |
 | `settings.py` | Loads typed runtime config from [mudproto_server/configuration/server/settings.json](mudproto_server/configuration/server/settings.json), [mudproto_server/configuration/server/directions.json](mudproto_server/configuration/server/directions.json), [mudproto_server/configuration/server/health_conditions.json](mudproto_server/configuration/server/health_conditions.json), [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json), and [mudproto_server/configuration/server/display_colors.json](mudproto_server/configuration/server/display_colors.json). Also bootstraps the `player_settings` DB table for reference max HP/vigor/mana. |
 | `session_registry.py` | Shared connected/authenticated session maps, shared world state attachment, and session/world lookup helpers. |
 | `session_timing.py` | Lag timing, lag-duration math, queued command handling, and last-message tracking for active sessions. |
@@ -360,7 +360,7 @@ power level, weapon template IDs, skill list, and cooldown tracking.
 - `combat` (engaged entities, opening attacker, skill and item cooldowns)
 - `entities`, `corpses`, `room_coin_piles`, `room_ground_items` (shared
   world references)
-- `known_spell_ids`, `known_skill_ids`, `active_support_effects`
+- `known_spell_ids`, `known_skill_ids`, `active_affects`
 - Auth/connection state, lag state, command queue, scheduler task
 
 ---
@@ -534,21 +534,15 @@ When an entity dies:
   timestamp-based it applies identically in and out of combat.
 - NPC: `entity.skill_cooldowns` + `skill_lag_rounds_remaining`.
 
-### Support Effects
-
-- `ActiveSupportEffectState` tracked on the session.
-- **Timed** (`remaining_hours`): processed by `game_hour_ticks.py` each
-  game hour.
-- **Battle-round** (`remaining_rounds`): processed by
-  `battle_round_ticks.py` each combat round.
-
 ### Affects
 
 - Defined in `configuration/attributes/affects.json` as shared templates using `affect_id`, `descriptor`, `affect_mode`, and `can_be_negative`.
 - Skills and spells reference them via `affect_ids`, using either a plain string id or an override object.
-- `ActiveAffectState` is tracked on the session alongside support effects.
+- `ActiveAffectState` is tracked on the session.
 - Runtime behavior keys off the shared affect id directly, while the score screen renders the source name plus a generic descriptor.
 - Negative-capable affects render polarity-aware labels such as `Increased Damage Dealt` or `Reduced Damage Received`, and regeneration labels include the specific resource type.
+- **Timed** (`remaining_hours`): processed by `game_hour_ticks.py` each game hour.
+- **Battle-round** (`remaining_rounds`): processed by `battle_round_ticks.py` each combat round.
 - Resolved and processed by `combat_ability_effects.py`.
 
 ---

@@ -356,19 +356,12 @@ def _apply_player_attacks(
         if entity.hit_points <= 0:
             break
 
-    # Extra unarmed hits can come from legacy support effects or affect-based skills.
-    support_extra_unarmed = sum(
-        max(0, int(effect.support_amount))
-        for effect in session.active_support_effects
-        if effect.support_effect == "extra_unarmed_hits"
-        and effect.support_mode == "battle_rounds"
-        and effect.remaining_rounds > 0
-    )
+    # Extra unarmed hits from affect-based skills.
     affect_extra_main, affect_extra_off, affect_extra_unarmed = _resolve_extra_hits_from_affects(
         list(session.active_affects),
         player_level=max(1, int(session.player.level)),
     )
-    extra_unarmed = max(support_extra_unarmed, affect_extra_unarmed)
+    extra_unarmed = affect_extra_unarmed
 
     main_hand = get_equipped_main_hand(session)
     main_weapon = main_hand if main_hand is not None and main_hand.slot == "weapon" else None

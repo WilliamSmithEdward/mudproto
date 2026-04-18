@@ -7,7 +7,7 @@ from assets import get_skill_by_id, get_spell_by_id
 from combat_text import append_newline_if_needed
 from damage import roll_skill_damage, roll_spell_damage
 from grammar import with_article
-from models import ActiveSupportEffectState, ClientSession, EntityState
+from models import ClientSession, EntityState
 
 from combat_ability_effects import (
     _apply_ability_affects,
@@ -130,38 +130,6 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
                     entity.vigor = min(entity.max_vigor, entity.vigor + total_support_amount)
                 elif support_effect == "mana":
                     entity.mana = min(entity.max_mana, entity.mana + total_support_amount)
-            elif support_mode in {"timed", "battle_rounds"}:
-                effect_id = str(skill.get("skill_id", skill_name)).strip() or skill_name
-                refreshed = False
-                for active_effect in entity.active_support_effects:
-                    if active_effect.spell_id != effect_id:
-                        continue
-                    active_effect.support_mode = support_mode
-                    active_effect.support_effect = support_effect
-                    active_effect.support_amount = total_support_amount
-                    active_effect.support_dice_count = 0
-                    active_effect.support_dice_sides = 0
-                    active_effect.support_roll_modifier = 0
-                    active_effect.support_scaling_bonus = 0
-                    active_effect.remaining_hours = duration_hours
-                    active_effect.remaining_rounds = duration_rounds
-                    refreshed = True
-                    break
-
-                if not refreshed:
-                    entity.active_support_effects.append(ActiveSupportEffectState(
-                        spell_id=effect_id,
-                        spell_name=skill_name,
-                        support_mode=support_mode,
-                        support_effect=support_effect,
-                        support_amount=total_support_amount,
-                        remaining_hours=duration_hours,
-                        support_dice_count=0,
-                        support_dice_sides=0,
-                        support_roll_modifier=0,
-                        support_scaling_bonus=0,
-                        remaining_rounds=duration_rounds,
-                    ))
         elif not has_affect_payload:
             return False
         if support_context:
@@ -331,38 +299,6 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
                     entity.vigor = min(entity.max_vigor, entity.vigor + rolled_support_amount)
                 elif support_effect == "mana":
                     entity.mana = min(entity.max_mana, entity.mana + rolled_support_amount)
-            elif support_mode in {"timed", "battle_rounds"}:
-                spell_id = str(spell.get("spell_id", spell_name)).strip() or spell_name
-                refreshed = False
-                for active_effect in entity.active_support_effects:
-                    if active_effect.spell_id != spell_id:
-                        continue
-                    active_effect.support_mode = support_mode
-                    active_effect.support_effect = support_effect
-                    active_effect.support_amount = support_amount
-                    active_effect.support_dice_count = dice_count
-                    active_effect.support_dice_sides = dice_sides
-                    active_effect.support_roll_modifier = roll_modifier
-                    active_effect.support_scaling_bonus = scaling_bonus
-                    active_effect.remaining_hours = duration_hours
-                    active_effect.remaining_rounds = duration_rounds
-                    refreshed = True
-                    break
-
-                if not refreshed:
-                    entity.active_support_effects.append(ActiveSupportEffectState(
-                        spell_id=spell_id,
-                        spell_name=spell_name,
-                        support_mode=support_mode,
-                        support_effect=support_effect,
-                        support_amount=support_amount,
-                        support_dice_count=dice_count,
-                        support_dice_sides=dice_sides,
-                        support_roll_modifier=roll_modifier,
-                        support_scaling_bonus=scaling_bonus,
-                        remaining_hours=duration_hours,
-                        remaining_rounds=duration_rounds,
-                    ))
         elif not has_affect_payload:
             return False
 

@@ -48,10 +48,6 @@ def _resolve_posture_label(session: ClientSession) -> str:
 
 
 def _resolve_effect_name(effect) -> str:
-    spell_name = str(getattr(effect, "spell_name", "")).strip()
-    if spell_name:
-        return spell_name
-
     affect_name = str(getattr(effect, "affect_name", "")).strip()
     if affect_name:
         return affect_name
@@ -98,7 +94,7 @@ def _resolve_effect_label(effect) -> str:
 
 def _format_effect_remaining_duration(effect) -> str:
     effect_mode = str(
-        getattr(effect, "support_mode", getattr(effect, "affect_mode", "timed"))
+        getattr(effect, "affect_mode", "timed")
     ).strip().lower() or "timed"
     if effect_mode == "battle_rounds":
         rounds = max(0, int(getattr(effect, "remaining_rounds", 0)))
@@ -159,7 +155,7 @@ def display_score(session: ClientSession) -> dict:
         attribute_line_texts.append(f" - {attribute_name} ({attribute_id.upper()}): {value}{suffix}")
 
     active_effects = sorted(
-        list(session.active_support_effects) + list(session.active_affects),
+        list(session.active_affects),
         key=lambda effect: _resolve_effect_name(effect).lower(),
     )
     effect_line_texts: list[str] = []

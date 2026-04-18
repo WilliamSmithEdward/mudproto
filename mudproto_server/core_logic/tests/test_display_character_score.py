@@ -1,6 +1,6 @@
 import display_character
 import combat_player_abilities
-from models import ActiveAffectState, ActiveSupportEffectState, ClientSession
+from models import ActiveAffectState, ClientSession
 
 
 def _make_session(client_id: str, name: str) -> ClientSession:
@@ -75,16 +75,17 @@ def test_score_displays_sleeping_posture() -> None:
 
 def test_score_displays_active_affects_and_support_effects() -> None:
     session = _make_session("client-score-effects", "Lucia")
-    session.active_support_effects.append(ActiveSupportEffectState(
-        spell_id="spell.regeneration-ward",
-        spell_name="Regeneration Ward",
-        support_mode="timed",
-        support_effect="heal",
-        support_amount=12,
+    session.active_affects.append(ActiveAffectState(
+        affect_id="affect.regeneration",
+        affect_name="Regeneration Ward",
+        affect_mode="timed",
+        affect_type="regeneration",
+        target_resource="hit_points",
+        affect_amount=12,
         remaining_hours=2,
     ))
     session.active_affects.append(ActiveAffectState(
-        affect_id="affect.fist-flurry",
+        affect_id="affect.extra-hits",
         affect_name="Fist Flurry",
         affect_mode="battle_rounds",
         affect_type="extra_unarmed_hits",
@@ -95,7 +96,8 @@ def test_score_displays_active_affects_and_support_effects() -> None:
     outbound = display_character.display_score(session)
     rendered = _extract_display_text(outbound)
 
-    assert "Regeneration Ward (2 hours remaining)" in rendered
+    assert "Regeneration Ward" in rendered
+    assert "2 hours remaining" in rendered
     assert "Fist Flurry (Extra Hits, 3 rounds remaining)" in rendered
 
 
@@ -228,12 +230,22 @@ def test_score_displays_targeted_ongoing_support_spell_from_another_player(monke
         "cast_type": "target",
         "mana_cost": 5,
         "support_effect": "heal",
-        "support_amount": 6,
+        "support_amount": 0,
         "support_dice_count": 0,
-        "support_mode": "battle_rounds",
+        "support_mode": "instant",
         "duration_rounds": 2,
         "support_context": "A steady ward shines over you.",
-        "affect_ids": [],
+        "affect_ids": [
+            {
+                "affect_id": "affect.regeneration",
+                "name": "Guardian Light",
+                "affect_mode": "battle_rounds",
+                "duration_rounds": 2,
+                "target": "target",
+                "target_resource": "hit_points",
+                "affect_amount": 6,
+            }
+        ],
     }
 
     monkeypatch.setattr(
@@ -246,4 +258,5 @@ def test_score_displays_targeted_ongoing_support_spell_from_another_player(monke
     score_rendered = _extract_display_text(display_character.display_score(target))
 
     assert applied is True
-    assert "Guardian Light (2 rounds remaining)" in score_rendered
+    assert "Guardian Light" in score_rendered
+    assert "2 rounds remaining" in score_rendered

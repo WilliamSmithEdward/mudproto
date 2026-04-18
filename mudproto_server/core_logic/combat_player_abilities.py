@@ -2,7 +2,7 @@
 
 from attribute_config import posture_prevents_skill_spell_use
 from grammar import third_personize_text, with_article
-from models import ActiveSupportEffectState, ClientSession, EntityState
+from models import ClientSession, EntityState
 from player_resources import get_player_resource_caps
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 from targeting_follow import _resolve_room_player_selector
@@ -262,38 +262,6 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     support_target_session.status.vigor = min(caps["vigor"], support_target_session.status.vigor + total_support_amount)
                 else:
                     support_target_session.status.mana = min(caps["mana"], support_target_session.status.mana + total_support_amount)
-            else:
-                effect_id = skill_id or skill_name
-                refreshed = False
-                for active_effect in support_target_session.active_support_effects:
-                    if active_effect.spell_id != effect_id:
-                        continue
-                    active_effect.support_mode = support_mode
-                    active_effect.support_effect = support_effect
-                    active_effect.support_amount = total_support_amount
-                    active_effect.support_dice_count = 0
-                    active_effect.support_dice_sides = 0
-                    active_effect.support_roll_modifier = 0
-                    active_effect.support_scaling_bonus = 0
-                    active_effect.remaining_hours = duration_hours
-                    active_effect.remaining_rounds = effect_duration_rounds
-                    refreshed = True
-                    break
-
-                if not refreshed:
-                    support_target_session.active_support_effects.append(ActiveSupportEffectState(
-                        spell_id=effect_id,
-                        spell_name=skill_name,
-                        support_mode=support_mode,
-                        support_effect=support_effect,
-                        support_amount=total_support_amount,
-                        remaining_hours=duration_hours,
-                        support_dice_count=0,
-                        support_dice_sides=0,
-                        support_roll_modifier=0,
-                        support_scaling_bonus=0,
-                        remaining_rounds=effect_duration_rounds,
-                    ))
 
         if support_context:
             rendered_support_context = support_context
@@ -732,43 +700,6 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 observer_lines,
                 recipient_lines_by_client_id=recipient_observer_lines or None,
             ), True
-
-        _, dice_count, dice_sides, roll_modifier, scaling_bonus = _roll_player_support_amount(
-            session,
-            spell,
-            support_effect,
-        )
-
-        refreshed = False
-        for active_effect in support_target_session.active_support_effects:
-            if active_effect.spell_id != spell_id:
-                continue
-            active_effect.support_mode = support_mode
-            active_effect.support_effect = support_effect
-            active_effect.support_amount = support_amount
-            active_effect.support_dice_count = dice_count
-            active_effect.support_dice_sides = dice_sides
-            active_effect.support_roll_modifier = roll_modifier
-            active_effect.support_scaling_bonus = scaling_bonus
-            active_effect.remaining_hours = duration_hours
-            active_effect.remaining_rounds = duration_rounds
-            refreshed = True
-            break
-
-        if not refreshed:
-            support_target_session.active_support_effects.append(ActiveSupportEffectState(
-                spell_id=spell_id,
-                spell_name=spell_name,
-                support_mode=support_mode,
-                support_effect=support_effect,
-                support_amount=support_amount,
-                support_dice_count=dice_count,
-                support_dice_sides=dice_sides,
-                support_roll_modifier=roll_modifier,
-                support_scaling_bonus=scaling_bonus,
-                remaining_hours=duration_hours,
-                remaining_rounds=duration_rounds,
-            ))
 
         parts = [
             build_part("You cast "),
