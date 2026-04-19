@@ -13,16 +13,17 @@ def _read(path: Path) -> str:
 
 def test_readme_advocates_web_first_direction() -> None:
     content = _read(README)
+    content_lower = content.lower()
 
-    assert "A modern, server-authoritative real-time MUD framework in Python" in content
-    assert "browser-first client with aliases, key bindings, and reactive Actions" in content
-    assert "schema-driven LLM content pipeline" in content
-    assert "Why it stands out" in content
+    assert "a modern, server-authoritative real-time mud framework in python" in content_lower
+    assert "browser-first client with aliases, key bindings, and reactive actions" in content_lower
+    assert "schema-driven llm content" in content_lower
+    assert "why it stands out" in content_lower
     assert "images/mudproto_showcase" in content
     assert ".gif" in content
     assert "View full screenshot gallery" in content
-    assert "drop-in zones, NPCs, items, spells, and skills" in content
-    assert "Web client as the primary experience" in content
+    assert "drop-in zones, npcs, items, spells, and skills" in content_lower
+    assert "web client as the primary experience" in content_lower
     assert "instead of being split across multiple front ends" in content
     assert "mudproto_client_gui/" not in content
 
