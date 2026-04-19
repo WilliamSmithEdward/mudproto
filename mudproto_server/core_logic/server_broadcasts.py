@@ -33,6 +33,8 @@ def _iter_room_sessions(room_id: str, *, exclude_client_ids: set[str] | None = N
             continue
         if not session.is_connected or session.disconnected_by_server or not session.is_authenticated:
             continue
+        if session.pending_death_logout:
+            continue
         if session.player.current_room_id != normalized_room_id:
             continue
         peers.append(session)

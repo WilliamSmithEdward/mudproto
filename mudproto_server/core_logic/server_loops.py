@@ -217,6 +217,9 @@ async def command_scheduler_loop(session: ClientSession) -> None:
             if session.is_authenticated and not session.combat.engaged_entity_ids:
                 maybe_auto_engage_current_room(session)
 
+            if session.pending_death_logout:
+                continue
+
             if is_session_lagged(session):
                 continue
 
@@ -373,6 +376,7 @@ async def combat_round_loop() -> None:
                     if session.is_connected
                     and not session.disconnected_by_server
                     and session.is_authenticated
+                    and not session.pending_death_logout
                     and session.player.current_room_id == room_id
                 ]
 
@@ -390,9 +394,14 @@ async def combat_round_loop() -> None:
                     outbounds = _inject_private_lines_into_outbound(recipient, outbounds)
                     await send_outbound(recipient.websocket, outbounds)
 
-                for actor_session, _ in round_results:
+                for actor_session, actor_result in round_results:
                     if not actor_session.pending_death_logout:
                         continue
+                    death_display = _build_unified_room_round_display(
+                        actor_session, [(actor_session, actor_result)]
+                    )
+                    if death_display is not None:
+                        await send_outbound(actor_session.websocket, death_display)
                     reset_session_to_login(actor_session)
                     if actor_session.is_connected:
                         await send_outbound(actor_session.websocket, initial_auth_prompt(actor_session))
