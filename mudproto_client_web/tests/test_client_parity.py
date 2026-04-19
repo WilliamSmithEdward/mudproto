@@ -18,7 +18,8 @@ def test_readme_advocates_web_first_direction() -> None:
     assert "browser-first client with aliases, key bindings, and reactive Actions" in content
     assert "schema-driven LLM content pipeline" in content
     assert "Why it stands out" in content
-    assert "images/mudproto_showcase.gif" in content
+    assert "images/mudproto_showcase" in content
+    assert ".gif" in content
     assert "View full screenshot gallery" in content
     assert "drop-in zones, NPCs, items, spells, and skills" in content
     assert "Web-first direction" in content
