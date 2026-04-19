@@ -1,7 +1,7 @@
 <h1 align="center">MudProto</h1>
 
 <p align="center">
-  A modern, server-authoritative real-time MUD framework in Python with a browser-first client and a schema-driven LLM content pipeline.
+  A modern, server-authoritative real-time MUD framework in Python, built solo with a polished web client, persistent world systems, multiplayer async concurrency, and a schema-driven LLM content generation pipeline.
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  The live demo highlights one of the strongest parts of the project: a polished web client that players can open instantly in the browser, with aliases, key bindings, reactive Actions, saved configs, and streamlined settings.
+  The live demo highlights one of the strongest parts of the project: a polished web client that players can open instantly in the browser, with aliases, key bindings, reactive actions, saved configs, and streamlined settings.
 </p>
 
 <p align="center">
@@ -46,11 +46,10 @@
 
 ## Why it stands out
 
-- Solo-built end-to-end: real-time server loops, combat systems, persistence, browser UX, and deployment all work together in one playable stack.
+- Solo-built end-to-end: backend networking, game systems, persistence, browser UX, CI, and deployment all work together in one playable stack.
 - A browser-first client with aliases, key bindings, and reactive Actions, plus saved configs, toast feedback, modal settings, and direct in-browser play.
-- Real-time multiplayer combat with shared round output, cooldown-driven abilities, and server-authoritative game state.
-- JSON-driven world content backed by SQLite persistence for players, rooms, NPCs, corpses, loot, and items.
-- A schema-driven LLM content pipeline that can generate drop-in zones, NPCs, items, spells, and skills faster.
+- Server-authoritative architecture and concurrent multiplayer state handling built for real shared gameplay, not just a static demo.
+- Fast content iteration through structured assets and a schema-driven LLM content pipeline that can generate drop-in zones, NPCs, items, spells, and skills faster.
 
 ## Browser Client Highlights
 
@@ -60,8 +59,9 @@
 
 ## What this demonstrates
 
-- Real-time systems engineering across networking, session flow, combat timing, and persistence.
+- Real-time and concurrent multiplayer engineering across networking, session flow, combat timing, shared room state, and persistence.
 - Product-minded frontend work with a usable, polished browser interface rather than a bare debug client.
+- CI-backed development with automated regression testing across server logic, persistence boundaries, and web-client parity.
 - Data-driven design using JSON-backed game content and configurable mechanics.
 - Practical AI tooling through a schema-driven pipeline for generating structured world assets.
 - End-to-end ownership: architecture, gameplay systems, client UX, testing, and iteration.
