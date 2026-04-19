@@ -13,6 +13,24 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _isolate_player_state_database(tmp_path_factory):
+	import player_state_db
+	import settings
+
+	temp_dir = tmp_path_factory.mktemp("mudproto-db")
+	db_path = temp_dir / "mudproto-test.sqlite3"
+	monkeypatch = pytest.MonkeyPatch()
+	monkeypatch.setattr(settings, "DATABASE_DIRECTORY", temp_dir, raising=False)
+	monkeypatch.setattr(settings, "DATABASE_FILENAME", db_path.name, raising=False)
+	monkeypatch.setattr(settings, "PLAYER_STATE_DB_PATH", db_path, raising=False)
+	monkeypatch.setattr(player_state_db, "PLAYER_STATE_DB_PATH", db_path, raising=False)
+	try:
+		yield db_path
+	finally:
+		monkeypatch.undo()
+
+
 def _load_class_asset_ids() -> dict[str, set[str]]:
 	classes_file = Path(__file__).resolve().parent.parent.parent / "configuration" / "attributes" / "classes.json"
 	result = {
