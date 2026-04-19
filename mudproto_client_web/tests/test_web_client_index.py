@@ -41,6 +41,7 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert 'id="settingsModal"' in content
     assert 'id="helpModal"' in content
     assert 'id="helpHomeView"' in content
+    assert 'id="toastContainer"' in content
     assert 'id="helpDetailView"' in content
     assert 'id="helpBackBtn"' in content
     assert "toggleConnection()" in content
@@ -142,6 +143,24 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'this.renderQueue.splice(0, this.renderQueue.length - MAX_RENDER_QUEUE_GROUPS)' in content
     assert '.output-group {' in content
     assert 'display: inline;' in content
+    assert '.toast-container {' in content
+    assert 'position: absolute;' in content
+    assert 'top: calc(100% + 10px);' in content
+    assert '.toast {' in content
+    assert 'transition: opacity 180ms ease, transform 180ms ease;' in content
+    assert '.toast.toast-enter,' in content
+    assert '.toast.toast-exit {' in content
+    assert 'captureToastRects()' in content
+    assert 'animateToastLayout(previousRects)' in content
+    assert 'pulseToast(toast)' in content
+    assert 'scheduleToastRemoval(toast, durationMs)' in content
+    assert 'existingToast && !existingToast.classList.contains("toast-exit")' in content
+    assert 'this.toastContainer.prepend(toast);' in content
+    assert 'this.toastContainer.prepend(existingToast);' in content
+    assert 'toast.classList.remove("toast-enter")' in content
+    assert 'showToast(text, fg = "bright_white")' in content
+    assert 'toast.classList.add("toast-exit")' in content
+    assert 'this.showToast(text, fg);' in content
     assert 'state === "connected" || state === "connecting" ? "Disconnect" : "Connect"' in content
 
 

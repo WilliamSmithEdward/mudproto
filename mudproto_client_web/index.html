@@ -57,11 +57,13 @@
     }
 
     .toolbar {
+      position: relative;
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
       gap: 10px;
       min-width: 0;
+      overflow: visible;
     }
 
     .status {
@@ -664,6 +666,100 @@
       display: inline;
     }
 
+    .toast-container {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 1200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: min(360px, calc(100vw - 56px));
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(9, 9, 9, 0.97);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+      white-space: pre-wrap;
+      line-height: 1.35;
+      max-height: min(40vh, 260px);
+      overflow-y: auto;
+      scrollbar-color: #3a3a3a #070707;
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 180ms ease, transform 180ms ease;
+      will-change: opacity, transform;
+    }
+
+    .toast.toast-enter,
+    .toast.toast-exit {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    .toast.toast-refresh {
+      animation: toastPulse 220ms ease;
+    }
+
+    .toast.toast-info {
+      color: var(--accent);
+      border-color: #174b4b;
+    }
+
+    .toast.toast-success {
+      color: var(--ok);
+      border-color: #174d15;
+    }
+
+    .toast.toast-warning {
+      color: var(--warn);
+      border-color: #5d5200;
+    }
+
+    .toast.toast-error {
+      color: var(--err);
+      border-color: #5d1d24;
+    }
+
+    @keyframes toastFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes toastFadeOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+    }
+
+    @keyframes toastPulse {
+      0% {
+        transform: translateY(0) scale(1);
+      }
+      50% {
+        transform: translateY(0) scale(1.015);
+      }
+      100% {
+        transform: translateY(0) scale(1);
+      }
+    }
+
     .inputbar {
       display: flex;
       align-items: center;
@@ -700,6 +796,7 @@
       <button id="helpBtn" type="button" aria-label="Open help" title="Help">?</button>
       <button id="menuBtn" type="button" aria-label="Open settings menu" title="Settings">☰</button>
       <div id="status" class="status disconnected">Disconnected</div>
+      <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
     </div>
 
     <input id="configFileInput" type="file" accept=".json,application/json" hidden />
@@ -1209,6 +1306,8 @@
         this.inputEl = document.getElementById("commandInput");
         this.inputFormEl = document.getElementById("inputForm");
         this.statusEl = document.getElementById("status");
+        this.toastContainer = document.getElementById("toastContainer");
+        this.toastTimeoutHandles = new Map();
         this.serverUriEl = document.getElementById("serverUri");
         this.connectionBtn = document.getElementById("connectionBtn");
         this.helpBtn = document.getElementById("helpBtn");
@@ -2832,6 +2931,139 @@
         }
       }
 
+      toastToneClass(fg) {
+        if (fg === "bright_green" || fg === "green") {
+          return "toast-success";
+        }
+        if (fg === "bright_yellow" || fg === "yellow") {
+          return "toast-warning";
+        }
+        if (fg === "bright_red" || fg === "red") {
+          return "toast-error";
+        }
+        return "toast-info";
+      }
+
+      captureToastRects() {
+        if (!this.toastContainer) {
+          return new Map();
+        }
+        return new Map(
+          Array.from(this.toastContainer.children).map((toast) => [toast, toast.getBoundingClientRect()])
+        );
+      }
+
+      animateToastLayout(previousRects) {
+        if (!this.toastContainer) {
+          return;
+        }
+
+        Array.from(this.toastContainer.children).forEach((toast) => {
+          const previousRect = previousRects.get(toast);
+          if (!previousRect) {
+            return;
+          }
+          const currentRect = toast.getBoundingClientRect();
+          const deltaY = previousRect.top - currentRect.top;
+          if (Math.abs(deltaY) < 1) {
+            return;
+          }
+          toast.style.transition = "none";
+          toast.style.transform = `translateY(${deltaY}px)`;
+          window.requestAnimationFrame(() => {
+            toast.style.transition = "";
+            toast.style.transform = "";
+          });
+        });
+      }
+
+      pulseToast(toast) {
+        if (!toast) {
+          return;
+        }
+        toast.classList.remove("toast-refresh");
+        void toast.offsetWidth;
+        toast.classList.add("toast-refresh");
+        window.setTimeout(() => toast.classList.remove("toast-refresh"), 220);
+      }
+
+      scheduleToastRemoval(toast, durationMs) {
+        if (!toast) {
+          return;
+        }
+        const timeoutHandle = this.toastTimeoutHandles.get(toast);
+        if (timeoutHandle) {
+          window.clearTimeout(timeoutHandle);
+        }
+        const nextTimeoutHandle = window.setTimeout(() => this.removeToast(toast), durationMs);
+        this.toastTimeoutHandles.set(toast, nextTimeoutHandle);
+      }
+
+      removeToast(toast) {
+        if (!toast || toast.classList.contains("toast-exit")) {
+          return;
+        }
+        const timeoutHandle = this.toastTimeoutHandles.get(toast);
+        if (timeoutHandle) {
+          window.clearTimeout(timeoutHandle);
+          this.toastTimeoutHandles.delete(toast);
+        }
+        const previousRects = this.captureToastRects();
+        toast.classList.add("toast-exit");
+        window.setTimeout(() => {
+          toast.remove();
+          this.animateToastLayout(previousRects);
+        }, 180);
+      }
+
+      showToast(text, fg = "bright_white") {
+        if (!this.toastContainer) {
+          return;
+        }
+
+        const normalized = String(text || "").trim();
+        if (!normalized) {
+          return;
+        }
+
+        const toneClass = this.toastToneClass(fg);
+        const toastKey = `${toneClass}:${normalized}`;
+        const durationMs = Math.max(3200, Math.min(12000, 2400 + normalized.split("\n").length * 900));
+        const existingToast = Array.from(this.toastContainer.children).find(
+          (child) => child.dataset && child.dataset.toastKey === toastKey
+        );
+        if (existingToast && !existingToast.classList.contains("toast-exit")) {
+          const previousRects = this.captureToastRects();
+          this.toastContainer.prepend(existingToast);
+          window.requestAnimationFrame(() => {
+            this.animateToastLayout(previousRects);
+            this.pulseToast(existingToast);
+          });
+          this.scheduleToastRemoval(existingToast, durationMs);
+          return;
+        }
+
+        const previousRects = this.captureToastRects();
+        const toast = document.createElement("div");
+        toast.className = `toast ${toneClass} toast-enter`;
+        toast.textContent = normalized;
+        toast.dataset.toastKey = toastKey;
+        toast.title = "Click to dismiss";
+        toast.addEventListener("click", () => this.removeToast(toast));
+        this.toastContainer.prepend(toast);
+
+        window.requestAnimationFrame(() => {
+          this.animateToastLayout(previousRects);
+          toast.classList.remove("toast-enter");
+        });
+
+        while (this.toastContainer.childElementCount > 4) {
+          this.removeToast(this.toastContainer.lastElementChild);
+        }
+
+        this.scheduleToastRemoval(toast, durationMs);
+      }
+
       appendInlineEcho(text) {
         const span = document.createElement("span");
         span.textContent = text;
@@ -2974,21 +3206,7 @@
       }
 
       appendSystemMessage(text, fg = "bright_white") {
-        const lines = [];
-        if (!this.outputEndsWithNewline) {
-          lines.push([]);
-        }
-        const textLines = String(text).split("\n");
-        for (const textLine of textLines) {
-          if (textLine === "") {
-            lines.push([]);
-          } else {
-            lines.push([{ text: textLine, fg, bold: false }]);
-          }
-        }
-        lines.push([]);
-        lines.push([]);
-        this.appendLineGroup(lines);
+        this.showToast(text, fg);
       }
 
       renderDisplayMessage(message) {
