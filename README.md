@@ -1,11 +1,11 @@
 <h1 align="center">MudProto</h1>
 
 <p align="center">
-  A modern, server-authoritative real-time MUD framework in Python with a polished browser client and LLM-assisted content generation.
+  A modern, server-authoritative real-time MUD framework in Python with a browser-first client and a schema-driven LLM content pipeline.
 </p>
 
 <p align="center">
-  Built to explore clean async systems, data-driven gameplay, and fast world-building workflows.
+  Built to showcase clean async systems, data-driven gameplay, polished client UX, and fast world-building workflows.
 </p>
 
 <p align="center">
@@ -33,15 +33,32 @@
 </p>
 
 <p align="center">
-  <img src="images/mudproto_01.png" alt="MudProto gameplay screenshot" />
+  <img src="images/mudproto_03.png" alt="MudProto combat in the browser client" width="900" />
+</p>
+
+## Screenshots
+
+<p align="center">
+  <img src="images/mudproto_01.png" alt="MudProto browser client overview" width="48%" />
+  <img src="images/mudproto_02.png" alt="MudProto live browser session" width="48%" />
+</p>
+
+<p align="center">
+  <img src="images/mudproto_04.png" alt="MudProto client settings" width="32%" />
+  <img src="images/mudproto_05.png" alt="MudProto alias editor" width="32%" />
+  <img src="images/mudproto_06.png" alt="MudProto command help" width="32%" />
+</p>
+
+<p align="center">
+  <img src="images/mudproto_07.png" alt="MudProto additional gameplay screenshot" width="900" />
 </p>
 
 ## Why it stands out
 
 - Real-time multiplayer combat with shared round output, cooldown-driven abilities, and server-authoritative game state.
-- A polished browser client with aliases, key bindings, reactive actions, saved configs, and live telnet-oriented tooling.
-- JSON-driven world content backed by SQLite persistence for players, rooms, NPCs, and items.
-- LLM-assisted content generation workflows for building zones and asset bundles faster.
+- A browser-first client with aliases, key bindings, and reactive Actions, plus saved configs and direct in-browser play.
+- JSON-driven world content backed by SQLite persistence for players, rooms, NPCs, corpses, loot, and items.
+- A schema-driven LLM content pipeline that can generate drop-in zones, NPCs, items, spells, and skills faster.
 
 ## Quick Start
 
@@ -133,7 +150,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for a deeper technical breakdown.
 
 ## AI Content Pipeline
 
-MudProto supports LLM-assisted asset bundle generation.
+MudProto includes a schema-driven LLM content pipeline for mechanically complete asset bundle generation.
 
 Main entrypoint:
 
