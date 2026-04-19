@@ -977,12 +977,14 @@
     }
 
     function splitCommandLine(commandLine) {
+      const source = String(commandLine || "");
       const segments = [];
       let current = "";
       let quote = null;
       let escaped = false;
 
-      for (const char of String(commandLine || "")) {
+      for (let index = 0; index < source.length; index += 1) {
+        const char = source[index];
         if (escaped) {
           current += char;
           escaped = false;
@@ -997,16 +999,24 @@
 
         if (quote) {
           if (char === quote) {
-            quote = null;
+            const nextChar = source[index + 1] || "";
+            if (!nextChar || /\s/.test(nextChar) || nextChar === ";") {
+              quote = null;
+            }
           }
           current += char;
           continue;
         }
 
         if (char === '"' || char === "'") {
-          quote = char;
-          current += char;
-          continue;
+          const prevChar = current.slice(-1);
+          const nextChar = source[index + 1] || "";
+          const beginsQuotedSection = (!prevChar || /\s/.test(prevChar)) && !!nextChar && !/\s/.test(nextChar);
+          if (beginsQuotedSection) {
+            quote = char;
+            current += char;
+            continue;
+          }
         }
 
         if (char === ";") {
@@ -1060,12 +1070,14 @@
     }
 
     function parseCommandWords(commandText) {
+      const source = String(commandText || "").trim();
       const words = [];
       let current = "";
       let quote = null;
       let escaped = false;
 
-      for (const char of String(commandText || "").trim()) {
+      for (let index = 0; index < source.length; index += 1) {
+        const char = source[index];
         if (escaped) {
           current += char;
           escaped = false;
@@ -1079,7 +1091,12 @@
 
         if (quote) {
           if (char === quote) {
-            quote = null;
+            const nextChar = source[index + 1] || "";
+            if (!nextChar || /\s/.test(nextChar)) {
+              quote = null;
+            } else {
+              current += char;
+            }
           } else {
             current += char;
           }
@@ -1087,8 +1104,12 @@
         }
 
         if (char === '"' || char === "'") {
-          quote = char;
-          continue;
+          const nextChar = source[index + 1] || "";
+          const beginsQuotedWord = !current && !!nextChar && !/\s/.test(nextChar);
+          if (beginsQuotedWord) {
+            quote = char;
+            continue;
+          }
         }
 
         if (/\s/.test(char)) {
