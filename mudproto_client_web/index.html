@@ -862,6 +862,7 @@
             <div class="modal-section-title">Configuration</div>
             <button id="saveConfigBtn" type="button">Save Config As...</button>
             <button id="loadConfigBtn" type="button">Load Config</button>
+            <button id="deleteConfigBtn" type="button">Delete Config</button>
             <button id="saveConfigAsBtn" type="button">Download Config</button>
             <button id="loadNewConfigBtn" type="button">Load Config File</button>
           </div>
@@ -1376,6 +1377,7 @@
         this.pendingLoadMode = "merge";
         this.pendingLoadedConfig = null;
         this.pendingLoadedConfigName = "";
+        this.pendingConfigSelectionMode = "load";
         this.configFileName = window.localStorage.getItem("mudproto.configFileName") || "mudproto-client-config.json";
 
         this.outputEl = document.getElementById("output");
@@ -1411,6 +1413,7 @@
         this.saveConfigBtn = document.getElementById("saveConfigBtn");
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
+        this.deleteConfigBtn = document.getElementById("deleteConfigBtn");
         this.loadNewConfigBtn = document.getElementById("loadNewConfigBtn");
         this.loadConfigModeClearBtn = document.getElementById("loadConfigModeClearBtn");
         this.loadConfigModeAppendBtn = document.getElementById("loadConfigModeAppendBtn");
@@ -1492,6 +1495,7 @@
         this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
         this.loadConfigBtn.addEventListener("click", () => this.openLoadConfigSelection());
+        this.deleteConfigBtn.addEventListener("click", () => this.openDeleteConfigSelection());
         this.loadNewConfigBtn.addEventListener("click", () => this.requestLoadNewConfig());
         this.loadConfigModeClearBtn.addEventListener("click", () => this.applyPendingLoadedConfig("replace"));
         this.loadConfigModeAppendBtn.addEventListener("click", () => this.showLoadConfigConflictView());
@@ -1652,6 +1656,30 @@
         }
       }
 
+      deleteConfigSnapshot(name) {
+        const snapshotName = String(name || "").trim();
+        if (!snapshotName) {
+          return false;
+        }
+
+        try {
+          const raw = window.localStorage.getItem("mudproto.savedConfigs");
+          const savedConfigs = raw ? JSON.parse(raw) : {};
+          if (!Object.prototype.hasOwnProperty.call(savedConfigs, snapshotName)) {
+            return false;
+          }
+          delete savedConfigs[snapshotName];
+          window.localStorage.setItem("mudproto.savedConfigs", JSON.stringify(savedConfigs));
+          if (this.configFileName === snapshotName) {
+            this.configFileName = "mudproto-client-config.json";
+            window.localStorage.setItem("mudproto.configFileName", this.configFileName);
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
       buildClientConfig() {
         return this.normalizeClientConfig({
           version: 1,
@@ -1775,13 +1803,16 @@
           return;
         }
 
+        const isDeleteMode = this.pendingConfigSelectionMode === "delete";
         const snapshots = this.listStoredConfigSnapshots();
         this.savedConfigsList.textContent = "";
 
         if (!snapshots.length) {
           const empty = document.createElement("div");
           empty.className = "mapping-empty";
-          empty.textContent = "No saved configs are available in browser memory yet.";
+          empty.textContent = isDeleteMode
+            ? "No saved configs are available to delete."
+            : "No saved configs are available in browser memory yet.";
           this.savedConfigsList.appendChild(empty);
           return;
         }
@@ -1790,7 +1821,7 @@
           const row = document.createElement("button");
           row.type = "button";
           row.className = "mapping-row";
-          row.title = `Load ${name}`;
+          row.title = isDeleteMode ? `Delete ${name}` : `Load ${name}`;
 
           const nameEl = document.createElement("span");
           nameEl.className = "mapping-key";
@@ -1803,6 +1834,17 @@
           row.appendChild(nameEl);
           row.appendChild(valueEl);
           row.addEventListener("click", () => {
+            if (isDeleteMode) {
+              this.showConfirm(`Delete ${name} from browser memory?`, () => {
+                if (this.deleteConfigSnapshot(name)) {
+                  this.appendSystemMessage(`Deleted config ${name}.`, "bright_green");
+                } else {
+                  this.appendSystemMessage(`Could not delete config ${name}.`, "bright_red");
+                }
+                this.renderSavedConfigsList();
+              });
+              return;
+            }
             this.pendingLoadedConfig = config;
             this.pendingLoadedConfigName = name;
             this.showLoadConfigModeView(name, "saved config");
@@ -1819,8 +1861,9 @@
         this.loadConfigConflictView.classList.add("hidden");
       }
 
-      showLoadConfigSelectView() {
-        this.settingsTitle.textContent = "Load Config";
+      showLoadConfigSelectView(mode = "load") {
+        this.pendingConfigSelectionMode = mode;
+        this.settingsTitle.textContent = mode === "delete" ? "Delete Config" : "Load Config";
         this.settingsHomeView.classList.add("hidden");
         this.loadConfigSelectView.classList.remove("hidden");
         this.loadConfigModeView.classList.add("hidden");
@@ -1852,6 +1895,7 @@
         this.pendingLoadedConfig = null;
         this.pendingLoadedConfigName = "";
         this.pendingLoadMode = "merge";
+        this.pendingConfigSelectionMode = "load";
       }
 
       openSettings() {
@@ -2089,8 +2133,13 @@
 
       openLoadConfigSelection() {
         this.persistClientConfig();
+        this.showLoadConfigSelectView("load");
         this.renderSavedConfigsList();
-        this.showLoadConfigSelectView();
+      }
+
+      openDeleteConfigSelection() {
+        this.showLoadConfigSelectView("delete");
+        this.renderSavedConfigsList();
       }
 
       requestLoadConfig(loadMode = "merge") {

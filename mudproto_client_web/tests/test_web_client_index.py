@@ -50,6 +50,8 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert 'showPrompt("Save Config As...", this.configFileName' in content
     assert 'showPrompt("Download Config", this.configFileName' in content
     assert "Load Config" in content
+    assert "Delete Config" in content
+    assert 'id="deleteConfigBtn"' in content
     assert "Load Config File" in content
     assert "Load New Config" not in content
     assert 'id="loadNewConfigBtn"' in content
@@ -140,9 +142,12 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'this.promptOkBtn.textContent = acceptLabel;' in content
     assert 'Saved config as ${fileName}.' in content
     assert 'openLoadConfigSelection()' in content
+    assert 'openDeleteConfigSelection()' in content
+    assert 'deleteConfigSnapshot(name)' in content
+    assert 'showConfirm(`Delete ${name} from browser memory?`' in content
     assert 'renderSavedConfigsList()' in content
     assert 'showSettingsHome()' in content
-    assert 'showLoadConfigSelectView()' in content
+    assert 'showLoadConfigSelectView(mode = "load")' in content
     assert 'showLoadConfigModeView(fileName = "", sourceLabel = "config")' in content
     assert 'showLoadConfigConflictView()' in content
     assert '#settingsHomeView.hidden,' in content
