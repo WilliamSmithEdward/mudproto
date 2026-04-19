@@ -234,8 +234,6 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                 continue
 
             leader_name = _resolve_follow_leader_name(follower)
-            follower.following_player_key = ""
-            follower.following_player_name = ""
 
             if follower.combat.engaged_entity_ids:
                 block_reason = "Combat keeps you from following "
