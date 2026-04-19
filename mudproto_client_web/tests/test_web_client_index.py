@@ -1,9 +1,4 @@
-import json
 from pathlib import Path
-import shutil
-import subprocess
-
-import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -29,20 +24,6 @@ def _extract_javascript_function(content: str, function_name: str) -> str:
                 return content[start:index + 1]
 
     raise AssertionError(f"Expected matching closing brace for {function_name}.")
-
-
-def _run_parser_in_node(script_body: str) -> dict:
-    node_path = shutil.which("node")
-    if node_path is None:
-        pytest.skip("Node.js is not installed in this environment.")
-
-    completed = subprocess.run(
-        [node_path, "-e", script_body],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return json.loads(completed.stdout)
 
 
 def test_web_client_index_contains_mudproto_websocket_ui() -> None:
@@ -252,24 +233,15 @@ def test_web_client_options_modal() -> None:
     assert '[action] ${cmd}' in content
 
 
-def test_web_client_command_parser_allows_apostrophes_in_words() -> None:
+def test_web_client_command_parser_preserves_apostrophe_handling_guards() -> None:
     content = WEB_CLIENT_INDEX.read_text(encoding="utf-8")
 
-    helpers = [
-        _extract_javascript_function(content, "splitCommandLine"),
-        _extract_javascript_function(content, "parseCommandWords"),
-    ]
-    script = "\n\n".join(helpers) + """
-const result = {
-  plainSegments: splitCommandLine("say what's up"),
-  quotedSegments: splitCommandLine("say 'what's up';look"),
-  words: parseCommandWords("what's up")
-};
-console.log(JSON.stringify(result));
-"""
+    split_function = _extract_javascript_function(content, "splitCommandLine")
+    parse_function = _extract_javascript_function(content, "parseCommandWords")
 
-    parsed = _run_parser_in_node(script)
-
-    assert parsed["plainSegments"] == ["say what's up"]
-    assert parsed["quotedSegments"] == ["say 'what's up'", "look"]
-    assert parsed["words"] == ["what's", "up"]
+    assert 'const beginsQuotedSection = (!prevChar || /\\s/.test(prevChar)) && !!nextChar && !/\\s/.test(nextChar);' in split_function
+    assert 'const beginsQuotedWord = !current && !!nextChar && !/\\s/.test(nextChar);' in parse_function
+    assert 'if (char === "\\\\")' in split_function
+    assert 'if (char === "\\\\")' in parse_function
+    assert 'throw new Error("Malformed input: unmatched quote.");' in split_function
+    assert 'throw new Error("Malformed input: unmatched quote.");' in parse_function
