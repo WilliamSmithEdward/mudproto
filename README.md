@@ -33,24 +33,11 @@
 </p>
 
 <p align="center">
-  <img src="images/mudproto_03.png" alt="MudProto combat in the browser client" width="900" />
-</p>
-
-## Screenshots
-
-<p align="center">
-  <img src="images/mudproto_01.png" alt="MudProto browser client overview" width="48%" />
-  <img src="images/mudproto_02.png" alt="MudProto live browser session" width="48%" />
+  <img src="images/mudproto_showcase_rounded.gif" alt="MudProto animated browser client showcase" />
 </p>
 
 <p align="center">
-  <img src="images/mudproto_04.png" alt="MudProto client settings" width="32%" />
-  <img src="images/mudproto_05.png" alt="MudProto alias editor" width="32%" />
-  <img src="images/mudproto_06.png" alt="MudProto command help" width="32%" />
-</p>
-
-<p align="center">
-  <img src="images/mudproto_07.png" alt="MudProto additional gameplay screenshot" width="900" />
+  <a href="images/">View full screenshot gallery</a>
 </p>
 
 ## Why it stands out
