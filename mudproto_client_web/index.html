@@ -860,9 +860,9 @@
         <div id="settingsHomeView" class="modal-body settings-view">
           <div class="modal-section">
             <div class="modal-section-title">Configuration</div>
-            <button id="saveConfigBtn" type="button">Save Config</button>
-            <button id="saveConfigAsBtn" type="button">Save Config As...</button>
+            <button id="saveConfigBtn" type="button">Save Config As...</button>
             <button id="loadConfigBtn" type="button">Load Config</button>
+            <button id="saveConfigAsBtn" type="button">Download Config</button>
             <button id="loadNewConfigBtn" type="button">Load Config File</button>
           </div>
           <div class="modal-section">
@@ -952,7 +952,7 @@
         <div class="modal-body">
           <input id="promptInput" type="text" />
           <div class="prompt-actions">
-            <button id="promptOkBtn" type="button">Save</button>
+            <button id="promptOkBtn" type="button">OK</button>
             <button id="promptCancelBtn" type="button">Cancel</button>
           </div>
         </div>
@@ -1692,10 +1692,11 @@
         this.pendingConfirmAction = null;
       }
 
-      showPrompt(title, defaultValue, onAccept) {
+      showPrompt(title, defaultValue, onAccept, acceptLabel = "OK") {
         document.getElementById("promptTitle").textContent = title;
         this.promptInput.value = defaultValue;
         this.pendingPromptAction = onAccept;
+        this.promptOkBtn.textContent = acceptLabel;
         this.promptModal.classList.remove("hidden");
         this.promptModal.setAttribute("aria-hidden", "false");
         this.promptInput.focus();
@@ -2047,19 +2048,28 @@
       }
 
       saveConfig() {
-        this.downloadClientConfig(this.configFileName);
+        this.closeSettings();
+        this.showPrompt("Save Config As...", this.configFileName, (value) => {
+          let fileName = String(value || "").trim() || this.configFileName;
+          if (!fileName.toLowerCase().endsWith(".json")) {
+            fileName += ".json";
+          }
+          this.configFileName = fileName;
+          this.persistClientConfig();
+          this.appendSystemMessage(`Saved config as ${fileName}.`, "bright_green");
+        }, "Save");
       }
 
       saveConfigAs() {
         this.closeSettings();
-        this.showPrompt("Save Config As", this.configFileName, (value) => {
+        this.showPrompt("Download Config", this.configFileName, (value) => {
           let fileName = String(value || "").trim() || this.configFileName;
           if (!fileName.toLowerCase().endsWith(".json")) {
             fileName += ".json";
           }
           this.configFileName = fileName;
           this.downloadClientConfig(fileName);
-        });
+        }, "Download");
       }
 
       downloadClientConfig(fileName) {
@@ -2073,7 +2083,7 @@
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
-        this.appendSystemMessage(`Saved client config as ${fileName}.`, "bright_green");
+        this.appendSystemMessage(`Downloaded config as ${fileName}.`, "bright_green");
         this.closeSettings();
       }
 

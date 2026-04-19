@@ -30,8 +30,8 @@ def test_architecture_reflects_supported_web_client() -> None:
 def test_web_client_keeps_primary_settings_actions() -> None:
     content = _read(WEB_CLIENT_INDEX)
 
-    assert "Save Config" in content
     assert "Save Config As..." in content
+    assert "Download Config" in content
     assert "Load Config" in content
     assert "Load Config File" in content
     assert "Saved Configs" in content

@@ -45,8 +45,10 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert 'id="helpDetailView"' in content
     assert 'id="helpBackBtn"' in content
     assert "toggleConnection()" in content
-    assert "Save Config" in content
-    assert "Save Config As..." in content
+    assert 'id="saveConfigBtn" type="button">Save Config As...' in content
+    assert 'id="saveConfigAsBtn" type="button">Download Config' in content
+    assert 'showPrompt("Save Config As...", this.configFileName' in content
+    assert 'showPrompt("Download Config", this.configFileName' in content
     assert "Load Config" in content
     assert "Load Config File" in content
     assert "Load New Config" not in content
@@ -135,6 +137,8 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'this.pendingLoadedConfig = null' in content
     assert 'storeConfigSnapshot(name, config)' in content
     assert 'listStoredConfigSnapshots()' in content
+    assert 'this.promptOkBtn.textContent = acceptLabel;' in content
+    assert 'Saved config as ${fileName}.' in content
     assert 'openLoadConfigSelection()' in content
     assert 'renderSavedConfigsList()' in content
     assert 'showSettingsHome()' in content
@@ -152,6 +156,7 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'applyPendingLoadedConfig(loadMode = "replace", precedence = "incoming")' in content
     assert 'window.localStorage.setItem("mudproto.clientConfig"' in content
     assert "downloadClientConfig(fileName)" in content
+    assert 'Downloaded config as ${fileName}.' in content
     assert "countLeadingBlankLines(lines)" in content
     assert "countTrailingBlankLines(lines)" in content
     assert "normalizeBoundarySpacing(lines)" in content
