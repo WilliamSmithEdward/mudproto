@@ -47,13 +47,13 @@
 ## Why it stands out
 
 - Solo-built end-to-end: backend networking, game systems, persistence, browser UX, CI, and deployment all work together in one playable stack.
-- A browser-first client with aliases, key bindings, and reactive Actions, plus saved configs, toast feedback, modal settings, and direct in-browser play.
+- A browser-first client with aliases, key bindings, and reactive actions, plus saved configs, toast feedback, modal settings, and direct in-browser play.
 - Server-authoritative architecture and concurrent multiplayer state handling built for real shared gameplay, not just a static demo.
 - Fast content iteration through structured assets and a schema-driven LLM content pipeline that can generate drop-in zones, NPCs, items, spells, and skills faster.
 
 ## Browser Client Highlights
 
-- Fast command entry with aliases, key bindings, and reactive Actions for responsive play.
+- Fast command entry with aliases, key bindings, and reactive actions for responsive play.
 - Polished quality-of-life UX including saved configs, help views, floating feedback, and streamlined settings flows.
 - Live web access for quick demos, plus optional Telnet bridging for connecting to classic MUD workflows.
 
