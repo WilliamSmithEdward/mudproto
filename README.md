@@ -100,7 +100,7 @@ First commands to try:
 - inventory
 - scan
 
-## Web client as the primary experience
+## Web Client As the Primary Experience
 
 MudProto treats the web client as the main player interface so the best UX is available instantly in the browser instead of being split across multiple front ends.
 
