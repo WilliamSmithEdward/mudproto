@@ -5,7 +5,11 @@
 </p>
 
 <p align="center">
-  Built to showcase clean async systems, data-driven gameplay, polished client UX, and fast world-building workflows.
+  Built end-to-end as a solo engineering project to showcase real-time networking, persistent world state, polished browser UX, and fast world-building workflows.
+</p>
+
+<p align="center">
+  The live demo highlights one of the strongest parts of the project: a polished web client that players can open instantly in the browser, with aliases, key bindings, reactive Actions, saved configs, and streamlined settings.
 </p>
 
 <p align="center">
@@ -42,10 +46,25 @@
 
 ## Why it stands out
 
+- Solo-built end-to-end: real-time server loops, combat systems, persistence, browser UX, and deployment all work together in one playable stack.
+- A browser-first client with aliases, key bindings, and reactive Actions, plus saved configs, toast feedback, modal settings, and direct in-browser play.
 - Real-time multiplayer combat with shared round output, cooldown-driven abilities, and server-authoritative game state.
-- A browser-first client with aliases, key bindings, and reactive Actions, plus saved configs and direct in-browser play.
 - JSON-driven world content backed by SQLite persistence for players, rooms, NPCs, corpses, loot, and items.
 - A schema-driven LLM content pipeline that can generate drop-in zones, NPCs, items, spells, and skills faster.
+
+## Browser Client Highlights
+
+- Fast command entry with aliases, key bindings, and reactive Actions for responsive play.
+- Polished quality-of-life UX including saved configs, help views, floating feedback, and streamlined settings flows.
+- Live web access for quick demos, plus optional Telnet bridging for connecting to classic MUD workflows.
+
+## What this demonstrates
+
+- Real-time systems engineering across networking, session flow, combat timing, and persistence.
+- Product-minded frontend work with a usable, polished browser interface rather than a bare debug client.
+- Data-driven design using JSON-backed game content and configurable mechanics.
+- Practical AI tooling through a schema-driven pipeline for generating structured world assets.
+- End-to-end ownership: architecture, gameplay systems, client UX, testing, and iteration.
 
 ## Quick Start
 
@@ -81,9 +100,9 @@ First commands to try:
 - inventory
 - scan
 
-## Web-first direction
+## Web client as the primary experience
 
-MudProto now treats the browser client as the primary player interface to avoid maintaining two different clients.
+MudProto treats the web client as the main player interface so the best UX is available instantly in the browser instead of being split across multiple front ends.
 
 That means:
 

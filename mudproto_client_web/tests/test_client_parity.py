@@ -22,8 +22,8 @@ def test_readme_advocates_web_first_direction() -> None:
     assert ".gif" in content
     assert "View full screenshot gallery" in content
     assert "drop-in zones, NPCs, items, spells, and skills" in content
-    assert "Web-first direction" in content
-    assert "avoid maintaining two different clients" in content
+    assert "Web client as the primary experience" in content
+    assert "instead of being split across multiple front ends" in content
     assert "mudproto_client_gui/" not in content
 
 
