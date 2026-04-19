@@ -1,4 +1,4 @@
-from server_movement import DIRECTION_OPPOSITES, _format_arrival_origin
+from server_movement import DIRECTION_OPPOSITES, _format_arrival_origin, _follower_posture_prevents_movement
 import command_handlers.movement as movement
 from models import ClientSession
 from typing import Any, cast
@@ -117,6 +117,43 @@ def test_handle_movement_command_no_aliases_support_alone_suffix(monkeypatch) ->
         movement_payload = cast(dict[str, Any], outbound_payload["movement"])
         assert movement_payload["allow_followers"] is False
 
+
+# ---------------------------------------------------------------------------
+# _follower_posture_prevents_movement
+# ---------------------------------------------------------------------------
+
+
+def test_follower_standing_can_follow() -> None:
+    session = _make_session("client-a", "Ragnar")
+    assert _follower_posture_prevents_movement(session) is False
+
+
+def test_follower_sitting_blocks_follow(monkeypatch) -> None:
+    session = _make_session("client-a", "Ragnar")
+    session.is_sitting = True
+    monkeypatch.setattr("server_movement.posture_prevents_movement", lambda posture: posture == "sitting")
+    assert _follower_posture_prevents_movement(session) is True
+
+
+def test_follower_resting_blocks_follow(monkeypatch) -> None:
+    session = _make_session("client-a", "Ragnar")
+    session.is_resting = True
+    monkeypatch.setattr("server_movement.posture_prevents_movement", lambda posture: posture == "resting")
+    assert _follower_posture_prevents_movement(session) is True
+
+
+def test_follower_sleeping_blocks_follow(monkeypatch) -> None:
+    session = _make_session("client-a", "Ragnar")
+    session.is_sleeping = True
+    monkeypatch.setattr("server_movement.posture_prevents_movement", lambda posture: posture == "sleeping")
+    assert _follower_posture_prevents_movement(session) is True
+
+
+def test_follower_sitting_not_blocked_when_config_allows(monkeypatch) -> None:
+    session = _make_session("client-a", "Ragnar")
+    session.is_sitting = True
+    monkeypatch.setattr("server_movement.posture_prevents_movement", lambda _posture: False)
+    assert _follower_posture_prevents_movement(session) is False
 
 def test_try_move_blocked_while_sitting() -> None:
     session = _make_session("client-move", "Lucia")

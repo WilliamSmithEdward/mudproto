@@ -2,6 +2,7 @@
 
 import copy
 
+from attribute_config import posture_prevents_movement
 from combat_state import maybe_auto_engage_current_room
 from display_core import build_display, build_line, build_part
 from display_feedback import build_prompt_parts_default, display_error
@@ -170,6 +171,16 @@ def _collect_followers_for_leader(leader_session: ClientSession, room_id: str) -
     return followers
 
 
+def _follower_posture_prevents_movement(session: ClientSession) -> bool:
+    if session.is_sitting and posture_prevents_movement("sitting"):
+        return True
+    if session.is_resting and posture_prevents_movement("resting"):
+        return True
+    if session.is_sleeping and posture_prevents_movement("sleeping"):
+        return True
+    return False
+
+
 async def _send_room_notice(
     room_id: str,
     parts: list[dict],
@@ -200,7 +211,10 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             continue
 
         grouped_followers = _collect_followers_for_leader(origin_session, from_room_id) if allow_followers else []
-        moving_followers = [follower for follower in grouped_followers if not follower.combat.engaged_entity_ids]
+        moving_followers = [
+            follower for follower in grouped_followers
+            if not follower.combat.engaged_entity_ids and not _follower_posture_prevents_movement(follower)
+        ]
         moving_group_ids = {origin_session.client_id, *(follower.client_id for follower in moving_followers)}
 
         await _send_room_notice(
@@ -222,11 +236,17 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             leader_name = _resolve_follow_leader_name(follower)
             follower.following_player_key = ""
             follower.following_player_name = ""
+
+            if follower.combat.engaged_entity_ids:
+                block_reason = "Combat keeps you from following "
+            else:
+                block_reason = "Your posture prevents you from following "
+
             await send_outbound_fn(
                 follower.websocket,
                 build_display(
                     [
-                        build_part("Combat keeps you from following ", "feedback.text"),
+                        build_part(block_reason, "feedback.text"),
                         build_part(leader_name, "feedback.value", True),
                         build_part(".", "feedback.text"),
                     ],
@@ -251,7 +271,7 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
 
         entry_messages = get_room_enter_communications(origin_session, to_room_id, apply_state=True)
         entry_lines = _message_lines(entry_messages, audience_filter={"private", "both"})
-        if entry_lines:
+        if entry_lines and isinstance(outbound, dict):
             insert_room_communication_lines(outbound, entry_lines)
         for entry in entry_messages:
             audience = str(entry.get("audience", "both")).strip().lower() or "both"
@@ -338,5 +358,5 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             await send_outbound_fn(follower.websocket, follow_display)
 
         _refresh_origin_room_display(origin_session, outbound, to_room_id)
-        if entry_lines:
+        if entry_lines and isinstance(outbound, dict):
             insert_room_communication_lines(outbound, entry_lines)
