@@ -55,7 +55,7 @@
 
 - Fast command entry with aliases, key bindings, and reactive actions for responsive play.
 - Polished quality-of-life UX including saved configs, help views, floating feedback, and streamlined settings flows.
-- Live web access for quick demos, plus optional Telnet bridging for connecting to classic MUD workflows.
+- Instant browser access for quick demos with no install required.
 
 ## What this demonstrates
 
