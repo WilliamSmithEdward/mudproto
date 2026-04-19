@@ -14,6 +14,10 @@ def _read(path: Path) -> str:
 def test_readme_advocates_web_first_direction() -> None:
     content = _read(README)
 
+    assert "A modern, server-authoritative real-time MUD framework in Python" in content
+    assert "polished browser client" in content
+    assert "LLM-assisted content generation" in content
+    assert "Why it stands out" in content
     assert "Web-first direction" in content
     assert "avoid maintaining two different clients" in content
     assert "mudproto_client_gui/" not in content

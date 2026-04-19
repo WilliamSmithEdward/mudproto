@@ -1,7 +1,11 @@
 <h1 align="center">MudProto</h1>
 
 <p align="center">
-  A customizable, extensible, server-authoritative MUD framework built in Python.
+  A modern, server-authoritative real-time MUD framework in Python with a polished browser client and LLM-assisted content generation.
+</p>
+
+<p align="center">
+  Built to explore clean async systems, data-driven gameplay, and fast world-building workflows.
 </p>
 
 <p align="center">
@@ -31,6 +35,13 @@
 <p align="center">
   <img src="images/mudproto_01.png" alt="MudProto gameplay screenshot" />
 </p>
+
+## Why it stands out
+
+- Real-time multiplayer combat with shared round output, cooldown-driven abilities, and server-authoritative game state.
+- A polished browser client with aliases, key bindings, reactive actions, saved configs, and live telnet-oriented tooling.
+- JSON-driven world content backed by SQLite persistence for players, rooms, NPCs, and items.
+- LLM-assisted content generation workflows for building zones and asset bundles faster.
 
 ## Quick Start
 
