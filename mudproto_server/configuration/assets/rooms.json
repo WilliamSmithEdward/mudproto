@@ -195,8 +195,7 @@
     "items": [],
     "exits": {
       "east": "west-road-defile",
-      "north": "west-road-rise",
-      "south": "room.mire-threshold-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      "north": "west-road-rise"
     }
   },
   {

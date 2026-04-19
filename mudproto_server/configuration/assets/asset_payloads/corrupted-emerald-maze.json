@@ -534,6 +534,24 @@
   ],
   "rooms": [
     {
+      "room_id": "west-road-ford",
+      "name": "West Road — Muddy Ford",
+      "description": "A shallow brook cuts straight across the road here, its stepping stones slick with algae and mud churned up by travellers. The road resumes on the far bank, bending north.",
+      "zone_id": "zone.west-road",
+      "npcs": [
+        {
+          "npc_id": "npc.wandering-mercenary",
+          "count": 1
+        }
+      ],
+      "items": [],
+      "exits": {
+        "east": "west-road-defile",
+        "north": "west-road-rise",
+        "south": "room.mire-threshold-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      }
+    },
+    {
       "room_id": "room.mire-threshold-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
       "name": "Mire Threshold",
       "description": "South of the ford, the road sinks into mud darkened by emerald seep and old enchantment. Ferns crowd the path in unnaturally even ranks, and every leaf glitters with a sickly green sheen. Somewhere deeper in the wood, small voices laugh in perfect harmony and then go silent.",
