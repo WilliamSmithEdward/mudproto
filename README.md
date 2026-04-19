@@ -49,7 +49,7 @@
 - Solo-built end-to-end: backend networking, game systems, persistence, browser UX, CI, and deployment all work together in one playable stack.
 - A browser-first client with aliases, key bindings, and reactive actions, plus saved configs, toast feedback, modal settings, and direct in-browser play.
 - Server-authoritative architecture and concurrent multiplayer state handling built for real shared gameplay, not just a static demo.
-- Fast content iteration through structured assets and a schema-driven LLM content pipeline that can generate drop-in zones, NPCs, items, spells, and skills faster.
+- Fast content iteration through structured assets and a schema-driven LLM content pipeline that can generate drop-in zones, NPCs, items, spells, and skills.
 
 ## Browser Client Highlights
 
