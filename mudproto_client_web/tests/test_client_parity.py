@@ -33,7 +33,9 @@ def test_web_client_keeps_primary_settings_actions() -> None:
     assert "Save Config" in content
     assert "Save Config As..." in content
     assert "Load Config" in content
-    assert "Load New Config" in content
+    assert "Load Config File" in content
+    assert "Saved Configs" in content
+    assert "Load New Config" not in content
     assert "Aliases" in content
     assert "Key Bindings" in content
     assert 'id="helpBtn"' in content

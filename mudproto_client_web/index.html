@@ -337,6 +337,56 @@
       padding: 14px 16px 16px;
     }
 
+    #settingsHomeView {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      padding: 14px;
+      align-items: start;
+    }
+
+    #loadConfigSelectView,
+    #loadConfigModeView,
+    #loadConfigConflictView {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px 16px;
+      text-align: center;
+    }
+
+    #loadConfigSelectView .mapping-list {
+      max-height: 260px;
+    }
+
+    .settings-view.hidden {
+      display: none;
+    }
+
+    #settingsHomeView.hidden,
+    #loadConfigSelectView.hidden,
+    #loadConfigModeView.hidden,
+    #loadConfigConflictView.hidden {
+      display: none;
+    }
+
+    .settings-choice-copy {
+      padding: 2px 6px 4px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .settings-choice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .settings-choice-actions button {
+      min-width: 180px;
+    }
+
     .option-row {
       display: flex;
       align-items: center;
@@ -807,13 +857,13 @@
           <span id="settingsTitle">Client Settings</span>
           <button id="closeSettingsBtn" type="button" aria-label="Close settings">×</button>
         </div>
-        <div class="modal-body">
+        <div id="settingsHomeView" class="modal-body settings-view">
           <div class="modal-section">
             <div class="modal-section-title">Configuration</div>
             <button id="saveConfigBtn" type="button">Save Config</button>
             <button id="saveConfigAsBtn" type="button">Save Config As...</button>
             <button id="loadConfigBtn" type="button">Load Config</button>
-            <button id="loadNewConfigBtn" type="button">Load New Config</button>
+            <button id="loadNewConfigBtn" type="button">Load Config File</button>
           </div>
           <div class="modal-section">
             <div class="modal-section-title">Customization</div>
@@ -824,6 +874,30 @@
           </div>
           <div class="modal-section">
             <button id="resetConfigBtn" type="button">Reset Config</button>
+          </div>
+        </div>
+        <div id="loadConfigSelectView" class="modal-body settings-view hidden">
+          <div class="modal-section">
+            <div class="modal-section-title">Saved Configs</div>
+            <div id="savedConfigsList" class="mapping-list" aria-live="polite"></div>
+          </div>
+        </div>
+        <div id="loadConfigModeView" class="modal-body settings-view hidden">
+          <div class="modal-section">
+            <div id="loadConfigModeMessage" class="settings-choice-copy"></div>
+            <div class="settings-choice-actions">
+              <button id="loadConfigModeClearBtn" type="button">Clear Existing Settings</button>
+              <button id="loadConfigModeAppendBtn" type="button">Append to Existing Settings</button>
+            </div>
+          </div>
+        </div>
+        <div id="loadConfigConflictView" class="modal-body settings-view hidden">
+          <div class="modal-section">
+            <div id="loadConfigConflictMessage" class="settings-choice-copy"></div>
+            <div class="settings-choice-actions">
+              <button id="loadConfigConflictExistingBtn" type="button">Keep Existing Settings</button>
+              <button id="loadConfigConflictLoadedBtn" type="button">Use Loaded File Settings</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1300,6 +1374,8 @@
         this.renderScheduled = false;
         this.autoScrollThresholdPx = 24;
         this.pendingLoadMode = "merge";
+        this.pendingLoadedConfig = null;
+        this.pendingLoadedConfigName = "";
         this.configFileName = window.localStorage.getItem("mudproto.configFileName") || "mudproto-client-config.json";
 
         this.outputEl = document.getElementById("output");
@@ -1313,6 +1389,14 @@
         this.helpBtn = document.getElementById("helpBtn");
         this.menuBtn = document.getElementById("menuBtn");
         this.settingsModal = document.getElementById("settingsModal");
+        this.settingsTitle = document.getElementById("settingsTitle");
+        this.settingsHomeView = document.getElementById("settingsHomeView");
+        this.loadConfigSelectView = document.getElementById("loadConfigSelectView");
+        this.savedConfigsList = document.getElementById("savedConfigsList");
+        this.loadConfigModeView = document.getElementById("loadConfigModeView");
+        this.loadConfigConflictView = document.getElementById("loadConfigConflictView");
+        this.loadConfigModeMessage = document.getElementById("loadConfigModeMessage");
+        this.loadConfigConflictMessage = document.getElementById("loadConfigConflictMessage");
         this.helpModal = document.getElementById("helpModal");
         this.helpHomeView = document.getElementById("helpHomeView");
         this.helpDetailView = document.getElementById("helpDetailView");
@@ -1328,6 +1412,10 @@
         this.saveConfigAsBtn = document.getElementById("saveConfigAsBtn");
         this.loadConfigBtn = document.getElementById("loadConfigBtn");
         this.loadNewConfigBtn = document.getElementById("loadNewConfigBtn");
+        this.loadConfigModeClearBtn = document.getElementById("loadConfigModeClearBtn");
+        this.loadConfigModeAppendBtn = document.getElementById("loadConfigModeAppendBtn");
+        this.loadConfigConflictExistingBtn = document.getElementById("loadConfigConflictExistingBtn");
+        this.loadConfigConflictLoadedBtn = document.getElementById("loadConfigConflictLoadedBtn");
         this.resetConfigBtn = document.getElementById("resetConfigBtn");
         this.confirmModal = document.getElementById("confirmModal");
         this.confirmMessage = document.getElementById("confirmMessage");
@@ -1403,8 +1491,12 @@
         this.openBindsHelpBtn.addEventListener("click", () => this.showHelpSection("binds"));
         this.saveConfigBtn.addEventListener("click", () => this.saveConfig());
         this.saveConfigAsBtn.addEventListener("click", () => this.saveConfigAs());
-        this.loadConfigBtn.addEventListener("click", () => this.requestLoadConfig("merge"));
+        this.loadConfigBtn.addEventListener("click", () => this.openLoadConfigSelection());
         this.loadNewConfigBtn.addEventListener("click", () => this.requestLoadNewConfig());
+        this.loadConfigModeClearBtn.addEventListener("click", () => this.applyPendingLoadedConfig("replace"));
+        this.loadConfigModeAppendBtn.addEventListener("click", () => this.showLoadConfigConflictView());
+        this.loadConfigConflictExistingBtn.addEventListener("click", () => this.applyPendingLoadedConfig("merge", "current"));
+        this.loadConfigConflictLoadedBtn.addEventListener("click", () => this.applyPendingLoadedConfig("merge", "incoming"));
         this.resetConfigBtn.addEventListener("click", () => this.resetConfig());
         this.confirmYesBtn.addEventListener("click", () => this.resolveConfirm(true));
         this.confirmNoBtn.addEventListener("click", () => this.resolveConfirm(false));
@@ -1462,7 +1554,12 @@
 
         this.settingsModal.addEventListener("click", (event) => {
           if (event.target === this.settingsModal) {
-            this.closeSettings();
+            if (this.settingsHomeView.classList.contains("hidden")) {
+              this.clearPendingLoadedConfig();
+              this.showSettingsHome();
+            } else {
+              this.closeSettings();
+            }
           }
         });
 
@@ -1527,6 +1624,34 @@
         }
       }
 
+      storeConfigSnapshot(name, config) {
+        const snapshotName = String(name || "").trim() || "mudproto-client-config.json";
+        const nextConfig = this.normalizeClientConfig(config || {});
+        try {
+          const raw = window.localStorage.getItem("mudproto.savedConfigs");
+          const savedConfigs = raw ? JSON.parse(raw) : {};
+          savedConfigs[snapshotName] = nextConfig;
+          window.localStorage.setItem("mudproto.savedConfigs", JSON.stringify(savedConfigs));
+        } catch {
+          window.localStorage.setItem("mudproto.savedConfigs", JSON.stringify({ [snapshotName]: nextConfig }));
+        }
+      }
+
+      listStoredConfigSnapshots() {
+        try {
+          const raw = window.localStorage.getItem("mudproto.savedConfigs");
+          const savedConfigs = raw ? JSON.parse(raw) : {};
+          return Object.keys(savedConfigs)
+            .sort((left, right) => left.localeCompare(right))
+            .map((name) => ({
+              name,
+              config: this.normalizeClientConfig(savedConfigs[name]),
+            }));
+        } catch {
+          return [];
+        }
+      }
+
       buildClientConfig() {
         return this.normalizeClientConfig({
           version: 1,
@@ -1547,6 +1672,7 @@
         window.localStorage.setItem("mudproto.serverUri", config.server_uri);
         window.localStorage.setItem("mudproto.clientConfig", JSON.stringify(config));
         window.localStorage.setItem("mudproto.configFileName", this.configFileName);
+        this.storeConfigSnapshot(this.configFileName, config);
         return config;
       }
 
@@ -1600,31 +1726,38 @@
         });
       }
 
-      mergeClientConfig(currentConfig, incomingConfig) {
+      mergeClientConfig(currentConfig, incomingConfig, precedence = "incoming") {
         const current = this.normalizeClientConfig(currentConfig || {});
         const incoming = incomingConfig && typeof incomingConfig === "object" ? incomingConfig : {};
         const incomingAliases = this.normalizeStringMap(incoming.aliases, (key) => String(key).trim().toLowerCase());
         const incomingKeyBindings = this.normalizeStringMap(incoming.key_bindings, (key) => normalizeBindKeyName(key));
         const incomingActions = this.normalizeActionsArray(incoming.actions);
+        const incomingOptions = incoming.options && typeof incoming.options === "object" ? incoming.options : {};
         const mergedActions = this.mergeActionsArrays(current.actions || [], incomingActions);
+        const preferCurrent = precedence === "current";
+        const incomingServerUri = typeof incoming.server_uri === "string" && incoming.server_uri.trim()
+          ? incoming.server_uri.trim()
+          : "";
 
         return this.normalizeClientConfig({
           version: 1,
-          server_uri: typeof incoming.server_uri === "string" && incoming.server_uri.trim() ? incoming.server_uri.trim() : current.server_uri,
-          aliases: {
-            ...current.aliases,
-            ...incomingAliases,
-          },
-          key_bindings: {
-            ...current.key_bindings,
-            ...incomingKeyBindings,
-          },
+          server_uri: preferCurrent
+            ? (current.server_uri || incomingServerUri || DEFAULT_SERVER_URI)
+            : (incomingServerUri || current.server_uri),
+          aliases: preferCurrent
+            ? { ...incomingAliases, ...current.aliases }
+            : { ...current.aliases, ...incomingAliases },
+          key_bindings: preferCurrent
+            ? { ...incomingKeyBindings, ...current.key_bindings }
+            : { ...current.key_bindings, ...incomingKeyBindings },
           actions: mergedActions,
           options: {
-            echo_commands: incoming.options && typeof incoming.options === "object" && incoming.options.echo_commands !== undefined
-              ? !!incoming.options.echo_commands : current.options.echo_commands,
-            echo_action_commands: incoming.options && typeof incoming.options === "object" && incoming.options.echo_action_commands !== undefined
-              ? !!incoming.options.echo_action_commands : current.options.echo_action_commands,
+            echo_commands: preferCurrent
+              ? current.options.echo_commands
+              : incomingOptions.echo_commands !== undefined ? !!incomingOptions.echo_commands : current.options.echo_commands,
+            echo_action_commands: preferCurrent
+              ? current.options.echo_action_commands
+              : incomingOptions.echo_action_commands !== undefined ? !!incomingOptions.echo_action_commands : current.options.echo_action_commands,
           },
         });
       }
@@ -1636,13 +1769,100 @@
         return uri;
       }
 
+      renderSavedConfigsList() {
+        if (!this.savedConfigsList) {
+          return;
+        }
+
+        const snapshots = this.listStoredConfigSnapshots();
+        this.savedConfigsList.textContent = "";
+
+        if (!snapshots.length) {
+          const empty = document.createElement("div");
+          empty.className = "mapping-empty";
+          empty.textContent = "No saved configs are available in browser memory yet.";
+          this.savedConfigsList.appendChild(empty);
+          return;
+        }
+
+        snapshots.forEach(({ name, config }) => {
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "mapping-row";
+          row.title = `Load ${name}`;
+
+          const nameEl = document.createElement("span");
+          nameEl.className = "mapping-key";
+          nameEl.textContent = name;
+
+          const valueEl = document.createElement("span");
+          valueEl.className = "mapping-val";
+          valueEl.textContent = config.server_uri || DEFAULT_SERVER_URI;
+
+          row.appendChild(nameEl);
+          row.appendChild(valueEl);
+          row.addEventListener("click", () => {
+            this.pendingLoadedConfig = config;
+            this.pendingLoadedConfigName = name;
+            this.showLoadConfigModeView(name, "saved config");
+          });
+          this.savedConfigsList.appendChild(row);
+        });
+      }
+
+      showSettingsHome() {
+        this.settingsTitle.textContent = "Client Settings";
+        this.settingsHomeView.classList.remove("hidden");
+        this.loadConfigSelectView.classList.add("hidden");
+        this.loadConfigModeView.classList.add("hidden");
+        this.loadConfigConflictView.classList.add("hidden");
+      }
+
+      showLoadConfigSelectView() {
+        this.settingsTitle.textContent = "Load Config";
+        this.settingsHomeView.classList.add("hidden");
+        this.loadConfigSelectView.classList.remove("hidden");
+        this.loadConfigModeView.classList.add("hidden");
+        this.loadConfigConflictView.classList.add("hidden");
+      }
+
+      showLoadConfigModeView(fileName = "", sourceLabel = "config") {
+        this.settingsTitle.textContent = sourceLabel === "file" ? "Load Config File" : "Load Config";
+        this.settingsHomeView.classList.add("hidden");
+        this.loadConfigSelectView.classList.add("hidden");
+        this.loadConfigModeView.classList.remove("hidden");
+        this.loadConfigConflictView.classList.add("hidden");
+        this.loadConfigModeMessage.textContent = fileName
+          ? `How would you like to apply ${fileName}?`
+          : sourceLabel === "file"
+            ? "How would you like to apply this config file?"
+            : "How would you like to apply this saved config?";
+      }
+
+      showLoadConfigConflictView() {
+        this.settingsTitle.textContent = "Append Config File";
+        this.settingsHomeView.classList.add("hidden");
+        this.loadConfigModeView.classList.add("hidden");
+        this.loadConfigConflictView.classList.remove("hidden");
+        this.loadConfigConflictMessage.textContent = "If the same setting appears in both places, which should take precedence?";
+      }
+
+      clearPendingLoadedConfig() {
+        this.pendingLoadedConfig = null;
+        this.pendingLoadedConfigName = "";
+        this.pendingLoadMode = "merge";
+      }
+
       openSettings() {
         this.closeHelp();
+        this.showSettingsHome();
         this.settingsModal.classList.remove("hidden");
         this.settingsModal.setAttribute("aria-hidden", "false");
       }
 
       closeSettings() {
+        this.clearPendingLoadedConfig();
+        this.showSettingsHome();
         this.settingsModal.classList.add("hidden");
         this.settingsModal.setAttribute("aria-hidden", "true");
       }
@@ -1857,6 +2077,12 @@
         this.closeSettings();
       }
 
+      openLoadConfigSelection() {
+        this.persistClientConfig();
+        this.renderSavedConfigsList();
+        this.showLoadConfigSelectView();
+      }
+
       requestLoadConfig(loadMode = "merge") {
         this.pendingLoadMode = loadMode;
         this.configFileInput.value = "";
@@ -1868,40 +2094,58 @@
         this.requestLoadConfig("replace");
       }
 
+      applyPendingLoadedConfig(loadMode = "replace", precedence = "incoming") {
+        if (!this.pendingLoadedConfig) {
+          this.appendSystemMessage("No config file is ready to load.", "bright_red");
+          this.showSettingsHome();
+          return;
+        }
+
+        const currentConfig = this.buildClientConfig();
+        const nextConfig = loadMode === "replace"
+          ? this.normalizeClientConfig(this.pendingLoadedConfig)
+          : this.mergeClientConfig(currentConfig, this.pendingLoadedConfig, precedence);
+
+        this.aliases = nextConfig.aliases || {};
+        this.keyBindings = nextConfig.key_bindings || {};
+        this.loadActions(nextConfig.actions || []);
+        this.loadOptions(nextConfig.options || {});
+        this.serverUriEl.value = nextConfig.server_uri;
+        this.persistClientConfig();
+
+        const message = loadMode === "replace"
+          ? "Config loaded. Existing settings were cleared."
+          : precedence === "current"
+            ? "Config loaded. Existing settings kept priority."
+            : "Config loaded. Loaded settings took priority.";
+
+        this.appendSystemMessage(message, "bright_green");
+        this.closeSettings();
+      }
+
       loadConfigFromFile(event) {
         const file = event && event.target && event.target.files ? event.target.files[0] : null;
         if (!file) {
           return;
         }
 
-        this.configFileName = file.name || "mudproto-client-config.json";
         const reader = new FileReader();
         reader.onload = () => {
           try {
             const parsed = JSON.parse(String(reader.result || "{}"));
-            const mode = this.pendingLoadMode === "replace" ? "replace" : "merge";
-            const currentConfig = this.buildClientConfig();
-            const nextConfig = mode === "replace"
-              ? this.normalizeClientConfig(parsed)
-              : this.mergeClientConfig(currentConfig, parsed);
-
-            this.aliases = nextConfig.aliases || {};
-            this.keyBindings = nextConfig.key_bindings || {};
-            this.loadActions(nextConfig.actions || []);
-            this.loadOptions(nextConfig.options || {});
-            this.serverUriEl.value = nextConfig.server_uri;
-            this.persistClientConfig();
-            this.appendSystemMessage(
-              mode === "replace"
-                ? "Loaded new client config. Reconnect to apply any server change."
-                : "Loaded client config and merged it into current settings. Reconnect to apply any server change.",
-              "bright_green"
-            );
-            this.closeSettings();
+            if (!parsed || typeof parsed !== "object") {
+              throw new Error("Invalid config payload");
+            }
+            this.configFileName = file.name || "mudproto-client-config.json";
+            this.pendingLoadedConfig = parsed;
+            this.pendingLoadedConfigName = this.configFileName;
+            this.showLoadConfigModeView(this.pendingLoadedConfigName, "file");
           } catch {
-            this.appendSystemMessage("Failed to load client config.", "bright_red");
+            this.clearPendingLoadedConfig();
+            this.showSettingsHome();
+            this.appendSystemMessage("Failed to load client config file.", "bright_red");
           } finally {
-            this.pendingLoadMode = "merge";
+            this.configFileInput.value = "";
           }
         };
         reader.readAsText(file);
@@ -1948,7 +2192,12 @@
           }
           if (this.settingsModal && !this.settingsModal.classList.contains("hidden")) {
             event.preventDefault();
-            this.closeSettings();
+            if (this.settingsHomeView && this.settingsHomeView.classList.contains("hidden")) {
+              this.clearPendingLoadedConfig();
+              this.showSettingsHome();
+            } else {
+              this.closeSettings();
+            }
             return;
           }
         }

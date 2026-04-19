@@ -48,8 +48,21 @@ def test_web_client_index_contains_mudproto_websocket_ui() -> None:
     assert "Save Config" in content
     assert "Save Config As..." in content
     assert "Load Config" in content
-    assert "Load New Config" in content
+    assert "Load Config File" in content
+    assert "Load New Config" not in content
     assert 'id="loadNewConfigBtn"' in content
+    assert 'id="settingsHomeView"' in content
+    assert 'id="loadConfigSelectView"' in content
+    assert 'id="savedConfigsList"' in content
+    assert 'id="loadConfigModeView"' in content
+    assert 'id="loadConfigConflictView"' in content
+    assert 'id="loadConfigModeMessage" class="settings-choice-copy"' in content
+    assert 'id="loadConfigConflictMessage" class="settings-choice-copy"' in content
+    assert "Saved Configs" in content
+    assert "Clear Existing Settings" in content
+    assert "Append to Existing Settings" in content
+    assert "Keep Existing Settings" in content
+    assert "Use Loaded File Settings" in content
     assert "Customization" in content
     assert "Aliases" in content
     assert "Key Bindings" in content
@@ -117,9 +130,26 @@ def test_web_client_prunes_old_output_and_history() -> None:
     assert 'numpad_subtract: "up"' in content
     assert 'key_bindings' in content
     assert 'this.keyBindings' in content
-    assert 'mergeClientConfig(currentConfig, incomingConfig)' in content
+    assert 'mergeClientConfig(currentConfig, incomingConfig, precedence = "incoming")' in content
     assert 'this.pendingLoadMode = "merge"' in content
-    assert 'this.pendingLoadMode = "replace"' in content
+    assert 'this.pendingLoadedConfig = null' in content
+    assert 'storeConfigSnapshot(name, config)' in content
+    assert 'listStoredConfigSnapshots()' in content
+    assert 'openLoadConfigSelection()' in content
+    assert 'renderSavedConfigsList()' in content
+    assert 'showSettingsHome()' in content
+    assert 'showLoadConfigSelectView()' in content
+    assert 'showLoadConfigModeView(fileName = "", sourceLabel = "config")' in content
+    assert 'showLoadConfigConflictView()' in content
+    assert '#settingsHomeView.hidden,' in content
+    assert '#loadConfigSelectView.hidden,' in content
+    assert '#loadConfigModeView.hidden,' in content
+    assert '#loadConfigConflictView.hidden {' in content
+    assert '#settingsHomeView .modal-section:last-child {' not in content
+    assert 'min-height: 0;' in content
+    assert 'padding: 10px 12px;' in content
+    assert 'clearPendingLoadedConfig()' in content
+    assert 'applyPendingLoadedConfig(loadMode = "replace", precedence = "incoming")' in content
     assert 'window.localStorage.setItem("mudproto.clientConfig"' in content
     assert "downloadClientConfig(fileName)" in content
     assert "countLeadingBlankLines(lines)" in content
