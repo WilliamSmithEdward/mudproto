@@ -46,6 +46,9 @@ async def process_input_message(message: dict, session: ClientSession) -> Outbou
 
         return process_auth_input(session, input_text)
 
+    if session.pending_death_logout:
+        return {"type": "noop"}
+
     verb, _args = parse_command(input_text)
 
     if is_session_lagged(session):

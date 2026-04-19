@@ -34,6 +34,9 @@ def apply_lag(session: ClientSession, duration_seconds: float) -> None:
 
 
 def enqueue_command(session: ClientSession, command_text: str) -> tuple[bool, str]:
+    if session.pending_death_logout:
+        return False, ""
+
     if len(session.command_queue) >= MAX_QUEUED_COMMANDS:
         return False, "Command queue is full."
 
