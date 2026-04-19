@@ -486,7 +486,14 @@ def _apply_player_attacks(
             break
 
 
-def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: list[dict], allow_off_hand: bool) -> None:
+def _apply_entity_attacks(
+    session: ClientSession,
+    attacker: EntityState,
+    parts: list[dict],
+    allow_off_hand: bool,
+    *,
+    aoe_secondary_lines: dict[str, list[list[dict]]] | None = None,
+) -> None:
     status = session.status
     player_armor_class = get_player_armor_class(session)
 
@@ -525,9 +532,9 @@ def _apply_entity_attacks(session: ClientSession, attacker: EntityState, parts: 
     # Allow at most one special action (spell or skill) per round.
     # Keep existing priority: try spell first, then skill if no spell fired.
     if can_use_special_action:
-        casted_spell = _entity_try_cast_spell(session, entity, parts)
+        casted_spell = _entity_try_cast_spell(session, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
         if not casted_spell:
-            _entity_try_use_skill(session, entity, parts)
+            _entity_try_use_skill(session, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
 
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
@@ -622,6 +629,7 @@ def resolve_combat_round(
 
     parts: list[dict] = []
     room_broadcast_lines: list[list[dict]] = []
+    aoe_secondary_lines: dict[str, list[list[dict]]] = {}
     status = session.status
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
@@ -636,7 +644,7 @@ def resolve_combat_round(
         for retaliating_entity in retaliating_entities:
             if not retaliating_entity.is_alive:
                 continue
-            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=False)
+            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=False, aoe_secondary_lines=aoe_secondary_lines)
             if status.hit_points <= 0:
                 break
     else:
@@ -668,7 +676,7 @@ def resolve_combat_round(
         for retaliating_entity in current_retaliating_entities:
             if not retaliating_entity.is_alive:
                 continue
-            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True)
+            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True, aoe_secondary_lines=aoe_secondary_lines)
             if status.hit_points <= 0:
                 break
 
@@ -699,6 +707,8 @@ def resolve_combat_round(
             payload["room_broadcast_lines"] = death_broadcast_lines
             if room_broadcast_lines:
                 payload["additional_room_broadcast_lines"] = room_broadcast_lines
+            if aoe_secondary_lines:
+                payload["aoe_secondary_lines"] = aoe_secondary_lines
 
         payload["broadcast_to_room"] = True
         return result
@@ -708,6 +718,8 @@ def resolve_combat_round(
     if isinstance(payload, dict):
         if room_broadcast_lines:
             payload["additional_room_broadcast_lines"] = room_broadcast_lines
+        if aoe_secondary_lines:
+            payload["aoe_secondary_lines"] = aoe_secondary_lines
         payload["broadcast_to_room"] = True
 
     _schedule_next_combat_round(session)

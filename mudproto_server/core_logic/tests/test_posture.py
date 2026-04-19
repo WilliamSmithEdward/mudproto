@@ -318,8 +318,8 @@ def test_combat_round_stands_sitting_npc_when_not_lagged(monkeypatch) -> None:
     entity.skill_lag_rounds_remaining = 0
     entity.spell_lag_rounds_remaining = 0
 
-    monkeypatch.setattr(combat, "_entity_try_cast_spell", lambda _session, _entity, _parts: False)
-    monkeypatch.setattr(combat, "_entity_try_use_skill", lambda _session, _entity, _parts: False)
+    monkeypatch.setattr(combat, "_entity_try_cast_spell", lambda _session, _entity, _parts, **_kw: False)
+    monkeypatch.setattr(combat, "_entity_try_use_skill", lambda _session, _entity, _parts, **_kw: False)
     monkeypatch.setattr(combat, "roll_hit", lambda _hit_mod, _armor_class: False)
 
     parts: list[dict] = []
@@ -343,8 +343,8 @@ def test_combat_round_does_not_stand_sitting_npc_while_lagged(monkeypatch) -> No
     entity.skill_lag_rounds_remaining = 1
     entity.spell_lag_rounds_remaining = 0
 
-    monkeypatch.setattr(combat, "_entity_try_cast_spell", lambda _session, _entity, _parts: False)
-    monkeypatch.setattr(combat, "_entity_try_use_skill", lambda _session, _entity, _parts: False)
+    monkeypatch.setattr(combat, "_entity_try_cast_spell", lambda _session, _entity, _parts, **_kw: False)
+    monkeypatch.setattr(combat, "_entity_try_use_skill", lambda _session, _entity, _parts, **_kw: False)
     monkeypatch.setattr(combat, "roll_hit", lambda _hit_mod, _armor_class: False)
 
     parts: list[dict] = []
@@ -371,8 +371,8 @@ def test_bashed_npc_can_use_skills_again_after_standing(monkeypatch) -> None:
 
     skill_uses: list[str] = []
 
-    monkeypatch.setattr(combat, "_entity_try_cast_spell", lambda _session, _entity, _parts: False)
-    monkeypatch.setattr(combat, "_entity_try_use_skill", lambda _session, npc, _parts: skill_uses.append(npc.entity_id) or True)
+    monkeypatch.setattr(combat, "_entity_try_cast_spell", lambda _session, _entity, _parts, **_kw: False)
+    monkeypatch.setattr(combat, "_entity_try_use_skill", lambda _session, npc, _parts, **_kw: skill_uses.append(npc.entity_id) or True)
     monkeypatch.setattr(combat, "roll_hit", lambda _hit_mod, _armor_class: False)
 
     combat._apply_entity_attacks(session, entity, [], allow_off_hand=False)

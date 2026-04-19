@@ -38,7 +38,76 @@ def _supports_target_placeholders(context: str) -> bool:
     return "[a/an]" in lowered or "[verb]" in lowered
 
 
-def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
+def _apply_aoe_to_other_room_players(
+    primary_session: ClientSession,
+    entity: EntityState,
+    ability: dict,
+    total_damage: int,
+    damage_element: str,
+    ability_name: str,
+    damage_context: str,
+    aoe_secondary_lines: dict[str, list[list[dict]]],
+    *,
+    target_lag_seconds: float = 0.0,
+    target_posture: str = "",
+) -> None:
+    from combat_observer import _resolve_combat_context
+    from combat_state import start_combat
+    from display_core import build_part
+    from session_registry import connected_clients
+
+    OPENING_ATTACKER_ENTITY = "entity"
+
+    room_id = primary_session.player.current_room_id
+    for candidate in connected_clients.values():
+        if candidate.client_id == primary_session.client_id:
+            continue
+        if not candidate.is_connected or candidate.disconnected_by_server or not candidate.is_authenticated:
+            continue
+        if candidate.player.current_room_id != room_id:
+            continue
+
+        damage_dealt = 0
+        if total_damage > 0:
+            damage_dealt = _apply_player_damage_with_reduction(candidate, total_damage, damage_element=damage_element)
+
+        secondary_line: list[dict] = []
+        resolved_context = ""
+        if damage_context and _supports_target_placeholders(damage_context):
+            resolved_context = _resolve_combat_context(damage_context, target_text="you", verb="are")
+        if resolved_context:
+            secondary_line.append(build_part(resolved_context))
+        elif total_damage > 0:
+            secondary_line.extend([
+                build_part("You are hit by "),
+                build_part(ability_name),
+                build_part("."),
+            ])
+        else:
+            secondary_line.extend([
+                build_part("You resist "),
+                build_part(ability_name),
+                build_part("."),
+            ])
+
+        if damage_dealt > 0:
+            _apply_ability_affects(actor=entity, target=candidate, ability=ability, affect_target="target")
+            if target_lag_seconds > 0.0:
+                try:
+                    apply_lag(candidate, target_lag_seconds)
+                except RuntimeError:
+                    pass
+            if target_posture:
+                _apply_target_posture(candidate, target_posture)
+
+        if entity.entity_id not in candidate.combat.engaged_entity_ids:
+            start_combat(candidate, entity.entity_id, OPENING_ATTACKER_ENTITY)
+
+        if secondary_line:
+            aoe_secondary_lines.setdefault(candidate.client_id, []).append(secondary_line)
+
+
+def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict], *, aoe_secondary_lines: dict[str, list[list[dict]]] | None = None) -> bool:
     from combat_observer import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
     from display_core import build_part
 
@@ -198,6 +267,20 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
         if damage_dealt > 0:
             _apply_ability_affects(actor=entity, target=session, ability=skill, affect_target="target")
 
+        if cast_type == "aoe" and aoe_secondary_lines is not None:
+            _apply_aoe_to_other_room_players(
+                primary_session=session,
+                entity=entity,
+                ability=skill,
+                total_damage=total_damage,
+                damage_element=element,
+                ability_name=skill_name,
+                damage_context=damage_context,
+                aoe_secondary_lines=aoe_secondary_lines,
+                target_lag_seconds=float(target_lag_rounds) * float(COMBAT_ROUND_INTERVAL_SECONDS) if target_lag_rounds > 0 else 0.0,
+                target_posture=target_posture,
+            )
+
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)
         return True
@@ -205,7 +288,7 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
     return False
 
 
-def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: list[dict]) -> bool:
+def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: list[dict], *, aoe_secondary_lines: dict[str, list[list[dict]]] | None = None) -> bool:
     from combat_observer import _observer_context_from_player_context, _render_observer_template, _resolve_combat_context
     from display_core import build_part
 
@@ -359,6 +442,18 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
                 with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None)),
             )
             parts.append(build_part(rendered_restore_context))
+
+        if cast_type == "aoe" and aoe_secondary_lines is not None:
+            _apply_aoe_to_other_room_players(
+                primary_session=session,
+                entity=entity,
+                ability=spell,
+                total_damage=spell_damage,
+                damage_element=element,
+                ability_name=spell_name,
+                damage_context=damage_context,
+                aoe_secondary_lines=aoe_secondary_lines,
+            )
 
         _set_entity_spell_cooldown(entity, spell)
         _apply_entity_spell_lag(entity, spell)

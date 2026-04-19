@@ -338,3 +338,243 @@ def test_entity_spell_announcement_starts_on_new_line(monkeypatch) -> None:
     rendered = "".join(str(part.get("text", "")) for part in parts)
     assert casted is True
     assert "You annihilate a Crowbanner Hexer with your hit.\nA Crowbanner Hexer casts Coalburst across the room!" in rendered
+
+
+# ---------------------------------------------------------------------------
+# AoE multi-target: spells and skills should splash to other room players
+# ---------------------------------------------------------------------------
+
+
+def _render_parts(parts: list[dict]) -> str:
+    return "".join(str(p.get("text", "")) for p in parts if isinstance(p, dict))
+
+
+def _render_secondary_lines(aoe_lines: dict[str, list[list[dict]]], client_id: str) -> str:
+    lines = aoe_lines.get(client_id, [])
+    return "\n".join(_render_parts(line) for line in lines)
+
+
+def test_aoe_spell_damages_secondary_player_in_room(monkeypatch) -> None:
+    from session_registry import connected_clients
+
+    primary = _make_session("client-primary", "Orlandu")
+    primary.status.hit_points = 500
+    secondary = _make_session("client-secondary", "Ragnar")
+    secondary.status.hit_points = 200
+    secondary.player.current_room_id = "start"
+
+    connected_clients["client-primary"] = primary
+    connected_clients["client-secondary"] = secondary
+
+    entity = _make_entity("entity-pixie", "Canker Pixie")
+    entity.spell_ids = ["spell.corrupted-pollen"]
+    entity.spell_use_chance = 1.0
+    entity.mana = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_spell_damage", lambda _spell, _bonus=0: 30)
+    monkeypatch.setattr(entity_abilities, "get_spell_by_id", lambda _spell_id: {
+        "spell_id": "spell.corrupted-pollen",
+        "name": "Corrupted Pollen Burst",
+        "spell_type": "damage",
+        "cast_type": "aoe",
+        "element": "poison",
+        "mana_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+        "damage_context": "[a/an] [verb] swallowed in corrupted pollen!",
+    })
+
+    try:
+        parts: list[dict] = []
+        aoe_secondary_lines: dict[str, list[list[dict]]] = {}
+        casted = entity_abilities._entity_try_cast_spell(primary, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
+
+        assert casted is True
+        assert primary.status.hit_points < 500
+        assert secondary.status.hit_points < 200
+        assert "client-secondary" in aoe_secondary_lines
+        rendered = _render_secondary_lines(aoe_secondary_lines, "client-secondary")
+        assert "swallowed in corrupted pollen" in rendered
+    finally:
+        connected_clients.pop("client-primary", None)
+        connected_clients.pop("client-secondary", None)
+
+
+def test_aoe_skill_damages_secondary_player_in_room(monkeypatch) -> None:
+    from session_registry import connected_clients
+
+    primary = _make_session("client-primary", "Orlandu")
+    primary.status.hit_points = 500
+    secondary = _make_session("client-secondary", "Ragnar")
+    secondary.status.hit_points = 200
+    secondary.player.current_room_id = "start"
+
+    connected_clients["client-primary"] = primary
+    connected_clients["client-secondary"] = secondary
+
+    entity = _make_entity("entity-boar", "Thornbound Boar")
+    entity.skill_ids = ["skill.thorn-sweep"]
+    entity.skill_use_chance = 1.0
+    entity.vigor = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_skill_damage", lambda _skill: 20)
+    monkeypatch.setattr(entity_abilities, "get_skill_by_id", lambda _skill_id: {
+        "skill_id": "skill.thorn-sweep",
+        "name": "Thorn Sweep",
+        "skill_type": "damage",
+        "cast_type": "aoe",
+        "element": "physical",
+        "vigor_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    try:
+        parts: list[dict] = []
+        aoe_secondary_lines: dict[str, list[list[dict]]] = {}
+        used = entity_abilities._entity_try_use_skill(primary, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
+
+        assert used is True
+        assert primary.status.hit_points < 500
+        assert secondary.status.hit_points < 200
+        assert "client-secondary" in aoe_secondary_lines
+        rendered = _render_secondary_lines(aoe_secondary_lines, "client-secondary")
+        assert "Thorn Sweep" in rendered
+    finally:
+        connected_clients.pop("client-primary", None)
+        connected_clients.pop("client-secondary", None)
+
+
+def test_aoe_spell_does_not_splash_player_in_different_room(monkeypatch) -> None:
+    from session_registry import connected_clients
+
+    primary = _make_session("client-primary", "Orlandu")
+    primary.status.hit_points = 500
+    other_room = _make_session("client-other-room", "Ragnar")
+    other_room.status.hit_points = 200
+    other_room.player.current_room_id = "other-room"
+
+    connected_clients["client-primary"] = primary
+    connected_clients["client-other-room"] = other_room
+
+    entity = _make_entity("entity-pixie", "Canker Pixie")
+    entity.spell_ids = ["spell.corrupted-pollen"]
+    entity.spell_use_chance = 1.0
+    entity.mana = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_spell_damage", lambda _spell, _bonus=0: 30)
+    monkeypatch.setattr(entity_abilities, "get_spell_by_id", lambda _spell_id: {
+        "spell_id": "spell.corrupted-pollen",
+        "name": "Corrupted Pollen Burst",
+        "spell_type": "damage",
+        "cast_type": "aoe",
+        "mana_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    try:
+        parts: list[dict] = []
+        aoe_secondary_lines: dict[str, list[list[dict]]] = {}
+        entity_abilities._entity_try_cast_spell(primary, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
+
+        assert other_room.status.hit_points == 200
+        assert "client-other-room" not in aoe_secondary_lines
+    finally:
+        connected_clients.pop("client-primary", None)
+        connected_clients.pop("client-other-room", None)
+
+
+def test_aoe_spell_auto_engages_secondary_player(monkeypatch) -> None:
+    from session_registry import connected_clients
+
+    primary = _make_session("client-primary", "Orlandu")
+    primary.status.hit_points = 500
+    secondary = _make_session("client-secondary", "Ragnar")
+    secondary.status.hit_points = 200
+    secondary.player.current_room_id = "start"
+    secondary.entities = {"entity-pixie": _make_entity("entity-pixie", "Canker Pixie")}
+
+    connected_clients["client-primary"] = primary
+    connected_clients["client-secondary"] = secondary
+
+    entity = _make_entity("entity-pixie", "Canker Pixie")
+    entity.spell_ids = ["spell.corrupted-pollen"]
+    entity.spell_use_chance = 1.0
+    entity.mana = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_spell_damage", lambda _spell, _bonus=0: 30)
+    monkeypatch.setattr(entity_abilities, "get_spell_by_id", lambda _spell_id: {
+        "spell_id": "spell.corrupted-pollen",
+        "name": "Corrupted Pollen Burst",
+        "spell_type": "damage",
+        "cast_type": "aoe",
+        "mana_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    try:
+        parts: list[dict] = []
+        aoe_secondary_lines: dict[str, list[list[dict]]] = {}
+        entity_abilities._entity_try_cast_spell(primary, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
+
+        assert "entity-pixie" in secondary.combat.engaged_entity_ids
+    finally:
+        connected_clients.pop("client-primary", None)
+        connected_clients.pop("client-secondary", None)
+
+
+def test_target_spell_does_not_splash_to_other_players(monkeypatch) -> None:
+    from session_registry import connected_clients
+
+    primary = _make_session("client-primary", "Orlandu")
+    primary.status.hit_points = 500
+    secondary = _make_session("client-secondary", "Ragnar")
+    secondary.status.hit_points = 200
+    secondary.player.current_room_id = "start"
+
+    connected_clients["client-primary"] = primary
+    connected_clients["client-secondary"] = secondary
+
+    entity = _make_entity("entity-mage", "Dark Mage")
+    entity.spell_ids = ["spell.arcane-bolt"]
+    entity.spell_use_chance = 1.0
+    entity.mana = 100
+
+    monkeypatch.setattr(entity_abilities.random, "random", lambda: 0.0)
+    monkeypatch.setattr(entity_abilities.random, "choice", lambda options: options[0])
+    monkeypatch.setattr(entity_abilities, "roll_spell_damage", lambda _spell, _bonus=0: 30)
+    monkeypatch.setattr(entity_abilities, "get_spell_by_id", lambda _spell_id: {
+        "spell_id": "spell.arcane-bolt",
+        "name": "Arcane Bolt",
+        "spell_type": "damage",
+        "cast_type": "target",
+        "mana_cost": 10,
+        "damage_dice_count": 1,
+        "damage_dice_sides": 1,
+        "damage_modifier": 0,
+    })
+
+    try:
+        parts: list[dict] = []
+        aoe_secondary_lines: dict[str, list[list[dict]]] = {}
+        entity_abilities._entity_try_cast_spell(primary, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
+
+        assert secondary.status.hit_points == 200
+        assert not aoe_secondary_lines
+    finally:
+        connected_clients.pop("client-primary", None)
+        connected_clients.pop("client-secondary", None)

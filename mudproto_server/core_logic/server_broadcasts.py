@@ -421,6 +421,15 @@ def _build_unified_room_round_display(
         player_phase_lines.extend(actor_lines)
         retaliation_phase_lines.extend(retaliation_lines)
 
+        if recipient_session.client_id != actor_session.client_id:
+            actor_payload = actor_result.get("payload") if isinstance(actor_result, dict) else None
+            if isinstance(actor_payload, dict):
+                aoe_splash = actor_payload.get("aoe_secondary_lines")
+                if isinstance(aoe_splash, dict):
+                    recipient_aoe = aoe_splash.get(recipient_session.client_id)
+                    if isinstance(recipient_aoe, list):
+                        retaliation_phase_lines.extend(line for line in recipient_aoe if isinstance(line, list))
+
     merged_lines = player_phase_lines + retaliation_phase_lines
     if not merged_lines:
         return None
