@@ -493,7 +493,12 @@ def _apply_entity_attacks(
     allow_off_hand: bool,
     *,
     aoe_secondary_lines: dict[str, list[list[dict]]] | None = None,
-) -> None:
+) -> int | None:
+    """Apply one entity's attacks to the player.
+
+    Returns the ``len(parts)`` recorded right after the AoE ability fired
+    (before melee), or ``None`` if no AoE occurred.
+    """
     status = session.status
     player_armor_class = get_player_armor_class(session)
 
@@ -510,7 +515,7 @@ def _apply_entity_attacks(
 
     entity = attacker
     if not entity.is_alive:
-        return
+        return None
 
     can_use_special_action = True
     if entity.skill_lag_rounds_remaining > 0:
@@ -531,10 +536,15 @@ def _apply_entity_attacks(
 
     # Allow at most one special action (spell or skill) per round.
     # Keep existing priority: try spell first, then skill if no spell fired.
+    pre_aoe_key_count = len(aoe_secondary_lines) if aoe_secondary_lines is not None else 0
     if can_use_special_action:
         casted_spell = _entity_try_cast_spell(session, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
         if not casted_spell:
             _entity_try_use_skill(session, entity, parts, aoe_secondary_lines=aoe_secondary_lines)
+
+    aoe_parts_end: int | None = None
+    if aoe_secondary_lines is not None and len(aoe_secondary_lines) > pre_aoe_key_count:
+        aoe_parts_end = len(parts)
 
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
@@ -569,13 +579,13 @@ def _apply_entity_attacks(
             entity_is_named=getattr(entity, "is_named", None),
         ))
         if status.hit_points <= 0:
-            return
+            return aoe_parts_end
 
     if allow_off_hand:
         off_hand_swings = max(0, entity.off_hand_attacks_per_round)
         for _ in range(off_hand_swings):
             if status.hit_points <= 0:
-                return
+                return aoe_parts_end
             append_newline_if_needed(parts)
 
             off_hit_modifier = get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)
@@ -605,7 +615,9 @@ def _apply_entity_attacks(
                 entity_is_named=getattr(entity, "is_named", None),
             ))
             if status.hit_points <= 0:
-                return
+                return aoe_parts_end
+
+    return aoe_parts_end
 
 
 def resolve_combat_round(
@@ -630,6 +642,8 @@ def resolve_combat_round(
     parts: list[dict] = []
     room_broadcast_lines: list[list[dict]] = []
     aoe_secondary_lines: dict[str, list[list[dict]]] = {}
+    aoe_parts_end: int | None = None
+    retaliation_parts_start: int = 0
     status = session.status
     opening_attacker = session.combat.opening_attacker
     is_opening_round = opening_attacker is not None
@@ -641,10 +655,13 @@ def resolve_combat_round(
     ]
 
     if opening_attacker == OPENING_ATTACKER_ENTITY:
+        retaliation_parts_start = len(parts)
         for retaliating_entity in retaliating_entities:
             if not retaliating_entity.is_alive:
                 continue
-            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=False, aoe_secondary_lines=aoe_secondary_lines)
+            ape = _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=False, aoe_secondary_lines=aoe_secondary_lines)
+            if ape is not None and aoe_parts_end is None:
+                aoe_parts_end = ape
             if status.hit_points <= 0:
                 break
     else:
@@ -673,16 +690,34 @@ def resolve_combat_round(
             for engaged in current_engaged_entities
             if allowed_entity_retaliation_ids is None or engaged.entity_id in allowed_entity_retaliation_ids
         ]
+        retaliation_parts_start = len(parts)
         for retaliating_entity in current_retaliating_entities:
             if not retaliating_entity.is_alive:
                 continue
-            _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True, aoe_secondary_lines=aoe_secondary_lines)
+            ape = _apply_entity_attacks(session, retaliating_entity, parts, allow_off_hand=True, aoe_secondary_lines=aoe_secondary_lines)
+            if ape is not None and aoe_parts_end is None:
+                aoe_parts_end = ape
             if status.hit_points <= 0:
                 break
 
     # Tick support effects, affects, and cooldowns *after* attacks so that
     # a duration_rounds value of N gives N full rounds of benefit.
     _process_combat_round_timers(session, engaged_entities)
+
+    # Compute AoE splash insertion offset within retaliation display lines.
+    aoe_splash_retaliation_offset: int | None = None
+    if aoe_parts_end is not None:
+        ret_slice = parts[retaliation_parts_start:aoe_parts_end]
+        nl_count = sum(
+            1 for p in ret_slice
+            if isinstance(p, dict) and str(p.get("text", "")) == "\n"
+        )
+        has_leading_nl = (
+            bool(ret_slice)
+            and isinstance(ret_slice[0], dict)
+            and str(ret_slice[0].get("text", "")) == "\n"
+        )
+        aoe_splash_retaliation_offset = nl_count if has_leading_nl else nl_count + (1 if ret_slice else 0)
 
     # Now display player death if it occurred this round.
 
@@ -709,6 +744,8 @@ def resolve_combat_round(
                 payload["additional_room_broadcast_lines"] = room_broadcast_lines
             if aoe_secondary_lines:
                 payload["aoe_secondary_lines"] = aoe_secondary_lines
+                if aoe_splash_retaliation_offset is not None:
+                    payload["aoe_splash_retaliation_offset"] = aoe_splash_retaliation_offset
 
         payload["broadcast_to_room"] = True
         return result
@@ -720,6 +757,8 @@ def resolve_combat_round(
             payload["additional_room_broadcast_lines"] = room_broadcast_lines
         if aoe_secondary_lines:
             payload["aoe_secondary_lines"] = aoe_secondary_lines
+            if aoe_splash_retaliation_offset is not None:
+                payload["aoe_splash_retaliation_offset"] = aoe_splash_retaliation_offset
         payload["broadcast_to_room"] = True
 
     _schedule_next_combat_round(session)

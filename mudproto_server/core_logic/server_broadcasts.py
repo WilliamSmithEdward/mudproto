@@ -421,7 +421,6 @@ def _build_unified_room_round_display(
 
         actor_lines, retaliation_lines = _split_actor_round_lines(lines, actor_prefix)
         player_phase_lines.extend(actor_lines)
-        retaliation_phase_lines.extend(retaliation_lines)
 
         if recipient_session.client_id != actor_session.client_id:
             actor_payload = actor_result.get("payload") if isinstance(actor_result, dict) else None
@@ -430,7 +429,16 @@ def _build_unified_room_round_display(
                 if isinstance(aoe_splash, dict):
                     recipient_aoe = aoe_splash.get(recipient_session.client_id)
                     if isinstance(recipient_aoe, list):
-                        retaliation_phase_lines.extend(line for line in recipient_aoe if isinstance(line, list))
+                        valid_aoe = [line for line in recipient_aoe if isinstance(line, list)]
+                        if valid_aoe:
+                            offset = actor_payload.get("aoe_splash_retaliation_offset")
+                            if isinstance(offset, int) and 0 <= offset <= len(retaliation_lines):
+                                for i, splash_line in enumerate(valid_aoe):
+                                    retaliation_lines.insert(offset + i, splash_line)
+                            else:
+                                retaliation_lines.extend(valid_aoe)
+
+        retaliation_phase_lines.extend(retaliation_lines)
 
     merged_lines = player_phase_lines + retaliation_phase_lines
     if not merged_lines:
