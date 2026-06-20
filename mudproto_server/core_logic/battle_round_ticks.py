@@ -1,8 +1,11 @@
 import asyncio
+import logging
 
 from combat_ability_effects import _process_player_battle_round_affects
 from models import ClientSession
 from settings import COMBAT_ROUND_INTERVAL_SECONDS
+
+logger = logging.getLogger("mudproto.battle_round_ticks")
 
 
 def _tick_player_skill_cooldowns(session: ClientSession) -> None:
@@ -51,6 +54,10 @@ def process_non_combat_battleround_tick(session: ClientSession) -> bool:
     try:
         now = asyncio.get_running_loop().time()
     except RuntimeError:
+        # No running event loop (for example when called from a synchronous test
+        # context). There is no monotonic clock to schedule against, so skip the
+        # tick rather than failing.
+        logger.debug("Skipping non-combat battle-round tick: no running event loop")
         return False
 
     due_at = session.next_non_combat_battleround_tick_monotonic

@@ -42,6 +42,11 @@ from world_population import initialize_session_entities, initialize_shared_worl
 
 WEBSOCKET_SERVER_LOGGER_NAME = "mudproto.websocket"
 
+logger = logging.getLogger("mudproto.server")
+
+# Seconds to wait before restarting a core background loop that exited unexpectedly.
+LOOP_RESTART_DELAY_SECONDS = 1.0
+
 # Auth stages where the player's inbound message text is a password. Inbound
 # content received during these stages must be kept out of logs (RG-24).
 PASSWORD_ENTRY_AUTH_STAGES = frozenset({
@@ -225,10 +230,29 @@ async def handle_connection(websocket: ServerConnection) -> None:
         print(f"Connected clients: {get_connection_count()}")
 
 
+async def _supervise_loop(loop_factory, name: str) -> None:
+    """Run a core background loop, restarting it if it ever exits unexpectedly.
+
+    Cancellation propagates so shutdown stays clean; any other exit is logged and
+    the loop is restarted after a short delay so a single failure does not
+    permanently stop game timing or combat (RG-23).
+    """
+    while True:
+        try:
+            await loop_factory()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("%s crashed; restarting in %ss", name, LOOP_RESTART_DELAY_SECONDS)
+        else:
+            logger.error("%s exited unexpectedly; restarting in %ss", name, LOOP_RESTART_DELAY_SECONDS)
+        await asyncio.sleep(LOOP_RESTART_DELAY_SECONDS)
+
+
 async def main():
     initialize_shared_world_state()
-    tick_task = asyncio.create_task(game_tick_loop())
-    combat_task = asyncio.create_task(combat_round_loop())
+    tick_task = asyncio.create_task(_supervise_loop(game_tick_loop, "game_tick_loop"))
+    combat_task = asyncio.create_task(_supervise_loop(combat_round_loop, "combat_round_loop"))
 
     ssl_context = _build_server_ssl_context()
     scheme = "wss" if ssl_context is not None else "ws"

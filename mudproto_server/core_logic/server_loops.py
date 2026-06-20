@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import random
 
 from battle_round_ticks import process_non_combat_battleround_tick
@@ -48,6 +49,8 @@ RoomRoundResult = tuple[ClientSession, dict]
 next_game_tick_monotonic: float | None = None
 next_combat_round_monotonic: float | None = None
 next_npc_wander_monotonic: float | None = None
+
+logger = logging.getLogger("mudproto.server_loops")
 
 
 def _entity_is_engaged_by_any_player(entity_id: str) -> bool:
@@ -205,48 +208,50 @@ async def command_scheduler_loop(session: ClientSession) -> None:
             if session.client_id not in connected_clients:
                 break
 
-            now = asyncio.get_running_loop().time()
-            while session.next_game_tick_monotonic is not None and now >= session.next_game_tick_monotonic:
-                process_game_hour_tick(session)
-                if session.is_authenticated:
-                    save_player_state(session)
-                session.next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
+            try:
+                now = asyncio.get_running_loop().time()
+                while session.next_game_tick_monotonic is not None and now >= session.next_game_tick_monotonic:
+                    process_game_hour_tick(session)
+                    if session.is_authenticated:
+                        save_player_state(session)
+                    session.next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
-            process_non_combat_battleround_tick(session)
+                process_non_combat_battleround_tick(session)
 
-            if session.is_authenticated and not session.combat.engaged_entity_ids:
-                maybe_auto_engage_current_room(session)
+                if session.is_authenticated and not session.combat.engaged_entity_ids:
+                    maybe_auto_engage_current_room(session)
 
-            if session.pending_death_logout:
-                continue
+                if session.pending_death_logout:
+                    continue
 
-            if is_session_lagged(session):
-                continue
+                if is_session_lagged(session):
+                    continue
 
-            if session.command_queue:
-                queued_command = session.command_queue.pop(0)
+                if session.command_queue:
+                    queued_command = session.command_queue.pop(0)
 
-                result = dispatch_command(session, queued_command.command_text)
-                await _handle_movement_side_effects(session, result, send_outbound)
-                result = _inject_private_lines_into_outbound(session, result)
-                await send_outbound(session.websocket, result)
-                if _should_broadcast_to_room(result):
-                    await _broadcast_non_combat_outbound_to_room(session, result, send_outbound)
-                continue
+                    result = dispatch_command(session, queued_command.command_text)
+                    await _handle_movement_side_effects(session, result, send_outbound)
+                    result = _inject_private_lines_into_outbound(session, result)
+                    await send_outbound(session.websocket, result)
+                    if _should_broadcast_to_room(result):
+                        await _broadcast_non_combat_outbound_to_room(session, result, send_outbound)
+                    continue
 
-            if session.prompt_pending_after_lag:
-                session.prompt_pending_after_lag = False
-                await send_json(session.websocket, display_prompt(session))
+                if session.prompt_pending_after_lag:
+                    session.prompt_pending_after_lag = False
+                    await send_json(session.websocket, display_prompt(session))
+            except asyncio.CancelledError:
+                raise
+            except Exception as ex:
+                logger.exception("Command scheduler iteration failed for %s", session.client_id)
+                try:
+                    await send_json(session.websocket, display_error(f"Scheduler failure: {str(ex)}"))
+                except Exception:
+                    logger.exception("Failed to deliver scheduler error to %s", session.client_id)
 
     except asyncio.CancelledError:
         raise
-    except Exception as ex:
-        error_message = display_error(f"Scheduler failure: {str(ex)}")
-
-        try:
-            await send_json(session.websocket, error_message)
-        except Exception:
-            pass
 
 
 async def game_tick_loop() -> None:
@@ -261,13 +266,18 @@ async def game_tick_loop() -> None:
 
             next_game_tick_monotonic += GAME_TICK_INTERVAL_SECONDS
 
-            for entity in list(shared_world_entities.values()):
-                if not getattr(entity, "is_alive", False):
-                    continue
-                process_entity_game_hour_tick(entity)
+            try:
+                for entity in list(shared_world_entities.values()):
+                    if not getattr(entity, "is_alive", False):
+                        continue
+                    process_entity_game_hour_tick(entity)
 
-            process_world_item_game_hour_tick()
-            repopulate_game_hour_zones()
+                process_world_item_game_hour_tick()
+                repopulate_game_hour_zones()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Game-hour tick failed; continuing with the next tick")
 
     except asyncio.CancelledError:
         raise
@@ -374,30 +384,40 @@ async def combat_round_loop() -> None:
                 ]
 
                 for recipient in room_recipients:
-                    skip_prompt = any(
-                        actor_session == recipient and actor_session.pending_death_logout
-                        for actor_session, _ in round_results
-                    )
-                    unified_display = _build_unified_room_round_display(recipient, round_results)
-                    if unified_display is None:
-                        continue
-                    outbounds = [unified_display]
-                    if not skip_prompt:
-                        outbounds.append(display_force_prompt(recipient))
-                    outbounds = _inject_private_lines_into_outbound(recipient, outbounds)
-                    await send_outbound(recipient.websocket, outbounds)
+                    try:
+                        skip_prompt = any(
+                            actor_session == recipient and actor_session.pending_death_logout
+                            for actor_session, _ in round_results
+                        )
+                        unified_display = _build_unified_room_round_display(recipient, round_results)
+                        if unified_display is None:
+                            continue
+                        outbounds = [unified_display]
+                        if not skip_prompt:
+                            outbounds.append(display_force_prompt(recipient))
+                        outbounds = _inject_private_lines_into_outbound(recipient, outbounds)
+                        await send_outbound(recipient.websocket, outbounds)
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:
+                        logger.exception("Failed to deliver combat round to %s", recipient.client_id)
 
                 for actor_session, actor_result in round_results:
                     if not actor_session.pending_death_logout:
                         continue
-                    death_display = _build_unified_room_round_display(
-                        actor_session, [(actor_session, actor_result)]
-                    )
-                    if death_display is not None:
-                        await send_outbound(actor_session.websocket, death_display)
-                    reset_session_to_login(actor_session)
-                    if actor_session.is_connected:
-                        await send_outbound(actor_session.websocket, initial_auth_prompt(actor_session))
+                    try:
+                        death_display = _build_unified_room_round_display(
+                            actor_session, [(actor_session, actor_result)]
+                        )
+                        if death_display is not None:
+                            await send_outbound(actor_session.websocket, death_display)
+                        reset_session_to_login(actor_session)
+                        if actor_session.is_connected:
+                            await send_outbound(actor_session.websocket, initial_auth_prompt(actor_session))
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:
+                        logger.exception("Failed to finalize combat death for %s", actor_session.client_id)
 
     except asyncio.CancelledError:
         raise
