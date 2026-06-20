@@ -2,6 +2,7 @@ import json
 import logging
 import sqlite3
 import hashlib
+import hmac
 import secrets
 
 from grammar import normalize_player_gender
@@ -129,8 +130,56 @@ def _character_key(character_name: str) -> str:
     return character_name.strip().lower()
 
 
-def _hash_password(password: str, salt: str) -> str:
+PBKDF2_ALGORITHM = "pbkdf2_sha256"
+PBKDF2_ITERATIONS = 600_000
+
+
+def _hash_password_pbkdf2(password: str, salt: str, iterations: int) -> str:
+    derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), iterations)
+    return f"{PBKDF2_ALGORITHM}${iterations}${derived.hex()}"
+
+
+def _hash_password_legacy_sha256(password: str, salt: str) -> str:
     return hashlib.sha256(f"{salt}:{password}".encode("utf-8")).hexdigest()
+
+
+def _hash_password(password: str, salt: str) -> str:
+    """Hash a new password with a slow KDF (PBKDF2-HMAC-SHA256).
+
+    Legacy bare-sha256 hashes remain verifiable via _password_matches and are
+    upgraded to this format on the next successful login.
+    """
+    return _hash_password_pbkdf2(password, salt, PBKDF2_ITERATIONS)
+
+
+def _is_legacy_password_hash(stored_hash: str) -> bool:
+    return not str(stored_hash).startswith(f"{PBKDF2_ALGORITHM}$")
+
+
+def _password_matches(password: str, salt: str, stored_hash: str) -> bool:
+    stored = str(stored_hash)
+    if stored.startswith(f"{PBKDF2_ALGORITHM}$"):
+        try:
+            iterations = int(stored.split("$", 2)[1])
+        except (ValueError, IndexError):
+            return False
+        candidate = _hash_password_pbkdf2(password, salt, iterations)
+    else:
+        candidate = _hash_password_legacy_sha256(password, salt)
+    return hmac.compare_digest(candidate, stored)
+
+
+def _upgrade_password_hash(character_key: str, password: str, salt: str) -> None:
+    """Re-hash a legacy credential with the current KDF after a successful login."""
+    try:
+        with _connect() as connection:
+            connection.execute(
+                "UPDATE characters SET password_hash = ?, updated_at = ? WHERE character_key = ?",
+                (_hash_password(password, salt), _utc_now_iso(), character_key),
+            )
+            connection.commit()
+    except Exception:
+        logger.exception("Failed to upgrade legacy password hash for %s", character_key)
 
 
 def _json_text(value: object) -> str:
@@ -342,10 +391,13 @@ def verify_character_credentials(character_name: str, password: str) -> dict | N
     if row is None:
         return None
 
-    expected_hash = str(row["password_hash"])
-    computed_hash = _hash_password(password, str(row["password_salt"]))
-    if computed_hash != expected_hash:
+    stored_hash = str(row["password_hash"])
+    salt = str(row["password_salt"])
+    if not _password_matches(password, salt, stored_hash):
         return None
+
+    if _is_legacy_password_hash(stored_hash):
+        _upgrade_password_hash(str(row["character_key"]), password, salt)
 
     return {
         "character_key": str(row["character_key"]),

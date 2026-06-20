@@ -25,6 +25,7 @@ def _isolate_player_state_database(tmp_path_factory):
 	monkeypatch.setattr(settings, "DATABASE_FILENAME", db_path.name, raising=False)
 	monkeypatch.setattr(settings, "PLAYER_STATE_DB_PATH", db_path, raising=False)
 	monkeypatch.setattr(player_state_db, "PLAYER_STATE_DB_PATH", db_path, raising=False)
+	monkeypatch.setattr(player_state_db, "PBKDF2_ITERATIONS", 1000, raising=False)
 	try:
 		yield db_path
 	finally:

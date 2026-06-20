@@ -98,6 +98,8 @@ def process_character_creation_input(
             gender=session.pending_gender,
             login_room_id="start",
         )
+        # Do not retain the plaintext password past the point it is hashed (RG-24).
+        session.pending_password = ""
         return complete_login(session, created, is_new_character=True)
 
     session.auth_stage = "awaiting_character_or_start"
