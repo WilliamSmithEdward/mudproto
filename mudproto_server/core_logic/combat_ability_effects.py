@@ -148,11 +148,13 @@ def _coerce_affect_multiplier(raw_amount: float) -> float:
     return max(0.0, amount)
 
 
-def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState], *, damage_element: str) -> float:
+def _resolve_damage_multiplier(
+    active_affects: list[ActiveAffectState], *, affect_id: str, damage_element: str
+) -> float:
     normalized_damage_element = str(damage_element).strip().lower()
     resolved_multiplier = 1.0
     for effect in active_affects:
-        if str(getattr(effect, "affect_id", "")).strip().lower() != _AFFECT_ID_DAMAGE_RECEIVED:
+        if str(getattr(effect, "affect_id", "")).strip().lower() != affect_id:
             continue
 
         effect_damage_elements = [
@@ -169,29 +171,18 @@ def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState],
         resolved_multiplier *= _coerce_affect_multiplier(_roll_affect_amount(effect))
 
     return max(0.0, resolved_multiplier)
+
+
+def _resolve_damage_received_multiplier(active_affects: list[ActiveAffectState], *, damage_element: str) -> float:
+    return _resolve_damage_multiplier(
+        active_affects, affect_id=_AFFECT_ID_DAMAGE_RECEIVED, damage_element=damage_element
+    )
 
 
 def _resolve_damage_dealt_multiplier(active_affects: list[ActiveAffectState], *, damage_element: str) -> float:
-    normalized_damage_element = str(damage_element).strip().lower()
-    resolved_multiplier = 1.0
-    for effect in active_affects:
-        if str(getattr(effect, "affect_id", "")).strip().lower() != _AFFECT_ID_DAMAGE_DEALT:
-            continue
-
-        effect_damage_elements = [
-            str(element).strip().lower()
-            for element in list(getattr(effect, "affect_damage_elements", []) or [])
-            if str(element).strip()
-        ]
-        if effect_damage_elements and normalized_damage_element not in effect_damage_elements:
-            continue
-
-        if not _is_affect_active(effect):
-            continue
-
-        resolved_multiplier *= _coerce_affect_multiplier(_roll_affect_amount(effect))
-
-    return max(0.0, resolved_multiplier)
+    return _resolve_damage_multiplier(
+        active_affects, affect_id=_AFFECT_ID_DAMAGE_DEALT, damage_element=damage_element
+    )
 
 
 def _is_affect_active(effect: ActiveAffectState) -> bool:
