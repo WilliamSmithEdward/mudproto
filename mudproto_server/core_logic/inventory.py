@@ -2,6 +2,7 @@ import re
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id, load_gear_templates, load_item_templates
+from grammar import keyword_token_list, keyword_tokens
 from models import ClientSession, ItemState
 
 
@@ -139,7 +140,7 @@ def _find_gear_template_for_item_name(item_name: str) -> dict | None:
     if not normalized_item_name:
         return None
 
-    item_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_item_name) if token}
+    item_tokens = keyword_tokens(normalized_item_name)
     for template in load_gear_templates():
         template_name = str(template.get("name", "")).strip().lower()
         if template_name == normalized_item_name:
@@ -166,7 +167,7 @@ def _find_item_template_for_item_name(item_name: str) -> dict | None:
     if not normalized_item_name:
         return None
 
-    item_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_item_name) if token}
+    item_tokens = keyword_tokens(normalized_item_name)
     for template in load_item_templates():
         template_name = str(template.get("name", "")).strip().lower()
         if template_name == normalized_item_name:
@@ -366,7 +367,7 @@ def list_equippable_inventory_items(session: ClientSession) -> list[ItemState]:
 
 
 def _name_keywords(name: str) -> set[str]:
-    return {token.lower() for token in re.findall(r"[a-zA-Z0-9]+", name)}
+    return keyword_tokens(name)
 
 
 def get_item_keywords(item: ItemState) -> set[str]:
@@ -444,7 +445,7 @@ def _find_matching_key_item(session: ClientSession, lock_id: str, key_selector: 
     if not normalized_lock_id:
         return None
 
-    selector_tokens = [token.lower() for token in re.findall(r"[a-zA-Z0-9]+", key_selector or "")]
+    selector_tokens = keyword_token_list(key_selector or "")
     candidate_items = list(session.inventory_items.values())
     candidate_items.sort(key=lambda item: (item.name.lower(), item.item_id))
 

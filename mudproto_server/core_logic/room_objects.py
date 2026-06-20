@@ -1,9 +1,8 @@
 """Configurable room-object resolution and examination helpers."""
 
-import re
-
 from display_core import build_part
 from display_feedback import display_command_result
+from grammar import keyword_tokens
 from inventory import parse_item_selector
 from models import ClientSession
 from world import Room
@@ -13,12 +12,12 @@ def _room_object_keywords(room_object: dict) -> set[str]:
     keywords: set[str] = set()
 
     for source in (room_object.get("object_id", ""), room_object.get("name", "")):
-        keywords.update(token.lower() for token in re.findall(r"[a-zA-Z0-9]+", str(source)))
+        keywords.update(keyword_tokens(source))
 
     raw_keywords = room_object.get("keywords", [])
     if isinstance(raw_keywords, list):
         for keyword in raw_keywords:
-            keywords.update(token.lower() for token in re.findall(r"[a-zA-Z0-9]+", str(keyword)))
+            keywords.update(keyword_tokens(keyword))
 
     return {keyword for keyword in keywords if keyword}
 

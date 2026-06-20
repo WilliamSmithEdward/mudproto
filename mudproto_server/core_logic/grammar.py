@@ -1,6 +1,20 @@
 import re
 
 
+def keyword_tokens(text) -> set[str]:
+    """Return the lowercased alphanumeric tokens of text as a set.
+
+    Used for case-insensitive keyword and selector matching across items,
+    entities, rooms, and players.
+    """
+    return set(re.findall(r"[a-zA-Z0-9]+", str(text).lower()))
+
+
+def keyword_token_list(text) -> list[str]:
+    """Return the lowercased alphanumeric tokens of text in order (duplicates kept)."""
+    return re.findall(r"[a-zA-Z0-9]+", str(text).lower())
+
+
 def indefinite_article(name: str, *, capitalize: bool = False) -> str:
     article = "an" if name.strip().lower()[:1] in "aeiou" else "a"
     if capitalize:

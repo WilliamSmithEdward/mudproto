@@ -1,8 +1,7 @@
 """Configurable room-exit state and open/close handling helpers."""
 
-import re
-
 from display_core import build_part, newline_part
+from grammar import keyword_token_list, keyword_tokens
 from inventory import _find_matching_key_item, _split_selector_and_key, consume_item_on_use
 from models import ClientSession
 from settings import DIRECTION_ALIASES, DIRECTION_SHORT_LABELS
@@ -181,18 +180,18 @@ def _exit_keywords(exit_detail: dict) -> set[str]:
         exit_detail.get("name", ""),
         exit_detail.get("direction", ""),
     ):
-        keywords.update(token.lower() for token in re.findall(r"[a-zA-Z0-9]+", str(source)))
+        keywords.update(keyword_tokens(source))
 
     raw_keywords = exit_detail.get("keywords", [])
     if isinstance(raw_keywords, list):
         for keyword in raw_keywords:
-            keywords.update(token.lower() for token in re.findall(r"[a-zA-Z0-9]+", str(keyword)))
+            keywords.update(keyword_tokens(keyword))
 
     return {keyword for keyword in keywords if keyword}
 
 
 def resolve_room_exit_selector(room: Room, selector_text: str) -> dict | None:
-    selector_tokens = [token.lower() for token in re.findall(r"[a-zA-Z0-9]+", selector_text)]
+    selector_tokens = keyword_token_list(selector_text)
     direction_hint: str | None = None
     filtered_tokens: list[str] = []
 

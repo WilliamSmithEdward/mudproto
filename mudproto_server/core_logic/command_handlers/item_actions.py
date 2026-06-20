@@ -3,6 +3,7 @@ import re
 from containers import put_item_into_container, resolve_accessible_container, split_item_and_container_selectors
 from display_core import build_part, newline_part
 from display_feedback import display_command_result, display_error
+from grammar import keyword_tokens
 from item_logic import _build_item_reference_parts, _item_highlight_color, _use_misc_item
 from models import ClientSession
 from targeting_items import _add_item_to_room_ground, _resolve_inventory_selector
@@ -45,13 +46,13 @@ def handle_item_drop_command(
 
     if selector.startswith("all.") and len(selector) > 4:
         item_selector = selector[4:]
-        selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
+        selector_tokens = keyword_tokens(item_selector)
         if not selector_tokens:
             return display_error("Usage: drop all.<item>", session)
 
         inventory_matches = []
         for item in list(session.inventory_items.values()):
-            item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+            item_keywords = keyword_tokens(item.name)
             if selector_tokens.issubset(item_keywords):
                 inventory_matches.append(item)
 

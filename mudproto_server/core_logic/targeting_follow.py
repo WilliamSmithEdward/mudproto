@@ -1,8 +1,8 @@
 """Player-targeting and follow-state helpers."""
 
 import asyncio
-import re
 
+from grammar import keyword_token_list, keyword_tokens
 from models import ClientSession
 from server_transport import send_outbound
 from session_registry import connected_clients, active_character_sessions, list_authenticated_room_players
@@ -34,7 +34,7 @@ def _resolve_room_player_selector(
                 return player_session, None
         return None, f"No exact player named '{selector_text}' is here."
 
-    query_parts = [part for part in re.findall(r"[a-zA-Z0-9]+", normalized) if part]
+    query_parts = keyword_token_list(normalized)
 
     if "." not in normalized:
         exact_match: ClientSession | None = None
@@ -48,7 +48,7 @@ def _resolve_room_player_selector(
                 exact_match = player_session
                 break
 
-            player_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", player_name) if token}
+            player_keywords = keyword_tokens(player_name)
             if _selector_prefix_matches_keywords(query_parts, player_keywords) and partial_match is None:
                 partial_match = player_session
 
@@ -75,7 +75,7 @@ def _resolve_room_player_selector(
     matches: list[ClientSession] = []
     for player_session in room_players:
         player_name = (player_session.authenticated_character_name or "").strip().lower()
-        keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", player_name) if token}
+        keywords = keyword_tokens(player_name)
         if _selector_prefix_matches_keywords(parts, keywords):
             matches.append(player_session)
 

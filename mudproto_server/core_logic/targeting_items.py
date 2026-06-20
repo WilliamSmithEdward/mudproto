@@ -1,7 +1,6 @@
 """Inventory and room-item selector helpers."""
 
-import re
-
+from grammar import keyword_tokens
 from inventory import get_item_keywords, is_item_equippable, parse_item_selector
 from models import ClientSession, ItemState
 from equipment_logic import list_worn_items
@@ -10,7 +9,7 @@ from equipment_logic import list_worn_items
 def _selector_keywords_for_item(item: ItemState, *, visible_name_only: bool = False) -> set[str]:
     if not visible_name_only:
         return get_item_keywords(item)
-    return {token for token in re.findall(r"[a-zA-Z0-9]+", str(item.name).lower()) if token}
+    return keyword_tokens(item.name)
 
 
 def _resolve_owned_item_selector(

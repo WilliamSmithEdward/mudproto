@@ -1,7 +1,5 @@
 """Item and corpse display helpers plus misc item-use logic."""
 
-import re
-
 from attribute_config import load_item_usage_config
 from assets import get_item_template_by_id, load_item_templates
 from combat_ability_effects import _apply_ability_affects
@@ -9,7 +7,7 @@ from command_handlers.types import OutboundResult
 from corpse_labels import build_corpse_label
 from display_core import build_menu_table_parts, build_part, newline_part, parts_to_lines
 from display_feedback import display_command_result, display_error
-from grammar import indefinite_article, resolve_player_pronouns, with_article
+from grammar import indefinite_article, keyword_tokens, resolve_player_pronouns, with_article
 from inventory import hydrate_misc_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 from player_resources import get_player_resource_caps
@@ -130,7 +128,7 @@ def _find_item_template_for_misc_item(misc_item) -> dict | None:
     if not normalized_item_name:
         return None
 
-    item_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", normalized_item_name) if token}
+    item_tokens = keyword_tokens(normalized_item_name)
     for template in load_item_templates():
         template_name = str(template.get("name", "")).strip().lower()
         if template_name == normalized_item_name:

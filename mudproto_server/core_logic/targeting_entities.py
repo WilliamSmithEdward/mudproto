@@ -1,8 +1,7 @@
 """Room entity and corpse resolution helpers."""
 
-import re
-
 from corpse_labels import build_corpse_label
+from grammar import keyword_token_list, keyword_tokens
 from models import ClientSession, CorpseState, EntityState, ItemState
 
 from targeting_parsing import _selector_prefix_matches_keywords
@@ -31,7 +30,7 @@ def list_room_corpses(session: ClientSession, room_id: str) -> list[CorpseState]
 
 
 def _entity_name_keywords(name: str) -> set[str]:
-    return {token for token in re.findall(r"[a-zA-Z0-9]+", name.lower()) if token}
+    return keyword_tokens(name)
 
 
 def _corpse_keywords(corpse: CorpseState) -> set[str]:
@@ -41,7 +40,7 @@ def _corpse_keywords(corpse: CorpseState) -> set[str]:
 
 
 def _corpse_item_keywords(item: ItemState) -> set[str]:
-    return {token for token in re.findall(r"[a-zA-Z0-9]+", item.name.lower()) if token}
+    return keyword_tokens(item.name)
 
 
 def resolve_room_entity_selector(
@@ -126,7 +125,7 @@ def resolve_room_entity_selector(
         # On ambiguous exact-token matches, default to the first in spawn order.
         return token_matches[0], None
 
-    query_parts = [part for part in re.findall(r"[a-zA-Z0-9]+", normalized) if part]
+    query_parts = keyword_token_list(normalized)
 
     if "." not in normalized:
         exact_match: EntityState | None = None

@@ -1,13 +1,13 @@
 """Shared commerce helpers for merchant inventory, pricing, and trade resolution."""
 
 import math
-import re
 import uuid
 
 from assets import get_gear_template_by_id, get_item_template_by_id
 from display_core import build_menu_table_parts, build_part, newline_part
 from display_feedback import display_command_result
 from equipment_logic import unequip_item
+from grammar import keyword_tokens
 from inventory import build_equippable_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
 
@@ -15,7 +15,7 @@ OutboundMessage = dict[str, object]
 
 
 def _tokenize_selector_value(value: str) -> set[str]:
-    return {token for token in re.findall(r"[a-zA-Z0-9]+", value.strip().lower()) if token}
+    return keyword_tokens(value)
 
 
 def _parse_trade_selector(selector: str) -> tuple[int | None, list[str], str | None]:

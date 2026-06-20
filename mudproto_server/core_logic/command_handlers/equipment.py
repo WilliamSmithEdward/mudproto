@@ -1,8 +1,7 @@
-import re
-
 from display_character import display_equipment
 from display_core import build_part, newline_part
 from display_feedback import display_command_result, display_error
+from grammar import keyword_tokens
 from equipment_logic import (
     HAND_BOTH,
     HAND_MAIN,
@@ -206,7 +205,7 @@ def handle_equipment_command(
 
         if selector.startswith("all.") and len(selector) > 4:
             item_selector = selector[4:]
-            selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
+            selector_tokens = keyword_tokens(item_selector)
             if not selector_tokens:
                 return display_error(
                     "Usage: wear all.<item>",
@@ -218,7 +217,7 @@ def handle_equipment_command(
             wearable_items = []
 
             for inventory_item in list(session.inventory_items.values()):
-                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", inventory_item.name.lower()) if token}
+                item_keywords = keyword_tokens(inventory_item.name)
                 if not selector_tokens.issubset(item_keywords):
                     continue
 
@@ -326,7 +325,7 @@ def handle_equipment_command(
         selector = ".".join(arg.strip().lower() for arg in args if arg.strip())
         if selector.startswith("all.") and len(selector) > 4:
             item_selector = selector[4:]
-            selector_tokens = {token for token in re.findall(r"[a-zA-Z0-9]+", item_selector) if token}
+            selector_tokens = keyword_tokens(item_selector)
             if not selector_tokens:
                 return display_error(
                     "Usage: rem all.<item>",
@@ -341,7 +340,7 @@ def handle_equipment_command(
             for _, worn_item in worn_items:
                 if worn_item.item_id in seen_item_ids:
                     continue
-                item_keywords = {token for token in re.findall(r"[a-zA-Z0-9]+", worn_item.name.lower()) if token}
+                item_keywords = keyword_tokens(worn_item.name)
                 if selector_tokens.issubset(item_keywords):
                     matches.append(worn_item)
                 seen_item_ids.add(worn_item.item_id)
