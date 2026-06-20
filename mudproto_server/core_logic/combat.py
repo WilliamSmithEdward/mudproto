@@ -298,6 +298,62 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
     return display_error(f"You fail to engage {entity.name}.", session)
 
 
+def _apply_one_player_attack(
+    session: ClientSession,
+    entity: EntityState,
+    weapon: ItemState | None,
+    parts: list[dict],
+    *,
+    equipment_hit_bonus: int,
+    equipment_damage_bonus: int,
+    unarmed_hit_bonus: int,
+    unarmed_damage_bonus: int,
+    target_is_named: bool | None,
+    apply_procs: bool,
+    room_broadcast_lines: list[list[dict]],
+) -> None:
+    append_newline_if_needed(parts)
+
+    hit_modifier = get_player_hit_modifier(
+        weapon,
+        player_level=session.player.level,
+        unarmed_hit_bonus=unarmed_hit_bonus,
+    ) + equipment_hit_bonus
+    if not roll_hit(hit_modifier, entity.armor_class):
+        miss_verb = resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
+        parts.extend(build_player_attack_parts(
+            entity_name=entity.name,
+            attack_verb=miss_verb,
+            damage=0,
+            target_max_hp=entity.max_hit_points,
+            target_is_named=target_is_named,
+        ))
+        return
+
+    rolled_damage, _, attack_verb = roll_player_damage(
+        session.player_combat,
+        weapon,
+        player_level=session.player.level,
+        unarmed_damage_bonus=unarmed_damage_bonus,
+    )
+    rolled_damage += equipment_damage_bonus
+    rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
+    _mark_entity_contributor(session, entity)
+    preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
+    _apply_entity_damage_with_reduction(entity, rolled_damage)
+    parts.extend(build_player_attack_parts(
+        entity_name=entity.name,
+        attack_verb=attack_verb,
+        damage=preview_damage,
+        target_max_hp=entity.max_hit_points,
+        target_is_named=target_is_named,
+    ))
+
+    if apply_procs:
+        _apply_weapon_room_damage_proc(session, weapon, entity, parts, room_broadcast_lines)
+        _apply_weapon_target_damage_proc(session, weapon, entity, parts)
+
+
 def _apply_player_attacks(
     session: ClientSession,
     entity: EntityState,
@@ -310,58 +366,35 @@ def _apply_player_attacks(
     equipment_hit_bonus = get_player_hitroll_bonus(session)
     equipment_damage_bonus = get_player_weapon_damage_bonus(session)
 
+    target_is_named = getattr(entity, "is_named", None)
+
+    def _attack(weapon: ItemState | None, *, apply_procs: bool, named: bool | None) -> None:
+        _apply_one_player_attack(
+            session,
+            entity,
+            weapon,
+            parts,
+            equipment_hit_bonus=equipment_hit_bonus,
+            equipment_damage_bonus=equipment_damage_bonus,
+            unarmed_hit_bonus=unarmed_hit_bonus,
+            unarmed_damage_bonus=unarmed_damage_bonus,
+            target_is_named=named,
+            apply_procs=apply_procs,
+            room_broadcast_lines=room_broadcast_lines,
+        )
+
     for weapon in attack_sequence:
         if not entity.is_alive:
             break
-
-        append_newline_if_needed(parts)
-
-        hit_modifier = get_player_hit_modifier(
-            weapon,
-            player_level=session.player.level,
-            unarmed_hit_bonus=unarmed_hit_bonus,
-        ) + equipment_hit_bonus
-        if not roll_hit(hit_modifier, entity.armor_class):
-            miss_verb = resolve_weapon_verb(weapon.weapon_type) if weapon is not None else "hit"
-            parts.extend(build_player_attack_parts(
-                entity_name=entity.name,
-                attack_verb=miss_verb,
-                damage=0,
-                target_max_hp=entity.max_hit_points,
-                target_is_named=getattr(entity, "is_named", None),
-            ))
-            continue
-
-        rolled_damage, weapon_name, attack_verb = roll_player_damage(
-            session.player_combat,
-            weapon,
-            player_level=session.player.level,
-            unarmed_damage_bonus=unarmed_damage_bonus,
-        )
-        rolled_damage += equipment_damage_bonus
-        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
-        _mark_entity_contributor(session, entity)
-        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
-        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
-        parts.extend(build_player_attack_parts(
-            entity_name=entity.name,
-            attack_verb=attack_verb,
-            damage=preview_damage,
-            target_max_hp=entity.max_hit_points,
-            target_is_named=getattr(entity, "is_named", None),
-        ))
-        _apply_weapon_room_damage_proc(session, weapon, entity, parts, room_broadcast_lines)
-        _apply_weapon_target_damage_proc(session, weapon, entity, parts)
-
+        _attack(weapon, apply_procs=True, named=target_is_named)
         if entity.hit_points <= 0:
             break
 
-    # Extra unarmed hits from affect-based skills.
+    # Extra hits from affect-based skills.
     affect_extra_main, affect_extra_off, affect_extra_unarmed = _resolve_extra_hits_from_affects(
         list(session.active_affects),
         player_level=max(1, int(session.player.level)),
     )
-    extra_unarmed = affect_extra_unarmed
 
     main_hand = get_equipped_main_hand(session)
     main_weapon = main_hand if main_hand is not None and main_hand.slot == "weapon" else None
@@ -370,118 +403,17 @@ def _apply_player_attacks(
     if main_weapon is not None and off_weapon is not None and off_weapon.item_id == main_weapon.item_id:
         off_weapon = None
 
-    for _ in range(affect_extra_main):
+    # Main/off extra hits preserve the original behavior of not passing
+    # target_is_named (None); unarmed extra hits pass it, matching the prior loops.
+    extra_attacks: list[tuple[ItemState | None, bool | None]] = (
+        [(main_weapon, None)] * affect_extra_main
+        + [(off_weapon, None)] * affect_extra_off
+        + [(None, target_is_named)] * affect_extra_unarmed
+    )
+    for weapon, named in extra_attacks:
         if not entity.is_alive:
             break
-        append_newline_if_needed(parts)
-        hit_modifier = get_player_hit_modifier(
-            main_weapon,
-            player_level=session.player.level,
-            unarmed_hit_bonus=unarmed_hit_bonus,
-        ) + equipment_hit_bonus
-        if not roll_hit(hit_modifier, entity.armor_class):
-            miss_verb = resolve_weapon_verb(main_weapon.weapon_type) if main_weapon is not None else "hit"
-            parts.extend(build_player_attack_parts(
-                entity_name=entity.name,
-                attack_verb=miss_verb,
-                damage=0,
-                target_max_hp=entity.max_hit_points,
-            ))
-            continue
-        rolled_damage, _, attack_verb = roll_player_damage(
-            session.player_combat,
-            main_weapon,
-            player_level=session.player.level,
-            unarmed_damage_bonus=unarmed_damage_bonus,
-        )
-        rolled_damage += equipment_damage_bonus
-        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
-        _mark_entity_contributor(session, entity)
-        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
-        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
-        parts.extend(build_player_attack_parts(
-            entity_name=entity.name,
-            attack_verb=attack_verb,
-            damage=preview_damage,
-            target_max_hp=entity.max_hit_points,
-        ))
-        if entity.hit_points <= 0:
-            break
-
-    for _ in range(affect_extra_off):
-        if not entity.is_alive:
-            break
-        append_newline_if_needed(parts)
-        hit_modifier = get_player_hit_modifier(
-            off_weapon,
-            player_level=session.player.level,
-            unarmed_hit_bonus=unarmed_hit_bonus,
-        ) + equipment_hit_bonus
-        if not roll_hit(hit_modifier, entity.armor_class):
-            miss_verb = resolve_weapon_verb(off_weapon.weapon_type) if off_weapon is not None else "hit"
-            parts.extend(build_player_attack_parts(
-                entity_name=entity.name,
-                attack_verb=miss_verb,
-                damage=0,
-                target_max_hp=entity.max_hit_points,
-            ))
-            continue
-        rolled_damage, _, attack_verb = roll_player_damage(
-            session.player_combat,
-            off_weapon,
-            player_level=session.player.level,
-            unarmed_damage_bonus=unarmed_damage_bonus,
-        )
-        rolled_damage += equipment_damage_bonus
-        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
-        _mark_entity_contributor(session, entity)
-        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
-        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
-        parts.extend(build_player_attack_parts(
-            entity_name=entity.name,
-            attack_verb=attack_verb,
-            damage=preview_damage,
-            target_max_hp=entity.max_hit_points,
-        ))
-        if entity.hit_points <= 0:
-            break
-
-    for _ in range(extra_unarmed):
-        if not entity.is_alive:
-            break
-        append_newline_if_needed(parts)
-        hit_modifier = get_player_hit_modifier(
-            None,
-            player_level=session.player.level,
-            unarmed_hit_bonus=unarmed_hit_bonus,
-        ) + equipment_hit_bonus
-        if not roll_hit(hit_modifier, entity.armor_class):
-            parts.extend(build_player_attack_parts(
-                entity_name=entity.name,
-                attack_verb="hit",
-                damage=0,
-                target_max_hp=entity.max_hit_points,
-                target_is_named=getattr(entity, "is_named", None),
-            ))
-            continue
-        rolled_damage, _, attack_verb = roll_player_damage(
-            session.player_combat,
-            None,
-            player_level=session.player.level,
-            unarmed_damage_bonus=unarmed_damage_bonus,
-        )
-        rolled_damage += equipment_damage_bonus
-        rolled_damage = _apply_player_dealt_damage_multiplier(session, rolled_damage)
-        _mark_entity_contributor(session, entity)
-        preview_damage = _preview_entity_damage_with_reduction(entity, rolled_damage)
-        applied_damage = _apply_entity_damage_with_reduction(entity, rolled_damage)
-        parts.extend(build_player_attack_parts(
-            entity_name=entity.name,
-            attack_verb=attack_verb,
-            damage=preview_damage,
-            target_max_hp=entity.max_hit_points,
-            target_is_named=getattr(entity, "is_named", None),
-        ))
+        _attack(weapon, apply_procs=False, named=named)
         if entity.hit_points <= 0:
             break
 
