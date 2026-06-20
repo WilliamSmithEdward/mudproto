@@ -32,6 +32,22 @@ def _append_posture_parts(parts: list[dict], *, is_sitting: bool, is_resting: bo
     ])
 
 
+def _append_section_heading(parts: list[dict], heading: str) -> None:
+    parts.extend([
+        newline_part(),
+        newline_part(),
+        build_part(heading, "display_room.section.heading", True),
+    ])
+
+
+def _append_list_item(parts: list[dict], text: str, text_color: str) -> None:
+    parts.extend([
+        newline_part(),
+        build_part(" - ", "display_room.section.bullet"),
+        build_part(text, text_color, True),
+    ])
+
+
 def _scan_visible_hostiles(session: ClientSession, room_id: str) -> list:
     visible = [
         entity
@@ -372,19 +388,11 @@ def display_room(session: ClientSession, room: Room) -> dict:
 
     entities = list_room_entities(session, room.room_id)
     if entities:
-        parts.extend([
-            newline_part(),
-            newline_part(),
-            build_part("You see here:", "display_room.section.heading", True),
-        ])
+        _append_section_heading(parts, "You see here:")
 
         for entity in entities:
             entity_name_color = "display_room.entity.hostile" if is_entity_hostile_to_player(session, entity) else "display_room.entity.neutral"
-            parts.extend([
-                newline_part(),
-                build_part(" - ", "display_room.section.bullet"),
-                build_part(entity.name, entity_name_color, True),
-            ])
+            _append_list_item(parts, entity.name, entity_name_color)
             _append_posture_parts(
                 parts,
                 is_sitting=bool(getattr(entity, "is_sitting", False)),
@@ -400,19 +408,11 @@ def display_room(session: ClientSession, room: Room) -> dict:
 
     other_players = list_authenticated_room_players(room.room_id, exclude_client_id=session.client_id)
     if other_players:
-        parts.extend([
-            newline_part(),
-            newline_part(),
-            build_part("Players here:", "display_room.section.heading", True),
-        ])
+        _append_section_heading(parts, "Players here:")
 
         for other_player in other_players:
             player_name = other_player.authenticated_character_name.strip() or "Unknown"
-            parts.extend([
-                newline_part(),
-                build_part(" - ", "display_room.section.bullet"),
-                build_part(player_name, "display_room.player.name", True),
-            ])
+            _append_list_item(parts, player_name, "display_room.player.name")
             _append_posture_parts(
                 parts,
                 is_sitting=bool(getattr(other_player, "is_sitting", False)),
@@ -425,15 +425,9 @@ def display_room(session: ClientSession, room: Room) -> dict:
 
     room_coin_amount = max(0, int(session.room_coin_piles.get(room.room_id, 0)))
     if room_coin_amount > 0:
-        parts.extend([
-            newline_part(),
-            newline_part(),
-            build_part("Coin pile:", "display_room.section.heading", True),
-            newline_part(),
-            build_part(" - ", "display_room.section.bullet"),
-            build_part(str(room_coin_amount), "display_room.coin.amount", True),
-            build_part(" coins", "display_room.summary.label"),
-        ])
+        _append_section_heading(parts, "Coin pile:")
+        _append_list_item(parts, str(room_coin_amount), "display_room.coin.amount")
+        parts.append(build_part(" coins", "display_room.summary.label"))
 
     room_items = list(session.room_ground_items.get(room.room_id, {}).values())
     room_items.sort(key=lambda item: item.name.lower())
@@ -472,17 +466,9 @@ def display_room(session: ClientSession, room: Room) -> dict:
 
     if ground_item_order:
         ground_item_order.sort(key=lambda item_key: ground_item_names[item_key].lower())
-        parts.extend([
-            newline_part(),
-            newline_part(),
-            build_part("On the ground:", "display_room.section.heading", True),
-        ])
+        _append_section_heading(parts, "On the ground:")
         for item_key in ground_item_order:
-            parts.extend([
-                newline_part(),
-                build_part(" - ", "display_room.section.bullet"),
-                build_part(ground_item_names[item_key], ground_item_colors[item_key], True),
-            ])
+            _append_list_item(parts, ground_item_names[item_key], ground_item_colors[item_key])
             count = ground_item_counts[item_key]
             if count > 1:
                 parts.extend([
