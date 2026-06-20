@@ -75,6 +75,11 @@ class _FakeWebSocket:
         self.closed_with.append((code, reason))
 
 
+class _FakeSession:
+    def __init__(self, auth_stage: str) -> None:
+        self.auth_stage = auth_stage
+
+
 def _flatten_display_text(message: dict) -> str:
     payload = message.get("payload", {})
     lines = payload.get("lines", []) if isinstance(payload, dict) else []
@@ -109,3 +114,21 @@ def test_handle_connection_rejects_when_server_is_full(monkeypatch) -> None:
     assert sent_messages
     assert "Server is full" in _flatten_display_text(sent_messages[0])
     assert websocket.closed_with == [(1013, "Server full")]
+
+
+def test_redact_message_for_log_hides_password_entry_text() -> None:
+    for stage in ("awaiting_existing_password", "awaiting_new_character_password"):
+        session = _FakeSession(stage)
+
+        redacted = server._redact_message_for_log(session, "hunter2")
+
+        assert "hunter2" not in redacted
+        assert redacted == "<redacted: password entry>"
+
+
+def test_redact_message_for_log_passes_non_password_text_through() -> None:
+    session = _FakeSession("awaiting_character_or_start")
+    message = {"type": "input", "payload": {"text": "look"}}
+
+    assert server._redact_message_for_log(session, "look") == "look"
+    assert server._redact_message_for_log(session, message) is message

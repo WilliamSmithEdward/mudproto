@@ -331,13 +331,6 @@ async def combat_round_loop() -> None:
                 if is_room_due:
                     due_combat_rooms[room_id] = room_sessions
 
-            combat_session_ids = {s.client_id for s in combat_sessions}
-            for session in list(connected_clients.values()):
-                if session.client_id in combat_session_ids:
-                    continue
-                if not session.is_authenticated or session.disconnected_by_server:
-                    continue
-
             for room_id, room_sessions in due_combat_rooms.items():
                 round_results: list[RoomRoundResult] = []
                 room_sessions.sort(key=lambda s: (s.authenticated_character_name or "", s.client_id))

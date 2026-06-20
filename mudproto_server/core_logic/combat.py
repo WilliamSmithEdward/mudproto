@@ -40,7 +40,7 @@ from damage import (
     roll_weapon_target_proc_damage,
 )
 from death import build_player_death_broadcast_parts, build_player_death_mourn_parts, build_player_death_parts, handle_player_death
-from display_core import build_part
+from display_core import build_part, resolve_display_color
 from equipment_logic import (
     get_equipped_main_hand,
     get_equipped_off_hand,

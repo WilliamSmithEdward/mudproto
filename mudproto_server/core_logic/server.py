@@ -42,6 +42,19 @@ from world_population import initialize_session_entities, initialize_shared_worl
 
 WEBSOCKET_SERVER_LOGGER_NAME = "mudproto.websocket"
 
+# Auth stages where the player's inbound message text is a password. Inbound
+# content received during these stages must be kept out of logs (RG-24).
+PASSWORD_ENTRY_AUTH_STAGES = frozenset({
+    "awaiting_existing_password",
+    "awaiting_new_character_password",
+})
+
+
+def _redact_message_for_log(session, value):
+    if session.auth_stage in PASSWORD_ENTRY_AUTH_STAGES:
+        return "<redacted: password entry>"
+    return value
+
 
 def _is_expected_handshake_disconnect(exc: BaseException | None) -> bool:
     pending = [exc]
@@ -158,7 +171,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
 
             touch_session(session)
 
-            print(f"Raw message from {session.client_id}: {message_text}")
+            print(f"Raw message from {session.client_id}: {_redact_message_for_log(session, message_text)}")
 
             try:
                 message = json.loads(message_text)
@@ -167,7 +180,7 @@ async def handle_connection(websocket: ServerConnection) -> None:
                 await send_json(session.websocket, response)
                 continue
 
-            print(f"Parsed message from {session.client_id}: {message}")
+            print(f"Parsed message from {session.client_id}: {_redact_message_for_log(session, message)}")
 
             error_message = validate_message(message)
             if error_message is not None:
