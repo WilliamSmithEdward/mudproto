@@ -8,7 +8,7 @@ from display_core import build_menu_table_parts, build_part, newline_part
 from display_feedback import display_command_result
 from equipment_logic import unequip_item
 from grammar import keyword_tokens
-from inventory import build_equippable_item_from_template, is_item_equippable
+from inventory import build_equippable_item_from_template, is_item_equippable, parse_selector
 from models import ClientSession, ItemState
 
 OutboundMessage = dict[str, object]
@@ -19,25 +19,12 @@ def _tokenize_selector_value(value: str) -> set[str]:
 
 
 def _parse_trade_selector(selector: str) -> tuple[int | None, list[str], str | None]:
-    normalized = selector.strip().lower()
-    if not normalized:
-        return None, [], "Provide an item selector."
-
-    parts = [part for part in normalized.split(".") if part]
-    if not parts:
-        return None, [], "Provide an item selector."
-
-    requested_index: int | None = None
-    if parts[0].isdigit():
-        requested_index = int(parts[0])
-        parts = parts[1:]
-        if requested_index <= 0:
-            return None, [], "Selector index must be 1 or greater."
-
-    if not parts:
-        return None, [], "Provide at least one selector keyword after the index."
-
-    return requested_index, parts, None
+    return parse_selector(
+        selector,
+        split_whitespace=False,
+        empty_error="Provide an item selector.",
+        missing_keyword_error="Provide at least one selector keyword after the index.",
+    )
 
 
 def _as_int(value: object, default: int = 0) -> int:

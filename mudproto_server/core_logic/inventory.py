@@ -377,14 +377,29 @@ def get_item_keywords(item: ItemState) -> set[str]:
     return keywords
 
 
-def parse_item_selector(selector: str) -> tuple[int | None, list[str], str | None]:
+def parse_selector(
+    selector: str,
+    *,
+    split_whitespace: bool,
+    empty_error: str,
+    missing_keyword_error: str,
+) -> tuple[int | None, list[str], str | None]:
+    """Parse an "<index>.<keyword>..." selector into (index, keywords, error).
+
+    split_whitespace controls whether spaces also separate keywords (item
+    selectors) or stay inside a single token (trade selectors). Error wording is
+    supplied by the caller so messages stay domain-specific.
+    """
     normalized = selector.strip().lower()
     if not normalized:
-        return None, [], "Provide equipment keywords, e.g. training sword"
+        return None, [], empty_error
 
-    parts = [part for part in re.split(r"[.\s]+", normalized) if part]
+    if split_whitespace:
+        parts = [part for part in re.split(r"[.\s]+", normalized) if part]
+    else:
+        parts = [part for part in normalized.split(".") if part]
     if not parts:
-        return None, [], "Provide equipment keywords, e.g. training sword"
+        return None, [], empty_error
 
     match_index: int | None = None
     if parts[0].isdigit():
@@ -394,9 +409,18 @@ def parse_item_selector(selector: str) -> tuple[int | None, list[str], str | Non
             return None, [], "Selector index must be 1 or greater."
 
     if not parts:
-        return None, [], "Provide at least one equipment keyword after the index."
+        return None, [], missing_keyword_error
 
     return match_index, parts, None
+
+
+def parse_item_selector(selector: str) -> tuple[int | None, list[str], str | None]:
+    return parse_selector(
+        selector,
+        split_whitespace=True,
+        empty_error="Provide equipment keywords, e.g. training sword",
+        missing_keyword_error="Provide at least one equipment keyword after the index.",
+    )
 
 
 def _find_selector_matches(session: ClientSession, selector: str) -> tuple[list[ItemState], int | None, str | None]:
