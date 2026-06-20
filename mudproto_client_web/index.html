@@ -137,6 +137,13 @@
       box-shadow: 0 0 0 1px rgba(97, 214, 214, 0.25);
     }
 
+    button:focus-visible,
+    a:focus-visible,
+    [role="button"]:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     select option {
       background: #0c0c0c;
       color: var(--text);
@@ -754,6 +761,15 @@
 
     .toast.toast-refresh {
       animation: toastPulse 220ms ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .toast {
+        transition: none;
+      }
+      .toast.toast-refresh {
+        animation: none;
+      }
     }
 
     .toast.toast-info {
@@ -2261,6 +2277,14 @@
           }
         }
 
+        if (event.key === "Tab") {
+          const openModal = this.getOpenModal();
+          if (openModal) {
+            this.trapFocusWithinModal(event, openModal);
+            return;
+          }
+        }
+
         if (this.tryExecuteBoundKey(event)) {
           return;
         }
@@ -2280,6 +2304,40 @@
           this.inputEl.focus();
           this.inputEl.value += event.key;
           event.preventDefault();
+        }
+      }
+
+      getOpenModal() {
+        const modals = [
+          this.confirmModal,
+          this.promptModal,
+          this.aliasesModal,
+          this.bindingsModal,
+          this.optionsModal,
+          this.actionsModal,
+          this.helpModal,
+          this.settingsModal,
+        ];
+        return modals.find((modal) => modal && !modal.classList.contains("hidden")) || null;
+      }
+
+      trapFocusWithinModal(event, modal) {
+        const selector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        const focusable = Array.from(modal.querySelectorAll(selector)).filter((el) => el.offsetParent !== null);
+        if (!focusable.length) {
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement;
+        if (event.shiftKey) {
+          if (active === first || !modal.contains(active)) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else if (active === last || !modal.contains(active)) {
+          event.preventDefault();
+          first.focus();
         }
       }
 
@@ -3263,6 +3321,10 @@
 
       animateToastLayout(previousRects) {
         if (!this.toastContainer) {
+          return;
+        }
+
+        if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           return;
         }
 
