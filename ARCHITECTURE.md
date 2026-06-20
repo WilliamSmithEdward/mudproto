@@ -185,7 +185,7 @@ Level gains: +10HP +5V +6M
 | `containers.py` | Shared container operations for containers and corpses, including examine, loot, open/close, and lock/unlock flows. |
 | `display_core.py` | Core display builders, line/part composition, and semantic color resolution through the central display palette config. |
 | `display_feedback.py` | Prompt/status displays, command results, and explicit error-code-based feedback builders using lore text from [mudproto_server/configuration/server/display_feedback.json](mudproto_server/configuration/server/display_feedback.json). |
-| `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`. |
+| `grammar.py` | Shared text transforms: `indefinite_article`, `with_article`, `to_third_person`, `capitalize_after_newlines`, `third_personize_text`, and `keyword_tokens`/`keyword_token_list` for selector tokenization. |
 | `attribute_config.py` | Attribute and rules config loaders for classes, regeneration, combat severity, level scaling, item usage, and experience progression. |
 | `assets.py` | Content asset loaders for gear, items, rooms, zones, NPCs, spells, and skills with structural and cross-reference validation. |
 | `player_state_db.py` | SQLite persistence: character credentials, full session serialization/deserialization, including persisted game-hour skill cooldown state. |
@@ -193,6 +193,12 @@ Level gains: +10HP +5V +6M
 | `room_actions.py` | Configurable room keyword interaction handling, including exit reveal/hide actions and room-specific triggers. |
 | `battle_round_ticks.py` | Per-round support effect processing during combat. |
 | `game_hour_ticks.py` | Per-hour regeneration (HP/vigor/mana) and timed support effect processing. |
+| `death.py` | On-death handling: player death broadcast/mourn part builders and death side effects. |
+| `experience.py` | Experience and level progression lookups (XP to next level, level for experience). |
+| `player_resources.py` | Player HP/vigor/mana/coin resource cap calculation and clamping, with equipment bonuses applied. |
+| `room_exits.py` | Configurable room-exit state and open/close/lock handling, plus prompt exit-token formatting. |
+| `room_objects.py` | Configurable room-object resolution and examination handling. |
+| `corpse_labels.py` | Corpse display label formatting (generic vs possessive style). |
 
 ---
 
