@@ -9,9 +9,14 @@ from experience import get_level_for_experience
 from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH, _utc_now_iso
 
 
+# Maximum time to wait for a locked database before raising OperationalError, so
+# a stuck write cannot block the caller indefinitely (RG-23).
+DB_CONNECT_TIMEOUT_SECONDS = 5.0
+
+
 def _connect() -> sqlite3.Connection:
     PLAYER_STATE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(str(PLAYER_STATE_DB_PATH))
+    connection = sqlite3.connect(str(PLAYER_STATE_DB_PATH), timeout=DB_CONNECT_TIMEOUT_SECONDS)
     connection.row_factory = sqlite3.Row
     return connection
 

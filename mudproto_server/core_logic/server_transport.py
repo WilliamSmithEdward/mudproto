@@ -1,14 +1,25 @@
+import asyncio
 import json
+import logging
 
 from websockets.asyncio.server import ServerConnection
 import websockets
+
+logger = logging.getLogger("mudproto.server_transport")
+
+# Maximum time to wait for a single websocket send before giving up on that
+# delivery, so a slow or stalled client cannot block the sending task (RG-23).
+SEND_TIMEOUT_SECONDS = 10.0
 
 
 async def send_json(websocket: ServerConnection, message: dict) -> bool:
     message_text = json.dumps(message)
     try:
-        await websocket.send(message_text)
+        await asyncio.wait_for(websocket.send(message_text), timeout=SEND_TIMEOUT_SECONDS)
     except websockets.ConnectionClosed:
+        return False
+    except asyncio.TimeoutError:
+        logger.warning("Timed out sending to a client after %ss; dropping message", SEND_TIMEOUT_SECONDS)
         return False
 
     print(f"Sent response: {message}")
