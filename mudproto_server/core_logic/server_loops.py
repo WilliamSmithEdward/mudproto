@@ -145,7 +145,7 @@ async def _process_npc_wandering() -> None:
         pack_entities = [entity]
         pack_id = getattr(entity, "wander_pack_id", "")
         if pack_id:
-            for other in shared_world_entities.values():
+            for other in list(shared_world_entities.values()):
                 if other.entity_id == entity.entity_id:
                     continue
                 if other.entity_id in moved_entity_ids:
@@ -300,7 +300,7 @@ async def combat_round_loop() -> None:
             combat_sessions: list[ClientSession] = []
             seen_sessions: set[str] = set()
 
-            for session in active_character_sessions.values():
+            for session in list(active_character_sessions.values()):
                 session_key = session.player_state_key.strip().lower() or session.client_id
                 if not session_key or session_key in seen_sessions:
                     continue
@@ -312,7 +312,7 @@ async def combat_round_loop() -> None:
                     continue
                 combat_sessions.append(session)
 
-            for session in connected_clients.values():
+            for session in list(connected_clients.values()):
                 session_key = session.player_state_key.strip().lower() or session.client_id
                 if not session_key or session_key in seen_sessions:
                     continue

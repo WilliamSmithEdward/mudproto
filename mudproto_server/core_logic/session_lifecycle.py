@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import logging
 
 from combat_state import maybe_auto_engage_current_room
 from display_core import build_line, build_part
@@ -27,6 +28,8 @@ from settings import (
     OFFLINE_SAFE_HOURS_TO_DISCONNECT,
 )
 from world import get_room
+
+logger = logging.getLogger("mudproto.session_lifecycle")
 
 
 def _copy_runtime_state(source: ClientSession, target: ClientSession) -> None:
@@ -214,7 +217,10 @@ async def _close_replaced_session_websocket(session: ClientSession) -> None:
         if inspect.isawaitable(result):
             await result
     except Exception:
-        pass
+        logger.exception(
+            "Failed to close replaced session websocket for %s",
+            getattr(session, "client_id", "?"),
+        )
 
 
 def disconnect_other_character_sessions(session: ClientSession, character_key: str) -> None:

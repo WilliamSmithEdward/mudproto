@@ -1,4 +1,5 @@
 import json
+import logging
 import sqlite3
 import hashlib
 import secrets
@@ -7,6 +8,8 @@ from grammar import normalize_player_gender
 from models import ActiveAffectState, ClientSession, ItemState
 from experience import get_level_for_experience
 from settings import DEFAULT_PLAYER_STATE_KEY, PLAYER_STATE_DB_PATH, _utc_now_iso
+
+logger = logging.getLogger("mudproto.player_state_db")
 
 
 # Maximum time to wait for a locked database before raising OperationalError, so
@@ -150,6 +153,7 @@ def _build_connection_snapshot(session: ClientSession) -> dict[str, object]:
             try:
                 headers = {str(key): str(value) for key, value in raw_headers.raw_items()}
             except Exception:
+                logger.debug("Failed to extract request headers for connection snapshot; using repr")
                 headers = {"repr": repr(raw_headers)}
 
     return {

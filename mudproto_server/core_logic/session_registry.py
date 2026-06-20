@@ -1,7 +1,20 @@
+"""Process-wide registries for connected sessions and shared world state.
+
+Concurrency model: MudProto runs as a single-process asyncio application, so the
+module-level dicts and set below are only read or mutated from the event-loop
+thread. There are no background OS threads, so plain dict access needs no lock.
+The rule to preserve: never mutate a registry while iterating it, and snapshot
+with list(...) before any loop that awaits, because another coroutine can mutate
+the registry during the await. Do not introduce real threads that touch these
+without adding explicit synchronization.
+"""
+
 import asyncio
 
 from models import ClientSession
 
+# Client-id -> session for every live websocket; character-key -> session for
+# authenticated characters; character-key -> background task for offline upkeep.
 connected_clients: dict[str, ClientSession] = {}
 active_character_sessions: dict[str, ClientSession] = {}
 offline_character_tasks: dict[str, asyncio.Task] = {}
