@@ -25,6 +25,21 @@ from room_exits import format_prompt_exit_token
 PROMPT_GAP_LINES = 1
 
 
+def _build_bracket_status_parts(name_part: dict, value: str, value_color: str) -> list[dict]:
+    """Build a " [name:value]" prompt segment with the standard bracket styling.
+
+    name_part is a pre-built part so callers control the name's color and weight.
+    """
+    bracket_color = "display_feedback.prompt.bracket"
+    return [
+        build_part(" [", bracket_color),
+        name_part,
+        build_part(":", bracket_color),
+        build_part(value, value_color, True),
+        build_part("]", bracket_color),
+    ]
+
+
 def _get_tick_seconds_remaining(session: ClientSession) -> int | None:
     if session.next_game_tick_monotonic is None:
         return None
@@ -118,33 +133,27 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
             watched_session.status.hit_points, watched_caps["hit_points"]
         )
         watched_name = (watched_session.authenticated_character_name or session.watch_player_name or "?").strip()
-        parts.extend([
-            build_part(" [", "display_feedback.prompt.bracket"),
+        parts.extend(_build_bracket_status_parts(
             build_part(watched_name, "display_feedback.prompt.watch_name", True),
-            build_part(":", "display_feedback.prompt.bracket"),
-            build_part(watched_condition.title(), watched_condition_color, True),
-            build_part("]", "display_feedback.prompt.bracket"),
-        ])
+            watched_condition.title(),
+            watched_condition_color,
+        ))
         watched_entity = get_engaged_entity(watched_session)
         if watched_entity is not None:
             watched_entity_condition, watched_entity_condition_color = get_entity_condition(watched_entity)
-            parts.extend([
-                build_part(" [", "display_feedback.prompt.bracket"),
+            parts.extend(_build_bracket_status_parts(
                 build_part(watched_entity.name),
-                build_part(":", "display_feedback.prompt.bracket"),
-                build_part(watched_entity_condition.title(), watched_entity_condition_color, True),
-                build_part("]", "display_feedback.prompt.bracket"),
-            ])
+                watched_entity_condition.title(),
+                watched_entity_condition_color,
+            ))
 
     if engaged_entity is not None:
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
-        parts.extend([
-            build_part(" [", "display_feedback.prompt.bracket"),
+        parts.extend(_build_bracket_status_parts(
             build_part(engaged_entity.name),
-            build_part(":", "display_feedback.prompt.bracket"),
-            build_part(npc_condition.title(), npc_condition_color, True),
-            build_part("]", "display_feedback.prompt.bracket"),
-        ])
+            npc_condition.title(),
+            npc_condition_color,
+        ))
 
     parts.append(build_part(f" Exits:{exit_letters}> ", "display_feedback.prompt.exits"))
     return parts
