@@ -7,7 +7,7 @@ change made here.
 
 ## Incorporated policy (binding)
 
-These three documents are part of this policy. Read the relevant one before work
+These four documents are part of this policy. Read the relevant one before work
 that touches its area; this file summarizes and applies them, it does not replace
 them.
 
@@ -20,6 +20,11 @@ them.
 - [docs/ui_ux_guidelines_for_agents.md](docs/ui_ux_guidelines_for_agents.md):
   web UI/UX and accessibility heuristics. Applies to all work in
   [mudproto_client_web/](mudproto_client_web/).
+- [docs/story_and_world_building.md](docs/story_and_world_building.md): high-fantasy
+  worldbuilding, narrative, and game-mechanics tuning heuristics, each gated at five
+  independent sources. Applies to game content under
+  `mudproto_server/configuration/assets/` and `.../attributes/` and to combat,
+  difficulty, and economy tuning.
 
 ## Precedence
 
