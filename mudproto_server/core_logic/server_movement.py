@@ -5,7 +5,7 @@ import copy
 from attribute_config import posture_prevents_movement
 from combat_state import maybe_auto_engage_current_room
 from companions import move_companions_with_owner
-from display_core import build_display, build_line, build_part
+from display_core import build_display, build_display_lines, build_line, build_part
 from display_feedback import build_prompt_parts_default, display_error
 from display_room import display_room
 from grammar import with_article
@@ -200,6 +200,27 @@ async def _send_room_notice(
         await send_outbound_fn(peer.websocket, message)
 
 
+async def _send_room_notice_lines(
+    room_id: str,
+    lines: list[list[dict]],
+    send_outbound_fn,
+    *,
+    exclude_client_ids: set[str] | None = None,
+) -> None:
+    """Send several notice lines to a room as one display with one prompt."""
+    normalized_lines = [line for line in lines if isinstance(line, list) and line]
+    if not normalized_lines:
+        return
+    for peer in _iter_room_sessions(room_id, exclude_client_ids=exclude_client_ids):
+        prompt_parts = build_prompt_parts_default(peer)
+        message = build_display_lines(
+            normalized_lines,
+            prompt_after=True,
+            prompt_parts=prompt_parts,
+        )
+        await send_outbound_fn(peer.websocket, message)
+
+
 async def _handle_movement_side_effects(origin_session: ClientSession, outbound: dict | list[dict], send_outbound_fn) -> None:
     actor_name = origin_session.authenticated_character_name.strip() or "Someone"
 
@@ -219,17 +240,15 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
         ]
         moving_group_ids = {origin_session.client_id, *(follower.client_id for follower in moving_followers)}
 
-        await _send_room_notice(
-            from_room_id,
-            [
-                build_part(actor_name, "feedback.value", True),
-                build_part(f" {action} ", "feedback.text"),
-                build_part(direction, "feedback.warning", True),
-                build_part(".", "feedback.text"),
-            ],
-            send_outbound_fn,
-            exclude_client_ids=moving_group_ids,
-        )
+        # All leave/arrive notices for this movement are collected per room
+        # and delivered to each observer as a single display with one prompt.
+        origin_notice_lines: list[list[dict]] = [[
+            build_part(actor_name, "feedback.value", True),
+            build_part(f" {action} ", "feedback.text"),
+            build_part(direction, "feedback.warning", True),
+            build_part(".", "feedback.text"),
+        ]]
+        destination_notice_lines: list[list[dict]] = []
 
         for follower in grouped_followers:
             if follower in moving_followers:
@@ -257,17 +276,12 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
 
         arrival_direction = DIRECTION_OPPOSITES.get(direction, direction)
         arrival_origin = _format_arrival_origin(arrival_direction)
-        await _send_room_notice(
-            to_room_id,
-            [
-                build_part(actor_name, "feedback.value", True),
-                build_part(" arrives from ", "feedback.text"),
-                build_part(arrival_origin, "feedback.warning", True),
-                build_part(".", "feedback.text"),
-            ],
-            send_outbound_fn,
-            exclude_client_ids=moving_group_ids,
-        )
+        destination_notice_lines.append([
+            build_part(actor_name, "feedback.value", True),
+            build_part(" arrives from ", "feedback.text"),
+            build_part(arrival_origin, "feedback.warning", True),
+            build_part(".", "feedback.text"),
+        ])
 
         entry_messages = get_room_enter_communications(origin_session, to_room_id, apply_state=True)
         entry_lines = _message_lines(entry_messages, audience_filter={"private", "both"})
@@ -280,12 +294,7 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
             message = str(entry.get("message", "")).strip()
             if not message:
                 continue
-            await _send_room_notice(
-                to_room_id,
-                [build_part(message, "feedback.text")],
-                send_outbound_fn,
-                exclude_client_ids=moving_group_ids,
-            )
+            destination_notice_lines.append([build_part(message, "feedback.text")])
 
         # Companions always follow their owner, including flee and 'alone'
         # moves; those suffixes only apply to human followers. Relocation
@@ -307,33 +316,23 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                 for companion in move_companions_with_owner(follower, from_room_id, to_room_id)
             )
 
-            await _send_room_notice(
-                from_room_id,
-                [
-                    build_part(follower.authenticated_character_name.strip() or "Someone", "feedback.value", True),
-                    build_part(" leaves ", "feedback.text"),
-                    build_part(direction, "feedback.warning", True),
-                    build_part(", following ", "feedback.text"),
-                    build_part(leader_name, "feedback.value", True),
-                    build_part(".", "feedback.text"),
-                ],
-                send_outbound_fn,
-                exclude_client_ids=moving_group_ids,
-            )
+            origin_notice_lines.append([
+                build_part(follower_name, "feedback.value", True),
+                build_part(" leaves ", "feedback.text"),
+                build_part(direction, "feedback.warning", True),
+                build_part(", following ", "feedback.text"),
+                build_part(leader_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
+            ])
 
-            await _send_room_notice(
-                to_room_id,
-                [
-                    build_part(follower.authenticated_character_name.strip() or "Someone", "feedback.value", True),
-                    build_part(" arrives from ", "feedback.text"),
-                    build_part(arrival_origin, "feedback.warning", True),
-                    build_part(", following ", "feedback.text"),
-                    build_part(leader_name, "feedback.value", True),
-                    build_part(".", "feedback.text"),
-                ],
-                send_outbound_fn,
-                exclude_client_ids=moving_group_ids,
-            )
+            destination_notice_lines.append([
+                build_part(follower_name, "feedback.value", True),
+                build_part(" arrives from ", "feedback.text"),
+                build_part(arrival_origin, "feedback.warning", True),
+                build_part(", following ", "feedback.text"),
+                build_part(leader_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
+            ])
 
             if destination_room is None:
                 follow_display = display_error(f"Destination room not found: {to_room_id}", follower)
@@ -363,44 +362,42 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                 message = str(entry.get("message", "")).strip()
                 if not message:
                     continue
-                await _send_room_notice(
-                    to_room_id,
-                    [build_part(message, "feedback.text")],
-                    send_outbound_fn,
-                    exclude_client_ids=moving_group_ids,
-                )
+                destination_notice_lines.append([build_part(message, "feedback.text")])
             await send_outbound_fn(follower.websocket, follow_display)
 
         for companion, companion_owner_name in moving_companions:
             companion_label = with_article(companion.name, capitalize=True, is_named=companion.is_named)
 
-            await _send_room_notice(
-                from_room_id,
-                [
-                    build_part(companion_label, "feedback.value", True),
-                    build_part(" leaves ", "feedback.text"),
-                    build_part(direction, "feedback.warning", True),
-                    build_part(", following ", "feedback.text"),
-                    build_part(companion_owner_name, "feedback.value", True),
-                    build_part(".", "feedback.text"),
-                ],
-                send_outbound_fn,
-                exclude_client_ids=moving_group_ids,
-            )
+            origin_notice_lines.append([
+                build_part(companion_label, "feedback.value", True),
+                build_part(" leaves ", "feedback.text"),
+                build_part(direction, "feedback.warning", True),
+                build_part(", following ", "feedback.text"),
+                build_part(companion_owner_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
+            ])
 
-            await _send_room_notice(
-                to_room_id,
-                [
-                    build_part(companion_label, "feedback.value", True),
-                    build_part(" arrives from ", "feedback.text"),
-                    build_part(arrival_origin, "feedback.warning", True),
-                    build_part(", following ", "feedback.text"),
-                    build_part(companion_owner_name, "feedback.value", True),
-                    build_part(".", "feedback.text"),
-                ],
-                send_outbound_fn,
-                exclude_client_ids=moving_group_ids,
-            )
+            destination_notice_lines.append([
+                build_part(companion_label, "feedback.value", True),
+                build_part(" arrives from ", "feedback.text"),
+                build_part(arrival_origin, "feedback.warning", True),
+                build_part(", following ", "feedback.text"),
+                build_part(companion_owner_name, "feedback.value", True),
+                build_part(".", "feedback.text"),
+            ])
+
+        await _send_room_notice_lines(
+            from_room_id,
+            origin_notice_lines,
+            send_outbound_fn,
+            exclude_client_ids=moving_group_ids,
+        )
+        await _send_room_notice_lines(
+            to_room_id,
+            destination_notice_lines,
+            send_outbound_fn,
+            exclude_client_ids=moving_group_ids,
+        )
 
         _refresh_origin_room_display(origin_session, outbound, to_room_id)
         if entry_lines and isinstance(outbound, dict):

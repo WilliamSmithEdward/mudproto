@@ -5,6 +5,7 @@ from attribute_config import player_class_uses_mana
 from combat_state import get_health_condition
 from companions import list_owned_companions
 from display_core import build_menu_table_parts, build_part, newline_part
+from display_room import _resolve_posture_label
 from display_feedback import display_command_result, display_error
 from models import ClientSession
 from player_resources import get_player_resource_caps
@@ -238,11 +239,25 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
     rows: list[list[str]] = []
     row_cell_colors: list[list[str]] = []
 
+    def _posture_cell(*, is_sitting: bool, is_resting: bool, is_sleeping: bool) -> tuple[str, str]:
+        posture_label = _resolve_posture_label(
+            is_sitting=is_sitting,
+            is_resting=is_resting,
+            is_sleeping=is_sleeping,
+        )
+        posture_color = "feedback.text" if posture_label == "standing" else "feedback.warning"
+        return posture_label.title(), posture_color
+
     def _append_companion_rows(owner_session: ClientSession) -> None:
         for companion in list_owned_companions(_session_identity_key(owner_session)):
             condition, condition_color = get_health_condition(companion.hit_points, companion.max_hit_points)
             vigor_text = f"{companion.vigor}/{companion.max_vigor}" if companion.max_vigor > 0 else "-"
             mana_text = f"{companion.mana}/{companion.max_mana}" if companion.max_mana > 0 else "-"
+            posture_text, posture_color = _posture_cell(
+                is_sitting=companion.is_sitting,
+                is_resting=companion.is_resting,
+                is_sleeping=companion.is_sleeping,
+            )
             if companion.room_id != owner_session.player.current_room_id:
                 condition = "away"
                 condition_color = "feedback.warning"
@@ -253,6 +268,7 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
                 f"{companion.hit_points}/{companion.max_hit_points}",
                 vigor_text,
                 mana_text,
+                posture_text,
                 condition.title(),
             ])
             row_cell_colors.append([
@@ -262,6 +278,7 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
                 "feedback.value",
                 "feedback.value",
                 "feedback.value",
+                posture_color,
                 condition_color,
             ])
 
@@ -276,9 +293,15 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
         if is_offline:
             state_text = "Disconnected"
             state_color = "feedback.error"
+            posture_text, posture_color = "-", "feedback.text"
         else:
             state_text = condition.title()
             state_color = condition_color
+            posture_text, posture_color = _posture_cell(
+                is_sitting=member_session.is_sitting,
+                is_resting=member_session.is_resting,
+                is_sleeping=member_session.is_sleeping,
+            )
         rows.append([
             role,
             _display_name(member_session),
@@ -286,14 +309,15 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
             f"{member_session.status.hit_points}/{caps['hit_points']}",
             f"{member_session.status.vigor}/{caps['vigor']}",
             mana_text,
+            posture_text,
             state_text,
         ])
-        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", "feedback.value", state_color])
+        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", "feedback.value", posture_color, state_color])
         _append_companion_rows(member_session)
 
     return build_menu_table_parts(
         "Group Status",
-        ["Role", "Name", "Kind", "HP", "Vigor", "Mana", "State"],
+        ["Role", "Name", "Kind", "HP", "Vigor", "Mana", "Posture", "State"],
         rows,
         row_cell_colors=row_cell_colors,
         empty_message="You have no group members.",

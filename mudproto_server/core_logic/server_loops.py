@@ -200,17 +200,35 @@ async def _process_npc_wandering() -> None:
 
 async def _leash_stray_companions() -> None:
     from companions import collect_stray_companion_moves
+    from display_core import build_display_lines
+    from display_feedback import build_prompt_parts_default
     from grammar import with_article
 
-    for companion, from_room_id, to_room_id in collect_stray_companion_moves():
-        companion_label = with_article(companion.name, capitalize=True, is_named=companion.is_named)
-        leave_parts = [build_part(f"{companion_label} hurries off.", "feedback.text")]
-        arrive_parts = [build_part(f"{companion_label} hurries in, catching up.", "feedback.text")]
+    moves = collect_stray_companion_moves()
+    if not moves:
+        return
 
-        for peer in _iter_room_sessions(from_room_id):
-            await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))
-        for peer in _iter_room_sessions(to_room_id):
-            await send_outbound(peer.websocket, _npc_wander_display(arrive_parts, peer))
+    # Batch notices per room so observers get one display with one prompt.
+    leave_lines_by_room: dict[str, list[list[dict]]] = {}
+    arrive_lines_by_room: dict[str, list[list[dict]]] = {}
+    for companion, from_room_id, to_room_id in moves:
+        companion_label = with_article(companion.name, capitalize=True, is_named=companion.is_named)
+        leave_lines_by_room.setdefault(from_room_id, []).append(
+            [build_part(f"{companion_label} hurries off.", "feedback.text")]
+        )
+        arrive_lines_by_room.setdefault(to_room_id, []).append(
+            [build_part(f"{companion_label} hurries in, catching up.", "feedback.text")]
+        )
+
+    for lines_by_room in (leave_lines_by_room, arrive_lines_by_room):
+        for room_id, notice_lines in lines_by_room.items():
+            for peer in _iter_room_sessions(room_id):
+                message = build_display_lines(
+                    notice_lines,
+                    prompt_after=True,
+                    prompt_parts=build_prompt_parts_default(peer),
+                )
+                await send_outbound(peer.websocket, message)
 
 
 def get_next_game_tick_monotonic() -> float | None:

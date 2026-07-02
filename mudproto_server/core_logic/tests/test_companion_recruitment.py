@@ -71,13 +71,19 @@ def test_base_content_defines_recruiter_and_companion_templates() -> None:
     assert {entry["npc_id"] for entry in recruiter["recruitable_companions"]} == {
         "npc.companion-squire",
         "npc.companion-field-medic",
+        "npc.companion-brute",
     }
 
-    for companion_npc_id in ("npc.companion-squire", "npc.companion-field-medic"):
+    for companion_npc_id in ("npc.companion-squire", "npc.companion-field-medic", "npc.companion-brute"):
         companion = templates_by_id[companion_npc_id]
         assert companion["is_companion"] is True
         assert companion["is_ally"] is True
         assert companion["respawn"] is False
+
+    brute = templates_by_id["npc.companion-brute"]
+    assert brute["is_guardian"] is True
+    assert brute["max_hit_points"] == 320
+    assert templates_by_id["npc.companion-squire"]["is_guardian"] is False
 
 
 def test_recruiter_without_roster_fails_validation(monkeypatch) -> None:
@@ -408,6 +414,89 @@ def test_two_letter_re_prefix_still_reaches_the_rest_command() -> None:
 
         rendered = "\n".join(_rendered_lines(outbound))
         assert "Recruits" not in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_enlist_rejects_duplicate_companion() -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("duplicate-client", "Duplicatetester")
+        session.status.coins = 1000
+        recruiter = _make_recruiter()
+        shared_world_entities[recruiter.entity_id] = recruiter
+
+        first = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        assert first["payload"].get("is_error") is not True
+        assert session.status.coins == 850
+
+        second = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+
+        assert second["payload"]["is_error"] is True
+        assert session.status.coins == 850
+        assert len(session.companion_roster) == 1
+        companions = [entity for entity in shared_world_entities.values() if entity.is_companion]
+        assert len(companions) == 1
+
+        rendered = "\n".join(_rendered_lines(second))
+        assert "already follows you" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_companion_can_be_rehired_after_dismissal_and_death() -> None:
+    from companions import handle_companion_defeat
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("rehire-client", "Rehiretester")
+        session.status.coins = 1000
+        recruiter = _make_recruiter()
+        shared_world_entities[recruiter.entity_id] = recruiter
+
+        handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        handle_recruitment_command(session, "dismiss", ["bramble"], "dismiss bramble")
+        assert session.companion_roster == []
+
+        rehired = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        assert rehired["payload"].get("is_error") is not True
+        assert len(session.companion_roster) == 1
+
+        companion = next(entity for entity in shared_world_entities.values() if entity.is_companion)
+        handle_companion_defeat(session, companion)
+        assert session.companion_roster == []
+
+        rehired_after_death = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        assert rehired_after_death["payload"].get("is_error") is not True
+        assert len(session.companion_roster) == 1
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_recruit_menu_marks_hired_companions() -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("hired-menu-client", "Hiredmenutester")
+        session.status.coins = 1000
+        recruiter = _make_recruiter()
+        shared_world_entities[recruiter.entity_id] = recruiter
+        handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+
+        outbound = handle_recruitment_command(session, "recruits", [], "recruits")
+
+        rendered = "\n".join(_rendered_lines(outbound))
+        squire_row = next(line for line in _rendered_lines(outbound) if "Bramble Squire" in line)
+        medic_row = next(line for line in _rendered_lines(outbound) if "Field Medic Ora" in line)
+        assert "hired" in squire_row
+        assert "150 coins" not in squire_row
+        assert "300 coins" in medic_row
+        assert "Sergeant Halda Brakk's Recruits" in rendered
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)

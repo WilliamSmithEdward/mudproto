@@ -174,6 +174,7 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.is_peaceful = bool(template.get("is_peaceful", False))
     entity.respawn = bool(template.get("respawn", True))
     entity.is_companion = bool(template.get("is_companion", False))
+    entity.is_guardian = bool(template.get("is_guardian", False))
     entity.is_recruiter = bool(template.get("is_recruiter", False))
     entity.recruitable_companions = [
         dict(recruit_entry)

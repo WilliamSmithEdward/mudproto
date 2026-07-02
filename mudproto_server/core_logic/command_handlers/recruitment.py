@@ -4,6 +4,7 @@ from companions import (
     list_owned_companions_for_session,
     remove_companion_roster_entry,
     resolve_room_recruiter,
+    session_has_companion_npc,
     spawn_companion_for_session,
 )
 from display_core import build_menu_table_parts, build_part, newline_part
@@ -34,10 +35,16 @@ def _resolve_recruit_entries(recruiter: EntityState) -> list[dict]:
         template = get_npc_template_by_id(npc_id)
         if template is None or not bool(template.get("is_companion", False)):
             continue
+        if bool(template.get("is_guardian", False)):
+            role = "Guardian"
+        elif template.get("spell_ids"):
+            role = "Caster"
+        else:
+            role = "Fighter"
         entries.append({
             "npc_id": npc_id,
             "name": str(template.get("name", "")).strip() or npc_id,
-            "role": "Caster" if template.get("spell_ids") else "Fighter",
+            "role": role,
             "price": max(1, int(recruit_entry.get("price", 1))),
         })
     return entries
@@ -83,14 +90,17 @@ def _match_owned_companion(companions: list[EntityState], selector_text: str) ->
 
 def _display_recruit_menu(session: ClientSession, recruiter: EntityState) -> dict:
     entries = _resolve_recruit_entries(recruiter)
-    rows = [
-        [str(entry["name"]), str(entry["role"]), f"{int(entry['price'])} coins"]
-        for entry in entries
-    ]
-    row_cell_colors = [
-        ["feedback.value", "feedback.text", "feedback.warning"]
-        for _ in entries
-    ]
+    rows = []
+    row_cell_colors = []
+    for entry in entries:
+        already_hired = session_has_companion_npc(session, str(entry["npc_id"]))
+        price_text = "hired" if already_hired else f"{int(entry['price'])} coins"
+        rows.append([str(entry["name"]), str(entry["role"]), price_text])
+        row_cell_colors.append([
+            "feedback.value",
+            "feedback.text",
+            "feedback.text" if already_hired else "feedback.warning",
+        ])
     parts = build_menu_table_parts(
         f"{recruiter.name}'s Recruits",
         ["Companion", "Role", "Price"],
@@ -130,6 +140,12 @@ def _handle_enlist(session: ClientSession, args: list[str]) -> OutboundResult:
             session,
             error_code="target-not-found",
             error_context={"target": selector_text},
+        )
+
+    if session_has_companion_npc(session, str(entry["npc_id"])):
+        return display_error(
+            f"{entry['name']} already follows you.",
+            session,
         )
 
     if not companion_roster_has_capacity(session):

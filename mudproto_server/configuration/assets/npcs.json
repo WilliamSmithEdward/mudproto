@@ -380,6 +380,10 @@
         {
           "npc_id": "npc.companion-field-medic",
           "price": 300
+        },
+        {
+          "npc_id": "npc.companion-brute",
+          "price": 450
         }
       ],
       "pronoun_possessive": "her",
@@ -398,17 +402,17 @@
       "is_companion": true,
       "is_ally": true,
       "respawn": false,
-      "hit_points": 190,
-      "max_hit_points": 190,
-      "power_level": 4,
-      "attacks_per_round": 2,
-      "hit_roll_modifier": 4,
-      "armor_class": 14,
+      "hit_points": 150,
+      "max_hit_points": 150,
+      "power_level": 5,
+      "attacks_per_round": 3,
+      "hit_roll_modifier": 6,
+      "armor_class": 10,
       "coin_reward": 0,
       "experience_reward": 0,
       "vigor": 90,
       "max_vigor": 90,
-      "skill_use_chance": 0.45,
+      "skill_use_chance": 0.5,
       "skill_ids": [
         "skill.jab",
         "skill.bash"
@@ -418,6 +422,37 @@
       "wander_chance": 0.0,
       "main_hand_weapon": {
         "template_id": "weapon.mercenary-scimitar",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.companion-brute",
+      "name": "Genenado the Brute",
+      "is_named": true,
+      "is_companion": true,
+      "is_guardian": true,
+      "is_ally": true,
+      "respawn": false,
+      "hit_points": 320,
+      "max_hit_points": 320,
+      "power_level": 4,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 18,
+      "coin_reward": 0,
+      "experience_reward": 0,
+      "vigor": 100,
+      "max_vigor": 100,
+      "skill_use_chance": 0.25,
+      "skill_ids": [
+        "skill.bash"
+      ],
+      "corpse_label_style": "possessive",
+      "pronoun_possessive": "his",
+      "wander_chance": 0.0,
+      "main_hand_weapon": {
+        "template_id": "weapon.daystar-club",
         "spawn_chance": 100,
         "drop_on_death": 0
       }
@@ -441,6 +476,7 @@
       "spell_use_chance": 0.55,
       "spell_ids": [
         "spell.mending-word",
+        "spell.regeneration-ward",
         "spell.arc-bolt"
       ],
       "corpse_label_style": "possessive",

@@ -131,27 +131,27 @@ def test_companion_does_not_heal_healthy_owner() -> None:
         shared_world_entities.update(previous_entities)
 
 
-def test_enemy_swings_intercepted_by_companion(monkeypatch) -> None:
+def test_enemy_melee_stays_on_player_unless_hard_engaged(monkeypatch) -> None:
     previous_entities = dict(shared_world_entities)
     try:
         shared_world_entities.clear()
-        owner = _make_session("intercept-owner", "Interceptowner")
-        companion = _make_companion("interceptowner")
+        owner = _make_session("no-intercept-owner", "Nointerceptowner")
+        companion = _make_companion("nointerceptowner")
         companion.armor_class = 0
         enemy = _make_enemy()
         shared_world_entities[companion.entity_id] = companion
         shared_world_entities[enemy.entity_id] = enemy
 
-        owner_hit_points_before = owner.status.hit_points
         monkeypatch.setattr(combat.random, "random", lambda: 0.0)
 
         parts: list[dict] = []
         _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
 
-        assert companion.hit_points < 140
-        assert owner.status.hit_points == owner_hit_points_before
+        # The companion is present but not hard-engaged, so it is never hit.
+        assert companion.hit_points == 140
         rendered = "".join(str(part.get("text", "")) for part in parts)
-        assert "Bramble Squire" in rendered
+        assert "Bramble Squire" not in rendered
+        assert "turns and" not in rendered
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
@@ -167,10 +167,11 @@ def test_companion_death_removes_entity_and_roster_entry(monkeypatch) -> None:
         companion.hit_points = 1
         companion.armor_class = 0
         enemy = _make_enemy()
+        enemy.hard_target_companion_id = companion.entity_id
         shared_world_entities[companion.entity_id] = companion
         shared_world_entities[enemy.entity_id] = enemy
 
-        monkeypatch.setattr(combat.random, "random", lambda: 0.0)
+        monkeypatch.setattr(combat.random, "random", lambda: 0.99)
 
         parts: list[dict] = []
         _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
@@ -178,6 +179,7 @@ def test_companion_death_removes_entity_and_roster_entry(monkeypatch) -> None:
         assert companion.entity_id not in shared_world_entities
         assert owner.companion_roster == []
         assert any(corpse.source_entity_id == companion.entity_id for corpse in owner.corpses.values())
+        assert enemy.hard_target_companion_id == ""
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "has been slain!" in rendered
     finally:
@@ -279,7 +281,7 @@ RESCUE_SKILL = {
 }
 
 
-def test_rescue_guards_companion_from_interception(monkeypatch) -> None:
+def test_rescue_releases_pinned_companion(monkeypatch) -> None:
     import combat_player_abilities
 
     previous_entities = dict(shared_world_entities)
@@ -289,6 +291,7 @@ def test_rescue_guards_companion_from_interception(monkeypatch) -> None:
         owner.status.vigor = 50
         companion = _make_companion("rescueowner")
         enemy = _make_enemy()
+        enemy.hard_target_companion_id = companion.entity_id
         shared_world_entities[companion.entity_id] = companion
         shared_world_entities[enemy.entity_id] = enemy
         owner.combat.engaged_entity_ids.add(enemy.entity_id)
@@ -297,6 +300,7 @@ def test_rescue_guards_companion_from_interception(monkeypatch) -> None:
 
         assert applied is True
         assert companion.rescue_guard_rounds_remaining == 3
+        assert enemy.hard_target_companion_id == ""
         assert owner.status.vigor == 42
         rendered = "".join(
             str(part.get("text", ""))
@@ -308,11 +312,37 @@ def test_rescue_guards_companion_from_interception(monkeypatch) -> None:
         )
         assert "You shield Bramble Squire" in rendered
 
-        # While the guard holds, forced-intercept swings stay on the owner.
+        # With the engagement released, enemy melee returns to the owner.
         monkeypatch.setattr(combat.random, "random", lambda: 0.0)
         parts: list[dict] = []
         _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
         assert companion.hit_points == 140
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_rescue_fails_when_ally_is_engaged_but_not_targeted() -> None:
+    import combat_player_abilities
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("untargeted-rescue-owner", "Untargetedrescuer")
+        owner.status.vigor = 50
+        companion = _make_companion("untargetedrescuer")
+        enemy = _make_enemy()
+        enemy.combat_target_player_key = "untargetedrescuer"
+        shared_world_entities[companion.entity_id] = companion
+        shared_world_entities[enemy.entity_id] = enemy
+        owner.combat.engaged_entity_ids.add(enemy.entity_id)
+
+        outbound, applied = combat_player_abilities.use_skill(owner, RESCUE_SKILL, "bramble")
+
+        assert applied is False
+        assert owner.status.vigor == 50
+        assert companion.rescue_guard_rounds_remaining == 0
+        assert outbound["payload"]["is_error"] is True
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
@@ -367,13 +397,13 @@ def test_prompt_shows_companion_tank_like_a_player_tank() -> None:
         enemy.combat_target_player_key = "tankwatcher"
         assert "[Bramble Squire:" not in _render_prompt()
 
-        # Companion tanking via interception.
-        enemy.intercepting_companion_id = companion.entity_id
+        # A hard-engaged (taunted) companion earns the tank bracket.
+        enemy.hard_target_companion_id = companion.entity_id
         companion_prompt = _render_prompt()
         assert "[Bramble Squire:Perfect]" in companion_prompt
 
         # Another player tanking renders in the identical format.
-        enemy.intercepting_companion_id = ""
+        enemy.hard_target_companion_id = ""
         tank = _make_session("tank-prompt-tank", "Shieldbearer")
         apply_player_class(tank, "class.monk", roll_attributes=True, initialize_progression=True)
         connected_clients[tank.client_id] = tank
@@ -385,38 +415,6 @@ def test_prompt_shows_companion_tank_like_a_player_tank() -> None:
         shared_world_entities.update(previous_entities)
         connected_clients.clear()
         connected_clients.update(previous_connected)
-
-
-def test_interception_is_sticky_for_the_whole_enemy_turn(monkeypatch) -> None:
-    previous_entities = dict(shared_world_entities)
-    try:
-        shared_world_entities.clear()
-        owner = _make_session("sticky-owner", "Stickyowner")
-        companion = _make_companion("stickyowner")
-        companion.hit_points = 1000
-        companion.max_hit_points = 1000
-        companion.armor_class = 0
-        enemy = _make_enemy()
-        enemy.attacks_per_round = 3
-        shared_world_entities[companion.entity_id] = companion
-        shared_world_entities[enemy.entity_id] = enemy
-
-        owner_hit_points_before = owner.status.hit_points
-        monkeypatch.setattr(combat.random, "random", lambda: 0.0)
-
-        parts: list[dict] = []
-        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
-
-        assert owner.status.hit_points == owner_hit_points_before
-        assert enemy.intercepting_companion_id == companion.entity_id
-
-        monkeypatch.setattr(combat.random, "random", lambda: 0.99)
-        parts = []
-        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
-        assert enemy.intercepting_companion_id == ""
-    finally:
-        shared_world_entities.clear()
-        shared_world_entities.update(previous_entities)
 
 
 def test_companion_heals_itself_when_hurt() -> None:
@@ -492,3 +490,159 @@ def test_companion_heals_group_members_hurt_companion() -> None:
         shared_world_entities.update(previous_entities)
         connected_clients.clear()
         connected_clients.update(previous_connected)
+
+
+def _make_guardian(owner_key: str) -> EntityState:
+    guardian = _make_companion(owner_key)
+    guardian.entity_id = "companion-guardian"
+    guardian.name = "Genenado The Brute"
+    guardian.npc_id = "npc.companion-brute"
+    guardian.is_guardian = True
+    guardian.hit_points = 320
+    guardian.max_hit_points = 320
+    guardian.pronoun_possessive = "his"
+    return guardian
+
+
+def test_guardian_taunt_hard_engages_the_owners_target(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("taunt-owner", "Tauntowner")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+        guardian = _make_guardian("taunt-owner")
+        guardian.owner_player_key = "tauntowner"
+        enemy = _make_enemy()
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+        owner.combat.engaged_entity_ids.add(enemy.entity_id)
+
+        monkeypatch.setattr(random, "random", lambda: 0.0)
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, guardian, enemy, parts)
+
+        assert enemy.hard_target_companion_id == guardian.entity_id
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "bellows a challenge" in rendered
+        assert "onto himself" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_hard_engaged_enemy_spends_its_whole_turn_on_the_guardian(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("hard-owner", "Hardowner")
+        guardian = _make_guardian("hardowner")
+        guardian.hit_points = 5000
+        guardian.max_hit_points = 5000
+        guardian.armor_class = 0
+        enemy = _make_enemy()
+        enemy.attacks_per_round = 2
+        enemy.off_hand_attacks_per_round = 1
+        enemy.hard_target_companion_id = guardian.entity_id
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+
+        owner_hit_points_before = owner.status.hit_points
+        monkeypatch.setattr(combat.random, "random", lambda: 0.99)
+
+        parts: list[dict] = []
+        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=True)
+
+        assert owner.status.hit_points == owner_hit_points_before
+        assert guardian.hit_points < 5000
+        assert enemy.hard_target_companion_id == guardian.entity_id
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "turns and" not in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_hard_engaged_enemy_can_break_off(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("break-owner", "Breakowner")
+        guardian = _make_guardian("breakowner")
+        enemy = _make_enemy()
+        enemy.hard_target_companion_id = guardian.entity_id
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(combat.random, "random", lambda: 0.0)
+
+        parts: list[dict] = []
+        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
+
+        assert enemy.hard_target_companion_id == ""
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "shakes free of" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_rescue_releases_hard_engagement(monkeypatch) -> None:
+    from companions import rescue_companion
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("release-owner", "Releaseowner")
+        guardian = _make_guardian("releaseowner")
+        enemy = _make_enemy()
+        enemy.hard_target_companion_id = guardian.entity_id
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+        owner.combat.engaged_entity_ids.add(enemy.entity_id)
+
+        guarded, rescue_error = rescue_companion(owner, guardian)
+
+        assert guarded is True
+        assert rescue_error is None
+        assert guardian.rescue_guard_rounds_remaining == 3
+        assert enemy.hard_target_companion_id == ""
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_medic_wards_herself_in_combat(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("ward-owner", "Wardowner")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+
+        medic = _make_companion("wardowner")
+        medic.name = "Field Medic Ora"
+        medic.npc_id = "npc.companion-field-medic"
+        medic.pronoun_possessive = "her"
+        medic.mana = 120
+        medic.max_mana = 120
+        medic.spell_ids = ["spell.mending-word", "spell.regeneration-ward", "spell.arc-bolt"]
+        enemy = _make_enemy()
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress offensive casts
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, medic, enemy, parts)
+
+        assert medic.mana == 102
+        assert any(affect.affect_id == "affect.regeneration" for affect in medic.active_affects)
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "casts Regeneration Ward on herself" in rendered
+
+        # The ward is not re-cast while its effect is still active.
+        resolve_companion_round(owner, medic, enemy, parts)
+        assert medic.mana == 102
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)

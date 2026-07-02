@@ -281,10 +281,10 @@ def test_spawned_companion_scales_with_owner_level() -> None:
         assert spawn_error is None
         # Level bonus 9 with configured rates: hp +12%/level, vigor +8%/level,
         # +1 power and +1 hit roll per 2 owner levels over the template base.
-        assert companion.max_hit_points == 395
-        assert companion.hit_points == 395
-        assert companion.power_level == 8
-        assert companion.hit_roll_modifier == 8
+        assert companion.max_hit_points == 312
+        assert companion.hit_points == 312
+        assert companion.power_level == 9
+        assert companion.hit_roll_modifier == 10
         assert companion.max_vigor == 154
         assert companion.vigor == 154
     finally:
@@ -302,20 +302,136 @@ def test_companion_rescales_when_owner_levels_up_mid_session() -> None:
         session.player.level = 1
 
         companion, _ = spawn_companion_for_session(session, "npc.companion-squire")
-        assert companion.max_hit_points == 190
+        assert companion.max_hit_points == 150
         companion.hit_points = 100
 
         session.player.level = 5
         scale_companion_to_owner_level(companion, session.player.level)
 
-        assert companion.max_hit_points == 281
-        assert companion.hit_points == 191
-        assert companion.power_level == 6
+        assert companion.max_hit_points == 222
+        assert companion.hit_points == 172
+        assert companion.power_level == 7
 
         # Idempotent: rescaling at the same level changes nothing.
         scale_companion_to_owner_level(companion, session.player.level)
-        assert companion.max_hit_points == 281
-        assert companion.hit_points == 191
+        assert companion.max_hit_points == 222
+        assert companion.hit_points == 172
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+def test_group_status_shows_posture_for_players_and_companions() -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("posture-group-client", "Posturegrouper")
+        apply_player_class(session, "class.monk", roll_attributes=True, initialize_progression=True)
+        session.is_resting = True
+        companion = _make_companion("posturegrouper")
+        companion.is_sitting = True
+        shared_world_entities[companion.entity_id] = companion
+
+        parts = _build_group_status_parts(session)
+        lines = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict)).splitlines()
+
+        assert any("Posture" in line for line in lines)
+        player_row = next(line for line in lines if "Posturegrouper" in line)
+        companion_row = next(line for line in lines if "Bramble Squire" in line)
+        assert "Resting" in player_row
+        assert "Sitting" in companion_row
+
+        session.is_resting = False
+        companion.is_sitting = False
+        companion.is_sleeping = True
+        lines = "".join(
+            str(part.get("text", "")) for part in _build_group_status_parts(session) if isinstance(part, dict)
+        ).splitlines()
+        assert "Standing" in next(line for line in lines if "Posturegrouper" in line)
+        assert "Sleeping" in next(line for line in lines if "Bramble Squire" in line)
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_group_movement_notices_are_batched_into_one_display_per_room() -> None:
+    import asyncio
+
+    from server_movement import _handle_movement_side_effects
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+
+        owner = _make_session("batch-move-owner", "Ruzen")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+        owner.player.current_room_id = "hall"
+
+        origin_observer = _make_session("batch-origin-observer", "Originwatcher")
+        apply_player_class(origin_observer, "class.monk", roll_attributes=True, initialize_progression=True)
+        origin_observer.player.current_room_id = "start"
+        destination_observer = _make_session("batch-dest-observer", "Destwatcher")
+        apply_player_class(destination_observer, "class.monk", roll_attributes=True, initialize_progression=True)
+        destination_observer.player.current_room_id = "hall"
+        connected_clients[origin_observer.client_id] = origin_observer
+        connected_clients[destination_observer.client_id] = destination_observer
+
+        medic = _make_companion("batch-move-owner", entity_id="companion-batch-medic")
+        medic.owner_player_key = "ruzen"
+        medic.name = "Field Medic Ora"
+        squire = _make_companion("ruzen", entity_id="companion-batch-squire")
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[squire.entity_id] = squire
+
+        sent: list[tuple[object, dict]] = []
+
+        async def fake_send(websocket, message) -> None:
+            sent.append((websocket, message))
+
+        outbound = {
+            "type": "display",
+            "payload": {
+                "lines": [],
+                "movement": {
+                    "from_room_id": "start",
+                    "to_room_id": "hall",
+                    "direction": "north",
+                    "action": "leaves",
+                    "allow_followers": True,
+                },
+            },
+        }
+
+        asyncio.run(_handle_movement_side_effects(owner, outbound, fake_send))
+
+        def _messages_for(observer) -> list[str]:
+            rendered_messages = []
+            for websocket, message in sent:
+                if websocket is not observer.websocket:
+                    continue
+                lines = message.get("payload", {}).get("lines", [])
+                rendered_messages.append("\n".join(
+                    "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+                    for line in lines
+                    if isinstance(line, list)
+                ))
+            return rendered_messages
+
+        origin_messages = _messages_for(origin_observer)
+        assert len(origin_messages) == 1
+        assert "Ruzen leaves north." in origin_messages[0]
+        assert "Field Medic Ora leaves north, following Ruzen." in origin_messages[0]
+        assert "Bramble Squire leaves north, following Ruzen." in origin_messages[0]
+
+        destination_messages = _messages_for(destination_observer)
+        assert len(destination_messages) == 1
+        assert "Ruzen arrives from the south." in destination_messages[0]
+        assert "Field Medic Ora arrives from the south, following Ruzen." in destination_messages[0]
+        assert "Bramble Squire arrives from the south, following Ruzen." in destination_messages[0]
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)

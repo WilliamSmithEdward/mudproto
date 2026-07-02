@@ -25,6 +25,7 @@ from combat_state import (
     apply_entity_defeat_flags,
     clear_combat_if_invalid,
     get_engaged_entities,
+    get_session_combatant_key,
     spawn_corpse_for_entity,
     start_combat,
 )
@@ -56,7 +57,7 @@ from equipment_logic import (
 )
 from grammar import to_third_person, with_article
 from models import ClientSession, EntityState, ItemState
-from settings import COMBAT_ROUND_INTERVAL_SECONDS, COMPANION_INTERCEPT_CHANCE
+from settings import COMBAT_ROUND_INTERVAL_SECONDS, COMPANION_TAUNT_BREAK_CHANCE
 from session_timing import apply_lag
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
@@ -425,29 +426,56 @@ def _apply_player_attacks(
             break
 
 
-def _apply_intercepted_entity_attack(
+def _resolve_hard_target_companion(session: ClientSession, entity: EntityState) -> EntityState | None:
+    """Resolve and validate the companion an enemy is durably targeting."""
+    hard_target_id = entity.hard_target_companion_id.strip()
+    if not hard_target_id:
+        return None
+
+    companion = session.entities.get(hard_target_id)
+    if (
+        companion is None
+        or not companion.is_companion
+        or not companion.is_alive
+        or companion.hit_points <= 0
+        or companion.owner_player_key != get_session_combatant_key(session)
+        or companion.room_id != entity.room_id
+        or companion.rescue_guard_rounds_remaining > 0
+    ):
+        entity.hard_target_companion_id = ""
+        return None
+    return companion
+
+
+def _apply_entity_attack_on_companion(
     session: ClientSession,
     entity: EntityState,
-    main_hand_weapon: dict | None,
+    weapon: dict | None,
     companion_target: EntityState,
     parts: list[dict],
+    *,
+    off_hand: bool = False,
 ) -> None:
-    """Redirect one enemy main-hand swing onto an intercepting companion."""
+    """Apply one enemy swing to its hard-engaged companion target.
+
+    Text mirrors the enemy-versus-player attack lines, with the companion's
+    name in place of 'you'.
+    """
     entity_label = with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))
     companion_label = with_article(companion_target.name, is_named=companion_target.is_named)
 
     append_newline_if_needed(parts)
-    intercept_hit_modifier = get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
-    if not roll_hit(intercept_hit_modifier, companion_target.armor_class):
+    attack_hit_modifier = get_npc_hit_modifier(entity, weapon, off_hand=off_hand)
+    if not roll_hit(attack_hit_modifier, companion_target.armor_class):
         parts.extend([
             build_part(entity_label),
-            build_part(" turns on "),
+            build_part(" misses "),
             build_part(companion_label),
-            build_part(" but misses."),
+            build_part("."),
         ])
         return
 
-    attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
+    attack_damage, attack_verb = roll_npc_weapon_damage(entity, weapon)
     attack_damage = _apply_entity_dealt_damage_multiplier(entity, attack_damage)
     preview_damage = _preview_entity_damage_with_reduction(companion_target, attack_damage)
     _apply_entity_damage_with_reduction(companion_target, attack_damage)
@@ -457,14 +485,14 @@ def _apply_intercepted_entity_attack(
     if severity == "miss":
         parts.extend([
             build_part(entity_label),
-            build_part(" turns on "),
+            build_part(" misses "),
             build_part(companion_label),
-            build_part(" but the blow glances off."),
+            build_part("."),
         ])
     elif severity in {"barely", "normal", "hard", "extreme"}:
         parts.extend([
             build_part(entity_label),
-            build_part(" turns and barely " if severity == "barely" else " turns and "),
+            build_part(" barely " if severity == "barely" else " "),
             build_part(third_person_verb),
             build_part(" "),
             build_part(companion_label),
@@ -473,7 +501,7 @@ def _apply_intercepted_entity_attack(
             parts.append(build_part(" hard"))
         elif severity == "extreme":
             parts.append(build_part(" extremely hard"))
-        parts.append(build_part("!"))
+        parts.append(build_part("."))
     else:
         top_verb = {
             "massacre": "massacres",
@@ -483,13 +511,13 @@ def _apply_intercepted_entity_attack(
         pronoun = entity.pronoun_possessive.strip().lower() or "its"
         parts.extend([
             build_part(entity_label),
-            build_part(" turns and "),
+            build_part(" "),
             build_part(top_verb),
             build_part(" "),
             build_part(companion_label),
             build_part(f" with {pronoun} "),
             build_part(attack_verb),
-            build_part("!"),
+            build_part("."),
         ])
 
     if companion_target.hit_points <= 0:
@@ -564,25 +592,26 @@ def _apply_entity_attacks(
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
 
-    # Interception is decided once per enemy turn so an intercepting companion
-    # tanks the whole turn; the enemy remembers who holds its attention so the
-    # prompt can display the tank.
-    intercept_candidates = [
-        companion
-        for companion in list_owned_companions_in_room(session)
-        if companion.hit_points > 0 and companion.rescue_guard_rounds_remaining <= 0
-    ]
-    intercepting_companion: EntityState | None = None
-    if intercept_candidates and random.random() < COMPANION_INTERCEPT_CHANCE:
-        intercepting_companion = intercept_candidates[0]
-    entity.intercepting_companion_id = intercepting_companion.entity_id if intercepting_companion is not None else ""
+    # Melee lands only on the attacker's active target: a hard-engaged
+    # (taunted) guardian, or the targeted player. The hard engagement holds
+    # until the guardian dies, is rescued, or the enemy breaks off here.
+    hard_target_companion = _resolve_hard_target_companion(session, entity)
+    if hard_target_companion is not None and random.random() < COMPANION_TAUNT_BREAK_CHANCE:
+        append_newline_if_needed(parts)
+        parts.extend([
+            build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))),
+            build_part(" shakes free of "),
+            build_part(with_article(hard_target_companion.name, is_named=hard_target_companion.is_named)),
+            build_part("'s challenge!"),
+        ])
+        entity.hard_target_companion_id = ""
+        hard_target_companion = None
 
     for _ in range(max(1, entity.attacks_per_round)):
-        if intercepting_companion is not None:
-            _apply_intercepted_entity_attack(session, entity, main_hand_weapon, intercepting_companion, parts)
-            if intercepting_companion.hit_points <= 0:
-                intercepting_companion = None
-                entity.intercepting_companion_id = ""
+        if hard_target_companion is not None:
+            _apply_entity_attack_on_companion(session, entity, main_hand_weapon, hard_target_companion, parts)
+            if hard_target_companion.hit_points <= 0:
+                hard_target_companion = None
             continue
 
         append_newline_if_needed(parts)
@@ -621,6 +650,13 @@ def _apply_entity_attacks(
         for _ in range(off_hand_swings):
             if status.hit_points <= 0:
                 return aoe_parts_end
+
+            if hard_target_companion is not None:
+                _apply_entity_attack_on_companion(session, entity, off_hand_weapon, hard_target_companion, parts, off_hand=True)
+                if hard_target_companion.hit_points <= 0:
+                    hard_target_companion = None
+                continue
+
             append_newline_if_needed(parts)
 
             off_hit_modifier = get_npc_hit_modifier(entity, off_hand_weapon, off_hand=True)

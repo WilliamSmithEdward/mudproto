@@ -310,6 +310,7 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 ### Companion and recruiter fields
 - `is_companion: true` marks a template as an enlistable AI companion. Companion templates must set `respawn: false` and `is_ally: true`, must never appear in any room's `npcs` list, and cannot also set `is_merchant` or `is_recruiter`. Give companions explicit `max_vigor`/`max_mana` pools or their skills and spells never fire.
 - Companion stats scale with the owning player's level at spawn and each combat round: the template values are the level 1 baseline, and hit points, resource pools, power_level, and hit roll modifiers grow per owner level (rates configured in the server settings `gameplay` section).
+- `is_guardian: true` (companions only) marks a tank companion: each combat round it can taunt the owner's target into durably attacking it until it dies, is rescued, or the enemy breaks off. Enemies otherwise melee only their targeted player.
 - `is_recruiter: true` marks an NPC that offers enlistment through the `recruits`/`enlist` commands. Recruiters must define `recruitable_companions`, a list of objects:
   - `npc_id` - must reference an existing template with `is_companion: true`
   - `price` - coin cost, must be `>= 1`

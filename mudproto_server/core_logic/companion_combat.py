@@ -16,6 +16,7 @@ from combat_ability_effects import (
     _apply_entity_secondary_restore,
     _apply_entity_skill_lag,
     _apply_player_secondary_restore,
+    _entity_has_active_ongoing_support_effect,
     _preview_entity_damage_with_reduction,
     _resolve_entity_damage_scaling_bonus,
     _resolve_entity_skill_scale_bonus,
@@ -31,7 +32,14 @@ from display_core import build_part
 from grammar import to_third_person, with_article
 from models import ClientSession, EntityState
 from player_resources import get_player_resource_caps
-from settings import COMPANION_HEAL_THRESHOLD
+from settings import COMPANION_HEAL_THRESHOLD, COMPANION_TAUNT_CHANCE
+
+
+_REFLEXIVE_PRONOUNS = {
+    "his": "himself",
+    "her": "herself",
+    "its": "itself",
+}
 
 
 def _companion_part(text: str, fg: str = "display_core.default_fg", bold: bool = False) -> dict:
@@ -129,6 +137,56 @@ def _pick_target_heal_spell(companion: EntityState) -> dict | None:
             continue
         return spell
     return None
+
+
+def _pick_self_support_spell(companion: EntityState) -> dict | None:
+    for spell_id in companion.spell_ids:
+        spell = get_spell_by_id(spell_id)
+        if spell is None:
+            continue
+        if str(spell.get("spell_type", "")).strip().lower() != "support":
+            continue
+        if str(spell.get("cast_type", "")).strip().lower() != "self":
+            continue
+        normalized_spell_id = str(spell.get("spell_id", "")).strip()
+        if normalized_spell_id and companion.spell_cooldowns.get(normalized_spell_id, 0) > 0:
+            continue
+        if companion.mana < max(0, int(spell.get("mana_cost", 0))):
+            continue
+
+        spell_name = str(spell.get("name", "")).strip()
+        support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
+        has_affect_payload = bool(spell.get("affect_ids"))
+        if (support_mode in {"timed", "battle_rounds"} or has_affect_payload) and _entity_has_active_ongoing_support_effect(companion, spell_name):
+            continue
+        if not str(spell.get("support_effect", "")).strip() and not has_affect_payload:
+            continue
+        return spell
+    return None
+
+
+def _cast_companion_self_support(companion: EntityState, spell: dict, parts: list[dict]) -> None:
+    spell_name = str(spell.get("name", "Spell")).strip() or "Spell"
+    support_effect = str(spell.get("support_effect", "")).strip().lower()
+    support_mode = str(spell.get("support_mode", "timed")).strip().lower() or "timed"
+    mana_cost = max(0, int(spell.get("mana_cost", 0)))
+    companion.mana = max(0, companion.mana - mana_cost)
+
+    if support_effect and support_mode == "instant":
+        rolled_amount, _, _, _, _ = _roll_entity_support_amount(companion, spell, support_effect)
+        _apply_entity_secondary_restore(companion, support_effect, rolled_amount)
+
+    _apply_ability_affects(actor=companion, target=companion, ability=spell, affect_target="target")
+    _set_entity_spell_cooldown(companion, spell)
+
+    reflexive = _REFLEXIVE_PRONOUNS.get(companion.pronoun_possessive.strip().lower(), "themselves")
+    append_newline_if_needed(parts)
+    parts.extend([
+        _companion_part(_companion_label(companion)),
+        _companion_part(" casts "),
+        _companion_part(spell_name),
+        _companion_part(f" on {reflexive}."),
+    ])
 
 
 def _pick_damage_spell(companion: EntityState) -> dict | None:
@@ -473,6 +531,35 @@ def resolve_companion_round(
 
     if target_entity is None or not target_entity.is_alive or target_entity.hit_points <= 0:
         return
+
+    # Self-cast support wards (e.g. Regeneration Ward) go up while fighting,
+    # once their ongoing effect is not already active.
+    if can_use_special_action:
+        self_support_spell = _pick_self_support_spell(companion)
+        if self_support_spell is not None:
+            _cast_companion_self_support(companion, self_support_spell, parts)
+            can_use_special_action = False
+
+    # Guardians taunt the owner's target into durably attacking them instead;
+    # the hard engagement holds until the guardian dies, is rescued, or the
+    # enemy breaks off during its own turn.
+    if (
+        can_use_special_action
+        and companion.is_guardian
+        and companion.rescue_guard_rounds_remaining <= 0
+        and target_entity.hard_target_companion_id != companion.entity_id
+        and random.random() < COMPANION_TAUNT_CHANCE
+    ):
+        target_entity.hard_target_companion_id = companion.entity_id
+        reflexive = _REFLEXIVE_PRONOUNS.get(companion.pronoun_possessive.strip().lower(), "themselves")
+        append_newline_if_needed(parts)
+        parts.extend([
+            _companion_part(_companion_label(companion)),
+            _companion_part(" bellows a challenge, dragging "),
+            _companion_part(_target_label(target_entity)),
+            _companion_part(f"'s fury onto {reflexive}!"),
+        ])
+        can_use_special_action = False
 
     if can_use_special_action and companion.spell_ids:
         spell_chance = max(0.0, min(1.0, float(companion.spell_use_chance)))

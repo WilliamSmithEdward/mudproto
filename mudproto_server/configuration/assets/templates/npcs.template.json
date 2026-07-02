@@ -134,6 +134,12 @@
         "default": false,
         "notes": "Marks an enlistable AI companion template. Companion templates must set respawn to false and is_ally to true, cannot combine with is_merchant or is_recruiter, must never appear in any room's npcs list, and need explicit max_vigor/max_mana pools for their skills/spells to fire."
       },
+      "is_guardian": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "notes": "Companions only. Marks a tank companion that can taunt the owner's target into durably attacking it until it dies, is rescued, or the enemy breaks off."
+      },
       "is_recruiter": {
         "type": "boolean",
         "required": false,

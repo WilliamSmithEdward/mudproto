@@ -1442,6 +1442,10 @@ def load_npc_templates() -> list[dict]:
         if is_companion and not bool(raw_npc.get("is_ally", False)):
             raise ValueError(f"Companion NPC '{npc_id}' must set is_ally to true.")
 
+        is_guardian = bool(raw_npc.get("is_guardian", False))
+        if is_guardian and not is_companion:
+            raise ValueError(f"NPC '{npc_id}' sets is_guardian but only companions may be guardians.")
+
         raw_recruitable_companions = raw_npc.get("recruitable_companions", [])
         if raw_recruitable_companions is None:
             raw_recruitable_companions = []
@@ -1621,6 +1625,7 @@ def load_npc_templates() -> list[dict]:
             "is_peaceful": bool(raw_npc.get("is_peaceful", False)),
             "respawn": bool(raw_npc.get("respawn", True)),
             "is_companion": is_companion,
+            "is_guardian": is_guardian,
             "is_recruiter": is_recruiter,
             "recruitable_companions": recruitable_companions,
             "is_merchant": is_merchant,

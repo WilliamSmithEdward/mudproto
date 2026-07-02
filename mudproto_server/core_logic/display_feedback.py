@@ -164,18 +164,19 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
 
 def _build_combat_tank_parts(session: ClientSession, engaged_entity) -> list[dict]:
-    """Build the "[<name>:<condition>]" segment for whoever holds the enemy's attention.
+    """Build the "[<name>:<condition>]" segment for whoever durably holds the
+    enemy's attention.
 
-    An intercepting companion and another player render identically; nothing
-    is shown when the enemy's attention is on the prompt's own player.
+    A taunting guardian companion and another player render identically.
+    Nothing is shown when the enemy's attention is on the prompt's own player.
     """
-    intercepting_companion_id = str(getattr(engaged_entity, "intercepting_companion_id", "")).strip()
-    if intercepting_companion_id:
-        intercepting_companion = session.entities.get(intercepting_companion_id)
-        if intercepting_companion is not None and intercepting_companion.is_alive:
-            tank_condition, tank_condition_color = get_entity_condition(intercepting_companion)
+    hard_target_companion_id = str(getattr(engaged_entity, "hard_target_companion_id", "")).strip()
+    if hard_target_companion_id:
+        hard_target_companion = session.entities.get(hard_target_companion_id)
+        if hard_target_companion is not None and hard_target_companion.is_alive:
+            tank_condition, tank_condition_color = get_entity_condition(hard_target_companion)
             return _build_bracket_status_parts(
-                build_part(intercepting_companion.name),
+                build_part(hard_target_companion.name),
                 tank_condition.title(),
                 tank_condition_color,
             )

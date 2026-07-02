@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.20",
-  "generated_at_utc": "2026-07-02T05:49:46.334500+00:00",
+  "generated_at_utc": "2026-07-02T06:16:22.628166+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -850,6 +850,12 @@
           "required": false,
           "default": false,
           "notes": "Marks an enlistable AI companion template. Companion templates must set respawn to false and is_ally to true, cannot combine with is_merchant or is_recruiter, must never appear in any room's npcs list, and need explicit max_vigor/max_mana pools for their skills/spells to fire."
+        },
+        "is_guardian": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "notes": "Companions only. Marks a tank companion that can taunt the owner's target into durably attacking it until it dies, is rescued, or the enemy breaks off."
         },
         "is_recruiter": {
           "type": "boolean",
@@ -2174,7 +2180,7 @@
     "counts": {
       "gear": 23,
       "items": 7,
-      "npcs": 10,
+      "npcs": 11,
       "rooms": 13,
       "skills": 9,
       "spells": 8,
@@ -3227,6 +3233,10 @@
               {
                 "npc_id": "npc.companion-field-medic",
                 "price": 300
+              },
+              {
+                "npc_id": "npc.companion-brute",
+                "price": 450
               }
             ],
             "pronoun_possessive": "her",
@@ -3245,17 +3255,17 @@
             "is_companion": true,
             "is_ally": true,
             "respawn": false,
-            "hit_points": 190,
-            "max_hit_points": 190,
-            "power_level": 4,
-            "attacks_per_round": 2,
-            "hit_roll_modifier": 4,
-            "armor_class": 14,
+            "hit_points": 150,
+            "max_hit_points": 150,
+            "power_level": 5,
+            "attacks_per_round": 3,
+            "hit_roll_modifier": 6,
+            "armor_class": 10,
             "coin_reward": 0,
             "experience_reward": 0,
             "vigor": 90,
             "max_vigor": 90,
-            "skill_use_chance": 0.45,
+            "skill_use_chance": 0.5,
             "skill_ids": [
               "skill.jab",
               "skill.bash"
@@ -3265,6 +3275,37 @@
             "wander_chance": 0.0,
             "main_hand_weapon": {
               "template_id": "weapon.mercenary-scimitar",
+              "spawn_chance": 100,
+              "drop_on_death": 0
+            }
+          },
+          {
+            "npc_id": "npc.companion-brute",
+            "name": "Genenado the Brute",
+            "is_named": true,
+            "is_companion": true,
+            "is_guardian": true,
+            "is_ally": true,
+            "respawn": false,
+            "hit_points": 320,
+            "max_hit_points": 320,
+            "power_level": 4,
+            "attacks_per_round": 1,
+            "hit_roll_modifier": 3,
+            "armor_class": 18,
+            "coin_reward": 0,
+            "experience_reward": 0,
+            "vigor": 100,
+            "max_vigor": 100,
+            "skill_use_chance": 0.25,
+            "skill_ids": [
+              "skill.bash"
+            ],
+            "corpse_label_style": "possessive",
+            "pronoun_possessive": "his",
+            "wander_chance": 0.0,
+            "main_hand_weapon": {
+              "template_id": "weapon.daystar-club",
               "spawn_chance": 100,
               "drop_on_death": 0
             }
@@ -3288,6 +3329,7 @@
             "spell_use_chance": 0.55,
             "spell_ids": [
               "spell.mending-word",
+              "spell.regeneration-ward",
               "spell.arc-bolt"
             ],
             "corpse_label_style": "possessive",

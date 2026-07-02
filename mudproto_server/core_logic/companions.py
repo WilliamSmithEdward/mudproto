@@ -153,31 +153,28 @@ def scale_companion_to_owner_level(companion: EntityState, owner_level: int) -> 
 
 
 def rescue_companion(rescuer_session: ClientSession, companion: EntityState) -> tuple[bool, str | None]:
-    """Guard a companion against enemy swing interception for a few rounds.
+    """Release a companion from enemies durably targeting it.
 
-    Companions only take hits when enemy swings aimed at their owner redirect
-    onto them, so rescue suppresses that redirection while the guard holds.
+    Rescue only succeeds when a live enemy in the room actually has the
+    companion hard-engaged. It clears those engagements and grants a short
+    guard during which the companion cannot be hard-engaged again.
     """
-    if get_session_combatant_key(rescuer_session) == companion.owner_player_key:
-        owner_session = rescuer_session
-    else:
-        owner_session = _resolve_owner_session(companion.owner_player_key)
+    _ = rescuer_session
 
-    threatened = False
-    if owner_session is not None:
-        for entity_id in owner_session.combat.engaged_entity_ids:
-            entity = shared_world_entities.get(entity_id)
-            if entity is not None and entity.is_alive and entity.room_id == companion.room_id:
-                threatened = True
-                break
-
+    threatened = any(
+        entity.is_alive
+        and entity.room_id == companion.room_id
+        and entity.hard_target_companion_id == companion.entity_id
+        for entity in shared_world_entities.values()
+    )
     if not threatened:
-        return False, f"{companion.name} needs no rescuing; no foe presses them."
+        return False, f"{companion.name} needs no rescuing; no foe has them pinned."
 
     companion.rescue_guard_rounds_remaining = max(
         companion.rescue_guard_rounds_remaining,
         COMPANION_RESCUE_GUARD_ROUNDS,
     )
+    clear_hard_engagements_on_companion(companion.entity_id)
     return True, None
 
 
@@ -239,6 +236,16 @@ def respawn_roster_companions(session: ClientSession) -> list[EntityState]:
     return spawned
 
 
+def clear_hard_engagements_on_companion(companion_entity_id: str) -> None:
+    """Release every enemy durably targeting the given companion."""
+    normalized_id = str(companion_entity_id).strip()
+    if not normalized_id:
+        return
+    for entity in shared_world_entities.values():
+        if entity.hard_target_companion_id == normalized_id:
+            entity.hard_target_companion_id = ""
+
+
 def handle_companion_defeat(session: ClientSession, companion: EntityState) -> None:
     """Resolve a companion death: corpse, world removal, and roster loss."""
     from combat_state import spawn_corpse_for_entity
@@ -250,6 +257,7 @@ def handle_companion_defeat(session: ClientSession, companion: EntityState) -> N
     companion.experience_reward = 0
     spawn_corpse_for_entity(session, companion)
     shared_world_entities.pop(companion.entity_id, None)
+    clear_hard_engagements_on_companion(companion.entity_id)
     if remove_companion_roster_entry(session, companion.npc_id) and session.player_state_key.strip():
         save_player_state(session)
 
@@ -267,6 +275,16 @@ def move_companions_with_owner(owner_session: ClientSession, from_room_id: str, 
 
 def companion_roster_has_capacity(session: ClientSession) -> bool:
     return len(session.companion_roster) < MAX_COMPANIONS_PER_PLAYER
+
+
+def session_has_companion_npc(session: ClientSession, npc_id: str) -> bool:
+    normalized_npc_id = str(npc_id).strip().lower()
+    if not normalized_npc_id:
+        return False
+    return any(
+        str(entry.get("npc_id", "")).strip().lower() == normalized_npc_id
+        for entry in session.companion_roster
+    )
 
 
 def _resolve_owner_session(owner_key: str) -> ClientSession | None:
