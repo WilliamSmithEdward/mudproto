@@ -502,7 +502,7 @@
       "spell_use_chance": 0.55,
       "spell_ids": [
         "spell.mending-word",
-        "spell.regeneration-ward",
+        "spell.field-dressing",
         "spell.arc-bolt"
       ],
       "corpse_label_style": "possessive",

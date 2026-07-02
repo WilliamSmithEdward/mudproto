@@ -117,7 +117,38 @@ def _lowest_health_heal_target(owner_session: ClientSession) -> tuple[ClientSess
     return best_target, best_ratio
 
 
-def _pick_target_heal_spell(companion: EntityState) -> dict | None:
+# Below this health ratio an ally needs burst healing before ongoing wards.
+_CRITICAL_HEAL_RATIO = 0.4
+
+
+def _target_has_affect_named(target: ClientSession | EntityState, affect_name: str) -> bool:
+    normalized_name = str(affect_name).strip().lower()
+    if not normalized_name:
+        return False
+    for affect in getattr(target, "active_affects", []):
+        if str(getattr(affect, "affect_name", "")).strip().lower() != normalized_name:
+            continue
+        if int(getattr(affect, "remaining_rounds", 0)) > 0 or int(getattr(affect, "remaining_hours", 0)) > 0:
+            return True
+    return False
+
+
+def _spell_ongoing_affect_name(spell: dict) -> str:
+    for affect in spell.get("affect_ids", []) or []:
+        if isinstance(affect, dict):
+            affect_name = str(affect.get("name", "")).strip()
+            if affect_name:
+                return affect_name
+    return ""
+
+
+def _pick_target_heal_spell(
+    companion: EntityState,
+    heal_target: ClientSession | EntityState,
+    health_ratio: float,
+) -> dict | None:
+    burst_choice: dict | None = None
+    ward_choice: dict | None = None
     for spell_id in companion.spell_ids:
         spell = get_spell_by_id(spell_id)
         if spell is None:
@@ -135,8 +166,20 @@ def _pick_target_heal_spell(companion: EntityState) -> dict | None:
             continue
         if companion.mana < max(0, int(spell.get("mana_cost", 0))):
             continue
-        return spell
-    return None
+
+        if spell.get("affect_ids"):
+            if ward_choice is None:
+                ongoing_affect_name = _spell_ongoing_affect_name(spell)
+                if not ongoing_affect_name or not _target_has_affect_named(heal_target, ongoing_affect_name):
+                    ward_choice = spell
+        elif burst_choice is None:
+            burst_choice = spell
+
+    # Critically hurt allies need burst healing first; otherwise lay the
+    # ongoing ward so it works while later rounds add burst heals.
+    if health_ratio < _CRITICAL_HEAL_RATIO:
+        return burst_choice or ward_choice
+    return ward_choice or burst_choice
 
 
 def _pick_self_support_spell(companion: EntityState) -> dict | None:
@@ -524,7 +567,7 @@ def resolve_companion_round(
     if can_use_special_action:
         heal_target, health_ratio = _lowest_health_heal_target(owner_session)
         if heal_target is not None and health_ratio < COMPANION_HEAL_THRESHOLD:
-            heal_spell = _pick_target_heal_spell(companion)
+            heal_spell = _pick_target_heal_spell(companion, heal_target, health_ratio)
             if heal_spell is not None:
                 _cast_companion_heal(owner_session, companion, heal_spell, heal_target, parts)
                 can_use_special_action = False
@@ -532,9 +575,13 @@ def resolve_companion_round(
     if target_entity is None or not target_entity.is_alive or target_entity.hit_points <= 0:
         return
 
-    # Self-cast support wards (e.g. Regeneration Ward) go up while fighting,
-    # once their ongoing effect is not already active.
-    if can_use_special_action:
+    # Self-cast support spells only fire while the companion itself is hurt;
+    # a companion at full health has nothing to ward.
+    if (
+        can_use_special_action
+        and companion.max_hit_points > 0
+        and companion.hit_points / companion.max_hit_points < COMPANION_HEAL_THRESHOLD
+    ):
         self_support_spell = _pick_self_support_spell(companion)
         if self_support_spell is not None:
             _cast_companion_self_support(companion, self_support_spell, parts)

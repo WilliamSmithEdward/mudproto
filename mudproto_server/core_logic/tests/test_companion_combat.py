@@ -612,42 +612,6 @@ def test_rescue_releases_hard_engagement(monkeypatch) -> None:
         shared_world_entities.update(previous_entities)
 
 
-def test_medic_wards_herself_in_combat(monkeypatch) -> None:
-    previous_entities = dict(shared_world_entities)
-    try:
-        shared_world_entities.clear()
-        owner = _make_session("ward-owner", "Wardowner")
-        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
-
-        medic = _make_companion("wardowner")
-        medic.name = "Field Medic Ora"
-        medic.npc_id = "npc.companion-field-medic"
-        medic.pronoun_possessive = "her"
-        medic.mana = 120
-        medic.max_mana = 120
-        medic.spell_ids = ["spell.mending-word", "spell.regeneration-ward", "spell.arc-bolt"]
-        enemy = _make_enemy()
-        shared_world_entities[medic.entity_id] = medic
-        shared_world_entities[enemy.entity_id] = enemy
-
-        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress offensive casts
-
-        parts: list[dict] = []
-        resolve_companion_round(owner, medic, enemy, parts)
-
-        assert medic.mana == 102
-        assert any(affect.affect_id == "affect.regeneration" for affect in medic.active_affects)
-        rendered = "".join(str(part.get("text", "")) for part in parts)
-        assert "casts Regeneration Ward on herself" in rendered
-
-        # The ward is not re-cast while its effect is still active.
-        resolve_companion_round(owner, medic, enemy, parts)
-        assert medic.mana == 102
-    finally:
-        shared_world_entities.clear()
-        shared_world_entities.update(previous_entities)
-
-
 def test_companion_victory_quip_lands_in_the_player_phase(monkeypatch) -> None:
     from combat import _append_companion_victory_quip
 
@@ -668,3 +632,138 @@ def test_companion_victory_quip_lands_in_the_player_phase(monkeypatch) -> None:
     silent_parts: list[dict] = []
     _append_companion_victory_quip([silent_companion], silent_parts)
     assert silent_parts == []
+
+
+def _make_field_medic(owner_key: str) -> EntityState:
+    medic = _make_companion(owner_key)
+    medic.name = "Field Medic Ora"
+    medic.npc_id = "npc.companion-field-medic"
+    medic.pronoun_possessive = "her"
+    medic.mana = 120
+    medic.max_mana = 120
+    medic.spell_ids = ["spell.mending-word", "spell.field-dressing", "spell.arc-bolt"]
+    return medic
+
+
+def test_medic_casts_nothing_when_everyone_is_healthy(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("healthy-ward-owner", "Healthywardowner")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+
+        medic = _make_field_medic("healthywardowner")
+        enemy = _make_enemy()
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress offensive casts
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, medic, enemy, parts)
+
+        assert medic.mana == 120
+        assert medic.active_affects == []
+        assert owner.active_affects == []
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_medic_dresses_a_hurt_ally_then_switches_to_burst_heals(monkeypatch) -> None:
+    from player_resources import get_player_resource_caps
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("dressing-owner", "Dressingowner")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+        caps = get_player_resource_caps(owner)
+        owner.status.hit_points = int(caps["hit_points"] * 0.55)
+
+        medic = _make_field_medic("dressingowner")
+        enemy = _make_enemy()
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress offensive casts
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, medic, enemy, parts)
+
+        # Moderately hurt: the ongoing ward goes on first.
+        assert medic.mana == 104
+        assert any(affect.affect_name == "Field Dressing" for affect in owner.active_affects)
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "casts Field Dressing on you" in rendered
+
+        # Still hurt but already dressed: the next round uses the burst heal.
+        hit_points_before = owner.status.hit_points
+        resolve_companion_round(owner, medic, enemy, parts)
+        assert medic.mana == 92
+        assert owner.status.hit_points > hit_points_before
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "casts Mending Word on you" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_medic_prefers_burst_heal_for_critically_hurt_allies(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("critical-owner", "Criticalowner")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+        owner.status.hit_points = 1
+
+        medic = _make_field_medic("criticalowner")
+        enemy = _make_enemy()
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress offensive casts
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, medic, enemy, parts)
+
+        assert medic.mana == 108
+        assert owner.status.hit_points > 1
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "casts Mending Word on you" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_medic_dresses_a_hurt_allied_companion(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("squad-dressing-owner", "Squaddressingowner")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+
+        squire = _make_companion("squaddressingowner")
+        squire.entity_id = "companion-hurt-squire"
+        squire.hit_points = 80  # about 57 percent: hurt but not critical
+
+        medic = _make_field_medic("squaddressingowner")
+        medic.entity_id = "companion-squad-medic"
+        enemy = _make_enemy()
+        shared_world_entities[squire.entity_id] = squire
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress offensive casts
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, medic, enemy, parts)
+
+        assert medic.mana == 104
+        assert any(affect.affect_name == "Field Dressing" for affect in squire.active_affects)
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "casts Field Dressing on" in rendered
+        assert "Bramble Squire" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
