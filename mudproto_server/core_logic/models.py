@@ -220,6 +220,8 @@ class EntityState:
     respawn: bool = False
     is_companion: bool = False
     owner_player_key: str = ""
+    rescue_guard_rounds_remaining: int = 0
+    intercepting_companion_id: str = ""
     is_recruiter: bool = False
     recruitable_companions: list[dict[str, object]] = field(default_factory=list)
     is_merchant: bool = False

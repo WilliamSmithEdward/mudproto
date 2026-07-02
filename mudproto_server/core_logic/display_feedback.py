@@ -2,7 +2,7 @@ import asyncio
 
 from command_handlers.types import ErrorCode, ErrorContext
 from attribute_config import player_class_uses_mana
-from combat_state import get_engaged_entity, get_entity_condition, get_health_condition
+from combat_state import get_engaged_entity, get_entity_condition, get_health_condition, get_session_combatant_key
 from experience import get_xp_to_next_level
 from models import ClientSession
 from player_resources import get_player_resource_caps
@@ -148,6 +148,10 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
             ))
 
     if engaged_entity is not None:
+        tank_parts = _build_combat_tank_parts(session, engaged_entity)
+        if tank_parts:
+            parts.extend(tank_parts)
+
         npc_condition, npc_condition_color = get_entity_condition(engaged_entity)
         parts.extend(_build_bracket_status_parts(
             build_part(engaged_entity.name),
@@ -157,6 +161,44 @@ def build_prompt_parts(session: ClientSession) -> list[dict]:
 
     parts.append(build_part(f" Exits:{exit_letters}> ", "display_feedback.prompt.exits"))
     return parts
+
+
+def _build_combat_tank_parts(session: ClientSession, engaged_entity) -> list[dict]:
+    """Build the "[<name>:<condition>]" segment for whoever holds the enemy's attention.
+
+    An intercepting companion and another player render identically; nothing
+    is shown when the enemy's attention is on the prompt's own player.
+    """
+    intercepting_companion_id = str(getattr(engaged_entity, "intercepting_companion_id", "")).strip()
+    if intercepting_companion_id:
+        intercepting_companion = session.entities.get(intercepting_companion_id)
+        if intercepting_companion is not None and intercepting_companion.is_alive:
+            tank_condition, tank_condition_color = get_entity_condition(intercepting_companion)
+            return _build_bracket_status_parts(
+                build_part(intercepting_companion.name),
+                tank_condition.title(),
+                tank_condition_color,
+            )
+
+    target_player_key = str(getattr(engaged_entity, "combat_target_player_key", "")).strip().lower()
+    if not target_player_key or target_player_key == get_session_combatant_key(session):
+        return []
+
+    tank_session = _find_session_by_identity_key(target_player_key)
+    if tank_session is None or tank_session.player.current_room_id != session.player.current_room_id:
+        return []
+
+    tank_name = (tank_session.authenticated_character_name or "").strip()
+    if not tank_name:
+        return []
+
+    tank_caps = get_player_resource_caps(tank_session)
+    tank_condition, tank_condition_color = get_health_condition(tank_session.status.hit_points, tank_caps["hit_points"])
+    return _build_bracket_status_parts(
+        build_part(tank_name),
+        tank_condition.title(),
+        tank_condition_color,
+    )
 
 
 def should_show_prompt(session: ClientSession) -> bool:

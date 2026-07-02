@@ -46,6 +46,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
         spawn_corpse_for_entity,
         start_combat,
     )
+    from companions import rescue_companion
     from display_core import build_part, newline_part
     from display_feedback import display_command_result, display_error
 
@@ -180,6 +181,7 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
 
         support_target_session = session
         support_target_name = actor_name
+        rescue_companion_target = None
         if cast_type == "target":
             if not target_name or not str(target_name).strip():
                 return display_error(f"Who do you want to aid with {skill_name}?", session), False
@@ -188,13 +190,61 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                 target_name,
                 require_exact_name=True,
             )
-            if support_target_session is None:
+            if support_target_session is None and is_rescue_skill:
+                candidate_entity, _ = resolve_room_entity_selector(
+                    session,
+                    session.player.current_room_id,
+                    target_name,
+                    living_only=True,
+                )
+                if candidate_entity is not None and bool(getattr(candidate_entity, "is_companion", False)):
+                    rescue_companion_target = candidate_entity
+            if support_target_session is None and rescue_companion_target is None:
                 return display_error(resolve_error or f"No player named '{target_name}' is here.", session), False
-            if support_target_session.client_id == session.client_id:
-                return display_error("You are already standing in the thick of danger.", session), False
-            support_target_name = (support_target_session.authenticated_character_name or actor_name).strip() or actor_name
+            if support_target_session is not None:
+                if support_target_session.client_id == session.client_id:
+                    return display_error("You are already standing in the thick of danger.", session), False
+                support_target_name = (support_target_session.authenticated_character_name or actor_name).strip() or actor_name
 
         session.status.vigor -= vigor_cost
+
+        if is_rescue_skill and rescue_companion_target is not None:
+            guarded, rescue_error = rescue_companion(session, rescue_companion_target)
+            if not guarded:
+                session.status.vigor += vigor_cost
+                return display_error(
+                    rescue_error or f"{rescue_companion_target.name} needs no rescuing.",
+                    session,
+                ), False
+
+            companion_name = rescue_companion_target.name
+            parts = [
+                build_part("You use "),
+                build_part(skill_name),
+                build_part(f" on {companion_name}."),
+                newline_part(),
+                build_part(f"You shield {companion_name}, drawing the foe's attention onto yourself."),
+            ]
+
+            _set_player_skill_cooldown(session, skill)
+            cooldown_hours = max(0, int(skill.get("cooldown_hours", 0)))
+            if cooldown_hours > 0 and skill_id:
+                session.combat.skill_hour_cooldowns[skill_id] = cooldown_hours
+            _apply_player_skill_lag(session, skill)
+
+            observer_lines = [
+                _resolve_observer_action_line(
+                    actor_name,
+                    "uses",
+                    skill_name,
+                    "target",
+                    target_label=companion_name,
+                    observer_action=observer_action,
+                ),
+                f"{actor_name} shields {companion_name} from the fray.",
+            ]
+            result = display_command_result(session, parts, compact=True)
+            return _attach_room_broadcast_lines(result, observer_lines), True
 
         if is_rescue_skill:
             rescued_entity, rescue_error = rescue_player(session, support_target_session)

@@ -12,7 +12,7 @@ from combat_ability_effects import (
 )
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
 from companion_combat import resolve_companion_round
-from companions import handle_companion_defeat, list_owned_companions_in_room
+from companions import handle_companion_defeat, list_owned_companions_in_room, scale_companion_to_owner_level
 from combat_rewards import (
     _award_shared_entity_experience,
     _mark_entity_contributor,
@@ -564,18 +564,25 @@ def _apply_entity_attacks(
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
 
+    # Interception is decided once per enemy turn so an intercepting companion
+    # tanks the whole turn; the enemy remembers who holds its attention so the
+    # prompt can display the tank.
     intercept_candidates = [
         companion
         for companion in list_owned_companions_in_room(session)
-        if companion.hit_points > 0
+        if companion.hit_points > 0 and companion.rescue_guard_rounds_remaining <= 0
     ]
+    intercepting_companion: EntityState | None = None
+    if intercept_candidates and random.random() < COMPANION_INTERCEPT_CHANCE:
+        intercepting_companion = intercept_candidates[0]
+    entity.intercepting_companion_id = intercepting_companion.entity_id if intercepting_companion is not None else ""
 
     for _ in range(max(1, entity.attacks_per_round)):
-        if intercept_candidates and random.random() < COMPANION_INTERCEPT_CHANCE:
-            companion_target = intercept_candidates[0]
-            _apply_intercepted_entity_attack(session, entity, main_hand_weapon, companion_target, parts)
-            if companion_target.hit_points <= 0:
-                intercept_candidates.remove(companion_target)
+        if intercepting_companion is not None:
+            _apply_intercepted_entity_attack(session, entity, main_hand_weapon, intercepting_companion, parts)
+            if intercepting_companion.hit_points <= 0:
+                intercepting_companion = None
+                entity.intercepting_companion_id = ""
             continue
 
         append_newline_if_needed(parts)
@@ -702,6 +709,8 @@ def resolve_combat_round(
     # Companions act after their owner and before enemies retaliate. A
     # companion killing blow is resolved by the shared defeat pass below.
     room_companions = list_owned_companions_in_room(session)
+    for companion in room_companions:
+        scale_companion_to_owner_level(companion, session.player.level)
     for companion in room_companions:
         if status.hit_points <= 0:
             break

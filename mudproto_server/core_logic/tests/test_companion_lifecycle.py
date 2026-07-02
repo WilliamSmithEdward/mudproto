@@ -265,3 +265,57 @@ def test_companion_defeat_persists_roster_removal(monkeypatch) -> None:
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+def test_spawned_companion_scales_with_owner_level() -> None:
+    from companions import spawn_companion_for_session
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("scale-spawn-client", "Scalespawner")
+        session.player.level = 10
+
+        companion, spawn_error = spawn_companion_for_session(session, "npc.companion-squire")
+
+        assert spawn_error is None
+        # Level bonus 9 with configured rates: hp +12%/level, vigor +8%/level,
+        # +1 power and +1 hit roll per 2 owner levels over the template base.
+        assert companion.max_hit_points == 395
+        assert companion.hit_points == 395
+        assert companion.power_level == 8
+        assert companion.hit_roll_modifier == 8
+        assert companion.max_vigor == 154
+        assert companion.vigor == 154
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_companion_rescales_when_owner_levels_up_mid_session() -> None:
+    from companions import scale_companion_to_owner_level, spawn_companion_for_session
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("scale-up-client", "Scaleupper")
+        session.player.level = 1
+
+        companion, _ = spawn_companion_for_session(session, "npc.companion-squire")
+        assert companion.max_hit_points == 190
+        companion.hit_points = 100
+
+        session.player.level = 5
+        scale_companion_to_owner_level(companion, session.player.level)
+
+        assert companion.max_hit_points == 281
+        assert companion.hit_points == 191
+        assert companion.power_level == 6
+
+        # Idempotent: rescaling at the same level changes nothing.
+        scale_companion_to_owner_level(companion, session.player.level)
+        assert companion.max_hit_points == 281
+        assert companion.hit_points == 191
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)

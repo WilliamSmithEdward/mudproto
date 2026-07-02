@@ -12,7 +12,14 @@ from assets import get_npc_template_by_id
 from combat_state import get_session_combatant_key
 from models import ClientSession, EntityState
 from session_registry import active_character_sessions, connected_clients, shared_world_entities
-from settings import MAX_COMPANIONS_PER_PLAYER
+from settings import (
+    COMPANION_HIT_POINTS_PER_LEVEL_PERCENT,
+    COMPANION_HIT_ROLL_PER_OWNER_LEVELS,
+    COMPANION_POWER_PER_OWNER_LEVELS,
+    COMPANION_RESCUE_GUARD_ROUNDS,
+    COMPANION_RESOURCE_PER_LEVEL_PERCENT,
+    MAX_COMPANIONS_PER_PLAYER,
+)
 
 
 def list_owned_companions(owner_key: str) -> list[EntityState]:
@@ -85,8 +92,93 @@ def spawn_companion_for_session(session: ClientSession, npc_id: str) -> tuple[En
     companion.is_ally = True
     companion.respawn = False
     companion.wander_chance = 0.0
+    scale_companion_to_owner_level(companion, session.player.level)
     session.entities[companion.entity_id] = companion
     return companion, None
+
+
+def _scale_resource_maximum(base_maximum: int, level_bonus: int) -> int:
+    return base_maximum + int(base_maximum * COMPANION_RESOURCE_PER_LEVEL_PERCENT * level_bonus)
+
+
+def scale_companion_to_owner_level(companion: EntityState, owner_level: int) -> None:
+    """Scale a companion's stats to its owner's level.
+
+    Absolute values are recomputed from the template each call, so the
+    function is idempotent and safe to run every combat round; current pools
+    gain the difference whenever their maximums grow.
+    """
+    template = get_npc_template_by_id(companion.npc_id)
+    if template is None or not bool(template.get("is_companion", False)):
+        return
+
+    level_bonus = max(0, int(owner_level) - 1)
+
+    base_max_hit_points = max(1, int(template.get("max_hit_points", 1)))
+    scaled_max_hit_points = base_max_hit_points + int(
+        base_max_hit_points * COMPANION_HIT_POINTS_PER_LEVEL_PERCENT * level_bonus
+    )
+    hit_point_delta = scaled_max_hit_points - companion.max_hit_points
+    companion.max_hit_points = scaled_max_hit_points
+    if hit_point_delta > 0:
+        companion.hit_points = min(scaled_max_hit_points, companion.hit_points + hit_point_delta)
+    else:
+        companion.hit_points = min(companion.hit_points, scaled_max_hit_points)
+
+    companion.power_level = max(0, int(template.get("power_level", 1))) + level_bonus // COMPANION_POWER_PER_OWNER_LEVELS
+    companion.hit_roll_modifier = int(template.get("hit_roll_modifier", 0)) + level_bonus // COMPANION_HIT_ROLL_PER_OWNER_LEVELS
+    companion.off_hand_hit_roll_modifier = (
+        int(template.get("off_hand_hit_roll_modifier", 0)) + level_bonus // COMPANION_HIT_ROLL_PER_OWNER_LEVELS
+    )
+
+    base_max_vigor = max(0, int(template.get("max_vigor", 0)))
+    if base_max_vigor > 0:
+        scaled_max_vigor = _scale_resource_maximum(base_max_vigor, level_bonus)
+        vigor_delta = scaled_max_vigor - companion.max_vigor
+        companion.max_vigor = scaled_max_vigor
+        if vigor_delta > 0:
+            companion.vigor = min(scaled_max_vigor, companion.vigor + vigor_delta)
+        else:
+            companion.vigor = min(companion.vigor, scaled_max_vigor)
+
+    base_max_mana = max(0, int(template.get("max_mana", 0)))
+    if base_max_mana > 0:
+        scaled_max_mana = _scale_resource_maximum(base_max_mana, level_bonus)
+        mana_delta = scaled_max_mana - companion.max_mana
+        companion.max_mana = scaled_max_mana
+        if mana_delta > 0:
+            companion.mana = min(scaled_max_mana, companion.mana + mana_delta)
+        else:
+            companion.mana = min(companion.mana, scaled_max_mana)
+
+
+def rescue_companion(rescuer_session: ClientSession, companion: EntityState) -> tuple[bool, str | None]:
+    """Guard a companion against enemy swing interception for a few rounds.
+
+    Companions only take hits when enemy swings aimed at their owner redirect
+    onto them, so rescue suppresses that redirection while the guard holds.
+    """
+    if get_session_combatant_key(rescuer_session) == companion.owner_player_key:
+        owner_session = rescuer_session
+    else:
+        owner_session = _resolve_owner_session(companion.owner_player_key)
+
+    threatened = False
+    if owner_session is not None:
+        for entity_id in owner_session.combat.engaged_entity_ids:
+            entity = shared_world_entities.get(entity_id)
+            if entity is not None and entity.is_alive and entity.room_id == companion.room_id:
+                threatened = True
+                break
+
+    if not threatened:
+        return False, f"{companion.name} needs no rescuing; no foe presses them."
+
+    companion.rescue_guard_rounds_remaining = max(
+        companion.rescue_guard_rounds_remaining,
+        COMPANION_RESCUE_GUARD_ROUNDS,
+    )
+    return True, None
 
 
 def despawn_companion_entities_for_session(session: ClientSession) -> list[EntityState]:

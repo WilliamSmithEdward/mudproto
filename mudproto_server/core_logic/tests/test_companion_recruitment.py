@@ -359,3 +359,55 @@ def test_dismiss_of_remote_companion_skips_room_broadcast() -> None:
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+def test_partial_recruitment_verbs_dispatch_through_the_waterfall() -> None:
+    from command_handlers.registry import dispatch_command
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("partial-verb-client", "Partialtester")
+        session.status.coins = 500
+        recruiter = _make_recruiter()
+        shared_world_entities[recruiter.entity_id] = recruiter
+
+        for menu_verb in ("rec", "recr", "recru", "recrui", "recruit", "recruits"):
+            outbound = dispatch_command(session, menu_verb)
+            rendered = "\n".join(_rendered_lines(outbound))
+            assert "Sergeant Halda Brakk's Recruits" in rendered, menu_verb
+
+        dispatch_command(session, "enl bramble")
+        assert session.status.coins == 350
+        assert len(session.companion_roster) == 1
+
+        dispatch_command(session, "dism bramble")
+        assert session.companion_roster == []
+        assert not any(entity.is_companion for entity in shared_world_entities.values())
+
+        dispatch_command(session, "enli medic")
+        assert len(session.companion_roster) == 1
+        dispatch_command(session, "dis medic")
+        assert session.companion_roster == []
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_two_letter_re_prefix_still_reaches_the_rest_command() -> None:
+    from command_handlers.registry import dispatch_command
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("rest-verb-client", "Resttester")
+        recruiter = _make_recruiter()
+        shared_world_entities[recruiter.entity_id] = recruiter
+
+        outbound = dispatch_command(session, "re")
+
+        rendered = "\n".join(_rendered_lines(outbound))
+        assert "Recruits" not in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)

@@ -81,22 +81,31 @@ def _list_heal_candidates(owner_session: ClientSession) -> list[ClientSession]:
 
 
 def _lowest_health_heal_target(owner_session: ClientSession) -> tuple[ClientSession | EntityState | None, float]:
+    """Pick the most hurt ally: the owner, in-room group members, or any of
+    their companions (the healer itself included)."""
     best_target: ClientSession | EntityState | None = None
     best_ratio = 1.0
-    for member in _list_heal_candidates(owner_session):
+    heal_candidates = _list_heal_candidates(owner_session)
+    for member in heal_candidates:
         caps = get_player_resource_caps(member)
         cap_hit_points = max(1, int(caps.get("hit_points", 1)))
         ratio = member.status.hit_points / cap_hit_points
         if ratio < best_ratio:
             best_target = member
             best_ratio = ratio
-    for companion in list_owned_companions_in_room(owner_session):
-        if companion.hit_points <= 0 or companion.max_hit_points <= 0:
-            continue
-        ratio = companion.hit_points / companion.max_hit_points
-        if ratio < best_ratio:
-            best_target = companion
-            best_ratio = ratio
+
+    seen_companion_ids: set[str] = set()
+    for member in heal_candidates:
+        for companion in list_owned_companions_in_room(member):
+            if companion.entity_id in seen_companion_ids:
+                continue
+            seen_companion_ids.add(companion.entity_id)
+            if companion.hit_points <= 0 or companion.max_hit_points <= 0:
+                continue
+            ratio = companion.hit_points / companion.max_hit_points
+            if ratio < best_ratio:
+                best_target = companion
+                best_ratio = ratio
     return best_target, best_ratio
 
 
@@ -177,10 +186,12 @@ def _cast_companion_heal(
     companion.mana = max(0, companion.mana - mana_cost)
 
     rolled_amount, _, _, _, _ = _roll_entity_support_amount(companion, spell, "heal")
+    target_is_owner = False
+    target_is_self = False
     if isinstance(heal_target, EntityState):
         restored_amount = _apply_entity_secondary_restore(heal_target, "heal", rolled_amount)
-        target_text = _target_label(heal_target)
-        target_is_owner = False
+        target_is_self = heal_target.entity_id == companion.entity_id
+        target_text = "themselves" if target_is_self else _target_label(heal_target)
     else:
         restored_amount = _apply_player_secondary_restore(heal_target, "heal", rolled_amount)
         target_is_owner = heal_target.client_id == owner_session.client_id
@@ -202,6 +213,9 @@ def _cast_companion_heal(
             parts.append(_companion_part(support_context, "combat_rewards.text"))
         elif target_is_owner:
             parts.append(_companion_part("Your wounds knit closed.", "combat_rewards.text"))
+        elif target_is_self:
+            pronoun = companion.pronoun_possessive.strip().lower() or "its"
+            parts.append(_companion_part(f"{pronoun.capitalize()} wounds knit closed.", "combat_rewards.text"))
         else:
             capitalized_target = target_text[0].upper() + target_text[1:] if target_text else target_text
             parts.append(_companion_part(f"{capitalized_target}'s wounds knit closed.", "combat_rewards.text"))
@@ -427,6 +441,9 @@ def resolve_companion_round(
         return
     if companion.room_id != owner_session.player.current_room_id:
         return
+
+    if companion.rescue_guard_rounds_remaining > 0:
+        companion.rescue_guard_rounds_remaining -= 1
 
     can_use_special_action = True
     if companion.skill_lag_rounds_remaining > 0:

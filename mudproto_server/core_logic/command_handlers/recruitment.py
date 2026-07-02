@@ -18,7 +18,11 @@ from .types import OutboundResult
 
 HandledResult = OutboundResult | None
 
-_RECRUIT_MENU_VERBS = {"recruits", "recruit"}
+# Prefixes start at three letters: "re" belongs to the posture handler (rest)
+# and two-letter forms would shadow it in the dispatch waterfall.
+_RECRUIT_MENU_VERBS = {"rec", "recr", "recru", "recrui", "recruit", "recruits"}
+_ENLIST_VERBS = {"enl", "enli", "enlis", "enlist"}
+_DISMISS_VERBS = {"dis", "dism", "dismi", "dismis", "dismiss"}
 
 
 def _resolve_recruit_entries(recruiter: EntityState) -> list[dict]:
@@ -230,10 +234,10 @@ def handle_recruitment_command(
             )
         return _display_recruit_menu(session, recruiter)
 
-    if verb == "enlist":
+    if verb in _ENLIST_VERBS:
         return _handle_enlist(session, args)
 
-    if verb == "dismiss":
+    if verb in _DISMISS_VERBS:
         return _handle_dismiss(session, args)
 
     return None

@@ -254,3 +254,241 @@ def test_companion_heals_hurt_companion_ally() -> None:
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+RESCUE_SKILL = {
+    "skill_id": "skill.rescue",
+    "name": "Rescue",
+    "description": "You hurl yourself into danger and drag a companion clear of the worst of the assault.",
+    "skill_type": "support",
+    "element": "physical",
+    "cast_type": "target",
+    "vigor_cost": 8,
+    "usable_out_of_combat": False,
+    "scaling_attribute_id": "",
+    "scaling_multiplier": 0.0,
+    "level_scaling_multiplier": 0.0,
+    "support_effect": "",
+    "support_amount": 0,
+    "support_mode": "instant",
+    "support_context": "You throw yourself into the fray and draw an enemy's fury away.",
+    "observer_action": "[actor_name] lunges into the fray to rescue an ally.",
+    "observer_context": "[actor_name] throws [actor_possessive] body between an ally and danger.",
+    "lag_rounds": 3,
+    "cooldown_rounds": 2,
+}
+
+
+def test_rescue_guards_companion_from_interception(monkeypatch) -> None:
+    import combat_player_abilities
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("rescue-owner", "Rescueowner")
+        owner.status.vigor = 50
+        companion = _make_companion("rescueowner")
+        enemy = _make_enemy()
+        shared_world_entities[companion.entity_id] = companion
+        shared_world_entities[enemy.entity_id] = enemy
+        owner.combat.engaged_entity_ids.add(enemy.entity_id)
+
+        outbound, applied = combat_player_abilities.use_skill(owner, RESCUE_SKILL, "bramble")
+
+        assert applied is True
+        assert companion.rescue_guard_rounds_remaining == 3
+        assert owner.status.vigor == 42
+        rendered = "".join(
+            str(part.get("text", ""))
+            for message in (outbound if isinstance(outbound, list) else [outbound])
+            for line in message.get("payload", {}).get("lines", [])
+            if isinstance(line, list)
+            for part in line
+            if isinstance(part, dict)
+        )
+        assert "You shield Bramble Squire" in rendered
+
+        # While the guard holds, forced-intercept swings stay on the owner.
+        monkeypatch.setattr(combat.random, "random", lambda: 0.0)
+        parts: list[dict] = []
+        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
+        assert companion.hit_points == 140
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_rescue_companion_fails_without_a_threat_and_refunds_vigor() -> None:
+    import combat_player_abilities
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("safe-rescue-owner", "Saferescuer")
+        owner.status.vigor = 50
+        companion = _make_companion("saferescueowner")
+        companion.owner_player_key = "saferescuer"
+        shared_world_entities[companion.entity_id] = companion
+
+        outbound, applied = combat_player_abilities.use_skill(owner, RESCUE_SKILL, "bramble")
+
+        assert applied is False
+        assert owner.status.vigor == 50
+        assert companion.rescue_guard_rounds_remaining == 0
+        assert outbound["payload"]["is_error"] is True
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_prompt_shows_companion_tank_like_a_player_tank() -> None:
+    from display_feedback import build_prompt_parts
+    from session_registry import connected_clients
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+
+        owner = _make_session("tank-prompt-owner", "Tankwatcher")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+        companion = _make_companion("tank-prompt-owner")
+        companion.owner_player_key = "tankwatcher"
+        enemy = _make_enemy()
+        shared_world_entities[companion.entity_id] = companion
+        shared_world_entities[enemy.entity_id] = enemy
+        owner.combat.engaged_entity_ids.add(enemy.entity_id)
+
+        def _render_prompt() -> str:
+            return "".join(str(part.get("text", "")) for part in build_prompt_parts(owner))
+
+        # Enemy attention on the prompt's own player: no tank bracket.
+        enemy.combat_target_player_key = "tankwatcher"
+        assert "[Bramble Squire:" not in _render_prompt()
+
+        # Companion tanking via interception.
+        enemy.intercepting_companion_id = companion.entity_id
+        companion_prompt = _render_prompt()
+        assert "[Bramble Squire:Perfect]" in companion_prompt
+
+        # Another player tanking renders in the identical format.
+        enemy.intercepting_companion_id = ""
+        tank = _make_session("tank-prompt-tank", "Shieldbearer")
+        apply_player_class(tank, "class.monk", roll_attributes=True, initialize_progression=True)
+        connected_clients[tank.client_id] = tank
+        enemy.combat_target_player_key = "shieldbearer"
+        player_prompt = _render_prompt()
+        assert "[Shieldbearer:Perfect]" in player_prompt
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+
+
+def test_interception_is_sticky_for_the_whole_enemy_turn(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("sticky-owner", "Stickyowner")
+        companion = _make_companion("stickyowner")
+        companion.hit_points = 1000
+        companion.max_hit_points = 1000
+        companion.armor_class = 0
+        enemy = _make_enemy()
+        enemy.attacks_per_round = 3
+        shared_world_entities[companion.entity_id] = companion
+        shared_world_entities[enemy.entity_id] = enemy
+
+        owner_hit_points_before = owner.status.hit_points
+        monkeypatch.setattr(combat.random, "random", lambda: 0.0)
+
+        parts: list[dict] = []
+        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
+
+        assert owner.status.hit_points == owner_hit_points_before
+        assert enemy.intercepting_companion_id == companion.entity_id
+
+        monkeypatch.setattr(combat.random, "random", lambda: 0.99)
+        parts = []
+        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
+        assert enemy.intercepting_companion_id == ""
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_companion_heals_itself_when_hurt() -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("self-heal-owner", "Selfhealer")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+
+        medic = _make_companion("selfhealer")
+        medic.name = "Field Medic Ora"
+        medic.npc_id = "npc.companion-field-medic"
+        medic.hit_points = 10
+        medic.mana = 80
+        medic.max_mana = 80
+        medic.spell_ids = ["spell.mending-word"]
+        shared_world_entities[medic.entity_id] = medic
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, medic, None, parts)
+
+        assert medic.hit_points > 10
+        assert medic.mana == 68
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "on themselves" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_companion_heals_group_members_hurt_companion() -> None:
+    from session_registry import connected_clients
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+
+        owner = _make_session("squad-heal-owner", "Squadhealer")
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+        member = _make_session("squad-heal-member", "Squadmate")
+        apply_player_class(member, "class.monk", roll_attributes=True, initialize_progression=True)
+        connected_clients[owner.client_id] = owner
+        connected_clients[member.client_id] = member
+        member.following_player_key = "squadhealer"
+        member.group_leader_key = "squadhealer"
+        owner.group_member_keys.add("squadmate")
+
+        member_squire = _make_companion("squadmate")
+        member_squire.entity_id = "companion-member-squire"
+        member_squire.hit_points = 10
+        shared_world_entities[member_squire.entity_id] = member_squire
+
+        medic = _make_companion("squadhealer")
+        medic.entity_id = "companion-owner-medic"
+        medic.name = "Field Medic Ora"
+        medic.npc_id = "npc.companion-field-medic"
+        medic.mana = 80
+        medic.max_mana = 80
+        medic.spell_ids = ["spell.mending-word"]
+        shared_world_entities[medic.entity_id] = medic
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, medic, None, parts)
+
+        assert member_squire.hit_points > 10
+        assert medic.mana == 68
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "Bramble Squire" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
