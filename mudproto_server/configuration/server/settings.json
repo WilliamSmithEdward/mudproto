@@ -38,7 +38,6 @@
     "companion_rescue_guard_rounds": 3,
     "companion_taunt_chance": 0.5,
     "companion_voice_chance": 0.4,
-    "companion_taunt_break_chance": 0.15,
     "companion_hit_points_per_level_percent": 0.12,
     "companion_resource_per_level_percent": 0.08,
     "companion_power_per_owner_levels": 2,

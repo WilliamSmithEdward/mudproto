@@ -504,7 +504,7 @@ def _make_guardian(owner_key: str) -> EntityState:
     return guardian
 
 
-def test_guardian_taunt_hard_engages_the_owners_target(monkeypatch) -> None:
+def test_guardian_taunts_enemies_targeting_allies(monkeypatch) -> None:
     previous_entities = dict(shared_world_entities)
     try:
         shared_world_entities.clear()
@@ -513,6 +513,7 @@ def test_guardian_taunt_hard_engages_the_owners_target(monkeypatch) -> None:
         guardian = _make_guardian("taunt-owner")
         guardian.owner_player_key = "tauntowner"
         enemy = _make_enemy()
+        enemy.combat_target_player_key = "tauntowner"
         shared_world_entities[guardian.entity_id] = guardian
         shared_world_entities[enemy.entity_id] = enemy
         owner.combat.engaged_entity_ids.add(enemy.entity_id)
@@ -525,10 +526,75 @@ def test_guardian_taunt_hard_engages_the_owners_target(monkeypatch) -> None:
         assert enemy.hard_target_companion_id == guardian.entity_id
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "bellows a challenge" in rendered
-        assert "onto himself" in rendered
+        assert "turns its fury on" in rendered
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+def test_guardian_taunt_rolls_each_enemy_separately(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("multi-taunt-owner", "Multitauntowner")
+        owner.is_authenticated = False  # keep the heal scan out of this test
+        guardian = _make_guardian("multi-taunt-owner")
+        guardian.owner_player_key = "multitauntowner"
+
+        first_enemy = _make_enemy()
+        first_enemy.combat_target_player_key = "multitauntowner"
+        second_enemy = _make_enemy()
+        second_enemy.entity_id = "enemy-second"
+        second_enemy.name = "Crow Reaver"
+        second_enemy.combat_target_player_key = "multitauntowner"
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[first_enemy.entity_id] = first_enemy
+        shared_world_entities[second_enemy.entity_id] = second_enemy
+        owner.combat.engaged_entity_ids.add(first_enemy.entity_id)
+        owner.combat.engaged_entity_ids.add(second_enemy.entity_id)
+
+        taunt_rolls = [0.0, 0.99]
+        monkeypatch.setattr(random, "random", lambda: taunt_rolls.pop(0) if taunt_rolls else 0.99)
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, guardian, first_enemy, parts)
+
+        assert first_enemy.hard_target_companion_id == guardian.entity_id
+        assert second_enemy.hard_target_companion_id == ""
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "turns its fury on" in rendered
+        assert "refuses to be baited" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_guardian_fights_normally_when_no_ally_is_threatened(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("calm-taunt-owner", "Calmtauntowner")
+        owner.is_authenticated = False  # keep the heal scan out of this test
+        guardian = _make_guardian("calm-taunt-owner")
+        guardian.owner_player_key = "calmtauntowner"
+        enemy = _make_enemy()
+        enemy.combat_target_player_key = ""
+        enemy.hard_target_companion_id = guardian.entity_id
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress skill usage
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, guardian, enemy, parts)
+
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "bellows a challenge" not in rendered
+        assert enemy.hit_points < 200
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
 
 
 def test_hard_engaged_enemy_spends_its_whole_turn_on_the_guardian(monkeypatch) -> None:
@@ -558,30 +624,6 @@ def test_hard_engaged_enemy_spends_its_whole_turn_on_the_guardian(monkeypatch) -
         assert enemy.hard_target_companion_id == guardian.entity_id
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "turns and" not in rendered
-    finally:
-        shared_world_entities.clear()
-        shared_world_entities.update(previous_entities)
-
-
-def test_hard_engaged_enemy_can_break_off(monkeypatch) -> None:
-    previous_entities = dict(shared_world_entities)
-    try:
-        shared_world_entities.clear()
-        owner = _make_session("break-owner", "Breakowner")
-        guardian = _make_guardian("breakowner")
-        enemy = _make_enemy()
-        enemy.hard_target_companion_id = guardian.entity_id
-        shared_world_entities[guardian.entity_id] = guardian
-        shared_world_entities[enemy.entity_id] = enemy
-
-        monkeypatch.setattr(combat.random, "random", lambda: 0.0)
-
-        parts: list[dict] = []
-        _apply_entity_attacks(owner, enemy, parts, allow_off_hand=False)
-
-        assert enemy.hard_target_companion_id == ""
-        rendered = "".join(str(part.get("text", "")) for part in parts)
-        assert "shakes free of" in rendered
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
@@ -764,6 +806,328 @@ def test_medic_dresses_a_hurt_allied_companion(monkeypatch) -> None:
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "casts Field Dressing on" in rendered
         assert "Bramble Squire" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_fresh_aggro_does_not_prefer_guardians(monkeypatch) -> None:
+    import asyncio
+
+    import combat_state
+    from combat_state import _pending_auto_aggro_due_monotonic, process_pending_auto_aggro
+    from session_registry import active_character_sessions, connected_clients
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    previous_active = dict(active_character_sessions)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+        active_character_sessions.clear()
+
+        owner = _make_session("aggro-uniform-owner", "Aggrouniformowner")
+        connected_clients[owner.client_id] = owner
+
+        guardian = _make_guardian("aggrouniformowner")
+        enemy = _make_enemy()
+        enemy.is_aggro = True
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+
+        # Uniform pool: the first slot is the player, guardian included after.
+        monkeypatch.setattr(combat_state.random, "choice", lambda seq: seq[0])
+
+        async def _run() -> None:
+            _pending_auto_aggro_due_monotonic[enemy.entity_id] = 0.0
+            process_pending_auto_aggro()
+
+        asyncio.run(_run())
+
+        assert enemy.entity_id in owner.combat.engaged_entity_ids
+        assert enemy.hard_target_companion_id == ""
+    finally:
+        _pending_auto_aggro_due_monotonic.clear()
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+        active_character_sessions.clear()
+        active_character_sessions.update(previous_active)
+
+
+
+def test_fresh_aggro_can_pick_a_non_guardian_companion(monkeypatch) -> None:
+    import asyncio
+
+    import combat_state
+    from combat_state import _pending_auto_aggro_due_monotonic, process_pending_auto_aggro
+    from session_registry import active_character_sessions, connected_clients
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    previous_active = dict(active_character_sessions)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+        active_character_sessions.clear()
+
+        owner = _make_session("aggro-medic-owner", "Aggromedicowner")
+        connected_clients[owner.client_id] = owner
+
+        medic = _make_companion("aggromedicowner")
+        medic.entity_id = "companion-aggro-victim"
+        enemy = _make_enemy()
+        enemy.is_aggro = True
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(combat_state.random, "choice", lambda seq: seq[-1])
+
+        async def _run() -> None:
+            _pending_auto_aggro_due_monotonic[enemy.entity_id] = 0.0
+            process_pending_auto_aggro()
+
+        asyncio.run(_run())
+
+        assert enemy.entity_id in owner.combat.engaged_entity_ids
+        assert enemy.hard_target_companion_id == medic.entity_id
+    finally:
+        _pending_auto_aggro_due_monotonic.clear()
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+        active_character_sessions.clear()
+        active_character_sessions.update(previous_active)
+
+
+def test_fresh_aggro_can_still_pick_the_player(monkeypatch) -> None:
+    import asyncio
+
+    import combat_state
+    from combat_state import _pending_auto_aggro_due_monotonic, process_pending_auto_aggro
+    from session_registry import active_character_sessions, connected_clients
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    previous_active = dict(active_character_sessions)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+        active_character_sessions.clear()
+
+        owner = _make_session("aggro-player-owner", "Aggroplayerowner")
+        connected_clients[owner.client_id] = owner
+
+        medic = _make_companion("aggroplayerowner")
+        medic.entity_id = "companion-aggro-bystander"
+        enemy = _make_enemy()
+        enemy.is_aggro = True
+        shared_world_entities[medic.entity_id] = medic
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(combat_state.random, "choice", lambda seq: seq[0])
+
+        async def _run() -> None:
+            _pending_auto_aggro_due_monotonic[enemy.entity_id] = 0.0
+            process_pending_auto_aggro()
+
+        asyncio.run(_run())
+
+        assert enemy.entity_id in owner.combat.engaged_entity_ids
+        assert enemy.hard_target_companion_id == ""
+    finally:
+        _pending_auto_aggro_due_monotonic.clear()
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+        active_character_sessions.clear()
+        active_character_sessions.update(previous_active)
+
+
+def test_rescue_guarded_companion_is_not_aggro_bait() -> None:
+    import asyncio
+
+    from combat_state import _pending_auto_aggro_due_monotonic, process_pending_auto_aggro
+    from session_registry import active_character_sessions, connected_clients
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    previous_active = dict(active_character_sessions)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+        active_character_sessions.clear()
+
+        owner = _make_session("aggro-guarded-owner", "Aggroguardedowner")
+        connected_clients[owner.client_id] = owner
+
+        guardian = _make_guardian("aggroguardedowner")
+        guardian.rescue_guard_rounds_remaining = 3
+        enemy = _make_enemy()
+        enemy.is_aggro = True
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+
+        async def _run() -> None:
+            _pending_auto_aggro_due_monotonic[enemy.entity_id] = 0.0
+            process_pending_auto_aggro()
+
+        asyncio.run(_run())
+
+        assert enemy.entity_id in owner.combat.engaged_entity_ids
+        assert enemy.hard_target_companion_id == ""
+    finally:
+        _pending_auto_aggro_due_monotonic.clear()
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+        active_character_sessions.clear()
+        active_character_sessions.update(previous_active)
+
+
+def test_enemy_aoe_spell_hits_companions_in_the_room(monkeypatch) -> None:
+    from combat_entity_abilities import _entity_try_cast_spell
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("aoe-owner", "Aoeowner")
+        owner.status.hit_points = 500
+        companion = _make_companion("aoeowner")
+        enemy = _make_enemy()
+        enemy.mana = 100
+        enemy.max_mana = 100
+        enemy.spell_use_chance = 1.0
+        enemy.spell_ids = ["spell.ember-lance"]
+        shared_world_entities[companion.entity_id] = companion
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.0)
+
+        parts: list[dict] = []
+        casted = _entity_try_cast_spell(owner, enemy, parts, aoe_secondary_lines={})
+
+        assert casted is True
+        assert owner.status.hit_points < 500
+        assert companion.hit_points < 140
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "Bramble Squire" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_enemy_aoe_can_slay_a_companion(monkeypatch) -> None:
+    from combat_entity_abilities import _entity_try_cast_spell
+
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("aoe-slain-owner", "Aoeslainowner")
+        owner.status.hit_points = 500
+        owner.companion_roster = [{"npc_id": "npc.companion-squire", "name": "Bramble Squire"}]
+        companion = _make_companion("aoeslainowner")
+        companion.hit_points = 1
+        enemy = _make_enemy()
+        enemy.mana = 100
+        enemy.max_mana = 100
+        enemy.spell_use_chance = 1.0
+        enemy.spell_ids = ["spell.ember-lance"]
+        shared_world_entities[companion.entity_id] = companion
+        shared_world_entities[enemy.entity_id] = enemy
+
+        monkeypatch.setattr(random, "random", lambda: 0.0)
+
+        parts: list[dict] = []
+        _entity_try_cast_spell(owner, enemy, parts, aoe_secondary_lines={})
+
+        assert companion.entity_id not in shared_world_entities
+        assert owner.companion_roster == []
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "has been slain!" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_taunt_pulls_place_the_guardians_owner_in_battle(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("pulled-in-owner", "Pulledinowner")
+        owner.is_authenticated = False  # keep the heal scan out of this test
+        guardian = _make_guardian("pulled-in-owner")
+        guardian.owner_player_key = "pulledinowner"
+
+        # The enemy is fighting a groupmate; the guardian's owner is idle.
+        enemy = _make_enemy()
+        enemy.combat_target_player_key = "someone-else"
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+        assert enemy.entity_id not in owner.combat.engaged_entity_ids
+
+        monkeypatch.setattr(random, "random", lambda: 0.0)
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, guardian, None, parts)
+
+        assert enemy.hard_target_companion_id == guardian.entity_id
+        assert enemy.entity_id in owner.combat.engaged_entity_ids
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_guardian_stands_down_when_another_guardian_holds_the_enemy(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("second-guardian-owner", "Secondguardianowner")
+        owner.is_authenticated = False  # keep the heal scan out of this test
+        own_guardian = _make_guardian("second-guardian-owner")
+        own_guardian.owner_player_key = "secondguardianowner"
+
+        other_guardian = _make_guardian("someone-else")
+        other_guardian.entity_id = "companion-other-guardian"
+        other_guardian.name = "Other Bulwark"
+
+        enemy = _make_enemy()
+        enemy.combat_target_player_key = "someone-else"
+        enemy.hard_target_companion_id = other_guardian.entity_id
+        shared_world_entities[own_guardian.entity_id] = own_guardian
+        shared_world_entities[other_guardian.entity_id] = other_guardian
+        shared_world_entities[enemy.entity_id] = enemy
+        owner.combat.engaged_entity_ids.add(enemy.entity_id)
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress skill usage
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, own_guardian, enemy, parts)
+
+        # The enemy is already held by a guardian: no taunt tug-of-war, and
+        # the second guardian fights normally instead.
+        assert enemy.hard_target_companion_id == other_guardian.entity_id
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "bellows a challenge" not in rendered
+        assert enemy.hit_points < 200
+
+        # An enemy held by a non-guardian companion is still worth taunting.
+        medic = _make_companion("second-guardian-owner")
+        medic.entity_id = "companion-held-medic"
+        shared_world_entities[medic.entity_id] = medic
+        enemy.hard_target_companion_id = medic.entity_id
+        monkeypatch.setattr(random, "random", lambda: 0.0)
+
+        parts = []
+        resolve_companion_round(owner, own_guardian, enemy, parts)
+
+        assert enemy.hard_target_companion_id == own_guardian.entity_id
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "bellows a challenge" in rendered
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)

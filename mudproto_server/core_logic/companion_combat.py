@@ -488,6 +488,70 @@ def _build_companion_attack_parts(companion: EntityState, target: EntityState, a
     return parts
 
 
+def _list_enemies_targeting_allies(owner_session: ClientSession, guardian: EntityState) -> list[EntityState]:
+    """List live room enemies whose attention is on an unprotected ally.
+
+    An enemy qualifies when it targets a player or holds a hard engagement on
+    a non-guardian companion. An enemy held by any live guardian is already
+    doing what guardians want; taunting it away would only start a threat
+    tug-of-war between guardians.
+    """
+    room_id = guardian.room_id
+    threatening_enemies: list[EntityState] = []
+    for entity in owner_session.entities.values():
+        if not entity.is_alive or entity.room_id != room_id:
+            continue
+        if entity.is_companion or entity.is_ally or entity.is_peaceful:
+            continue
+        hard_target_id = entity.hard_target_companion_id.strip()
+        if hard_target_id:
+            holding_companion = owner_session.entities.get(hard_target_id)
+            if holding_companion is not None and holding_companion.is_alive and holding_companion.is_guardian:
+                continue
+            threatening_enemies.append(entity)
+            continue
+        if entity.combat_target_player_key.strip():
+            threatening_enemies.append(entity)
+    return threatening_enemies
+
+
+def _attempt_guardian_taunt(
+    owner_session: ClientSession,
+    guardian: EntityState,
+    enemies: list[EntityState],
+    parts: list[dict],
+) -> None:
+    from combat_state import start_combat
+
+    reflexive = _REFLEXIVE_PRONOUNS.get(guardian.pronoun_possessive.strip().lower(), "themselves")
+    append_newline_if_needed(parts)
+    parts.extend([
+        _companion_part(_companion_label(guardian)),
+        _companion_part(f" bellows a challenge, drawing every foe toward {reflexive}!"),
+    ])
+
+    for enemy in enemies:
+        append_newline_if_needed(parts)
+        if random.random() < COMPANION_TAUNT_CHANCE:
+            enemy.hard_target_companion_id = guardian.entity_id
+            # An enemy on the guardian is the owner's fight: without the
+            # engagement the owner's rounds never run and the guardian
+            # would soak hits without ever acting.
+            if enemy.entity_id not in owner_session.combat.engaged_entity_ids:
+                start_combat(owner_session, enemy.entity_id, "entity", trigger_player_auto_aggro=False)
+            parts.extend([
+                _companion_part(_target_label(enemy, capitalize=True)),
+                _companion_part(" turns its fury on "),
+                _companion_part(_companion_label(guardian)),
+                _companion_part("!"),
+            ])
+        else:
+            parts.extend([
+                _companion_part(_target_label(enemy, capitalize=True)),
+                _companion_part(" refuses to be baited."),
+            ])
+
+
 def _resolve_companion_weapon_template(template_id: str) -> dict | None:
     normalized_template_id = str(template_id).strip()
     if not normalized_template_id:
@@ -572,6 +636,20 @@ def resolve_companion_round(
                 _cast_companion_heal(owner_session, companion, heal_spell, heal_target, parts)
                 can_use_special_action = False
 
+    # Guardians taunt while any ally in the room is actively targeted by an
+    # enemy. Every such enemy rolls separately against the taunt; pulled
+    # enemies stay on the guardian indefinitely, until it dies, is rescued,
+    # or leaves the room, and each pull places the owner in that fight.
+    if (
+        can_use_special_action
+        and companion.is_guardian
+        and companion.rescue_guard_rounds_remaining <= 0
+    ):
+        threatening_enemies = _list_enemies_targeting_allies(owner_session, companion)
+        if threatening_enemies:
+            _attempt_guardian_taunt(owner_session, companion, threatening_enemies, parts)
+            can_use_special_action = False
+
     if target_entity is None or not target_entity.is_alive or target_entity.hit_points <= 0:
         return
 
@@ -586,27 +664,6 @@ def resolve_companion_round(
         if self_support_spell is not None:
             _cast_companion_self_support(companion, self_support_spell, parts)
             can_use_special_action = False
-
-    # Guardians taunt the owner's target into durably attacking them instead;
-    # the hard engagement holds until the guardian dies, is rescued, or the
-    # enemy breaks off during its own turn.
-    if (
-        can_use_special_action
-        and companion.is_guardian
-        and companion.rescue_guard_rounds_remaining <= 0
-        and target_entity.hard_target_companion_id != companion.entity_id
-        and random.random() < COMPANION_TAUNT_CHANCE
-    ):
-        target_entity.hard_target_companion_id = companion.entity_id
-        reflexive = _REFLEXIVE_PRONOUNS.get(companion.pronoun_possessive.strip().lower(), "themselves")
-        append_newline_if_needed(parts)
-        parts.extend([
-            _companion_part(_companion_label(companion)),
-            _companion_part(" bellows a challenge, dragging "),
-            _companion_part(_target_label(target_entity)),
-            _companion_part(f"'s fury onto {reflexive}!"),
-        ])
-        can_use_special_action = False
 
     if can_use_special_action and companion.spell_ids:
         spell_chance = max(0.0, min(1.0, float(companion.spell_use_chance)))

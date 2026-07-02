@@ -1,7 +1,7 @@
 {
   "interface_id": "mudproto.asset-payload-generator",
   "version": "2.20",
-  "generated_at_utc": "2026-07-02T07:27:30.956154+00:00",
+  "generated_at_utc": "2026-07-02T18:11:07.404728+00:00",
   "purpose": "Instructions for an LLM to generate a single MudProto asset payload JSON bundle that can be dropped into mudproto_server/configuration/assets/asset_payloads/ and loaded by the server.",
   "drop_location": "mudproto_server/configuration/assets/asset_payloads/",
   "response_contract": {
@@ -855,7 +855,7 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "notes": "Companions only. Marks a tank companion that can taunt the owner's target into durably attacking it until it dies, is rescued, or the enemy breaks off."
+          "notes": "Companions only. Marks a tank companion that taunts while allies are targeted: each room enemy rolls separately, and pulled enemies attack the guardian indefinitely until it dies, is rescued, or leaves the room."
         },
         "is_recruiter": {
           "type": "boolean",

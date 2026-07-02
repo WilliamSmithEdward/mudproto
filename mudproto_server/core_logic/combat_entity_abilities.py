@@ -11,6 +11,7 @@ from models import ClientSession, EntityState
 
 from combat_ability_effects import (
     _apply_ability_affects,
+    _apply_entity_damage_with_reduction,
     _apply_entity_secondary_restore,
     _apply_entity_dealt_damage_multiplier,
     _apply_entity_skill_lag,
@@ -105,6 +106,76 @@ def _apply_aoe_to_other_room_players(
 
         if secondary_line:
             aoe_secondary_lines.setdefault(candidate.client_id, []).append(secondary_line)
+
+
+def _apply_aoe_to_room_companions(
+    primary_session: ClientSession,
+    entity: EntityState,
+    ability: dict,
+    total_damage: int,
+    damage_element: str,
+    ability_name: str,
+    damage_context: str,
+    parts: list[dict],
+    *,
+    target_posture: str = "",
+) -> None:
+    """Fan an enemy area ability onto every AI companion in the room.
+
+    Area effects ignore the rescue guard; the guard only blocks targeted
+    engagement, not standing in a blast.
+    """
+    from combat_observer import _resolve_combat_context
+    from companions import _resolve_owner_session, handle_companion_defeat
+    from display_core import build_part
+    from grammar import with_article
+
+    room_id = primary_session.player.current_room_id
+    for companion in list(primary_session.entities.values()):
+        if not companion.is_companion or not companion.is_alive or companion.hit_points <= 0:
+            continue
+        if companion.room_id != room_id:
+            continue
+
+        damage_dealt = 0
+        if total_damage > 0:
+            damage_dealt = _apply_entity_damage_with_reduction(companion, total_damage, damage_element=damage_element)
+
+        companion_label = with_article(companion.name, capitalize=True, is_named=companion.is_named)
+        append_newline_if_needed(parts)
+        resolved_context = ""
+        if damage_context and _supports_target_placeholders(damage_context):
+            resolved_context = _resolve_combat_context(damage_context, target_text=companion_label, verb="is")
+        if resolved_context:
+            parts.append(build_part(resolved_context))
+        elif total_damage > 0:
+            parts.extend([
+                build_part(companion_label),
+                build_part(" is hit by "),
+                build_part(ability_name),
+                build_part("."),
+            ])
+        else:
+            parts.extend([
+                build_part(companion_label),
+                build_part(" resists "),
+                build_part(ability_name),
+                build_part("."),
+            ])
+
+        if damage_dealt > 0:
+            _apply_ability_affects(actor=entity, target=companion, ability=ability, affect_target="target")
+            if target_posture:
+                _apply_target_posture(companion, target_posture)
+
+        if companion.hit_points <= 0:
+            owner_session = _resolve_owner_session(companion.owner_player_key) or primary_session
+            handle_companion_defeat(owner_session, companion)
+            append_newline_if_needed(parts)
+            parts.extend([
+                build_part(companion_label, "combat.death", True),
+                build_part(" has been slain!", "combat.death", True),
+            ])
 
 
 def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: list[dict], *, aoe_secondary_lines: dict[str, list[list[dict]]] | None = None) -> bool:
@@ -280,6 +351,17 @@ def _entity_try_use_skill(session: ClientSession, entity: EntityState, parts: li
                 target_lag_seconds=float(target_lag_rounds) * float(COMBAT_ROUND_INTERVAL_SECONDS) if target_lag_rounds > 0 else 0.0,
                 target_posture=target_posture,
             )
+            _apply_aoe_to_room_companions(
+                primary_session=session,
+                entity=entity,
+                ability=skill,
+                total_damage=total_damage,
+                damage_element=element,
+                ability_name=skill_name,
+                damage_context=damage_context,
+                parts=parts,
+                target_posture=target_posture,
+            )
 
         _set_entity_skill_cooldown(entity, skill)
         _apply_entity_skill_lag(entity, skill)
@@ -453,6 +535,16 @@ def _entity_try_cast_spell(session: ClientSession, entity: EntityState, parts: l
                 ability_name=spell_name,
                 damage_context=damage_context,
                 aoe_secondary_lines=aoe_secondary_lines,
+            )
+            _apply_aoe_to_room_companions(
+                primary_session=session,
+                entity=entity,
+                ability=spell,
+                total_damage=spell_damage,
+                damage_element=element,
+                ability_name=spell_name,
+                damage_context=damage_context,
+                parts=parts,
             )
 
         _set_entity_spell_cooldown(entity, spell)

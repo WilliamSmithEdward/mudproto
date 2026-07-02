@@ -292,6 +292,7 @@ def start_combat(
                 if _is_entity_engaged_by_other_player(candidate.entity_id, session):
                     continue
                 session.combat.engaged_entity_ids.add(candidate.entity_id)
+                _maybe_aggro_onto_companion(session, candidate)
 
     session.combat.next_round_monotonic = None
     if not was_in_combat and not session.combat.opening_attacker:
@@ -442,6 +443,30 @@ def _is_entity_engaged_by_other_player(entity_id: str, current_session: ClientSe
     return False
 
 
+def _maybe_aggro_onto_companion(session: ClientSession, entity: EntityState) -> None:
+    """Let fresh aggro open on one of the player's AI companions.
+
+    The victim is picked uniformly among the player and their companions;
+    guardians attract enemies through their taunt, not through aggro bias.
+    Engagement bookkeeping stays on the player's session either way; the
+    companion is held through the same hard-engagement the taunt uses.
+    """
+    from companions import list_owned_companions_in_room
+
+    companions_in_room = [
+        companion
+        for companion in list_owned_companions_in_room(session)
+        if companion.hit_points > 0 and companion.rescue_guard_rounds_remaining <= 0
+    ]
+    if not companions_in_room:
+        return
+
+    aggro_pool: list[EntityState | None] = [None, *companions_in_room]
+    chosen_victim = random.choice(aggro_pool)
+    if chosen_victim is not None:
+        entity.hard_target_companion_id = chosen_victim.entity_id
+
+
 def _list_valid_auto_aggro_targets_for_entity(entity: EntityState) -> list[ClientSession]:
     room_id = str(getattr(entity, "room_id", "")).strip()
     if not room_id:
@@ -496,7 +521,8 @@ def process_pending_auto_aggro() -> None:
             continue
 
         chosen_session = random.choice(candidates)
-        start_combat(chosen_session, entity.entity_id, "entity")
+        if start_combat(chosen_session, entity.entity_id, "entity"):
+            _maybe_aggro_onto_companion(chosen_session, entity)
 
 
 def maybe_auto_engage_current_room(session: ClientSession) -> list[EntityState]:

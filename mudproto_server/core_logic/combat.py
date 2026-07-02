@@ -57,7 +57,7 @@ from equipment_logic import (
 )
 from grammar import to_third_person, with_article
 from models import ClientSession, EntityState, ItemState
-from settings import COMBAT_ROUND_INTERVAL_SECONDS, COMPANION_TAUNT_BREAK_CHANCE, COMPANION_VOICE_CHANCE
+from settings import COMBAT_ROUND_INTERVAL_SECONDS, COMPANION_VOICE_CHANCE
 from session_timing import apply_lag
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
@@ -445,7 +445,11 @@ def _append_companion_victory_quip(room_companions: list[EntityState], parts: li
 
 
 def _resolve_hard_target_companion(session: ClientSession, entity: EntityState) -> EntityState | None:
-    """Resolve and validate the companion an enemy is durably targeting."""
+    """Resolve and validate the companion an enemy is durably targeting.
+
+    Ownership is deliberately not checked: a guardian's taunt holds enemies
+    that are fighting groupmates too, not just its own owner.
+    """
     hard_target_id = entity.hard_target_companion_id.strip()
     if not hard_target_id:
         return None
@@ -456,7 +460,6 @@ def _resolve_hard_target_companion(session: ClientSession, entity: EntityState) 
         or not companion.is_companion
         or not companion.is_alive
         or companion.hit_points <= 0
-        or companion.owner_player_key != get_session_combatant_key(session)
         or companion.room_id != entity.room_id
         or companion.rescue_guard_rounds_remaining > 0
     ):
@@ -611,19 +614,9 @@ def _apply_entity_attacks(
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
 
     # Melee lands only on the attacker's active target: a hard-engaged
-    # (taunted) guardian, or the targeted player. The hard engagement holds
-    # until the guardian dies, is rescued, or the enemy breaks off here.
+    # (taunted) companion, or the targeted player. The hard engagement holds
+    # indefinitely, until the companion dies, is rescued, or leaves the room.
     hard_target_companion = _resolve_hard_target_companion(session, entity)
-    if hard_target_companion is not None and random.random() < COMPANION_TAUNT_BREAK_CHANCE:
-        append_newline_if_needed(parts)
-        parts.extend([
-            build_part(with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))),
-            build_part(" shakes free of "),
-            build_part(with_article(hard_target_companion.name, is_named=hard_target_companion.is_named)),
-            build_part("'s challenge!"),
-        ])
-        entity.hard_target_companion_id = ""
-        hard_target_companion = None
 
     for _ in range(max(1, entity.attacks_per_round)):
         if hard_target_companion is not None:

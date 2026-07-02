@@ -138,7 +138,7 @@
         "type": "boolean",
         "required": false,
         "default": false,
-        "notes": "Companions only. Marks a tank companion that can taunt the owner's target into durably attacking it until it dies, is rescued, or the enemy breaks off."
+        "notes": "Companions only. Marks a tank companion that taunts while allies are targeted: each room enemy rolls separately, and pulled enemies attack the guardian indefinitely until it dies, is rescued, or leaves the room."
       },
       "is_recruiter": {
         "type": "boolean",
