@@ -488,15 +488,30 @@ def _build_companion_attack_parts(companion: EntityState, target: EntityState, a
     return parts
 
 
+def _protected_player_keys(owner_session: ClientSession) -> set[str]:
+    """Identity keys of the players this guardian protects: owner and group."""
+    from targeting_follow import _list_group_member_sessions, _session_identity_key
+
+    protected_keys = {_session_identity_key(owner_session)}
+    _, member_sessions = _list_group_member_sessions(owner_session)
+    for member_session in member_sessions:
+        member_key = _session_identity_key(member_session)
+        if member_key:
+            protected_keys.add(member_key)
+    protected_keys.discard("")
+    return protected_keys
+
+
 def _list_enemies_targeting_allies(owner_session: ClientSession, guardian: EntityState) -> list[EntityState]:
     """List live room enemies whose attention is on an unprotected ally.
 
-    An enemy qualifies when it targets a player or holds a hard engagement on
-    a non-guardian companion. An enemy held by any live guardian is already
-    doing what guardians want; taunting it away would only start a threat
-    tug-of-war between guardians.
+    Allies are the guardian's owner, the owner's group members, and those
+    players' companions; strangers fight their own battles. An enemy held by
+    any live guardian is already doing what guardians want; taunting it away
+    would only start a threat tug-of-war between guardians.
     """
     room_id = guardian.room_id
+    protected_player_keys = _protected_player_keys(owner_session)
     threatening_enemies: list[EntityState] = []
     for entity in owner_session.entities.values():
         if not entity.is_alive or entity.room_id != room_id:
@@ -506,11 +521,13 @@ def _list_enemies_targeting_allies(owner_session: ClientSession, guardian: Entit
         hard_target_id = entity.hard_target_companion_id.strip()
         if hard_target_id:
             holding_companion = owner_session.entities.get(hard_target_id)
-            if holding_companion is not None and holding_companion.is_alive and holding_companion.is_guardian:
+            if holding_companion is not None and holding_companion.is_alive:
+                if holding_companion.is_guardian:
+                    continue
+                if holding_companion.owner_player_key in protected_player_keys:
+                    threatening_enemies.append(entity)
                 continue
-            threatening_enemies.append(entity)
-            continue
-        if entity.combat_target_player_key.strip():
+        if entity.combat_target_player_key.strip().lower() in protected_player_keys:
             threatening_enemies.append(entity)
     return threatening_enemies
 

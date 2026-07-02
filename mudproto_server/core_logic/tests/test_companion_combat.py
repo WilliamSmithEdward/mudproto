@@ -1055,17 +1055,30 @@ def test_enemy_aoe_can_slay_a_companion(monkeypatch) -> None:
 
 
 def test_taunt_pulls_place_the_guardians_owner_in_battle(monkeypatch) -> None:
+    from session_registry import connected_clients
+
     previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
     try:
         shared_world_entities.clear()
+        connected_clients.clear()
+
         owner = _make_session("pulled-in-owner", "Pulledinowner")
-        owner.is_authenticated = False  # keep the heal scan out of this test
+        apply_player_class(owner, "class.monk", roll_attributes=True, initialize_progression=True)
+        member = _make_session("pulled-in-member", "Pulledmate")
+        apply_player_class(member, "class.monk", roll_attributes=True, initialize_progression=True)
+        connected_clients[owner.client_id] = owner
+        connected_clients[member.client_id] = member
+        member.following_player_key = "pulledinowner"
+        member.group_leader_key = "pulledinowner"
+        owner.group_member_keys.add("pulledmate")
+
         guardian = _make_guardian("pulled-in-owner")
         guardian.owner_player_key = "pulledinowner"
 
         # The enemy is fighting a groupmate; the guardian's owner is idle.
         enemy = _make_enemy()
-        enemy.combat_target_player_key = "someone-else"
+        enemy.combat_target_player_key = "pulledmate"
         shared_world_entities[guardian.entity_id] = guardian
         shared_world_entities[enemy.entity_id] = enemy
         assert enemy.entity_id not in owner.combat.engaged_entity_ids
@@ -1080,6 +1093,9 @@ def test_taunt_pulls_place_the_guardians_owner_in_battle(monkeypatch) -> None:
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
+
 
 
 def test_guardian_stands_down_when_another_guardian_holds_the_enemy(monkeypatch) -> None:
@@ -1116,7 +1132,7 @@ def test_guardian_stands_down_when_another_guardian_holds_the_enemy(monkeypatch)
         assert enemy.hit_points < 200
 
         # An enemy held by a non-guardian companion is still worth taunting.
-        medic = _make_companion("second-guardian-owner")
+        medic = _make_companion("secondguardianowner")
         medic.entity_id = "companion-held-medic"
         shared_world_entities[medic.entity_id] = medic
         enemy.hard_target_companion_id = medic.entity_id
@@ -1128,6 +1144,37 @@ def test_guardian_stands_down_when_another_guardian_holds_the_enemy(monkeypatch)
         assert enemy.hard_target_companion_id == own_guardian.entity_id
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "bellows a challenge" in rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_guardian_ignores_fights_of_ungrouped_strangers(monkeypatch) -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        owner = _make_session("neutral-guardian-owner", "Neutralguardianowner")
+        owner.is_authenticated = False  # keep the heal scan out of this test
+        guardian = _make_guardian("neutral-guardian-owner")
+        guardian.owner_player_key = "neutralguardianowner"
+
+        enemy = _make_enemy()
+        enemy.combat_target_player_key = "some-stranger"
+        shared_world_entities[guardian.entity_id] = guardian
+        shared_world_entities[enemy.entity_id] = enemy
+        owner.combat.engaged_entity_ids.add(enemy.entity_id)
+
+        monkeypatch.setattr(random, "random", lambda: 0.99)  # suppress skill usage
+
+        parts: list[dict] = []
+        resolve_companion_round(owner, guardian, enemy, parts)
+
+        # A stranger's fight is not the guardian's problem: no taunt, and it
+        # fights its owner's target normally instead.
+        assert enemy.hard_target_companion_id == ""
+        rendered = "".join(str(part.get("text", "")) for part in parts)
+        assert "bellows a challenge" not in rendered
+        assert enemy.hit_points < 200
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
