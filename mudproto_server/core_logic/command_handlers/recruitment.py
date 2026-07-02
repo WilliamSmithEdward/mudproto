@@ -2,6 +2,7 @@ from assets import get_npc_template_by_id
 from companions import (
     companion_roster_has_capacity,
     list_owned_companions_for_session,
+    pick_voice_line,
     remove_companion_roster_entry,
     resolve_room_recruiter,
     session_has_companion_npc,
@@ -50,42 +51,65 @@ def _resolve_recruit_entries(recruiter: EntityState) -> list[dict]:
     return entries
 
 
-def _match_recruit_entry(entries: list[dict], selector_text: str) -> dict | None:
+def _levenshtein_distance(left: str, right: str) -> int:
+    if left == right:
+        return 0
+    previous_row = list(range(len(right) + 1))
+    for left_index, left_char in enumerate(left, start=1):
+        current_row = [left_index]
+        for right_index, right_char in enumerate(right, start=1):
+            insert_cost = current_row[right_index - 1] + 1
+            delete_cost = previous_row[right_index] + 1
+            substitute_cost = previous_row[right_index - 1] + (0 if left_char == right_char else 1)
+            current_row.append(min(insert_cost, delete_cost, substitute_cost))
+        previous_row = current_row
+    return previous_row[-1]
+
+
+def _match_name_index(names: list[str], selector_text: str) -> int | None:
+    """Match a typed selector against companion names.
+
+    Tries exact, then prefix, then word prefix, then small-typo fuzzy
+    matching (e.g. 'gerenado' still finds Genenado the Brute).
+    """
     normalized_selector = str(selector_text).strip().lower()
     if not normalized_selector:
         return None
 
-    for entry in entries:
-        if str(entry["name"]).strip().lower() == normalized_selector:
-            return entry
+    normalized_names = [str(name).strip().lower() for name in names]
 
-    for entry in entries:
-        entry_name = str(entry["name"]).strip().lower()
-        if entry_name.startswith(normalized_selector):
-            return entry
-        if any(word.startswith(normalized_selector) for word in entry_name.split()):
-            return entry
+    for index, name in enumerate(normalized_names):
+        if name == normalized_selector:
+            return index
 
-    return None
+    for index, name in enumerate(normalized_names):
+        if name.startswith(normalized_selector):
+            return index
+        if any(word.startswith(normalized_selector) for word in name.split()):
+            return index
+
+    if len(normalized_selector) < 4:
+        return None
+    max_distance = 1 if len(normalized_selector) <= 5 else 2
+    best_index: int | None = None
+    best_distance = max_distance + 1
+    for index, name in enumerate(normalized_names):
+        candidates = [name] + name.split()
+        distance = min(_levenshtein_distance(candidate, normalized_selector) for candidate in candidates)
+        if distance < best_distance:
+            best_distance = distance
+            best_index = index
+    return best_index if best_distance <= max_distance else None
+
+
+def _match_recruit_entry(entries: list[dict], selector_text: str) -> dict | None:
+    matched_index = _match_name_index([str(entry["name"]) for entry in entries], selector_text)
+    return entries[matched_index] if matched_index is not None else None
 
 
 def _match_owned_companion(companions: list[EntityState], selector_text: str) -> EntityState | None:
-    normalized_selector = str(selector_text).strip().lower()
-    if not normalized_selector:
-        return None
-
-    for companion in companions:
-        if companion.name.strip().lower() == normalized_selector:
-            return companion
-
-    for companion in companions:
-        companion_name = companion.name.strip().lower()
-        if companion_name.startswith(normalized_selector):
-            return companion
-        if any(word.startswith(normalized_selector) for word in companion_name.split()):
-            return companion
-
-    return None
+    matched_index = _match_name_index([companion.name for companion in companions], selector_text)
+    return companions[matched_index] if matched_index is not None else None
 
 
 def _display_recruit_menu(session: ClientSession, recruiter: EntityState) -> dict:
@@ -135,11 +159,10 @@ def _handle_enlist(session: ClientSession, args: list[str]) -> OutboundResult:
     entries = _resolve_recruit_entries(recruiter)
     entry = _match_recruit_entry(entries, selector_text)
     if entry is None:
+        available_names = ", ".join(str(recruit_entry["name"]) for recruit_entry in entries) or "none"
         return display_error(
-            f"No recruit named '{selector_text}' is available here.",
+            f"No recruit named '{selector_text}' is available here. Recruits: {available_names}.",
             session,
-            error_code="target-not-found",
-            error_context={"target": selector_text},
         )
 
     if session_has_companion_npc(session, str(entry["npc_id"])):
@@ -172,18 +195,29 @@ def _handle_enlist(session: ClientSession, args: list[str]) -> OutboundResult:
     session.companion_roster.append({"npc_id": str(entry["npc_id"]), "name": companion.name})
     save_player_state(session)
 
-    result = display_command_result(session, [
+    result_parts = [
         build_part(companion.name, "feedback.value", True),
         build_part(" joins you.", "feedback.text"),
-    ])
+    ]
+    voice_line = pick_voice_line(companion, "enlist")
+    if voice_line:
+        result_parts.extend([
+            newline_part(),
+            build_part(voice_line, "feedback.text"),
+        ])
+
+    result = display_command_result(session, result_parts)
     payload = result.get("payload") if isinstance(result, dict) else None
     if isinstance(payload, dict):
         actor_name = session.authenticated_character_name.strip() or "Someone"
-        payload["broadcast_to_room"] = True
-        payload["room_broadcast_lines"] = [[
+        room_broadcast_lines = [[
             build_part(companion.name, "feedback.value", True),
             build_part(f" falls in behind {actor_name}.", "feedback.text"),
         ]]
+        if voice_line:
+            room_broadcast_lines.append([build_part(voice_line, "feedback.text")])
+        payload["broadcast_to_room"] = True
+        payload["room_broadcast_lines"] = room_broadcast_lines
     return result
 
 
@@ -207,30 +241,40 @@ def _handle_dismiss(session: ClientSession, args: list[str]) -> OutboundResult:
     else:
         companion = _match_owned_companion(owned_companions, selector_text)
         if companion is None:
+            companion_names = ", ".join(entity.name for entity in owned_companions)
             return display_error(
-                f"No companion named '{selector_text}' follows you.",
+                f"No companion named '{selector_text}' follows you. Your companions: {companion_names}.",
                 session,
-                error_code="target-not-found",
-                error_context={"target": selector_text},
             )
 
     companion_room_id = companion.room_id
+    voice_line = pick_voice_line(companion, "dismiss")
     shared_world_entities.pop(companion.entity_id, None)
     remove_companion_roster_entry(session, companion.npc_id)
     save_player_state(session)
 
-    result = display_command_result(session, [
+    result_parts = [
         build_part(companion.name, "feedback.value", True),
         build_part(" departs.", "feedback.text"),
-    ])
+    ]
+    if voice_line:
+        result_parts.extend([
+            newline_part(),
+            build_part(voice_line, "feedback.text"),
+        ])
+
+    result = display_command_result(session, result_parts)
     payload = result.get("payload") if isinstance(result, dict) else None
     if isinstance(payload, dict) and companion_room_id == session.player.current_room_id:
         actor_name = session.authenticated_character_name.strip() or "Someone"
-        payload["broadcast_to_room"] = True
-        payload["room_broadcast_lines"] = [[
+        room_broadcast_lines = [[
             build_part(companion.name, "feedback.value", True),
             build_part(f" takes leave of {actor_name}.", "feedback.text"),
         ]]
+        if voice_line:
+            room_broadcast_lines.append([build_part(voice_line, "feedback.text")])
+        payload["broadcast_to_room"] = True
+        payload["room_broadcast_lines"] = room_broadcast_lines
     return result
 
 

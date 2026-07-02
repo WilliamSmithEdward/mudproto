@@ -223,6 +223,7 @@ class EntityState:
     owner_player_key: str = ""
     rescue_guard_rounds_remaining: int = 0
     hard_target_companion_id: str = ""
+    voice_lines: dict[str, list[str]] = field(default_factory=dict)
     is_recruiter: bool = False
     recruitable_companions: list[dict[str, object]] = field(default_factory=list)
     is_merchant: bool = False

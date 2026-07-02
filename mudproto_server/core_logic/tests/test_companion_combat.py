@@ -646,3 +646,25 @@ def test_medic_wards_herself_in_combat(monkeypatch) -> None:
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+def test_companion_victory_quip_lands_in_the_player_phase(monkeypatch) -> None:
+    from combat import _append_companion_victory_quip
+
+    companion = _make_companion("quip-owner")
+    companion.voice_lines = {"victory": ["Test quip line."]}
+
+    monkeypatch.setattr(combat.random, "random", lambda: 0.0)
+
+    parts: list[dict] = []
+    _append_companion_victory_quip([companion], parts)
+
+    quip_parts = [part for part in parts if str(part.get("text", "")) == "Test quip line."]
+    assert len(quip_parts) == 1
+    assert quip_parts[0].get("player_phase") is True
+
+    # Without matching voice lines nothing is emitted and no RNG is consumed.
+    silent_companion = _make_companion("quiet-owner")
+    silent_parts: list[dict] = []
+    _append_companion_victory_quip([silent_companion], silent_parts)
+    assert silent_parts == []

@@ -11,8 +11,8 @@ from combat_ability_effects import (
     _resolve_extra_hits_from_affects,
 )
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
-from companion_combat import resolve_companion_round
-from companions import handle_companion_defeat, list_owned_companions_in_room, scale_companion_to_owner_level
+from companion_combat import _companion_part, resolve_companion_round
+from companions import handle_companion_defeat, list_owned_companions_in_room, pick_voice_line, scale_companion_to_owner_level
 from combat_rewards import (
     _award_shared_entity_experience,
     _mark_entity_contributor,
@@ -57,7 +57,7 @@ from equipment_logic import (
 )
 from grammar import to_third_person, with_article
 from models import ClientSession, EntityState, ItemState
-from settings import COMBAT_ROUND_INTERVAL_SECONDS, COMPANION_TAUNT_BREAK_CHANCE
+from settings import COMBAT_ROUND_INTERVAL_SECONDS, COMPANION_TAUNT_BREAK_CHANCE, COMPANION_VOICE_CHANCE
 from session_timing import apply_lag
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
@@ -426,6 +426,24 @@ def _apply_player_attacks(
             break
 
 
+def _append_companion_victory_quip(room_companions: list[EntityState], parts: list[dict]) -> None:
+    """Occasionally let a companion comment when the fight's target falls."""
+    speakers = [
+        companion
+        for companion in room_companions
+        if companion.is_alive and companion.voice_lines.get("victory")
+    ]
+    if not speakers or random.random() >= COMPANION_VOICE_CHANCE:
+        return
+
+    speaker = random.choice(speakers)
+    quip = pick_voice_line(speaker, "victory")
+    if not quip:
+        return
+    append_newline_if_needed(parts)
+    parts.append(_companion_part(quip, "feedback.text"))
+
+
 def _resolve_hard_target_companion(session: ClientSession, entity: EntityState) -> EntityState | None:
     """Resolve and validate the companion an enemy is durably targeting."""
     hard_target_id = entity.hard_target_companion_id.strip()
@@ -760,6 +778,8 @@ def resolve_combat_round(
         active_target_entity_ids=allowed_entity_retaliation_ids,
         allow_turn_message=True,
     )
+    if entity_died_this_round and room_companions:
+        _append_companion_victory_quip(room_companions, parts)
 
     # Continue retaliation phase after player-side output has been assembled.
     if opening_attacker is not None:

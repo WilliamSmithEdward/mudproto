@@ -1446,6 +1446,27 @@ def load_npc_templates() -> list[dict]:
         if is_guardian and not is_companion:
             raise ValueError(f"NPC '{npc_id}' sets is_guardian but only companions may be guardians.")
 
+        raw_voice_lines = raw_npc.get("voice_lines", {})
+        if raw_voice_lines is None:
+            raw_voice_lines = {}
+        if not isinstance(raw_voice_lines, dict):
+            raise ValueError(f"NPC '{npc_id}' voice_lines must be an object mapping categories to line lists.")
+        voice_lines: dict[str, list[str]] = {}
+        for raw_voice_category, raw_category_lines in raw_voice_lines.items():
+            voice_category = str(raw_voice_category).strip().lower()
+            if not voice_category:
+                raise ValueError(f"NPC '{npc_id}' voice_lines categories must be non-empty strings.")
+            if not isinstance(raw_category_lines, list):
+                raise ValueError(f"NPC '{npc_id}' voice_lines '{voice_category}' must be a list of lines.")
+            cleaned_category_lines = [
+                str(raw_line).strip()
+                for raw_line in raw_category_lines
+                if str(raw_line).strip()
+            ]
+            if not cleaned_category_lines:
+                raise ValueError(f"NPC '{npc_id}' voice_lines '{voice_category}' must include at least one line.")
+            voice_lines[voice_category] = cleaned_category_lines
+
         raw_recruitable_companions = raw_npc.get("recruitable_companions", [])
         if raw_recruitable_companions is None:
             raw_recruitable_companions = []
@@ -1626,6 +1647,7 @@ def load_npc_templates() -> list[dict]:
             "respawn": bool(raw_npc.get("respawn", True)),
             "is_companion": is_companion,
             "is_guardian": is_guardian,
+            "voice_lines": voice_lines,
             "is_recruiter": is_recruiter,
             "recruitable_companions": recruitable_companions,
             "is_merchant": is_merchant,

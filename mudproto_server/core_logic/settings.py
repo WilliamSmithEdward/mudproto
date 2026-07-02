@@ -178,6 +178,7 @@ MAX_COMPANIONS_PER_PLAYER = max(0, int(_GAMEPLAY.get("max_companions_per_player"
 COMPANION_HEAL_THRESHOLD = max(0.0, min(1.0, float(_GAMEPLAY.get("companion_heal_threshold", 0.7))))
 COMPANION_RESCUE_GUARD_ROUNDS = max(0, int(_GAMEPLAY.get("companion_rescue_guard_rounds", 3)))
 COMPANION_TAUNT_CHANCE = max(0.0, min(1.0, float(_GAMEPLAY.get("companion_taunt_chance", 0.5))))
+COMPANION_VOICE_CHANCE = max(0.0, min(1.0, float(_GAMEPLAY.get("companion_voice_chance", 0.4))))
 COMPANION_TAUNT_BREAK_CHANCE = max(0.0, min(1.0, float(_GAMEPLAY.get("companion_taunt_break_chance", 0.15))))
 COMPANION_HIT_POINTS_PER_LEVEL_PERCENT = max(0.0, float(_GAMEPLAY.get("companion_hit_points_per_level_percent", 0.12)))
 COMPANION_RESOURCE_PER_LEVEL_PERCENT = max(0.0, float(_GAMEPLAY.get("companion_resource_per_level_percent", 0.08)))

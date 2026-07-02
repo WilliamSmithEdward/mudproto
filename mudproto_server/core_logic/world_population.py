@@ -175,6 +175,11 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.respawn = bool(template.get("respawn", True))
     entity.is_companion = bool(template.get("is_companion", False))
     entity.is_guardian = bool(template.get("is_guardian", False))
+    entity.voice_lines = {
+        str(voice_category): list(category_lines)
+        for voice_category, category_lines in dict(template.get("voice_lines", {}) or {}).items()
+        if isinstance(category_lines, list)
+    }
     entity.is_recruiter = bool(template.get("is_recruiter", False))
     entity.recruitable_companions = [
         dict(recruit_entry)

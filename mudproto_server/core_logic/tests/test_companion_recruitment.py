@@ -500,3 +500,84 @@ def test_recruit_menu_marks_hired_companions() -> None:
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
+
+
+def test_enlist_tolerates_small_typos_in_recruit_names() -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("typo-client", "Typotester")
+        session.status.coins = 1000
+        recruiter = _make_recruiter()
+        recruiter.recruitable_companions.append({"npc_id": "npc.companion-brute", "price": 450})
+        shared_world_entities[recruiter.entity_id] = recruiter
+
+        outbound = handle_recruitment_command(session, "enlist", ["gerenado"], "enlist gerenado")
+
+        assert outbound["payload"].get("is_error") is not True
+        assert session.status.coins == 550
+        assert session.companion_roster == [{"npc_id": "npc.companion-brute", "name": "Genenado the Brute"}]
+
+        dismissed = handle_recruitment_command(session, "dismiss", ["gerenado"], "dismiss gerenado")
+        assert dismissed["payload"].get("is_error") is not True
+        assert session.companion_roster == []
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_enlist_unknown_name_lists_available_recruits() -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("unknown-recruit-client", "Unknowntester")
+        session.status.coins = 1000
+        recruiter = _make_recruiter()
+        shared_world_entities[recruiter.entity_id] = recruiter
+
+        outbound = handle_recruitment_command(session, "enlist", ["zzzzzz"], "enlist zzzzzz")
+
+        assert outbound["payload"]["is_error"] is True
+        rendered = "\n".join(_rendered_lines(outbound))
+        assert "Bramble Squire" in rendered
+        assert "Field Medic Ora" in rendered
+        assert session.companion_roster == []
+        assert session.status.coins == 1000
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+
+
+def test_voice_lines_validation_rejects_bad_shapes(monkeypatch) -> None:
+    with pytest.raises(ValueError, match="voice_lines must be an object"):
+        _load_npcs_with(monkeypatch, [
+            {"npc_id": "npc.test-talker", "name": "Test Talker", "hit_points": 10, "voice_lines": ["hello"]},
+        ])
+
+    with pytest.raises(ValueError, match="must include at least one line"):
+        _load_npcs_with(monkeypatch, [
+            {"npc_id": "npc.test-talker", "name": "Test Talker", "hit_points": 10, "voice_lines": {"victory": []}},
+        ])
+
+
+def test_enlist_speaks_a_companion_voice_line() -> None:
+    previous_entities = dict(shared_world_entities)
+    try:
+        shared_world_entities.clear()
+        session = _make_session("voice-client", "Voicetester")
+        session.status.coins = 1000
+        recruiter = _make_recruiter()
+        shared_world_entities[recruiter.entity_id] = recruiter
+
+        outbound = handle_recruitment_command(session, "enlist", ["ora"], "enlist ora")
+
+        rendered = "\n".join(_rendered_lines(outbound))
+        assert "Field Medic Ora joins you." in rendered
+        assert "Try not to bleed faster than I can stitch" in rendered
+
+        dismissed = handle_recruitment_command(session, "dismiss", ["ora"], "dismiss ora")
+        dismissed_rendered = "\n".join(_rendered_lines(dismissed))
+        assert "Keep your wounds clean" in dismissed_rendered
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)

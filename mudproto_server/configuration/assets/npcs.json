@@ -420,6 +420,20 @@
       "corpse_label_style": "possessive",
       "pronoun_possessive": "his",
       "wander_chance": 0.0,
+      "voice_lines": {
+        "enlist": [
+          "Bramble Squire flourishes his scimitar. \"Point me at trouble.\"",
+          "\"Coin well spent,\" Bramble Squire says, testing his blade's edge."
+        ],
+        "dismiss": [
+          "\"Call when there is something worth cutting,\" Bramble Squire says with a wink."
+        ],
+        "victory": [
+          "\"Barely a warm-up!\" Bramble Squire crows.",
+          "Bramble Squire spins his scimitar and sheathes it in one motion.",
+          "\"Did you see that footwork?\" Bramble Squire grins."
+        ]
+      },
       "main_hand_weapon": {
         "template_id": "weapon.mercenary-scimitar",
         "spawn_chance": 100,
@@ -451,6 +465,18 @@
       "corpse_label_style": "possessive",
       "pronoun_possessive": "his",
       "wander_chance": 0.0,
+      "voice_lines": {
+        "enlist": [
+          "\"Genenado keeps you safe now,\" the big man rumbles."
+        ],
+        "dismiss": [
+          "Genenado the Brute nods slowly. \"You call, Genenado comes back.\""
+        ],
+        "victory": [
+          "Genenado the Brute cracks his knuckles. \"Who is next?\"",
+          "\"Genenado strong,\" the big man rumbles happily."
+        ]
+      },
       "main_hand_weapon": {
         "template_id": "weapon.daystar-club",
         "spawn_chance": 100,
@@ -481,7 +507,19 @@
       ],
       "corpse_label_style": "possessive",
       "pronoun_possessive": "her",
-      "wander_chance": 0.0
+      "wander_chance": 0.0,
+      "voice_lines": {
+        "enlist": [
+          "\"Try not to bleed faster than I can stitch,\" Field Medic Ora says."
+        ],
+        "dismiss": [
+          "\"Keep your wounds clean,\" Field Medic Ora says, shouldering her satchel."
+        ],
+        "victory": [
+          "\"Good. Fewer wounds to stitch,\" Field Medic Ora mutters.",
+          "Field Medic Ora lowers her hands. \"Anyone hurt? Speak now, not later.\""
+        ]
+      }
     }
   ],
   "items": []

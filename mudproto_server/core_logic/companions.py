@@ -6,6 +6,7 @@ combatant key. They are never ClientSessions and never enter group_member_keys;
 the group display, movement, and combat loops merge them in explicitly.
 """
 
+import random
 import uuid
 
 from assets import get_npc_template_by_id
@@ -271,6 +272,15 @@ def move_companions_with_owner(owner_session: ClientSession, from_room_id: str, 
         companion.room_id = to_room_id
         moved.append(companion)
     return moved
+
+
+def pick_voice_line(companion: EntityState, category: str) -> str | None:
+    """Pick a random personality line for the category, or None if unset."""
+    category_lines = companion.voice_lines.get(str(category).strip().lower(), [])
+    cleaned_lines = [str(line).strip() for line in category_lines if str(line).strip()]
+    if not cleaned_lines:
+        return None
+    return random.choice(cleaned_lines)
 
 
 def companion_roster_has_capacity(session: ClientSession) -> bool:
