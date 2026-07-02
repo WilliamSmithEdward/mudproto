@@ -255,6 +255,10 @@
       {
         "npc_id": "npc.south-market-merchant",
         "count": 1
+      },
+      {
+        "npc_id": "npc.muster-sergeant",
+        "count": 1
       }
     ],
     "exits": {

@@ -3,6 +3,7 @@ import asyncio
 import settings
 from attribute_config import player_class_uses_mana
 from combat_state import get_health_condition
+from companions import list_owned_companions
 from display_core import build_menu_table_parts, build_part, newline_part
 from display_feedback import display_command_result, display_error
 from models import ClientSession
@@ -236,6 +237,34 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
 
     rows: list[list[str]] = []
     row_cell_colors: list[list[str]] = []
+
+    def _append_companion_rows(owner_session: ClientSession) -> None:
+        for companion in list_owned_companions(_session_identity_key(owner_session)):
+            condition, condition_color = get_health_condition(companion.hit_points, companion.max_hit_points)
+            vigor_text = f"{companion.vigor}/{companion.max_vigor}" if companion.max_vigor > 0 else "-"
+            mana_text = f"{companion.mana}/{companion.max_mana}" if companion.max_mana > 0 else "-"
+            if companion.room_id != owner_session.player.current_room_id:
+                condition = "away"
+                condition_color = "feedback.warning"
+            rows.append([
+                "Companion",
+                companion.name,
+                "AI",
+                f"{companion.hit_points}/{companion.max_hit_points}",
+                vigor_text,
+                mana_text,
+                condition.title(),
+            ])
+            row_cell_colors.append([
+                "feedback.text",
+                "feedback.text",
+                "feedback.warning",
+                "feedback.value",
+                "feedback.value",
+                "feedback.value",
+                condition_color,
+            ])
+
     for member_session in member_sessions:
         caps = get_player_resource_caps(member_session)
         is_offline = not member_session.is_connected or member_session.disconnected_by_server
@@ -253,16 +282,18 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
         rows.append([
             role,
             _display_name(member_session),
+            "Human",
             f"{member_session.status.hit_points}/{caps['hit_points']}",
             f"{member_session.status.vigor}/{caps['vigor']}",
             mana_text,
             state_text,
         ])
-        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", state_color])
+        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", "feedback.value", state_color])
+        _append_companion_rows(member_session)
 
     return build_menu_table_parts(
         "Group Status",
-        ["Role", "Name", "HP", "Vigor", "Mana", "State"],
+        ["Role", "Name", "Kind", "HP", "Vigor", "Mana", "State"],
         rows,
         row_cell_colors=row_cell_colors,
         empty_message="You have no group members.",

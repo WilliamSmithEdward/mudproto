@@ -1162,6 +1162,12 @@ def load_rooms() -> list[dict]:
             if spawn_count <= 0:
                 raise ValueError(f"Room asset '{room_id}' npc '{npc_id}' count must be 1 or greater.")
 
+            npc_template = get_npc_template_by_id(npc_id)
+            if npc_template is not None and bool(npc_template.get("is_companion", False)):
+                raise ValueError(
+                    f"Room asset '{room_id}' npcs may not reference companion template '{npc_id.strip()}'; companions spawn only through enlistment."
+                )
+
             normalized_npcs.append({
                 "npc_id": npc_id.strip(),
                 "count": spawn_count,
@@ -1270,6 +1276,13 @@ def load_npc_templates() -> list[dict]:
         raw_npcs = []
     if not isinstance(raw_npcs, list):
         raise ValueError("NPC asset field 'npcs' must be a list.")
+
+    raw_npc_entries_by_id: dict[str, dict] = {}
+    for raw_entry in raw_npcs:
+        if isinstance(raw_entry, dict):
+            raw_entry_id = str(raw_entry.get("npc_id", "")).strip().lower()
+            if raw_entry_id:
+                raw_npc_entries_by_id[raw_entry_id] = raw_entry
 
     normalized_npcs_by_id: dict[str, dict] = {}
     ordered_npc_ids: list[str] = []
@@ -1420,6 +1433,60 @@ def load_npc_templates() -> list[dict]:
         if is_merchant and not merchant_inventory:
             raise ValueError(f"Merchant NPC '{npc_id}' must define merchant_inventory or merchant_inventory_template_ids.")
 
+        is_companion = bool(raw_npc.get("is_companion", False))
+        is_recruiter = bool(raw_npc.get("is_recruiter", False))
+        if is_companion and (is_merchant or is_recruiter):
+            raise ValueError(f"Companion NPC '{npc_id}' cannot also be a merchant or recruiter.")
+        if is_companion and bool(raw_npc.get("respawn", True)):
+            raise ValueError(f"Companion NPC '{npc_id}' must set respawn to false.")
+        if is_companion and not bool(raw_npc.get("is_ally", False)):
+            raise ValueError(f"Companion NPC '{npc_id}' must set is_ally to true.")
+
+        raw_recruitable_companions = raw_npc.get("recruitable_companions", [])
+        if raw_recruitable_companions is None:
+            raw_recruitable_companions = []
+        if not isinstance(raw_recruitable_companions, list):
+            raise ValueError(f"NPC '{npc_id}' recruitable_companions must be a list.")
+
+        recruitable_companions: list[dict] = []
+        seen_recruit_npc_ids: set[str] = set()
+        for raw_recruit_entry in raw_recruitable_companions:
+            if not isinstance(raw_recruit_entry, dict):
+                raise ValueError(f"NPC '{npc_id}' recruitable_companions entries must be objects.")
+
+            recruit_npc_id = str(raw_recruit_entry.get("npc_id", "")).strip()
+            if not recruit_npc_id:
+                raise ValueError(f"NPC '{npc_id}' recruitable_companions entries must include npc_id.")
+
+            normalized_recruit_npc_id = recruit_npc_id.lower()
+            if normalized_recruit_npc_id in seen_recruit_npc_ids:
+                raise ValueError(f"NPC '{npc_id}' has duplicate recruitable companion: {recruit_npc_id}")
+
+            # Validate against the raw npc list in-pass; get_npc_template_by_id
+            # would recurse into load_npc_templates while it is still loading.
+            recruit_raw_npc = raw_npc_entries_by_id.get(normalized_recruit_npc_id)
+            if recruit_raw_npc is None:
+                raise ValueError(f"NPC '{npc_id}' references unknown recruitable companion: {recruit_npc_id}")
+            if not bool(recruit_raw_npc.get("is_companion", False)):
+                raise ValueError(
+                    f"NPC '{npc_id}' recruitable companion '{recruit_npc_id}' must set is_companion to true."
+                )
+
+            price = int(raw_recruit_entry.get("price", 0))
+            if price < 1:
+                raise ValueError(f"NPC '{npc_id}' recruitable companion '{recruit_npc_id}' price must be 1 or greater.")
+
+            seen_recruit_npc_ids.add(normalized_recruit_npc_id)
+            recruitable_companions.append({
+                "npc_id": recruit_npc_id,
+                "price": price,
+            })
+
+        if is_recruiter and not recruitable_companions:
+            raise ValueError(f"Recruiter NPC '{npc_id}' must define recruitable_companions.")
+        if recruitable_companions and not is_recruiter:
+            raise ValueError(f"NPC '{npc_id}' defines recruitable_companions but must set is_recruiter to true.")
+
         keyword_actions = _normalize_keyword_actions(
             raw_npc.get("keyword_actions", []),
             context=f"NPC '{npc_id}' keyword_actions",
@@ -1473,6 +1540,11 @@ def load_npc_templates() -> list[dict]:
             raise ValueError(f"NPC '{npc_id}' mana must be zero or greater.")
         if mana > max_mana:
             mana = max_mana
+
+        if is_companion and any(str(skill_id).strip() for skill_id in raw_skill_ids) and max_vigor <= 0:
+            raise ValueError(f"Companion NPC '{npc_id}' defines skill_ids but no max_vigor pool; its skills would never fire.")
+        if is_companion and any(str(spell_id).strip() for spell_id in raw_spell_ids) and max_mana <= 0:
+            raise ValueError(f"Companion NPC '{npc_id}' defines spell_ids but no max_mana pool; its spells would never fire.")
 
         normalized_spell_ids: list[str] = []
         seen_spell_ids: set[str] = set()
@@ -1548,6 +1620,9 @@ def load_npc_templates() -> list[dict]:
             "is_ally": bool(raw_npc.get("is_ally", False)),
             "is_peaceful": bool(raw_npc.get("is_peaceful", False)),
             "respawn": bool(raw_npc.get("respawn", True)),
+            "is_companion": is_companion,
+            "is_recruiter": is_recruiter,
+            "recruitable_companions": recruitable_companions,
             "is_merchant": is_merchant,
             "merchant_inventory_template_ids": merchant_inventory_template_ids,
             "merchant_inventory": merchant_inventory,

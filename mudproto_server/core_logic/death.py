@@ -11,9 +11,11 @@ def handle_player_death(session: ClientSession) -> None:
     should be added here.
     """
     from combat_state import end_combat
+    from companions import despawn_companion_entities_for_session
     from targeting_follow import _handle_player_death_follow_and_group
 
     _handle_player_death_follow_and_group(session)
+    despawn_companion_entities_for_session(session)
     end_combat(session)
     session.active_affects.clear()
     session.command_queue.clear()

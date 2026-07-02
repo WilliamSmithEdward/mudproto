@@ -128,6 +128,36 @@
         "required": false,
         "default": true
       },
+      "is_companion": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "notes": "Marks an enlistable AI companion template. Companion templates must set respawn to false and is_ally to true, cannot combine with is_merchant or is_recruiter, must never appear in any room's npcs list, and need explicit max_vigor/max_mana pools for their skills/spells to fire."
+      },
+      "is_recruiter": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "notes": "Marks an NPC that offers companion enlistment through the recruits/enlist commands. Requires a non-empty recruitable_companions list."
+      },
+      "recruitable_companions": {
+        "type": "array[object]",
+        "required": false,
+        "default": [],
+        "entry_schema": {
+          "npc_id": {
+            "type": "string",
+            "required": true,
+            "notes": "Must reference an existing NPC template with is_companion set to true."
+          },
+          "price": {
+            "type": "integer",
+            "required": true,
+            "minimum": 1
+          }
+        },
+        "notes": "Only valid on NPCs with is_recruiter set to true."
+      },
       "is_merchant": {
         "type": "boolean",
         "required": false,

@@ -3,6 +3,7 @@ import inspect
 import logging
 
 from combat_state import maybe_auto_engage_current_room
+from companions import despawn_companion_entities_for_session, respawn_roster_companions
 from display_core import build_line, build_part
 from display_feedback import display_command_result, display_error
 from display_room import display_room
@@ -58,6 +59,7 @@ def _copy_runtime_state(source: ClientSession, target: ClientSession) -> None:
     target.watch_player_name = source.watch_player_name
     target.group_leader_key = source.group_leader_key
     target.group_member_keys = set(source.group_member_keys)
+    target.companion_roster = [dict(entry) for entry in source.companion_roster]
 
     # Keep world state shared for all sessions.
     attach_session_to_shared_world(target)
@@ -193,6 +195,7 @@ def _invalidate_replaced_session(session: ClientSession) -> None:
     session.watch_player_name = ""
     session.group_leader_key = ""
     session.group_member_keys.clear()
+    session.companion_roster = []
     session.pending_private_lines = []
     session.pending_paged_displays = []
     session.command_queue.clear()
@@ -373,6 +376,10 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     if login_room is None:
         return display_error("Login room is not configured.", session)
 
+    # Respawn roster companions after the login room has been validated;
+    # reconnect takeover reattaches live companions instead of duplicating.
+    respawn_roster_companions(session)
+
     room_display = display_room(session, login_room)
     payload = room_display.get("payload") if isinstance(room_display, dict) else None
     if isinstance(payload, dict):
@@ -451,6 +458,7 @@ async def _offline_character_loop(character_key: str, session: ClientSession) ->
                     _detach_from_group_leader(session)
                     _detach_group_members(session)
                     _clear_watchers_of(session)
+                    despawn_companion_entities_for_session(session)
                     session.disconnected_by_server = True
                     session.is_connected = False
                     if session.login_room_id.strip():
@@ -509,6 +517,7 @@ def reset_session_to_login(session: ClientSession, *, purge_nonpersistent_items_
         active_character_sessions.pop(normalized_key, None)
         stop_offline_character_processing(normalized_key)
 
+    despawn_companion_entities_for_session(session)
     _detach_from_group_leader(session)
     _detach_group_members(session)
     _clear_watchers_of(session)
@@ -526,6 +535,7 @@ def reset_session_to_login(session: ClientSession, *, purge_nonpersistent_items_
     session.watch_player_name = ""
     session.group_leader_key = ""
     session.group_member_keys.clear()
+    session.companion_roster = []
     session.pending_private_lines = []
     session.lag_until_monotonic = None
     session.pending_death_logout = False

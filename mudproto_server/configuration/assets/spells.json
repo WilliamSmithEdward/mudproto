@@ -134,6 +134,25 @@
     "damage_context": "[a/an] [verb] blasted by snapping arc-light."
   },
   {
+    "spell_id": "spell.mending-word",
+    "name": "Mending Word",
+    "school": "Restoration",
+    "description": "A murmured word of mending that closes an ally's wounds at once.",
+    "spell_type": "support",
+    "element": "restoration",
+    "cast_type": "target",
+    "mana_cost": 12,
+    "level_scaling_multiplier": 1.0,
+    "support_effect": "heal",
+    "support_amount": 0,
+    "support_dice_count": 2,
+    "support_dice_sides": 10,
+    "support_roll_modifier": 15,
+    "support_scaling_multiplier": 4.0,
+    "support_mode": "instant",
+    "support_context": "A murmured word of mending knits your wounds closed."
+  },
+  {
     "spell_id": "spell.life-siphon",
     "name": "Life Siphon",
     "school": "Blood",

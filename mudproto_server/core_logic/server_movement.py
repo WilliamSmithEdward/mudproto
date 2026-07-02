@@ -4,9 +4,11 @@ import copy
 
 from attribute_config import posture_prevents_movement
 from combat_state import maybe_auto_engage_current_room
+from companions import move_companions_with_owner
 from display_core import build_display, build_line, build_part
 from display_feedback import build_prompt_parts_default, display_error
 from display_room import display_room
+from grammar import with_article
 from models import ClientSession
 from room_actions import get_room_enter_communications, insert_room_communication_lines
 from session_registry import connected_clients
@@ -285,11 +287,25 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                 exclude_client_ids=moving_group_ids,
             )
 
+        # Companions always follow their owner, including flee and 'alone'
+        # moves; those suffixes only apply to human followers. Relocation
+        # happens before follower room displays are built so companions show
+        # up in them.
+        moving_companions = [
+            (companion, actor_name)
+            for companion in move_companions_with_owner(origin_session, from_room_id, to_room_id)
+        ]
+
         destination_room = get_room(to_room_id)
         for follower in moving_followers:
             leader_name = _resolve_follow_leader_name(follower)
             follower.following_player_name = leader_name
             follower.player.current_room_id = to_room_id
+            follower_name = follower.authenticated_character_name.strip() or "Someone"
+            moving_companions.extend(
+                (companion, follower_name)
+                for companion in move_companions_with_owner(follower, from_room_id, to_room_id)
+            )
 
             await _send_room_notice(
                 from_room_id,
@@ -354,6 +370,37 @@ async def _handle_movement_side_effects(origin_session: ClientSession, outbound:
                     exclude_client_ids=moving_group_ids,
                 )
             await send_outbound_fn(follower.websocket, follow_display)
+
+        for companion, companion_owner_name in moving_companions:
+            companion_label = with_article(companion.name, capitalize=True, is_named=companion.is_named)
+
+            await _send_room_notice(
+                from_room_id,
+                [
+                    build_part(companion_label, "feedback.value", True),
+                    build_part(" leaves ", "feedback.text"),
+                    build_part(direction, "feedback.warning", True),
+                    build_part(", following ", "feedback.text"),
+                    build_part(companion_owner_name, "feedback.value", True),
+                    build_part(".", "feedback.text"),
+                ],
+                send_outbound_fn,
+                exclude_client_ids=moving_group_ids,
+            )
+
+            await _send_room_notice(
+                to_room_id,
+                [
+                    build_part(companion_label, "feedback.value", True),
+                    build_part(" arrives from ", "feedback.text"),
+                    build_part(arrival_origin, "feedback.warning", True),
+                    build_part(", following ", "feedback.text"),
+                    build_part(companion_owner_name, "feedback.value", True),
+                    build_part(".", "feedback.text"),
+                ],
+                send_outbound_fn,
+                exclude_client_ids=moving_group_ids,
+            )
 
         _refresh_origin_room_display(origin_session, outbound, to_room_id)
         if entry_lines and isinstance(outbound, dict):

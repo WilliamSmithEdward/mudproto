@@ -307,6 +307,12 @@ Unlike most asset files, this file is an **object** with an `npcs` array:
 - `merchant_buy_markup` - must be `> 0`
 - `merchant_sell_ratio` - must be between `0.0` and `1.0`
 
+### Companion and recruiter fields
+- `is_companion: true` marks a template as an enlistable AI companion. Companion templates must set `respawn: false`, must never appear in any room's `npcs` list, and cannot also set `is_merchant` or `is_recruiter`. Give companions explicit `max_vigor`/`max_mana` pools or their skills and spells never fire.
+- `is_recruiter: true` marks an NPC that offers enlistment through the `recruits`/`enlist` commands. Recruiters must define `recruitable_companions`, a list of objects:
+  - `npc_id` - must reference an existing template with `is_companion: true`
+  - `price` - coin cost, must be `>= 1`
+
 ### Respawn / world behavior notes
 - `respawn: true` means the NPC is eligible for zone-driven repopulation.
 - `is_peaceful: true` means offensive effects should not land on the NPC.

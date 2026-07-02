@@ -218,6 +218,10 @@ class EntityState:
     is_peaceful: bool = False
     combat_target_player_key: str = ""
     respawn: bool = False
+    is_companion: bool = False
+    owner_player_key: str = ""
+    is_recruiter: bool = False
+    recruitable_companions: list[dict[str, object]] = field(default_factory=list)
     is_merchant: bool = False
     merchant_inventory_template_ids: list[str] = field(default_factory=list)
     merchant_inventory: list[dict[str, object]] = field(default_factory=list)
@@ -302,6 +306,7 @@ class ClientSession:
     watch_player_name: str = ""
     group_leader_key: str = ""
     group_member_keys: set[str] = field(default_factory=set)
+    companion_roster: list[dict[str, object]] = field(default_factory=list)
     login_room_id: str = "start"
     is_connected: bool = True
     disconnected_by_server: bool = False

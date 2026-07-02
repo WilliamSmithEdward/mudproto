@@ -116,6 +116,8 @@ async def _process_npc_wandering() -> None:
                     await send_outbound(peer.websocket, _npc_wander_display(stand_parts, peer))
             continue
 
+        if str(getattr(entity, "owner_player_key", "")).strip():
+            continue
         if _entity_is_engaged_by_any_player(entity.entity_id):
             continue
         wander_chance = getattr(entity, "wander_chance", 0.0)
@@ -194,6 +196,21 @@ async def _process_npc_wandering() -> None:
                 await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))
             for peer in _iter_room_sessions(dest_room_id):
                 await send_outbound(peer.websocket, _npc_wander_display(arrive_parts, peer))
+
+
+async def _leash_stray_companions() -> None:
+    from companions import collect_stray_companion_moves
+    from grammar import with_article
+
+    for companion, from_room_id, to_room_id in collect_stray_companion_moves():
+        companion_label = with_article(companion.name, capitalize=True, is_named=companion.is_named)
+        leave_parts = [build_part(f"{companion_label} hurries off.", "feedback.text")]
+        arrive_parts = [build_part(f"{companion_label} hurries in, catching up.", "feedback.text")]
+
+        for peer in _iter_room_sessions(from_room_id):
+            await send_outbound(peer.websocket, _npc_wander_display(leave_parts, peer))
+        for peer in _iter_room_sessions(to_room_id):
+            await send_outbound(peer.websocket, _npc_wander_display(arrive_parts, peer))
 
 
 def get_next_game_tick_monotonic() -> float | None:
@@ -296,6 +313,7 @@ async def combat_round_loop() -> None:
             elif now >= next_npc_wander_monotonic:
                 next_npc_wander_monotonic = now + COMBAT_ROUND_INTERVAL_SECONDS
                 await _process_npc_wandering()
+                await _leash_stray_companions()
 
             combat_sessions: list[ClientSession] = []
             seen_sessions: set[str] = set()

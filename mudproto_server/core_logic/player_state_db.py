@@ -691,6 +691,14 @@ def _serialize_session(session: ClientSession) -> dict:
             },
         },
         "active_affects": [_serialize_affect(effect) for effect in session.active_affects],
+        "companions": [
+            {
+                "npc_id": str(entry.get("npc_id", "")).strip(),
+                "name": str(entry.get("name", "")).strip(),
+            }
+            for entry in session.companion_roster
+            if isinstance(entry, dict) and str(entry.get("npc_id", "")).strip()
+        ],
     }
 
 
@@ -890,6 +898,17 @@ def load_player_state(session: ClientSession, player_key: str | None = None) -> 
             _deserialize_affect(raw_effect)
             for raw_effect in raw_affects
             if isinstance(raw_effect, dict)
+        ]
+
+    raw_companions = raw_state.get("companions", [])
+    if isinstance(raw_companions, list):
+        session.companion_roster = [
+            {
+                "npc_id": str(raw_entry.get("npc_id", "")).strip(),
+                "name": str(raw_entry.get("name", "")).strip(),
+            }
+            for raw_entry in raw_companions
+            if isinstance(raw_entry, dict) and str(raw_entry.get("npc_id", "")).strip()
         ]
 
     return True

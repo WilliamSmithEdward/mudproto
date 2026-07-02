@@ -12,6 +12,7 @@ from .observation import handle_observation_command
 from .passives import handle_passive_command
 from .posture import handle_posture_command
 from .queue import handle_queue_command
+from .recruitment import handle_recruitment_command
 from .save import handle_save_command
 from .parsing import parse_command
 from .skills import handle_skill_command, handle_skill_fallback_command
@@ -38,6 +39,7 @@ def dispatch_command(session: ClientSession, command_text: str) -> OutboundResul
         handle_loot_command,
         handle_character_command,
         handle_commerce_command,
+        handle_recruitment_command,
         handle_debug_acquire_command,
         handle_spell_command,
         handle_passive_command,

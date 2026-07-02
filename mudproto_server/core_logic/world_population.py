@@ -173,6 +173,13 @@ def _build_entity_from_template(template: dict, room_id: str, spawn_sequence: in
     entity.is_ally = bool(template.get("is_ally", False))
     entity.is_peaceful = bool(template.get("is_peaceful", False))
     entity.respawn = bool(template.get("respawn", True))
+    entity.is_companion = bool(template.get("is_companion", False))
+    entity.is_recruiter = bool(template.get("is_recruiter", False))
+    entity.recruitable_companions = [
+        dict(recruit_entry)
+        for recruit_entry in template.get("recruitable_companions", [])
+        if isinstance(recruit_entry, dict)
+    ]
     entity.is_merchant = bool(template.get("is_merchant", False))
     entity.merchant_inventory_template_ids = [
         str(template_id).strip()

@@ -355,6 +355,97 @@
         "spawn_chance": 100,
         "drop_on_death": 0
       }
+    },
+    {
+      "npc_id": "npc.muster-sergeant",
+      "name": "Sergeant Halda Brakk",
+      "is_named": true,
+      "hit_points": 200,
+      "max_hit_points": 200,
+      "power_level": 1,
+      "attacks_per_round": 1,
+      "armor_class": 10,
+      "coin_reward": 0,
+      "experience_reward": 0,
+      "is_aggro": false,
+      "is_ally": true,
+      "is_peaceful": true,
+      "respawn": false,
+      "is_recruiter": true,
+      "recruitable_companions": [
+        {
+          "npc_id": "npc.companion-squire",
+          "price": 150
+        },
+        {
+          "npc_id": "npc.companion-field-medic",
+          "price": 300
+        }
+      ],
+      "pronoun_possessive": "her",
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "message": "Sergeant Halda Brakk nods at you. \"Looking for a blade at your back? Say recruits.\""
+        }
+      ]
+    },
+    {
+      "npc_id": "npc.companion-squire",
+      "name": "Bramble Squire",
+      "is_named": true,
+      "is_companion": true,
+      "is_ally": true,
+      "respawn": false,
+      "hit_points": 140,
+      "max_hit_points": 140,
+      "power_level": 3,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 2,
+      "armor_class": 8,
+      "coin_reward": 0,
+      "experience_reward": 0,
+      "vigor": 60,
+      "max_vigor": 60,
+      "skill_use_chance": 0.3,
+      "skill_ids": [
+        "skill.jab",
+        "skill.bash"
+      ],
+      "corpse_label_style": "possessive",
+      "pronoun_possessive": "his",
+      "wander_chance": 0.0,
+      "main_hand_weapon": {
+        "template_id": "weapon.mercenary-scimitar",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.companion-field-medic",
+      "name": "Field Medic Ora",
+      "is_named": true,
+      "is_companion": true,
+      "is_ally": true,
+      "respawn": false,
+      "hit_points": 100,
+      "max_hit_points": 100,
+      "power_level": 3,
+      "attacks_per_round": 1,
+      "armor_class": 10,
+      "coin_reward": 0,
+      "experience_reward": 0,
+      "mana": 80,
+      "max_mana": 80,
+      "spell_use_chance": 0.4,
+      "spell_ids": [
+        "spell.mending-word",
+        "spell.arc-bolt"
+      ],
+      "corpse_label_style": "possessive",
+      "pronoun_possessive": "her",
+      "wander_chance": 0.0
     }
   ],
   "items": []

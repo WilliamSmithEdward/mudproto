@@ -1,3 +1,5 @@
+import random
+
 from abilities import _list_known_passives
 from assets import get_gear_template_by_id
 from combat_ability_effects import (
@@ -9,6 +11,8 @@ from combat_ability_effects import (
     _resolve_extra_hits_from_affects,
 )
 from combat_entity_abilities import _entity_try_cast_spell, _entity_try_use_skill
+from companion_combat import resolve_companion_round
+from companions import handle_companion_defeat, list_owned_companions_in_room
 from combat_rewards import (
     _award_shared_entity_experience,
     _mark_entity_contributor,
@@ -25,6 +29,7 @@ from combat_state import (
     start_combat,
 )
 from combat_text import (
+    _choose_severity,
     append_newline_if_needed,
     build_entity_attack_parts,
     build_player_attack_parts,
@@ -49,9 +54,9 @@ from equipment_logic import (
     get_player_hitroll_bonus,
     get_player_weapon_damage_bonus,
 )
-from grammar import with_article
+from grammar import to_third_person, with_article
 from models import ClientSession, EntityState, ItemState
-from settings import COMBAT_ROUND_INTERVAL_SECONDS
+from settings import COMBAT_ROUND_INTERVAL_SECONDS, COMPANION_INTERCEPT_CHANCE
 from session_timing import apply_lag
 from targeting_entities import list_room_entities, resolve_room_entity_selector
 
@@ -283,6 +288,8 @@ def begin_attack(session: ClientSession, target_name: str) -> dict | list[dict]:
         return display_error(resolve_error or f"No target named '{target_name}' is here.", session)
     if bool(getattr(entity, "is_peaceful", False)):
         return _display_peaceful_warning(session, entity)
+    if str(getattr(entity, "owner_player_key", "")).strip():
+        return display_error("You cannot attack an enlisted companion.", session)
 
     started = start_combat(session, entity.entity_id, OPENING_ATTACKER_PLAYER)
     if not started:
@@ -418,6 +425,82 @@ def _apply_player_attacks(
             break
 
 
+def _apply_intercepted_entity_attack(
+    session: ClientSession,
+    entity: EntityState,
+    main_hand_weapon: dict | None,
+    companion_target: EntityState,
+    parts: list[dict],
+) -> None:
+    """Redirect one enemy main-hand swing onto an intercepting companion."""
+    entity_label = with_article(entity.name, capitalize=True, is_named=getattr(entity, "is_named", None))
+    companion_label = with_article(companion_target.name, is_named=companion_target.is_named)
+
+    append_newline_if_needed(parts)
+    intercept_hit_modifier = get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
+    if not roll_hit(intercept_hit_modifier, companion_target.armor_class):
+        parts.extend([
+            build_part(entity_label),
+            build_part(" turns on "),
+            build_part(companion_label),
+            build_part(" but misses."),
+        ])
+        return
+
+    attack_damage, attack_verb = roll_npc_weapon_damage(entity, main_hand_weapon)
+    attack_damage = _apply_entity_dealt_damage_multiplier(entity, attack_damage)
+    preview_damage = _preview_entity_damage_with_reduction(companion_target, attack_damage)
+    _apply_entity_damage_with_reduction(companion_target, attack_damage)
+
+    severity = _choose_severity(preview_damage, companion_target.max_hit_points)
+    third_person_verb = to_third_person(attack_verb)
+    if severity == "miss":
+        parts.extend([
+            build_part(entity_label),
+            build_part(" turns on "),
+            build_part(companion_label),
+            build_part(" but the blow glances off."),
+        ])
+    elif severity in {"barely", "normal", "hard", "extreme"}:
+        parts.extend([
+            build_part(entity_label),
+            build_part(" turns and barely " if severity == "barely" else " turns and "),
+            build_part(third_person_verb),
+            build_part(" "),
+            build_part(companion_label),
+        ])
+        if severity == "hard":
+            parts.append(build_part(" hard"))
+        elif severity == "extreme":
+            parts.append(build_part(" extremely hard"))
+        parts.append(build_part("!"))
+    else:
+        top_verb = {
+            "massacre": "massacres",
+            "annihilate": "annihilates",
+            "obliterate": "obliterates",
+        }.get(severity, third_person_verb)
+        pronoun = entity.pronoun_possessive.strip().lower() or "its"
+        parts.extend([
+            build_part(entity_label),
+            build_part(" turns and "),
+            build_part(top_verb),
+            build_part(" "),
+            build_part(companion_label),
+            build_part(f" with {pronoun} "),
+            build_part(attack_verb),
+            build_part("!"),
+        ])
+
+    if companion_target.hit_points <= 0:
+        handle_companion_defeat(session, companion_target)
+        append_newline_if_needed(parts)
+        parts.extend([
+            build_part(with_article(companion_target.name, capitalize=True, is_named=companion_target.is_named), "combat.death", True),
+            build_part(" has been slain!", "combat.death", True),
+        ])
+
+
 def _apply_entity_attacks(
     session: ClientSession,
     attacker: EntityState,
@@ -481,7 +564,20 @@ def _apply_entity_attacks(
     main_hand_weapon = _resolve_npc_weapon_template(entity.main_hand_weapon_template_id)
     off_hand_weapon = _resolve_npc_weapon_template(entity.off_hand_weapon_template_id)
 
+    intercept_candidates = [
+        companion
+        for companion in list_owned_companions_in_room(session)
+        if companion.hit_points > 0
+    ]
+
     for _ in range(max(1, entity.attacks_per_round)):
+        if intercept_candidates and random.random() < COMPANION_INTERCEPT_CHANCE:
+            companion_target = intercept_candidates[0]
+            _apply_intercepted_entity_attack(session, entity, main_hand_weapon, companion_target, parts)
+            if companion_target.hit_points <= 0:
+                intercept_candidates.remove(companion_target)
+            continue
+
         append_newline_if_needed(parts)
 
         main_hit_modifier = get_npc_hit_modifier(entity, main_hand_weapon, off_hand=False)
@@ -603,6 +699,14 @@ def resolve_combat_round(
             allow_off_hand = not (is_opening_round and opening_attacker == OPENING_ATTACKER_PLAYER)
             _apply_player_attacks(session, entity, parts, room_broadcast_lines, allow_off_hand=allow_off_hand)
 
+    # Companions act after their owner and before enemies retaliate. A
+    # companion killing blow is resolved by the shared defeat pass below.
+    room_companions = list_owned_companions_in_room(session)
+    for companion in room_companions:
+        if status.hit_points <= 0:
+            break
+        resolve_companion_round(session, companion, entity, parts)
+
     # Mark entity dead if it reached 0 HP, but don't return yet — let the round finish.
     entity_died_this_round = _resolve_entity_defeat(
         session,
@@ -633,8 +737,10 @@ def resolve_combat_round(
                 break
 
     # Tick support effects, affects, and cooldowns *after* attacks so that
-    # a duration_rounds value of N gives N full rounds of benefit.
-    _process_combat_round_timers(session, engaged_entities)
+    # a duration_rounds value of N gives N full rounds of benefit. Companions
+    # are never engaged, so their cooldowns tick here alongside the enemies'.
+    live_round_companions = [companion for companion in room_companions if companion.is_alive]
+    _process_combat_round_timers(session, engaged_entities + live_round_companions)
 
     # Compute AoE splash insertion offset within retaliation display lines.
     aoe_splash_retaliation_offset: int | None = None

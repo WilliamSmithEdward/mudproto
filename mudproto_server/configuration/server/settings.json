@@ -32,7 +32,10 @@
     "debug_mode": true,
     "flee_success_chance": 0.5,
     "base_player_armor_class": 10,
-    "attribute_max_cap": 28
+    "attribute_max_cap": 28,
+    "max_companions_per_player": 2,
+    "companion_intercept_chance": 0.25,
+    "companion_heal_threshold": 0.6
   },
   "generic": {
     "paginate_to": 10

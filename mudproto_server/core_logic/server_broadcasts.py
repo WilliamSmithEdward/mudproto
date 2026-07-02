@@ -101,8 +101,26 @@ def _transform_observer_lines(lines: list[list[dict]], *, actor_name: str, actor
         _strip_observer_proc_line_style(line)
         _fix_observer_line_grammar(line, actor_name)
         _strip_observer_actor_line_style(line, actor_name)
+        _capitalize_observer_line_start(line)
         filtered_lines.append(line)
     return filtered_lines
+
+
+def _capitalize_observer_line_start(line: list[dict]) -> None:
+    """Uppercase the first alphabetic character of a transformed observer line.
+
+    Third-personizing can leave lines starting lowercase (e.g. 'his wounds
+    knit closed.'). Idempotent, so already-capitalized lines are unaffected.
+    """
+    for part in line:
+        if not isinstance(part, dict):
+            continue
+        text = str(part.get("text", ""))
+        if not text.strip():
+            continue
+        if text[0].isalpha():
+            part["text"] = text[0].upper() + text[1:]
+        return
 
 
 def _fix_observer_line_grammar(line: list[dict], actor_name: str) -> None:
@@ -369,6 +387,8 @@ def _split_actor_round_lines(lines: list[list[dict]], actor_prefix: str) -> tupl
         for part in line_parts:
             if not isinstance(part, dict):
                 continue
+            if bool(part.get("player_phase", False)):
+                return True
             if bool(part.get("observer_plain", False)):
                 return True
             if str(part.get("fg", "")).strip().lower() == resolve_display_color("combat.proc.message").strip().lower() and bool(part.get("bold", False)):

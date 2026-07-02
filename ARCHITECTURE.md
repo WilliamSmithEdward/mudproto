@@ -169,6 +169,8 @@ Level gains: +10HP +5V +6M
 | `combat_ability_effects.py` | Shared support-effect scaling, restore logic, cooldown bookkeeping, affect resolution, and timed/battle-round effect processing. |
 | `combat_player_abilities.py` | Player skill/spell execution, targeting, resource spend, reward hooks, observer text setup, and selective engagement rules for damage spells/AoE. |
 | `combat_entity_abilities.py` | NPC/entity skill and spell usage against players, including self-buffs and restore effects. |
+| `companions.py` | Enlisted AI companion lifecycle: recruiter resolution, spawn/despawn, roster persistence hooks, owner-follow moves, and stray-companion leashing. |
+| `companion_combat.py` | Companion combat AI: heal-when-hurt decisions, offensive spell/skill use, and melee execution against the owner's engaged target. |
 | `combat_state.py` | Encounter state transitions, engagement validation, corpse spawning, cooldown tickdown, and aggro auto-engage helpers (including optional auto-aggro chaining control when combat starts). |
 | `combat_rewards.py` | Shared contributor tracking and XP/reward distribution helpers. |
 | `combat_observer.py` | Combat observer-line templating, room-broadcast line shaping, and third-person text helpers. |

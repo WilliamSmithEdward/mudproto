@@ -271,6 +271,8 @@ def start_combat(
         return False
     if bool(getattr(entity, "is_peaceful", False)):
         return False
+    if str(getattr(entity, "owner_player_key", "")).strip():
+        return False
     if entity.room_id != session.player.current_room_id:
         return False
 

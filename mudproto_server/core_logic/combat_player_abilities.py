@@ -343,6 +343,9 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
                     error_context={"usage": "skill <name> <target>"},
                 ), False
 
+        if str(getattr(entity, "owner_player_key", "")).strip():
+            return display_error("You cannot attack an enlisted companion.", session), False
+
         # Targeted skills explicitly engage the caster, even if the target is
         # already fighting someone else. Existing target focus is preserved by
         # combat state sync logic.
@@ -791,6 +794,8 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                     error_code="usage",
                     error_context={"usage": "cast <spell> <target>"},
                 ), False
+        if str(getattr(entity, "owner_player_key", "")).strip():
+            return display_error("You cannot attack an enlisted companion.", session), False
         if bool(getattr(entity, "is_peaceful", False)):
             peaceful_targets_for_feedback.append(entity)
         else:
