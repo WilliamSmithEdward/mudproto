@@ -26,6 +26,21 @@ def _make_session(client_id: str, name: str) -> ClientSession:
     return session
 
 
+def _make_companion(owner_key: str, *, entity_id: str = "companion-test") -> EntityState:
+    companion = EntityState(
+        entity_id=entity_id,
+        name="Bramble Squire",
+        room_id="start",
+        hit_points=40,
+        max_hit_points=100,
+    )
+    companion.is_named = True
+    companion.is_ally = True
+    companion.is_companion = True
+    companion.owner_player_key = owner_key
+    return companion
+
+
 def _read_raw_skill(skill_id: str) -> dict:
     skills_path = Path(__file__).resolve().parents[2] / "configuration" / "assets" / "skills.json"
     payload = json.loads(skills_path.read_text(encoding="utf-8"))
@@ -745,3 +760,92 @@ def test_support_spell_targeted_cast_timed_applies_affect_to_target(monkeypatch)
     assert len(target.active_affects) == 1, "Affect should be on target"
     assert target.active_affects[0].affect_id == "affect.regeneration"
     assert len(caster.active_affects) == 0, "Caster should NOT have the target-scoped affect"
+
+
+def test_support_spell_heals_owned_companion() -> None:
+    caster = _make_session("client-companion-healer", "Caster")
+    caster.status.mana = 50
+    companion = _make_companion("caster")
+    companion.spawn_sequence = 1
+    foreign_companion = _make_companion("someone-else", entity_id="companion-foreign")
+    foreign_companion.spawn_sequence = 2
+    caster.entities[companion.entity_id] = companion
+    caster.entities[foreign_companion.entity_id] = foreign_companion
+    spell = {
+        "spell_id": "spell.test-companion-heal",
+        "name": "Test Companion Heal",
+        "spell_type": "support",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "support_effect": "heal",
+        "support_amount": 25,
+        "support_scaling_multiplier": 0.0,
+        "level_scaling_multiplier": 0.0,
+        "support_mode": "instant",
+        "support_context": "Restorative light closes your wounds.",
+    }
+
+    _, applied = player_abilities.cast_spell(caster, spell, "Bramble Squire")
+
+    assert applied is True
+    assert companion.hit_points == 65
+    assert caster.status.mana == 45
+    assert foreign_companion.hit_points == 40
+
+
+def test_support_spell_applies_buff_to_owned_companion() -> None:
+    caster = _make_session("client-companion-buffer", "Caster")
+    caster.status.mana = 50
+    companion = _make_companion("caster")
+    caster.entities[companion.entity_id] = companion
+    spell = {
+        "spell_id": "spell.test-companion-ward",
+        "name": "Test Companion Ward",
+        "spell_type": "support",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "support_effect": "heal",
+        "support_amount": 1,
+        "support_mode": "battle_rounds",
+        "duration_rounds": 3,
+        "support_context": "A ward settles around you.",
+        "affect_ids": [{
+            "affect_id": "affect.received-damage",
+            "name": "Test Companion Ward",
+            "target": "target",
+            "affect_mode": "battle_rounds",
+            "amount": -0.2,
+            "duration_rounds": 3,
+        }],
+    }
+
+    _, applied = player_abilities.cast_spell(caster, spell, "Bramble Squire")
+
+    assert applied is True
+    assert len(companion.active_affects) == 1
+    assert companion.active_affects[0].affect_id == "affect.received-damage"
+    assert caster.active_affects == []
+
+
+def test_support_spell_rejects_another_players_companion() -> None:
+    caster = _make_session("client-foreign-companion-healer", "Caster")
+    caster.status.mana = 50
+    companion = _make_companion("someone-else")
+    caster.entities[companion.entity_id] = companion
+    spell = {
+        "spell_id": "spell.test-foreign-companion-heal",
+        "name": "Test Foreign Companion Heal",
+        "spell_type": "support",
+        "cast_type": "target",
+        "mana_cost": 5,
+        "support_effect": "heal",
+        "support_amount": 25,
+        "support_mode": "instant",
+        "support_context": "Restorative light closes your wounds.",
+    }
+
+    _, applied = player_abilities.cast_spell(caster, spell, "Bramble Squire")
+
+    assert applied is False
+    assert companion.hit_points == 40
+    assert caster.status.mana == 50

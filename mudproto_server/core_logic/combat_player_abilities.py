@@ -554,6 +554,30 @@ def use_skill(session: ClientSession, skill: dict, target_name: str | None = Non
     return _attach_room_broadcast_lines(result, observer_lines), True
 
 
+def _restore_support_target_resource(
+    target: ClientSession | EntityState,
+    support_effect: str,
+    amount: int,
+) -> None:
+    restore_amount = max(0, int(amount))
+    if isinstance(target, ClientSession):
+        target_caps = get_player_resource_caps(target)
+        if support_effect == "heal":
+            target.status.hit_points = min(target_caps["hit_points"], target.status.hit_points + restore_amount)
+        elif support_effect == "vigor":
+            target.status.vigor = min(target_caps["vigor"], target.status.vigor + restore_amount)
+        else:
+            target.status.mana = min(target_caps["mana"], target.status.mana + restore_amount)
+        return
+
+    if support_effect == "heal":
+        target.hit_points = min(target.max_hit_points, target.hit_points + restore_amount)
+    elif support_effect == "vigor":
+        target.vigor = min(target.max_vigor, target.vigor + restore_amount)
+    else:
+        target.mana = min(target.max_mana, target.mana + restore_amount)
+
+
 def cast_spell(session: ClientSession, spell: dict, target_name: str | None = None) -> tuple[dict, bool]:
     from combat_observer import (
         _attach_room_broadcast_lines,
@@ -570,6 +594,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         apply_entity_defeat_flags,
         clear_combat_if_invalid,
         get_engaged_entity,
+        get_session_combatant_key,
         spawn_corpse_for_entity,
         start_combat,
     )
@@ -652,18 +677,43 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 session,
             ), False
 
-        support_target_session = session
+        support_target: ClientSession | EntityState = session
         if target_name:
-            support_target_session, resolve_error = _resolve_room_player_selector(
+            support_target_session, _ = _resolve_room_player_selector(
                 session,
                 target_name,
                 require_exact_name=True,
             )
-            if support_target_session is None:
-                return display_error(resolve_error or f"No player named '{target_name}' is here.", session), False
+            if support_target_session is not None:
+                support_target = support_target_session
+            else:
+                owner_key = get_session_combatant_key(session)
+                normalized_target_name = target_name.strip().lower()
+                owned_companions = [
+                    entity
+                    for entity in list_room_entities(session, session.player.current_room_id)
+                    if entity.is_companion
+                    and entity.is_ally
+                    and entity.owner_player_key.strip().lower() == owner_key
+                    and entity.name.strip().lower() == normalized_target_name
+                ]
+                if not owned_companions:
+                    return display_error(
+                        f"No player or owned ally named '{target_name}' is here.",
+                        session,
+                    ), False
+                support_target = owned_companions[0]
 
-        support_target_name = (support_target_session.authenticated_character_name or actor_name).strip() or actor_name
-        support_cast_type = "self" if support_target_session.client_id == session.client_id else "target"
+        if isinstance(support_target, ClientSession):
+            support_target_name = (
+                support_target.authenticated_character_name or actor_name
+            ).strip() or actor_name
+            support_target_gender: str | None = support_target.player.gender
+        else:
+            support_target_name = support_target.name.strip() or "Your ally"
+            support_target_gender = None
+
+        support_cast_type = "self" if support_target is session else "target"
         support_target_label = None if support_cast_type == "self" else support_target_name
         actor_target_text = " on yourself" if support_cast_type == "self" else f" on {support_target_name}"
         rendered_support_context = support_context
@@ -671,7 +721,7 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             rendered_support_context = third_personize_text(
                 support_context,
                 support_target_name,
-                support_target_session.player.gender,
+                support_target_gender,
             )
 
         status.mana -= mana_cost
@@ -684,32 +734,17 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             ]
 
             rolled_support_amount, _, _, _, _ = _roll_player_support_amount(session, spell, support_effect)
-            target_caps = get_player_resource_caps(support_target_session)
-            if support_effect == "heal":
-                support_target_session.status.hit_points = min(
-                    target_caps["hit_points"],
-                    support_target_session.status.hit_points + rolled_support_amount,
-                )
-            elif support_effect == "vigor":
-                support_target_session.status.vigor = min(
-                    target_caps["vigor"],
-                    support_target_session.status.vigor + rolled_support_amount,
-                )
-            else:
-                support_target_session.status.mana = min(
-                    target_caps["mana"],
-                    support_target_session.status.mana + rolled_support_amount,
-                )
+            _restore_support_target_resource(support_target, support_effect, rolled_support_amount)
             parts.extend([
                 newline_part(),
                 build_part(rendered_support_context),
             ])
             if support_cast_type == "target":
                 _apply_ability_affects(actor=session, target=session, ability=spell, affect_target="self")
-                _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
+                _apply_ability_affects(actor=session, target=support_target, ability=spell, affect_target="target")
             else:
-                _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="self")
-                _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
+                _apply_ability_affects(actor=session, target=support_target, ability=spell, affect_target="self")
+                _apply_ability_affects(actor=session, target=support_target, ability=spell, affect_target="target")
             observer_lines = [
                 _resolve_observer_action_line(
                     actor_name,
@@ -723,19 +758,19 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
             support_observer_context = observer_context or _observer_context_from_player_context(
                 support_context,
                 subject_name=support_target_name,
-                subject_gender=support_target_session.player.gender,
+                subject_gender=support_target_gender,
             )
             if support_observer_context:
                 observer_lines.append(_render_observer_template(
                     support_observer_context,
                     support_target_name,
-                    support_target_session.player.gender,
+                    support_target_gender,
                 ))
 
             recipient_observer_lines: dict[str, list[str]] = {}
-            if support_cast_type == "target":
+            if support_cast_type == "target" and isinstance(support_target, ClientSession):
                 personalized_context = _resolve_combat_context(support_context, target_text="you", verb="are") or support_context
-                recipient_observer_lines[support_target_session.client_id] = [
+                recipient_observer_lines[support_target.client_id] = [
                     _resolve_observer_action_line(
                         actor_name,
                         "casts",
@@ -763,10 +798,10 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         ]
         if support_cast_type == "target":
             _apply_ability_affects(actor=session, target=session, ability=spell, affect_target="self")
-            _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
+            _apply_ability_affects(actor=session, target=support_target, ability=spell, affect_target="target")
         else:
-            _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="self")
-            _apply_ability_affects(actor=session, target=support_target_session, ability=spell, affect_target="target")
+            _apply_ability_affects(actor=session, target=support_target, ability=spell, affect_target="self")
+            _apply_ability_affects(actor=session, target=support_target, ability=spell, affect_target="target")
         observer_lines = [
             _resolve_observer_action_line(
                 actor_name,
@@ -780,19 +815,19 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
         support_observer_context = observer_context or _observer_context_from_player_context(
             support_context,
             subject_name=support_target_name,
-            subject_gender=support_target_session.player.gender,
+            subject_gender=support_target_gender,
         )
         if support_observer_context:
             observer_lines.append(_render_observer_template(
                 support_observer_context,
                 support_target_name,
-                support_target_session.player.gender,
+                support_target_gender,
             ))
 
         recipient_observer_lines: dict[str, list[str]] = {}
-        if support_cast_type == "target":
+        if support_cast_type == "target" and isinstance(support_target, ClientSession):
             personalized_context = _resolve_combat_context(support_context, target_text="you", verb="are") or support_context
-            recipient_observer_lines[support_target_session.client_id] = [
+            recipient_observer_lines[support_target.client_id] = [
                 _resolve_observer_action_line(
                     actor_name,
                     "casts",

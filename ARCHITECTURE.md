@@ -523,8 +523,10 @@ When an entity dies:
 
 - Cost mana. Defined in `spells.json`.
 - **Damage spells**: targeted or AoE. Roll dice and apply to affected entities.
-- **Support spells**: heal, restore resources, or apply affects via `affect_ids`. They can target self or another valid target depending on the spell definition.
-  Modes: `instant`, `timed` (hours), `battle_rounds`.
+- **Support spells**: heal, restore resources, or apply affects via `affect_ids`.
+  They can target self, another valid player, or a living in-room companion
+  owned by the caster. Another player's companion is not a valid support
+  target. Modes: `instant`, `timed` (hours), `battle_rounds`.
 - Cast via `cast <spell> [target]`.
 
 ### Skills
