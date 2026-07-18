@@ -73,6 +73,8 @@ def test_respawn_roster_companions_is_idempotent() -> None:
         session.companion_roster = [{"npc_id": "npc.companion-squire", "name": "Bramble Squire"}]
 
         spawned_first = respawn_roster_companions(session)
+        spawned_first[0].room_id = ""
+        spawned_first[0].hit_points = 73
         spawned_second = respawn_roster_companions(session)
 
         assert len(spawned_first) == 1
@@ -81,6 +83,7 @@ def test_respawn_roster_companions_is_idempotent() -> None:
         assert len(live_companions) == 1
         assert live_companions[0].owner_player_key == "respawntester"
         assert live_companions[0].room_id == "start"
+        assert live_companions[0].hit_points == 73
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
@@ -210,7 +213,7 @@ def test_leash_moves_companion_even_while_owner_is_engaged() -> None:
         active_character_sessions.update(previous_active)
 
 
-def test_leash_keeps_companions_of_offline_processed_characters() -> None:
+def test_leash_hides_companions_of_offline_processed_characters() -> None:
     previous_entities = dict(shared_world_entities)
     previous_connected = dict(connected_clients)
     previous_active = dict(active_character_sessions)
@@ -221,7 +224,6 @@ def test_leash_keeps_companions_of_offline_processed_characters() -> None:
 
         offline_owner = _make_session("offline-leash-client", "Offlineleasher")
         offline_owner.is_connected = False
-        offline_owner.disconnected_by_server = True
         active_character_sessions["offlineleasher"] = offline_owner
 
         companion = _make_companion("offlineleasher", entity_id="companion-offline-owner")
@@ -230,6 +232,7 @@ def test_leash_keeps_companions_of_offline_processed_characters() -> None:
         collect_stray_companion_moves()
 
         assert companion.entity_id in shared_world_entities
+        assert companion.room_id == ""
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
@@ -237,6 +240,40 @@ def test_leash_keeps_companions_of_offline_processed_characters() -> None:
         connected_clients.update(previous_connected)
         active_character_sessions.clear()
         active_character_sessions.update(previous_active)
+
+
+def test_soft_disconnect_hides_companions_and_preserves_runtime_state(monkeypatch) -> None:
+    import session_lifecycle
+
+    previous_entities = dict(shared_world_entities)
+    previous_connected = dict(connected_clients)
+    try:
+        shared_world_entities.clear()
+        connected_clients.clear()
+
+        owner = _make_session("disconnect-companion-client", "Disconnectowner")
+        owner.companion_roster = [{"npc_id": "npc.companion-squire", "name": "Bramble Squire"}]
+        companion = _make_companion("disconnectowner", entity_id="companion-disconnect-owner")
+        shared_world_entities[companion.entity_id] = companion
+        companion.hit_points = 73
+        connected_clients[owner.client_id] = owner
+
+        monkeypatch.setattr(session_lifecycle, "save_player_state", lambda _session, player_key=None: None)
+        monkeypatch.setattr(session_lifecycle, "start_offline_character_processing", lambda _session: None)
+
+        session_lifecycle.handle_client_disconnect(owner)
+
+        assert companion.entity_id in shared_world_entities
+        assert companion.room_id == ""
+        assert companion.hit_points == 73
+        assert owner.companion_roster == [
+            {"npc_id": "npc.companion-squire", "name": "Bramble Squire"},
+        ]
+    finally:
+        shared_world_entities.clear()
+        shared_world_entities.update(previous_entities)
+        connected_clients.clear()
+        connected_clients.update(previous_connected)
 
 
 def test_companion_defeat_persists_roster_removal(monkeypatch) -> None:

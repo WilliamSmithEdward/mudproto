@@ -3,7 +3,11 @@ import inspect
 import logging
 
 from combat_state import maybe_auto_engage_current_room
-from companions import despawn_companion_entities_for_session, respawn_roster_companions
+from companions import (
+    despawn_companion_entities_for_session,
+    hide_companion_entities_for_session,
+    respawn_roster_companions,
+)
 from display_core import build_line, build_part
 from display_feedback import display_command_result, display_error
 from display_room import display_room
@@ -501,6 +505,7 @@ def handle_client_disconnect(session: ClientSession) -> None:
         _announce_room_connection_state(session, "disconnected")
     unregister_client(session.client_id)
     if session.is_authenticated:
+        hide_companion_entities_for_session(session)
         clear_transient_interaction_flags_for_session(session)
         if session.player_state_key.strip():
             save_player_state(session)

@@ -403,8 +403,9 @@ On login:
 ### Disconnect
 
 1. Remove from `connected_clients`.
-2. Save player state to DB.
-3. Launch `_offline_character_loop()`:
+2. Hide owned companions from all rooms while preserving roster and runtime state.
+3. Save player state to DB.
+4. Launch `_offline_character_loop()`:
    - Auto-flee every 2 s if in combat.
    - Regenerate via game-hour ticks.
    - After 5 consecutive safe hours -> auto-disconnect, respawn at
@@ -414,7 +415,9 @@ On login:
 
 `hydrate_session_from_active_character()` copies all runtime state (combat,
 equipment, inventory, position, support effects) from the stale session.
-Old scheduler task is cancelled; new one starts.
+Old scheduler task is cancelled; new one starts. Preserved companion entities
+reattach after the reconnecting character's room is validated, and missing
+roster entries respawn there.
 
 ---
 

@@ -179,6 +179,19 @@ def rescue_companion(rescuer_session: ClientSession, companion: EntityState) -> 
     return True, None
 
 
+def hide_companion_entities_for_session(session: ClientSession) -> list[EntityState]:
+    """Remove owned companions from rooms while preserving their runtime state.
+
+    Hidden companions are reattached to the owner's room on reconnect.
+    """
+    hidden: list[EntityState] = []
+    for companion in list_owned_companions_for_session(session):
+        clear_hard_engagements_on_companion(companion.entity_id)
+        companion.room_id = ""
+        hidden.append(companion)
+    return hidden
+
+
 def despawn_companion_entities_for_session(session: ClientSession) -> list[EntityState]:
     """Remove the session's live companion entities from the world.
 
@@ -213,6 +226,7 @@ def respawn_roster_companions(session: ClientSession) -> list[EntityState]:
 
     live_counts: dict[str, int] = {}
     for companion in list_owned_companions(owner_key):
+        companion.room_id = session.player.current_room_id
         normalized_npc_id = companion.npc_id.strip().lower()
         live_counts[normalized_npc_id] = live_counts.get(normalized_npc_id, 0) + 1
 
@@ -308,12 +322,6 @@ def _resolve_owner_session(owner_key: str) -> ClientSession | None:
         if get_session_combatant_key(candidate) == normalized_key:
             return candidate
 
-    # Presence in active_character_sessions means the character is still live
-    # in the world, even when disconnected_by_server is set from an earlier
-    # forced disconnect; the offline safe-disconnect path pops the entry.
-    offline = active_character_sessions.get(normalized_key)
-    if offline is not None and offline.is_authenticated:
-        return offline
     return None
 
 
@@ -321,8 +329,8 @@ def collect_stray_companion_moves() -> list[tuple[EntityState, str, str]]:
     """Leash companions back to their owner's room.
 
     Returns (companion, from_room_id, to_room_id) tuples for the caller to
-    broadcast. Companions whose owner no longer exists in either session
-    registry are removed from the world outright.
+    broadcast. Companions with an offline owner are hidden between rooms;
+    companions without an active owner are removed outright.
     """
     if not any_live_companions_exist():
         return []
@@ -334,6 +342,16 @@ def collect_stray_companion_moves() -> list[tuple[EntityState, str, str]]:
 
         owner_session = _resolve_owner_session(companion.owner_player_key)
         if owner_session is None:
+            owner_key = companion.owner_player_key.strip().lower()
+            offline_owner = active_character_sessions.get(owner_key)
+            if (
+                offline_owner is not None
+                and offline_owner.is_authenticated
+                and not offline_owner.pending_death_logout
+            ):
+                clear_hard_engagements_on_companion(companion.entity_id)
+                companion.room_id = ""
+                continue
             shared_world_entities.pop(companion.entity_id, None)
             continue
         if owner_session.pending_death_logout:
