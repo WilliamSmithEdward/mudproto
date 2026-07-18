@@ -1,5 +1,7 @@
 """Room entity and corpse resolution helpers."""
 
+from collections.abc import Callable
+
 from corpse_labels import build_corpse_label
 from grammar import keyword_token_list, keyword_tokens
 from models import ClientSession, CorpseState, EntityState, ItemState
@@ -50,6 +52,7 @@ def resolve_room_entity_selector(
     *,
     living_only: bool = False,
     require_exact_name: bool = False,
+    entity_filter: Callable[[EntityState], bool] | None = None,
 ) -> tuple[EntityState | None, str | None]:
     normalized = selector_text.strip().lower()
     if not normalized:
@@ -59,6 +62,7 @@ def resolve_room_entity_selector(
         entity
         for entity in session.entities.values()
         if entity.room_id == room_id
+        and (entity_filter is None or entity_filter(entity))
     ]
     all_room_entities.sort(key=lambda item: item.spawn_sequence, reverse=True)
 

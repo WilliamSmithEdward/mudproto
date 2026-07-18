@@ -766,8 +766,10 @@ def test_support_spell_heals_owned_companion() -> None:
     caster = _make_session("client-companion-healer", "Caster")
     caster.status.mana = 50
     companion = _make_companion("caster")
+    companion.name = "Field Medic Ora"
     companion.spawn_sequence = 1
     foreign_companion = _make_companion("someone-else", entity_id="companion-foreign")
+    foreign_companion.name = "Field Medic Ora"
     foreign_companion.spawn_sequence = 2
     caster.entities[companion.entity_id] = companion
     caster.entities[foreign_companion.entity_id] = foreign_companion
@@ -785,7 +787,7 @@ def test_support_spell_heals_owned_companion() -> None:
         "support_context": "Restorative light closes your wounds.",
     }
 
-    _, applied = player_abilities.cast_spell(caster, spell, "Bramble Squire")
+    _, applied = player_abilities.cast_spell(caster, spell, "ora")
 
     assert applied is True
     assert companion.hit_points == 65

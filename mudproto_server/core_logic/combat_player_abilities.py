@@ -688,21 +688,24 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 support_target = support_target_session
             else:
                 owner_key = get_session_combatant_key(session)
-                normalized_target_name = target_name.strip().lower()
-                owned_companions = [
-                    entity
-                    for entity in list_room_entities(session, session.player.current_room_id)
-                    if entity.is_companion
-                    and entity.is_ally
-                    and entity.owner_player_key.strip().lower() == owner_key
-                    and entity.name.strip().lower() == normalized_target_name
-                ]
-                if not owned_companions:
+                owned_companion, _ = resolve_room_entity_selector(
+                    session,
+                    session.player.current_room_id,
+                    target_name,
+                    living_only=True,
+                    require_exact_name=True,
+                    entity_filter=lambda entity: (
+                        entity.is_companion
+                        and entity.is_ally
+                        and entity.owner_player_key.strip().lower() == owner_key
+                    ),
+                )
+                if owned_companion is None:
                     return display_error(
                         f"No player or owned ally named '{target_name}' is here.",
                         session,
                     ), False
-                support_target = owned_companions[0]
+                support_target = owned_companion
 
         if isinstance(support_target, ClientSession):
             support_target_name = (

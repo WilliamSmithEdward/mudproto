@@ -525,7 +525,8 @@ When an entity dies:
 - **Damage spells**: targeted or AoE. Roll dice and apply to affected entities.
 - **Support spells**: heal, restore resources, or apply affects via `affect_ids`.
   They can target self, another valid player, or a living in-room companion
-  owned by the caster. Another player's companion is not a valid support
+  owned by the caster, using the same exact-name and exact-keyword selectors as
+  other entity targeting. Another player's companion is not a valid support
   target. Modes: `instant`, `timed` (hours), `battle_rounds`.
 - Cast via `cast <spell> [target]`.
 
