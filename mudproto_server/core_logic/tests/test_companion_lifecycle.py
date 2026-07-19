@@ -159,7 +159,7 @@ def test_leash_returns_stray_companions_to_owner_room() -> None:
         active_character_sessions.update(previous_active)
 
 
-def test_group_status_shows_kind_column_with_human_and_ai_rows() -> None:
+def test_group_status_orders_state_after_name_and_kind_last() -> None:
     previous_entities = dict(shared_world_entities)
     try:
         shared_world_entities.clear()
@@ -170,8 +170,18 @@ def test_group_status_shows_kind_column_with_human_and_ai_rows() -> None:
 
         parts = _build_group_status_parts(session)
         rendered = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
+        header = next(line for line in rendered.splitlines() if "Role" in line and "Name" in line)
+        ordered_headers = ["Role", "Name", "State", "HP", "Vigor", "Mana", "Posture", "Kind"]
+        header_positions = [header.index(label) for label in ordered_headers]
+        player_row = next(line for line in rendered.splitlines() if "Groupkindtester" in line)
+        companion_row = next(line for line in rendered.splitlines() if "Bramble Squire" in line)
 
-        assert "Kind" in rendered
+        assert header_positions == sorted(header_positions)
+        assert header.rstrip().endswith("Kind")
+        assert player_row.index("Perfect") < player_row.index("/")
+        assert companion_row.index("Perfect") < companion_row.index("140/140")
+        assert player_row.rstrip().endswith("Human")
+        assert companion_row.rstrip().endswith("AI")
         assert "Human" in rendered
         assert "AI" in rendered
         assert "Groupkindtester" in rendered

@@ -264,22 +264,22 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
             rows.append([
                 "Companion",
                 companion.name,
-                "AI",
+                condition.title(),
                 f"{companion.hit_points}/{companion.max_hit_points}",
                 vigor_text,
                 mana_text,
                 posture_text,
-                condition.title(),
+                "AI",
             ])
             row_cell_colors.append([
                 "feedback.text",
                 "feedback.text",
-                "feedback.warning",
+                condition_color,
                 "feedback.value",
                 "feedback.value",
                 "feedback.value",
                 posture_color,
-                condition_color,
+                "feedback.warning",
             ])
 
     for member_session in member_sessions:
@@ -305,19 +305,19 @@ def _build_group_status_parts(session: ClientSession) -> list[dict]:
         rows.append([
             role,
             _display_name(member_session),
-            "Human",
+            state_text,
             f"{member_session.status.hit_points}/{caps['hit_points']}",
             f"{member_session.status.vigor}/{caps['vigor']}",
             mana_text,
             posture_text,
-            state_text,
+            "Human",
         ])
-        row_cell_colors.append([role_color, "feedback.text", "feedback.value", "feedback.value", "feedback.value", "feedback.value", posture_color, state_color])
+        row_cell_colors.append([role_color, "feedback.text", state_color, "feedback.value", "feedback.value", "feedback.value", posture_color, "feedback.value"])
         _append_companion_rows(member_session)
 
     return build_menu_table_parts(
         "Group Status",
-        ["Role", "Name", "Kind", "HP", "Vigor", "Mana", "Posture", "State"],
+        ["Role", "Name", "State", "HP", "Vigor", "Mana", "Posture", "Kind"],
         rows,
         row_cell_colors=row_cell_colors,
         empty_message="You have no group members.",
