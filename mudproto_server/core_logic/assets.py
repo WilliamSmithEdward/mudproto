@@ -1104,7 +1104,7 @@ def load_rooms() -> list[dict]:
                 raise ValueError(f"Room asset '{room_id}' exit details must include direction.")
 
             exit_type = str(raw_exit_detail.get("exit_type", "exit")).strip().lower() or "exit"
-            name = to_title_case(str(raw_exit_detail.get("name", "")).strip())
+            exit_name = to_title_case(str(raw_exit_detail.get("name", "")).strip())
             raw_exit_keywords = raw_exit_detail.get("keywords", [])
             if raw_exit_keywords is None:
                 raw_exit_keywords = []
@@ -1114,7 +1114,7 @@ def load_rooms() -> list[dict]:
             normalized_exit_details.append({
                 "direction": direction,
                 "exit_type": exit_type,
-                "name": name,
+                "name": exit_name,
                 "description": str(raw_exit_detail.get("description", "")).strip(),
                 "keywords": [str(keyword).strip().lower() for keyword in raw_exit_keywords if str(keyword).strip()],
                 "lock_id": str(raw_exit_detail.get("lock_id", "")).strip().lower(),
@@ -1828,9 +1828,13 @@ def load_spells() -> list[dict]:
         if spell_type != "damage" and restore_ratio > 0.0:
             raise ValueError(f"Spell asset '{spell_id}' restore_ratio is only supported on damage spells.")
 
-        if spell_type == "support" and support_effect not in {"heal", "vigor", "mana"}:
+        if spell_type == "support" and support_effect and support_effect not in {"heal", "vigor", "mana"}:
             raise ValueError(
-                f"Spell asset '{spell_id}' support_effect must be one of: heal, vigor, mana."
+                f"Spell asset '{spell_id}' support_effect must be one of: heal, vigor, mana, or empty."
+            )
+        if spell_type == "support" and not support_effect and not affect_ids:
+            raise ValueError(
+                f"Spell asset '{spell_id}' affect-only support spells must define affect_ids."
             )
         if spell_type == "support" and support_amount <= 0 and support_dice_count <= 0 and not affect_ids:
             raise ValueError(
@@ -2045,6 +2049,10 @@ def load_skills() -> list[dict]:
             if support_effect and support_effect not in {"heal", "vigor", "mana", "damage_reduction", "extra_unarmed_hits"}:
                 raise ValueError(
                     f"Skill asset '{skill_id}' support_effect must be one of: heal, vigor, mana, damage_reduction, extra_unarmed_hits."
+                )
+            if support_effect == "damage_reduction" and not has_affect_payload:
+                raise ValueError(
+                    f"Skill asset '{skill_id}' damage_reduction support requires affect_ids."
                 )
             if not support_effect and not has_affect_payload and not is_rescue_skill:
                 raise ValueError(

@@ -142,13 +142,13 @@
           "extra_unarmed_hits",
           ""
         ],
-        "notes": "Use empty string when the skill is affect-only (all behavior defined by affect_ids). extra_unarmed_hits requires support_level_step > 0."
+        "notes": "Use empty string when the skill is affect-only (all behavior defined by affect_ids). damage_reduction also requires affect_ids. extra_unarmed_hits requires support_level_step > 0."
       },
       "affect_ids": {
         "type": "array[string]",
         "required": false,
         "default": [],
-        "notes": "Array of affect references defined in configuration/attributes/affects.json. Entries may be strings or objects with affect_id plus override fields. Common templates: affect.received-damage, affect.dealt-damage, affect.regeneration, affect.extra-hits."
+        "notes": "Array of affect references defined in configuration/attributes/affects.json. Entries may be strings or objects with affect_id plus override fields. Common templates: affect.received-damage, affect.dealt-damage, affect.regeneration, affect.extra-hits, affect.damage-reduction."
       },
       "support_amount": {
         "type": "integer",
@@ -238,7 +238,10 @@
         "type": "string",
         "required": false,
         "default": "",
-        "allowed_values": ["sitting", ""],
+        "allowed_values": [
+          "sitting",
+          ""
+        ],
         "notes": "When set to sitting, forces the target into sitting posture on a successful hit. Sitting targets take increased damage and deal reduced damage."
       }
     }

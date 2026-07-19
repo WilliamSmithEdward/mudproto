@@ -3,7 +3,10 @@
     "template_id": "item.potion.mana",
     "name": "Potion of Mana",
     "description": "A glass vial of bright blue liquid that restores magical focus.",
-    "keywords": ["potion", "mana"],
+    "keywords": [
+      "potion",
+      "mana"
+    ],
     "item_type": "potion",
     "effect_type": "restore",
     "effect_target": "mana",
@@ -17,7 +20,11 @@
     "template_id": "item.potion.mending",
     "name": "Potion of Mending",
     "description": "A small crimson draught that closes bruises and shallow cuts.",
-    "keywords": ["potion", "mending", "healing"],
+    "keywords": [
+      "potion",
+      "mending",
+      "healing"
+    ],
     "item_type": "potion",
     "effect_type": "restore",
     "effect_target": "hit_points",
@@ -31,7 +38,11 @@
     "template_id": "item.potion.vigor",
     "name": "Potion of Vigor",
     "description": "A lively golden tonic that steadies the breath and restores battle stamina.",
-    "keywords": ["potion", "vigor", "stamina"],
+    "keywords": [
+      "potion",
+      "vigor",
+      "stamina"
+    ],
     "item_type": "potion",
     "effect_type": "restore",
     "effect_target": "vigor",
@@ -43,9 +54,14 @@
   },
   {
     "template_id": "item.container.prototype-starter-chest",
-    "name": "Supply Chest",
-    "description": "A banded supply chest sits open against the wall, stocked with potions, loose coin, and a prize blade for a promising newcomer.",
-    "keywords": ["supply", "chest", "starter chest", "cache"],
+    "name": "Gatehouse Supply Chest",
+    "description": "A banded chest from Greybank's stores stands open against the wall. Potions and loose coin have been packed around a serviceable longsword.",
+    "keywords": [
+      "supply",
+      "chest",
+      "gatehouse chest",
+      "stores"
+    ],
     "item_type": "container",
     "portable": false,
     "persistent": true,
@@ -82,20 +98,35 @@
     "template_id": "item.key.west-gate",
     "name": "Brass Gate Key",
     "description": "A small brass key with a worn square bit, likely meant for the western gate nearby.",
-    "keywords": ["key", "brass", "gate", "west gate"],
+    "keywords": [
+      "key",
+      "brass",
+      "gate",
+      "west gate"
+    ],
     "item_type": "key",
     "persistent": false,
-    "lock_ids": ["lock.prototype.start-west-gate"],
+    "lock_ids": [
+      "lock.prototype.start-west-gate"
+    ],
     "coin_value": 0
   },
   {
     "template_id": "item.key.loft-chest",
     "name": "Loft Chest Key",
     "description": "A bronze key etched with a simple sunburst, evidently meant for a locked chest tucked away above the starting chamber.",
-    "keywords": ["key", "loft", "chest", "loft chest", "bronze key"],
+    "keywords": [
+      "key",
+      "loft",
+      "chest",
+      "loft chest",
+      "bronze key"
+    ],
     "item_type": "key",
     "persistent": false,
-    "lock_ids": ["lock.prototype.loft-chest"],
+    "lock_ids": [
+      "lock.prototype.loft-chest"
+    ],
     "consume_on_use": true,
     "consume_message": "The Loft Chest Key crumbles to dust after turning in the lock.",
     "decay_game_hours": 6,
@@ -106,7 +137,12 @@
     "template_id": "item.container.loft-chest",
     "name": "Weathered Chest",
     "description": "A weathered cedar chest bound in dark iron bands rests beneath the loft rafters, sturdy and too awkward to carry off whole.",
-    "keywords": ["chest", "weathered chest", "cedar chest", "coffer"],
+    "keywords": [
+      "chest",
+      "weathered chest",
+      "cedar chest",
+      "coffer"
+    ],
     "item_type": "container",
     "portable": false,
     "persistent": true,
@@ -125,6 +161,199 @@
         "quantity": 1
       }
     ],
+    "coin_value": 0
+  },
+  {
+    "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+    "name": "Sepulcher Key",
+    "description": "A long blackened key engraved with a half-eclipsed sun. It feels heavier than iron should.",
+    "keywords": [
+      "sepulcher",
+      "key",
+      "blackened",
+      "sun",
+      "reliquary"
+    ],
+    "item_type": "key",
+    "lock_ids": [
+      "lock.sepulcher-ward-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+    ],
+    "coin_value": 0
+  },
+  {
+    "template_id": "item.charred-prayer-beads-penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+    "name": "charred prayer beads",
+    "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
+    "keywords": [
+      "charred",
+      "prayer",
+      "beads"
+    ],
+    "item_type": "misc",
+    "coin_value": 0
+  },
+  {
+    "template_id": "item.bandit-salve-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Bandit Salve",
+    "description": "A tarry herbal paste in a dented tin that stings like a curse and seals shallow wounds fast.",
+    "keywords": [
+      "bandit",
+      "salve",
+      "tin",
+      "healing"
+    ],
+    "item_type": "consumable",
+    "effect_type": "restore",
+    "effect_target": "hit_points",
+    "effect_amount": 80,
+    "coin_value": 20,
+    "use_lag_seconds": 0,
+    "observer_action": "[actor_name] smears on a bandit salve.",
+    "observer_context": "A bitter medicinal stink rises around [actor_object]."
+  },
+  {
+    "template_id": "item.smoked-salt-tonic-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Smoked Salt Tonic",
+    "description": "A sharp brown tonic cut with salt and pepper bark that drags tired lungs back into rhythm.",
+    "keywords": [
+      "smoked",
+      "salt",
+      "tonic",
+      "vigor"
+    ],
+    "item_type": "consumable",
+    "effect_type": "restore",
+    "effect_target": "vigor",
+    "effect_amount": 70,
+    "coin_value": 18,
+    "use_lag_seconds": 0,
+    "observer_action": "[actor_name] drinks a smoked salt tonic.",
+    "observer_context": "Fresh breath and ugly resolve return to [actor_object]."
+  },
+  {
+    "template_id": "item.black-banner-token-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Black Banner Token",
+    "description": "A flat iron token punched with a crow in flight above a burning keep.",
+    "keywords": [
+      "black",
+      "banner",
+      "token",
+      "crowbanner",
+      "iron token"
+    ],
+    "item_type": "misc",
+    "coin_value": 55
+  },
+  {
+    "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+    "name": "Shadow Balm",
+    "description": "A bitter black salve that steadies the nerves and restores battle focus.",
+    "keywords": [
+      "shadow",
+      "balm",
+      "vigor"
+    ],
+    "effect_type": "restore",
+    "effect_target": "vigor",
+    "effect_amount": 32,
+    "coin_value": 18,
+    "use_lag_seconds": 0.0,
+    "observer_action": "[actor_name] rubs dark balm into [actor_possessive] wrists.",
+    "observer_context": "A sharp medicinal scent rises around [actor_object]."
+  },
+  {
+    "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+    "name": "Grave Salt Draught",
+    "description": "A pale mineral tonic used by the outpost priesthood to stave off collapse.",
+    "keywords": [
+      "grave",
+      "salt",
+      "draught",
+      "healing"
+    ],
+    "effect_type": "restore",
+    "effect_target": "hit_points",
+    "effect_amount": 36,
+    "coin_value": 17,
+    "use_lag_seconds": 0.0,
+    "observer_action": "[actor_name] drinks a grave salt draught.",
+    "observer_context": "Color returns slowly to [actor_object]."
+  },
+  {
+    "template_id": "item.waterskin-of-reprieve-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Waterskin of Reprieve",
+    "description": "A cool leather waterskin infused with salts and herbs to steady a fading body.",
+    "keywords": [
+      "waterskin",
+      "reprieve",
+      "healing",
+      "water"
+    ],
+    "effect_type": "restore",
+    "effect_target": "hit_points",
+    "effect_amount": 38,
+    "coin_value": 18,
+    "use_lag_seconds": 0.0,
+    "observer_action": "[actor_name] drinks from a waterskin of reprieve.",
+    "observer_context": "Strength returns to [actor_object] with a cool breath of relief."
+  },
+  {
+    "template_id": "item.saltfire-phial-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Saltfire Phial",
+    "description": "A bitter mineral tonic carried by desert walkers to restore spent vigor.",
+    "keywords": [
+      "saltfire",
+      "phial",
+      "vigor",
+      "tonic"
+    ],
+    "effect_type": "restore",
+    "effect_target": "vigor",
+    "effect_amount": 34,
+    "coin_value": 17,
+    "use_lag_seconds": 0.0,
+    "observer_action": "[actor_name] downs a saltfire phial.",
+    "observer_context": "A taut steadiness returns to [actor_object]."
+  },
+  {
+    "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Sunwell Drop",
+    "description": "A clear golden draught prepared beneath the hidden fort's sacred basin to restore mana.",
+    "keywords": [
+      "sunwell",
+      "drop",
+      "mana",
+      "golden"
+    ],
+    "effect_type": "restore",
+    "effect_target": "mana",
+    "effect_amount": 42,
+    "coin_value": 20,
+    "use_lag_seconds": 0.0,
+    "observer_action": "[actor_name] drinks a sunwell drop.",
+    "observer_context": "A clean radiance settles behind [actor_object]'s eyes."
+  },
+  {
+    "template_id": "item.scarab-shell-dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "scarab shell",
+    "description": "A lacquered dune scarab shell with bands of sun-baked gold.",
+    "keywords": [
+      "scarab",
+      "shell"
+    ],
+    "item_type": "misc",
+    "coin_value": 0
+  },
+  {
+    "template_id": "item.cracked-sun-medallion-buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Cracked Sun Medallion",
+    "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
+    "keywords": [
+      "sun",
+      "medallion",
+      "cracked"
+    ],
+    "item_type": "misc",
     "coin_value": 0
   }
 ]

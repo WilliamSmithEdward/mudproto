@@ -645,9 +645,15 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 f"Support spell '{spell_name}' must be cast_type 'self' or 'target'.",
                 session,
             ), False
-        if support_effect not in {"heal", "vigor", "mana"}:
+        has_affect_ids = bool(spell.get("affect_ids"))
+        if support_effect and support_effect not in {"heal", "vigor", "mana"}:
             return display_error(
                 f"Spell '{spell_name}' has unsupported support_effect '{support_effect}'.",
+                session,
+            ), False
+        if not support_effect and not has_affect_ids:
+            return display_error(
+                f"Spell '{spell_name}' must define support_effect or affect_ids.",
                 session,
             ), False
         if support_mode not in {"timed", "instant", "battle_rounds"}:
@@ -665,7 +671,6 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 f"Spell '{spell_name}' must have duration_rounds > 0.",
                 session,
             ), False
-        has_affect_ids = bool(spell.get("affect_ids"))
         if support_amount <= 0 and support_dice_count <= 0 and not has_affect_ids:
             return display_error(
                 f"Spell '{spell_name}' must define support_amount, support_dice_count, or affect_ids.",
@@ -736,8 +741,9 @@ def cast_spell(session: ClientSession, spell: dict, target_name: str | None = No
                 build_part(actor_target_text + "."),
             ]
 
-            rolled_support_amount, _, _, _, _ = _roll_player_support_amount(session, spell, support_effect)
-            _restore_support_target_resource(support_target, support_effect, rolled_support_amount)
+            if support_effect:
+                rolled_support_amount, _, _, _, _ = _roll_player_support_amount(session, spell, support_effect)
+                _restore_support_target_resource(support_target, support_effect, rolled_support_amount)
             parts.extend([
                 newline_part(),
                 build_part(rendered_support_context),

@@ -4,6 +4,9 @@
 >
 > Note: the real folder name is `assets` - not `asssets`.
 
+World-facing names and prose must follow [docs/world_setting.md](docs/world_setting.md)
+and [docs/story_and_world_building.md](docs/story_and_world_building.md).
+
 ---
 
 ## 1. What this folder contains
@@ -480,7 +483,7 @@ Optional life-steal style fields on damage spells:
 - `duration_hours` — required when `support_mode` is `timed`
 - `duration_rounds` — required when `support_mode` is `battle_rounds`
 - `support_context` — **required for support spells**
-- `affect_ids` — optional array of affect template ids from configuration/attributes/affects.json (see [Affects](#affects) below)
+- `affect_ids`: array of affect template ids from `configuration/attributes/affects.json`; required when `support_effect` is empty, otherwise optional (see [Affects](#affects) below)
 
 Optional presentation fields:
 - `observer_action`
@@ -496,7 +499,7 @@ Optional presentation fields:
   "spell_type": "damage",
   "element": "storm",
   "cast_type": "target",
-  "mana_cost": 12,
+  "mana_cost": 18,
   "damage_dice_count": 10,
   "damage_dice_sides": 40,
   "damage_modifier": 4,
@@ -517,7 +520,7 @@ Optional presentation fields:
   "spell_type": "support",
   "element": "restoration",
   "cast_type": "self",
-  "mana_cost": 18,
+  "mana_cost": 28,
   "support_effect": "heal",
   "support_amount": 1,
   "support_mode": "instant",
@@ -567,7 +570,7 @@ Optional on damage skills:
 - `support_context` — **required for support skills**
 - `observer_action`
 - `observer_context`
-- `affect_ids` — optional array of affect template ids from configuration/attributes/affects.json (see [Affects](#affects) below)
+- `affect_ids`: array of affect template ids from `configuration/attributes/affects.json`; required when `support_effect` is empty or `damage_reduction`, otherwise optional (see [Affects](#affects) below)
 
 ### Example damage skill
 ```json
@@ -578,7 +581,7 @@ Optional on damage skills:
   "skill_type": "damage",
   "element": "physical",
   "cast_type": "target",
-  "vigor_cost": 4,
+  "vigor_cost": 6,
   "usable_out_of_combat": false,
   "scaling_attribute_id": "dex",
   "scaling_multiplier": 2.5,
@@ -602,7 +605,7 @@ Optional on damage skills:
   "skill_type": "support",
   "element": "physical",
   "cast_type": "self",
-  "vigor_cost": 8,
+  "vigor_cost": 12,
   "usable_out_of_combat": false,
   "scaling_attribute_id": "con",
   "scaling_multiplier": 0.5,
@@ -650,6 +653,7 @@ Inline legacy `affects` payload blocks are no longer supported, but override obj
 | `affect.dealt-damage` | `Damage Dealt` | Modifies outgoing damage from the affected target. Positive values increase damage dealt; negative values reduce it. |
 | `affect.regeneration` | `Regeneration` | Restores `target_resource` each tick. Supports `hit_points`, `mana`, or `vigor`. |
 | `affect.extra-hits` | `Extra Hits` | Grants extra attacks per round, including hand-specific and unarmed scaling options. |
+| `affect.damage-reduction` | `Damage Reduction` | Subtracts a flat amount from incoming damage. Only the strongest active reduction applies. |
 
 ### Referencing affects
 
@@ -710,7 +714,33 @@ These are resolved in combat rendering code in `mudproto_server/combat.py`.
 
 ---
 
-## 8. Current attribute IDs for scaling
+## 8. Class ability progression
+
+Class kits are configured in `configuration/attributes/classes.json`. The three `starting_*_ids` arrays are granted at level 1. Later grants belong in `ability_unlocks`:
+
+```json
+{
+  "starting_spell_ids": ["spell.spark", "spell.healing-light"],
+  "starting_skill_ids": ["skill.jab"],
+  "starting_passive_ids": [],
+  "ability_unlocks": [
+    { "level": 2, "skill_ids": ["skill.guard-breath"] },
+    { "level": 3, "spell_ids": ["spell.arc-bolt"] }
+  ]
+}
+```
+
+Each unlock entry must use a unique level from 2 through the maximum configured player level. `spell_ids`, `skill_ids`, and `passive_ids` are optional lists, but the entry must grant at least one ability. Every referenced ID must exist, and an ability can appear only once in a class's level-one kit and unlock schedule combined.
+
+Login and level advancement grant missing eligible abilities without removing abilities already present in a saved character.
+
+### Ability cost baseline
+
+The current spell and skill set uses costs raised by about 50 percent from the prototype baseline, rounded upward to even whole points. Treat that as a balance baseline, not a loader rule. Compare a new ability with peers of similar impact and with the intended user's mana or vigor pool. An NPC must have enough `max_mana` or `max_vigor` to pay for every assigned spell or skill at least once.
+
+---
+
+## 9. Current attribute IDs for scaling
 
 When a spell or skill uses a scaling attribute, it must match one of the configured attributes in `configuration/attributes/character_attributes.json`.
 
@@ -723,7 +753,7 @@ Current valid ids:
 
 ---
 
-## 9. Common pitfalls to avoid
+## 10. Common pitfalls to avoid
 
 ### Don't do these
 - Put `wear_slots` on a weapon.
@@ -744,7 +774,7 @@ Current valid ids:
 
 ---
 
-## 10. Practical generation checklist for humans and LLMs
+## 11. Practical generation checklist for humans and LLMs
 
 Before saving a new asset, verify:
 
@@ -761,7 +791,7 @@ Before saving a new asset, verify:
 
 ---
 
-## 11. If you are adding a brand-new encounter
+## 12. If you are adding a brand-new encounter
 
 A reliable pattern is:
 

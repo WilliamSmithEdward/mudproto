@@ -116,6 +116,7 @@ That means:
 
 - Multi-target room combat with shared round output.
 - Skills and spells with round cooldowns and optional game-hour cooldowns.
+- Class kits with JSON-configured spell, skill, and passive unlock levels.
 - Timed and battle-round support effects.
 - NPC ability usage with independent skill/spell cooldown tracking.
 - Bash-style target lag now also forces target posture to sitting.

@@ -50,18 +50,23 @@
     ],
     "starting_spell_ids": [
       "spell.spark",
-      "spell.arc-bolt",
-      "spell.ember-lance",
-      "spell.ice-storm",
-      "spell.healing-light",
-      "spell.regeneration-ward"
+      "spell.healing-light"
     ],
     "starting_skill_ids": [
-      "skill.guard-breath",
-      "skill.jab",
-      "skill.overhead-crack"
+      "skill.jab"
     ],
     "starting_passive_ids": [],
+    "ability_unlocks": [
+      { "level": 2, "skill_ids": ["skill.guard-breath"] },
+      { "level": 3, "spell_ids": ["spell.arc-bolt"] },
+      { "level": 4, "spell_ids": ["spell.mending-word"] },
+      { "level": 5, "spell_ids": ["spell.bark-skin"] },
+      { "level": 6, "spell_ids": ["spell.ember-lance"] },
+      { "level": 7, "spell_ids": ["spell.regeneration-ward"] },
+      { "level": 8, "skill_ids": ["skill.overhead-crack"] },
+      { "level": 9, "spell_ids": ["spell.life-siphon"] },
+      { "level": 10, "spell_ids": ["spell.ice-storm"] }
+    ],
     "is_default": true
   },
   {
@@ -107,14 +112,18 @@
     "starting_spell_ids": [],
     "starting_skill_ids": [
       "skill.jab",
-      "skill.guard-breath",
-      "skill.centered-guard",
-      "skill.roundhouse-kick",
-      "skill.fist-flurry",
-      "skill.rescue"
+      "skill.guard-breath"
     ],
     "starting_passive_ids": [
       "passive.monk-unarmed-mastery"
+    ],
+    "ability_unlocks": [
+      { "level": 2, "skill_ids": ["skill.centered-guard"] },
+      { "level": 3, "skill_ids": ["skill.roundhouse-kick"] },
+      { "level": 4, "skill_ids": ["skill.pressure-point"] },
+      { "level": 5, "skill_ids": ["skill.rescue"] },
+      { "level": 7, "skill_ids": ["skill.bash"] },
+      { "level": 10, "skill_ids": ["skill.fist-flurry"] }
     ],
     "is_default": false
   }

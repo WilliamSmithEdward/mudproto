@@ -814,6 +814,7 @@ def load_player_classes() -> list[dict]:
         for attribute in load_attributes()
         if str(attribute.get("attribute_id", "")).strip()
     }
+    max_player_level = max(int(row.get("level", 1)) for row in load_experience_table())
 
     for raw_class in raw_classes:
         if not isinstance(raw_class, dict):
@@ -837,6 +838,7 @@ def load_player_classes() -> list[dict]:
         raw_spell_ids = raw_class.get("starting_spell_ids", [])
         raw_skill_ids = raw_class.get("starting_skill_ids", [])
         raw_passive_ids = raw_class.get("starting_passive_ids", [])
+        raw_ability_unlocks = raw_class.get("ability_unlocks", [])
         raw_equipped_gear_ids = raw_class.get("starting_equipped_gear_template_ids", [])
         raw_item_ids = raw_class.get("starting_item_ids", [])
         raw_attribute_ranges = raw_class.get("attribute_ranges", {})
@@ -861,6 +863,8 @@ def load_player_classes() -> list[dict]:
             raise ValueError(f"Player class '{class_id}' starting_skill_ids must be a list.")
         if not isinstance(raw_passive_ids, list):
             raise ValueError(f"Player class '{class_id}' starting_passive_ids must be a list.")
+        if not isinstance(raw_ability_unlocks, list):
+            raise ValueError(f"Player class '{class_id}' ability_unlocks must be a list.")
         if not isinstance(raw_equipped_gear_ids, list):
             raise ValueError(
                 f"Player class '{class_id}' starting_equipped_gear_template_ids must be a list."
@@ -1034,6 +1038,90 @@ def load_player_classes() -> list[dict]:
             seen_passive_ids.add(normalized_passive_id)
             passive_ids.append(passive_id)
 
+        ability_unlocks: list[dict] = []
+        seen_unlock_levels: set[int] = set()
+        assigned_spell_ids = set(seen_spell_ids)
+        assigned_skill_ids = set(seen_skill_ids)
+        assigned_passive_ids = set(seen_passive_ids)
+        for raw_unlock in raw_ability_unlocks:
+            if not isinstance(raw_unlock, dict):
+                raise ValueError(f"Player class '{class_id}' ability_unlocks entries must be objects.")
+
+            level = int(raw_unlock.get("level", 0))
+            if level < 2:
+                raise ValueError(f"Player class '{class_id}' ability unlock levels must be >= 2.")
+            if level > max_player_level:
+                raise ValueError(
+                    f"Player class '{class_id}' ability unlock level {level} exceeds max player level {max_player_level}."
+                )
+            if level in seen_unlock_levels:
+                raise ValueError(f"Player class '{class_id}' has duplicate ability unlock level: {level}")
+
+            raw_unlock_spell_ids = raw_unlock.get("spell_ids", [])
+            raw_unlock_skill_ids = raw_unlock.get("skill_ids", [])
+            raw_unlock_passive_ids = raw_unlock.get("passive_ids", [])
+            for field_name, raw_ids in (
+                ("spell_ids", raw_unlock_spell_ids),
+                ("skill_ids", raw_unlock_skill_ids),
+                ("passive_ids", raw_unlock_passive_ids),
+            ):
+                if not isinstance(raw_ids, list):
+                    raise ValueError(
+                        f"Player class '{class_id}' ability unlock level {level} {field_name} must be a list."
+                    )
+
+            unlock_spell_ids: list[str] = []
+            for raw_spell_id in raw_unlock_spell_ids:
+                spell_id = str(raw_spell_id).strip()
+                if not spell_id:
+                    continue
+                normalized_spell_id = spell_id.lower()
+                if normalized_spell_id in assigned_spell_ids:
+                    raise ValueError(f"Player class '{class_id}' assigns spell '{spell_id}' more than once.")
+                if get_spell_by_id(spell_id) is None:
+                    raise ValueError(f"Player class '{class_id}' references unknown spell: {spell_id}")
+                assigned_spell_ids.add(normalized_spell_id)
+                unlock_spell_ids.append(spell_id)
+
+            unlock_skill_ids: list[str] = []
+            for raw_skill_id in raw_unlock_skill_ids:
+                skill_id = str(raw_skill_id).strip()
+                if not skill_id:
+                    continue
+                normalized_skill_id = skill_id.lower()
+                if normalized_skill_id in assigned_skill_ids:
+                    raise ValueError(f"Player class '{class_id}' assigns skill '{skill_id}' more than once.")
+                if get_skill_by_id(skill_id) is None:
+                    raise ValueError(f"Player class '{class_id}' references unknown skill: {skill_id}")
+                assigned_skill_ids.add(normalized_skill_id)
+                unlock_skill_ids.append(skill_id)
+
+            unlock_passive_ids: list[str] = []
+            for raw_passive_id in raw_unlock_passive_ids:
+                passive_id = str(raw_passive_id).strip()
+                if not passive_id:
+                    continue
+                normalized_passive_id = passive_id.lower()
+                if normalized_passive_id in assigned_passive_ids:
+                    raise ValueError(f"Player class '{class_id}' assigns passive '{passive_id}' more than once.")
+                if normalized_passive_id not in available_passive_ids:
+                    raise ValueError(f"Player class '{class_id}' references unknown passive: {passive_id}")
+                assigned_passive_ids.add(normalized_passive_id)
+                unlock_passive_ids.append(passive_id)
+
+            if not unlock_spell_ids and not unlock_skill_ids and not unlock_passive_ids:
+                raise ValueError(f"Player class '{class_id}' ability unlock level {level} must grant an ability.")
+
+            seen_unlock_levels.add(level)
+            ability_unlocks.append({
+                "level": level,
+                "spell_ids": unlock_spell_ids,
+                "skill_ids": unlock_skill_ids,
+                "passive_ids": unlock_passive_ids,
+            })
+
+        ability_unlocks.sort(key=lambda unlock: int(unlock["level"]))
+
         equipped_gear_ids: list[str] = []
         seen_equipped_gear_ids: set[str] = set()
         for raw_template_id in raw_equipped_gear_ids:
@@ -1087,6 +1175,7 @@ def load_player_classes() -> list[dict]:
             "starting_spell_ids": spell_ids,
             "starting_skill_ids": skill_ids,
             "starting_passive_ids": passive_ids,
+            "ability_unlocks": ability_unlocks,
             "resource_progression": normalized_resource_progression,
             "is_default": bool(raw_class.get("is_default", False)),
         })

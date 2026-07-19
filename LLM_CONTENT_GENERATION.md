@@ -141,7 +141,7 @@ This makes it possible for multiple payloads to attach new paths to the same roo
 - **Use direct item types:** set `item_type` directly for `potion`, `container`, `key`, `misc`, or `consumable`; do not invent a separate subtype field for potions.
 - **Use the shared affect model correctly:** support and lingering status behavior should reference the centralized affect templates in `mudproto_server/configuration/attributes/affects.json` via `affect_ids`.
 - **Override objects are supported:** each `affect_ids` entry may be either a plain string id or an object with `affect_id` plus fields such as `name`, `target`, `target_resource`, `amount`, durations, and scaling.
-- **Use the current shared affect ids:** prefer `affect.received-damage`, `affect.dealt-damage`, `affect.regeneration`, and `affect.extra-hits` unless the central affect config is explicitly expanded.
+- **Use the current shared affect ids:** prefer `affect.received-damage`, `affect.dealt-damage`, `affect.regeneration`, and `affect.extra-hits`, and `affect.damage-reduction` unless the central affect config is explicitly expanded.
 - **Do not invent legacy inline affect blocks or payload-local affect templates:** keep the shared template generic and tune the applying skill or spell through the `affect_ids` override object.
 - **Use direct equipment effects for gear bonuses:** gear should define bonus stats inline via `equipment_effects`, and each entry should be a simple object with only `effect_type` and `amount`.
 - **Use supported bonus ids only:** `effect_type` should be a direct attribute id such as `str`, `dex`, `con`, or `wis`, or a configured shared gear stat from `mudproto_server/configuration/attributes/equipment_effects.json` such as `hit_points`, `vigor`, `mana`, `weapon_damage`, or `hitroll`. Avoid lore-only bonus IDs or extra naming layers.
@@ -149,6 +149,7 @@ This makes it possible for multiple payloads to attach new paths to the same roo
 - **Set NPC naming explicitly:** generated NPCs should include `is_named` deliberately. Use `true` for unique named characters (for example bosses, officers, priestesses, or story NPCs with personal names/titles) and `false` for ordinary generic enemies.
 - **Named NPC corpse labels are possessive:** when `is_named: true`, the corpse should read as the full-name possessive form, such as `Brother Cleft's corpse`.
 - **Write ability narration in a target-safe format:** use placeholders such as `[a/an] [verb] thrown off balance by the strike!` so the same line reads correctly for both players and NPC victims. Avoid actor-POV lines like `You drive a knife into your foe!`.
+- **Price abilities against real resource pools:** current spell and skill costs use the post-prototype higher-cost baseline. Compare new abilities with similar core assets, and confirm every NPC user can pay each assigned mana or vigor cost at least once.
 - **Room merges are special-case only for exits:** everything else on the room comes from the last loaded room payload.
 - **Room interconnections must be logical:** connected rooms should feel spatially and thematically adjacent, not randomly stitched together.
 - **Wire multi-stage boss gates completely:** if a final boss or keep unlock depends on multiple sub-boss kills, each sub-boss must set the exact world flag the gate checks.

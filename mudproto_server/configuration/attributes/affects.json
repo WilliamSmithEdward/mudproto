@@ -22,5 +22,11 @@
     "descriptor": "Extra Hits",
     "affect_mode": "battle_rounds",
     "can_be_negative": false
+  },
+  {
+    "affect_id": "affect.damage-reduction",
+    "descriptor": "Damage Reduction",
+    "affect_mode": "battle_rounds",
+    "can_be_negative": false
   }
 ]

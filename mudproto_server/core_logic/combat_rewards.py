@@ -5,6 +5,7 @@ from combat_text import append_newline_if_needed
 from experience import award_experience
 from models import ClientSession, EntityState
 from player_resources import roll_level_resource_gains
+from session_bootstrap import grant_class_abilities_for_level
 from session_registry import active_character_sessions, connected_clients
 from targeting_follow import _list_group_member_sessions
 
@@ -39,6 +40,7 @@ def _append_experience_gain_notification(
 
     if new_level > old_level:
         resource_gains = roll_level_resource_gains(session, old_level, new_level)
+        ability_unlocks = grant_class_abilities_for_level(session, new_level)
         show_mana = player_class_uses_mana(session.player.class_id)
         append_newline_if_needed(parts)
         parts.append(build_part_fn("\n"))
@@ -60,6 +62,14 @@ def _append_experience_gain_notification(
                 build_part_fn(f"+{int(resource_gains.get('mana', 0))}M", "combat_rewards.gain.mana", True),
             ])
         parts.append(build_part_fn("\n"))
+        for unlock in ability_unlocks:
+            kind = str(unlock.get("kind", "ability")).strip().lower() or "ability"
+            name = str(unlock.get("name", "Ability")).strip() or "Ability"
+            parts.extend([
+                build_part_fn(f"New {kind}: ", "combat_rewards.text"),
+                build_part_fn(name, "combat_rewards.level_up", True),
+                build_part_fn(".\n", "combat_rewards.text"),
+            ])
     else:
         parts.append(build_part_fn("\n"))
 

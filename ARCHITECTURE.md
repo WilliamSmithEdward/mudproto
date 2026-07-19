@@ -292,7 +292,7 @@ configuration/
     skills.json            # player skills (vigor cost, scaling, round/hour cooldowns, support step scaling)
   attributes/
     character_attributes.json   # attribute definitions (STR, DEX, CON, INT, WIS)
-    classes.json                # player classes, starting gear, spells, skills
+    classes.json                # player classes, level-one kits, and ability unlock levels
     combat_severity.json        # text thresholds and severity tuning
     experience.json             # XP required per level
     hand_weight.json            # weapon STR requirements
@@ -519,12 +519,23 @@ When an entity dies:
 
 ## 9. Spells & Skills
 
+### Class ability progression
+
+- `configuration/attributes/classes.json` owns class ability grants.
+- `starting_spell_ids`, `starting_skill_ids`, and `starting_passive_ids` are the level-one kit.
+- `ability_unlocks` entries assign spells, skills, or passives at a configured level from 2 through the maximum level in `experience.json`.
+- The class loader validates every reference and rejects duplicate levels or assigning the same ability twice within one class.
+- Character creation grants the level-one kit. Level advancement grants every newly eligible entry and names it in the level-up message.
+- Login reconciles any eligible missing grants. This is additive: saved abilities are never removed when a class schedule changes.
+
 ### Spells
 
 - Cost mana. Defined in `spells.json`.
 - **Damage spells**: targeted or AoE. Roll dice and apply to affected entities.
 - **Support spells**: heal, restore resources, or apply affects via `affect_ids`.
-  They can target self, another valid player, or a living in-room companion
+  Affect-only support spells use an empty `support_effect` and define all
+  behavior through `affect_ids`. They can target self, another valid player,
+  or a living in-room companion
   owned by the caster, using the same exact-name and exact-keyword selectors as
   other entity targeting. Another player's companion is not a valid support
   target. Modes: `instant`, `timed` (hours), `battle_rounds`.
@@ -552,6 +563,7 @@ When an entity dies:
 
 - Defined in `configuration/attributes/affects.json` as shared templates using `affect_id`, `descriptor`, `affect_mode`, and `can_be_negative`.
 - Skills and spells reference them via `affect_ids`, using either a plain string id or an override object.
+- `affect.damage-reduction` subtracts the strongest active flat reduction from incoming damage after damage multipliers. Multiple reduction affects do not add together.
 - `ActiveAffectState` is tracked on the session.
 - Runtime behavior keys off the shared affect id directly, while the score screen renders the source name plus a generic descriptor.
 - Negative-capable affects render polarity-aware labels such as `Increased Damage Dealt` or `Reduced Damage Received`, and regeneration labels include the specific resource type.

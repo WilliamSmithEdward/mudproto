@@ -22,7 +22,7 @@ def _make_session(client_id: str, name: str) -> ClientSession:
 def _make_recruiter(room_id: str = "south-market") -> EntityState:
     recruiter = EntityState(
         entity_id="recruiter-1",
-        name="Sergeant Halda Brakk",
+        name="Halda Brakk",
         room_id=room_id,
         hit_points=200,
         max_hit_points=200,
@@ -142,10 +142,10 @@ def test_recruits_menu_renders_with_single_leading_blank_line() -> None:
         assert lines[1] != []
 
         rendered = "\n".join(_rendered_lines(outbound))
-        assert "Sergeant Halda Brakk's Recruits" in rendered
-        assert "Bramble Squire" in rendered
+        assert "Halda Brakk's Recruits" in rendered
+        assert "Tarn Rusk" in rendered
         assert "150 coins" in rendered
-        assert "Field Medic Ora" in rendered
+        assert "Ora Pell" in rendered
         assert "300 coins" in rendered
         assert "enlist <name>" in rendered
         assert "dismiss <name>" in rendered
@@ -177,7 +177,7 @@ def test_enlist_debits_coins_and_spawns_owned_companion() -> None:
         recruiter = _make_recruiter()
         shared_world_entities[recruiter.entity_id] = recruiter
 
-        outbound = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        outbound = handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
 
         assert outbound["payload"].get("is_error") is not True
         assert session.status.coins == 350
@@ -205,7 +205,7 @@ def test_enlist_fails_without_enough_coins() -> None:
         recruiter = _make_recruiter()
         shared_world_entities[recruiter.entity_id] = recruiter
 
-        outbound = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        outbound = handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
 
         assert outbound["payload"]["is_error"] is True
         assert session.status.coins == 10
@@ -223,13 +223,13 @@ def test_enlist_respects_companion_cap() -> None:
         session = _make_session("capped-client", "Captester")
         session.status.coins = 5000
         session.companion_roster = [
-            {"npc_id": "npc.companion-squire", "name": "Bramble Squire"},
-            {"npc_id": "npc.companion-field-medic", "name": "Field Medic Ora"},
+            {"npc_id": "npc.companion-squire", "name": "Tarn Rusk"},
+            {"npc_id": "npc.companion-field-medic", "name": "Ora Pell"},
         ]
         recruiter = _make_recruiter()
         shared_world_entities[recruiter.entity_id] = recruiter
 
-        outbound = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        outbound = handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
 
         assert outbound["payload"]["is_error"] is True
         assert session.status.coins == 5000
@@ -247,10 +247,10 @@ def test_dismiss_removes_companion_and_roster_entry() -> None:
         session.status.coins = 500
         recruiter = _make_recruiter()
         shared_world_entities[recruiter.entity_id] = recruiter
-        handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
         assert len(session.companion_roster) == 1
 
-        outbound = handle_recruitment_command(session, "dismiss", ["bramble"], "dismiss bramble")
+        outbound = handle_recruitment_command(session, "dismiss", ["tarn"], "dismiss tarn")
 
         assert outbound["payload"].get("is_error") is not True
         assert session.companion_roster == []
@@ -343,7 +343,7 @@ def test_dismiss_of_remote_companion_skips_room_broadcast() -> None:
         session = _make_session("remote-dismiss-client", "Remotedismisser")
         companion = EntityState(
             entity_id="companion-remote",
-            name="Bramble Squire",
+            name="Tarn Rusk",
             room_id="hall",
             hit_points=140,
             max_hit_points=140,
@@ -354,9 +354,9 @@ def test_dismiss_of_remote_companion_skips_room_broadcast() -> None:
         companion.is_ally = True
         companion.owner_player_key = "remotedismisser"
         shared_world_entities[companion.entity_id] = companion
-        session.companion_roster = [{"npc_id": "npc.companion-squire", "name": "Bramble Squire"}]
+        session.companion_roster = [{"npc_id": "npc.companion-squire", "name": "Tarn Rusk"}]
 
-        outbound = handle_recruitment_command(session, "dismiss", ["bramble"], "dismiss bramble")
+        outbound = handle_recruitment_command(session, "dismiss", ["tarn"], "dismiss tarn")
 
         assert outbound["payload"].get("is_error") is not True
         assert "broadcast_to_room" not in outbound["payload"]
@@ -381,19 +381,19 @@ def test_partial_recruitment_verbs_dispatch_through_the_waterfall() -> None:
         for menu_verb in ("rec", "recr", "recru", "recrui", "recruit", "recruits"):
             outbound = dispatch_command(session, menu_verb)
             rendered = "\n".join(_rendered_lines(outbound))
-            assert "Sergeant Halda Brakk's Recruits" in rendered, menu_verb
+            assert "Halda Brakk's Recruits" in rendered, menu_verb
 
-        dispatch_command(session, "enl bramble")
+        dispatch_command(session, "enl tarn")
         assert session.status.coins == 350
         assert len(session.companion_roster) == 1
 
-        dispatch_command(session, "dism bramble")
+        dispatch_command(session, "dism tarn")
         assert session.companion_roster == []
         assert not any(entity.is_companion for entity in shared_world_entities.values())
 
-        dispatch_command(session, "enli medic")
+        dispatch_command(session, "enli ora")
         assert len(session.companion_roster) == 1
-        dispatch_command(session, "dis medic")
+        dispatch_command(session, "dis ora")
         assert session.companion_roster == []
     finally:
         shared_world_entities.clear()
@@ -428,11 +428,11 @@ def test_enlist_rejects_duplicate_companion() -> None:
         recruiter = _make_recruiter()
         shared_world_entities[recruiter.entity_id] = recruiter
 
-        first = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        first = handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
         assert first["payload"].get("is_error") is not True
         assert session.status.coins == 850
 
-        second = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        second = handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
 
         assert second["payload"]["is_error"] is True
         assert session.status.coins == 850
@@ -458,11 +458,11 @@ def test_companion_can_be_rehired_after_dismissal_and_death() -> None:
         recruiter = _make_recruiter()
         shared_world_entities[recruiter.entity_id] = recruiter
 
-        handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
-        handle_recruitment_command(session, "dismiss", ["bramble"], "dismiss bramble")
+        handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
+        handle_recruitment_command(session, "dismiss", ["tarn"], "dismiss tarn")
         assert session.companion_roster == []
 
-        rehired = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        rehired = handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
         assert rehired["payload"].get("is_error") is not True
         assert len(session.companion_roster) == 1
 
@@ -470,7 +470,7 @@ def test_companion_can_be_rehired_after_dismissal_and_death() -> None:
         handle_companion_defeat(session, companion)
         assert session.companion_roster == []
 
-        rehired_after_death = handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        rehired_after_death = handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
         assert rehired_after_death["payload"].get("is_error") is not True
         assert len(session.companion_roster) == 1
     finally:
@@ -486,17 +486,17 @@ def test_recruit_menu_marks_hired_companions() -> None:
         session.status.coins = 1000
         recruiter = _make_recruiter()
         shared_world_entities[recruiter.entity_id] = recruiter
-        handle_recruitment_command(session, "enlist", ["bramble"], "enlist bramble")
+        handle_recruitment_command(session, "enlist", ["tarn"], "enlist tarn")
 
         outbound = handle_recruitment_command(session, "recruits", [], "recruits")
 
         rendered = "\n".join(_rendered_lines(outbound))
-        squire_row = next(line for line in _rendered_lines(outbound) if "Bramble Squire" in line)
-        medic_row = next(line for line in _rendered_lines(outbound) if "Field Medic Ora" in line)
+        squire_row = next(line for line in _rendered_lines(outbound) if "Tarn Rusk" in line)
+        medic_row = next(line for line in _rendered_lines(outbound) if "Ora Pell" in line)
         assert "hired" in squire_row
         assert "150 coins" not in squire_row
         assert "300 coins" in medic_row
-        assert "Sergeant Halda Brakk's Recruits" in rendered
+        assert "Halda Brakk's Recruits" in rendered
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)
@@ -512,13 +512,13 @@ def test_enlist_tolerates_small_typos_in_recruit_names() -> None:
         recruiter.recruitable_companions.append({"npc_id": "npc.companion-brute", "price": 450})
         shared_world_entities[recruiter.entity_id] = recruiter
 
-        outbound = handle_recruitment_command(session, "enlist", ["gerenado"], "enlist gerenado")
+        outbound = handle_recruitment_command(session, "enlist", ["braam"], "enlist braam")
 
         assert outbound["payload"].get("is_error") is not True
         assert session.status.coins == 550
-        assert session.companion_roster == [{"npc_id": "npc.companion-brute", "name": "Genenado the Brute"}]
+        assert session.companion_roster == [{"npc_id": "npc.companion-brute", "name": "Bram Keld"}]
 
-        dismissed = handle_recruitment_command(session, "dismiss", ["gerenado"], "dismiss gerenado")
+        dismissed = handle_recruitment_command(session, "dismiss", ["braam"], "dismiss braam")
         assert dismissed["payload"].get("is_error") is not True
         assert session.companion_roster == []
     finally:
@@ -539,8 +539,8 @@ def test_enlist_unknown_name_lists_available_recruits() -> None:
 
         assert outbound["payload"]["is_error"] is True
         rendered = "\n".join(_rendered_lines(outbound))
-        assert "Bramble Squire" in rendered
-        assert "Field Medic Ora" in rendered
+        assert "Tarn Rusk" in rendered
+        assert "Ora Pell" in rendered
         assert session.companion_roster == []
         assert session.status.coins == 1000
     finally:
@@ -572,12 +572,12 @@ def test_enlist_speaks_a_companion_voice_line() -> None:
         outbound = handle_recruitment_command(session, "enlist", ["ora"], "enlist ora")
 
         rendered = "\n".join(_rendered_lines(outbound))
-        assert "Field Medic Ora joins you." in rendered
-        assert "Try not to bleed faster than I can stitch" in rendered
+        assert "Ora Pell joins you." in rendered
+        assert "Show me the wound before it becomes a problem" in rendered
 
         dismissed = handle_recruitment_command(session, "dismiss", ["ora"], "dismiss ora")
         dismissed_rendered = "\n".join(_rendered_lines(dismissed))
-        assert "Keep your wounds clean" in dismissed_rendered
+        assert "Boil the bandages before you need them" in dismissed_rendered
     finally:
         shared_world_entities.clear()
         shared_world_entities.update(previous_entities)

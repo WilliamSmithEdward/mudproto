@@ -1,8 +1,9 @@
 {
+  "items": [],
   "npcs": [
     {
       "npc_id": "npc.hall-scout",
-      "name": "Hall Scout",
+      "name": "Greybank Deserter",
       "hit_points": 250,
       "max_hit_points": 250,
       "power_level": 3,
@@ -37,7 +38,7 @@
     },
     {
       "npc_id": "npc.sanctum-invoker",
-      "name": "Sanctum Invoker",
+      "name": "Cinder Chaplain",
       "hit_points": 220,
       "max_hit_points": 220,
       "power_level": 4,
@@ -77,7 +78,7 @@
     },
     {
       "npc_id": "npc.east-watch-reaver",
-      "name": "East Watch Reaver",
+      "name": "Blackwatch Reaver",
       "hit_points": 280,
       "max_hit_points": 280,
       "power_level": 5,
@@ -113,7 +114,7 @@
     },
     {
       "npc_id": "npc.ashen-reliquary-exarch",
-      "name": "Ashen Reliquary Exarch",
+      "name": "Cinder Prior",
       "hit_points": 360,
       "max_hit_points": 360,
       "power_level": 8,
@@ -157,7 +158,7 @@
     },
     {
       "npc_id": "npc.wandering-mercenary",
-      "name": "Wandering Mercenary",
+      "name": "Road Freeblade",
       "hit_points": 650,
       "max_hit_points": 650,
       "power_level": 10,
@@ -203,7 +204,7 @@
     },
     {
       "npc_id": "npc.west-road-merchant",
-      "name": "Marra the Milekeeper",
+      "name": "Marra Venn",
       "is_named": true,
       "hit_points": 220,
       "max_hit_points": 220,
@@ -275,7 +276,7 @@
     },
     {
       "npc_id": "npc.south-market-merchant",
-      "name": "Quartermaster Vessa",
+      "name": "Vessa Orr",
       "is_named": true,
       "merchant_restock_game_hours": 6,
       "hit_points": 180,
@@ -358,7 +359,7 @@
     },
     {
       "npc_id": "npc.muster-sergeant",
-      "name": "Sergeant Halda Brakk",
+      "name": "Halda Brakk",
       "is_named": true,
       "hit_points": 200,
       "max_hit_points": 200,
@@ -391,13 +392,13 @@
         {
           "trigger": "player_enter",
           "audience": "private",
-          "message": "Sergeant Halda Brakk nods at you. \"Looking for a blade at your back? Say recruits.\""
+          "message": "Sergeant Halda Brakk taps the slate beside her. \"If you need another pair of hands, ask me about recruits.\""
         }
       ]
     },
     {
       "npc_id": "npc.companion-squire",
-      "name": "Bramble Squire",
+      "name": "Tarn Rusk",
       "is_named": true,
       "is_companion": true,
       "is_ally": true,
@@ -422,16 +423,16 @@
       "wander_chance": 0.0,
       "voice_lines": {
         "enlist": [
-          "Bramble Squire flourishes his scimitar. \"Point me at trouble.\"",
-          "\"Coin well spent,\" Bramble Squire says, testing his blade's edge."
+          "Tarn Rusk checks the knot on his sword belt. \"I take the left side. You call the pace.\"",
+          "Tarn Rusk tests his blade in its sheath. \"Ready when you are.\""
         ],
         "dismiss": [
-          "\"Call when there is something worth cutting,\" Bramble Squire says with a wink."
+          "\"I will be at the muster fire,\" Tarn Rusk says. \"Ask if the road turns bad.\""
         ],
         "victory": [
-          "\"Barely a warm-up!\" Bramble Squire crows.",
-          "Bramble Squire spins his scimitar and sheathes it in one motion.",
-          "\"Did you see that footwork?\" Bramble Squire grins."
+          "Tarn Rusk wipes his blade on a scrap of sacking and looks to the road ahead.",
+          "\"Everyone whole?\" Tarn Rusk asks before sheathing his sword.",
+          "Tarn Rusk checks the fallen for anything still moving."
         ]
       },
       "main_hand_weapon": {
@@ -442,7 +443,7 @@
     },
     {
       "npc_id": "npc.companion-brute",
-      "name": "Genenado the Brute",
+      "name": "Bram Keld",
       "is_named": true,
       "is_companion": true,
       "is_guardian": true,
@@ -467,14 +468,14 @@
       "wander_chance": 0.0,
       "voice_lines": {
         "enlist": [
-          "\"Genenado keeps you safe now,\" the big man rumbles."
+          "Bram Keld settles the bronze-bound cudgel across one shoulder. \"Stay behind me when the line closes.\""
         ],
         "dismiss": [
-          "Genenado the Brute nods slowly. \"You call, Genenado comes back.\""
+          "Bram Keld sets his cudgel beside the muster bench. \"I will keep my place by the wall.\""
         ],
         "victory": [
-          "Genenado the Brute cracks his knuckles. \"Who is next?\"",
-          "\"Genenado strong,\" the big man rumbles happily."
+          "Bram Keld looks over the others for wounds before lowering his cudgel.",
+          "\"Still standing,\" Bram Keld says. \"Good.\""
         ]
       },
       "main_hand_weapon": {
@@ -485,7 +486,7 @@
     },
     {
       "npc_id": "npc.companion-field-medic",
-      "name": "Field Medic Ora",
+      "name": "Ora Pell",
       "is_named": true,
       "is_companion": true,
       "is_ally": true,
@@ -510,17 +511,2077 @@
       "wander_chance": 0.0,
       "voice_lines": {
         "enlist": [
-          "\"Try not to bleed faster than I can stitch,\" Field Medic Ora says."
+          "Ora Pell closes her satchel and falls in beside you. \"Show me the wound before it becomes a problem.\""
         ],
         "dismiss": [
-          "\"Keep your wounds clean,\" Field Medic Ora says, shouldering her satchel."
+          "Ora Pell returns her shears to the satchel. \"Boil the bandages before you need them.\""
         ],
         "victory": [
-          "\"Good. Fewer wounds to stitch,\" Field Medic Ora mutters.",
-          "Field Medic Ora lowers her hands. \"Anyone hurt? Speak now, not later.\""
+          "Ora Pell checks the fallen, then reaches for a roll of linen.",
+          "\"If you are bleeding, hold still,\" Ora Pell says, already opening her satchel."
         ]
       }
+    },
+    {
+      "npc_id": "npc.ashen-acolyte-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Ashen Acolyte",
+      "hit_points": 255,
+      "max_hit_points": 255,
+      "power_level": 5,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 11,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 20,
+      "experience_reward": 42,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 42,
+      "max_vigor": 42,
+      "mana": 30,
+      "max_mana": 30,
+      "skill_use_chance": 0.25,
+      "skill_ids": [
+        "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "spell_use_chance": 0.2,
+      "spell_ids": [
+        "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.dustbound-cantor-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Dustbound Cantor",
+      "hit_points": 235,
+      "max_hit_points": 235,
+      "power_level": 5,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 10,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 24,
+      "experience_reward": 45,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 30,
+      "max_vigor": 30,
+      "mana": 95,
+      "max_mana": 95,
+      "skill_use_chance": 0.1,
+      "skill_ids": [
+        "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "spell_use_chance": 0.45,
+      "spell_ids": [
+        "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.sepulcher-guardian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Sepulcher Guardian",
+      "hit_points": 320,
+      "max_hit_points": 320,
+      "power_level": 6,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 12,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 30,
+      "experience_reward": 54,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "vigor": 56,
+      "max_vigor": 56,
+      "skill_use_chance": 0.3,
+      "skill_ids": [
+        "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.lockward-sentinel-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Lockward Sentinel",
+      "hit_points": 365,
+      "max_hit_points": 365,
+      "power_level": 7,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 3,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 38,
+      "experience_reward": 66,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "vigor": 62,
+      "max_vigor": 62,
+      "mana": 45,
+      "max_mana": 45,
+      "skill_use_chance": 0.25,
+      "skill_ids": [
+        "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "spell_use_chance": 0.15,
+      "spell_ids": [
+        "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+      "name": "Penitent Custodian",
+      "hit_points": 485,
+      "max_hit_points": 485,
+      "power_level": 9,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 4,
+      "armor_class": 14,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 120,
+      "experience_reward": 180,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 84,
+      "max_vigor": 84,
+      "mana": 120,
+      "max_mana": 120,
+      "skill_use_chance": 0.35,
+      "skill_ids": [
+        "skill.bone-rake-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "skill.censer-guard-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "spell_use_chance": 0.35,
+      "spell_ids": [
+        "spell.graveflare-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spell.martyrs-keeping-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.charred-prayer-beads-penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.thornbound-boar-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "thornbound boar",
+      "is_named": false,
+      "max_hit_points": 420,
+      "power_level": 30,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 7,
+      "armor_class": 16,
+      "coin_reward": 20,
+      "experience_reward": 140,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 40,
+      "skill_use_chance": 0.4,
+      "skill_ids": [
+        "skill.thorn-trample-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.12,
+      "wander_room_ids": [
+        "room.crooked-moss-trail-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.split-root-bend-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.whisper-nettles-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-hollow-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.briar-pinch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.foxfire-notch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.crooked-fern-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.drowned-roots-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.stag-run-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.lantern-moss-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.enspelled-stag-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "enspelled stag",
+      "is_named": false,
+      "max_hit_points": 390,
+      "power_level": 31,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 8,
+      "armor_class": 15,
+      "coin_reward": 18,
+      "experience_reward": 145,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 44,
+      "skill_use_chance": 0.42,
+      "skill_ids": [
+        "skill.briar-gore-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.1,
+      "wander_room_ids": [
+        "room.hushgrove-fork-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.glassleaf-corridor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonrot-basin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.antler-brake-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thistledown-squeeze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-switchback-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pixie-snare-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.rotvine-arch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.velvet-mire-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cracked-idol-grove-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.crownscar-bear-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "crownscar bear",
+      "is_named": false,
+      "max_hit_points": 520,
+      "power_level": 33,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 10,
+      "armor_class": 18,
+      "coin_reward": 28,
+      "experience_reward": 190,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 52,
+      "skill_use_chance": 0.45,
+      "skill_ids": [
+        "skill.briar-gore-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.thorn-trample-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.08,
+      "wander_room_ids": [
+        "room.cold-fern-crossing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hollow-reed-path-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.serpent-bark-lane-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.crowned-stump-circle-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.shattered-menhir-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.bramble-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.hunting-hush-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.silver-mold-descent-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.velvet-mire-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.cracked-idol-grove-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.pale-moss-switchyard-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.whispering-yews-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.canker-pixie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "canker pixie",
+      "is_named": false,
+      "max_hit_points": 250,
+      "power_level": 30,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 5,
+      "armor_class": 13,
+      "coin_reward": 24,
+      "experience_reward": 150,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_mana": 120,
+      "spell_use_chance": 0.46,
+      "spell_ids": [
+        "spell.corrupted-pollen-burst-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.gloam-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "gloam faerie",
+      "is_named": false,
+      "max_hit_points": 300,
+      "power_level": 32,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 7,
+      "armor_class": 14,
+      "coin_reward": 30,
+      "experience_reward": 175,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 24,
+      "max_mana": 150,
+      "skill_use_chance": 0.25,
+      "skill_ids": [
+        "skill.mindlash-feint-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.5,
+      "spell_ids": [
+        "spell.emerald-starfall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.royal-guard-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "royal guard faerie",
+      "is_named": false,
+      "max_hit_points": 420,
+      "power_level": 35,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 11,
+      "armor_class": 18,
+      "coin_reward": 42,
+      "experience_reward": 240,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_vigor": 60,
+      "max_mana": 110,
+      "skill_use_chance": 0.36,
+      "skill_ids": [
+        "skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.crownbreak-swipe-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.3,
+      "spell_ids": [
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": [],
+      "wander_chance": 0.1,
+      "wander_room_ids": [
+        "room.royal-spoor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.guard-patrolled-glade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.thorn-banner-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.moonglass-clearing-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.prince-princess-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.palace-approach-bridge-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.emerald-gate-lawn-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.royal-hedge-walk-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.sentry-arbor-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "room.outer-court-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ]
+    },
+    {
+      "npc_id": "npc.throne-attendant-faerie-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "throne attendant faerie",
+      "is_named": false,
+      "max_hit_points": 360,
+      "power_level": 36,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 8,
+      "armor_class": 16,
+      "coin_reward": 45,
+      "experience_reward": 260,
+      "is_aggro": true,
+      "pronoun_possessive": "its",
+      "max_mana": 170,
+      "spell_use_chance": 0.55,
+      "spell_ids": [
+        "spell.corrupted-pollen-burst-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.emerald-starfall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.aurelian-faerie-prince-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Aurelian, Faerie Prince",
+      "is_named": true,
+      "corpse_label_style": "possessive",
+      "max_hit_points": 650,
+      "power_level": 40,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 13,
+      "armor_class": 20,
+      "coin_reward": 110,
+      "experience_reward": 650,
+      "is_aggro": true,
+      "pronoun_possessive": "his",
+      "max_vigor": 70,
+      "max_mana": 220,
+      "skill_use_chance": 0.35,
+      "skill_ids": [
+        "skill.mindlash-feint-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.crownbreak-swipe-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.52,
+      "spell_ids": [
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.verdant-ruin-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.serelyth-faerie-princess-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Serelyth, Faerie Princess",
+      "is_named": true,
+      "corpse_label_style": "possessive",
+      "max_hit_points": 620,
+      "power_level": 40,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 11,
+      "armor_class": 19,
+      "coin_reward": 110,
+      "experience_reward": 650,
+      "is_aggro": true,
+      "pronoun_possessive": "her",
+      "max_vigor": 40,
+      "max_mana": 260,
+      "skill_use_chance": 0.2,
+      "skill_ids": [
+        "skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.58,
+      "spell_ids": [
+        "spell.corrupted-pollen-burst-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.emerald-starfall-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.gianda-the-faerie-monarch-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+      "name": "Gianda, The Faerie Monarch",
+      "is_named": true,
+      "corpse_label_style": "possessive",
+      "max_hit_points": 950,
+      "power_level": 45,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 15,
+      "armor_class": 23,
+      "coin_reward": 220,
+      "experience_reward": 1200,
+      "is_aggro": true,
+      "pronoun_possessive": "her",
+      "max_vigor": 80,
+      "max_mana": 360,
+      "skill_use_chance": 0.32,
+      "skill_ids": [
+        "skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "skill.crownbreak-swipe-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "spell_use_chance": 0.62,
+      "spell_ids": [
+        "spell.monarchs-cascade-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.mind-thorn-lance-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+        "spell.regal-bloom-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1"
+      ],
+      "inventory_items": []
+    },
+    {
+      "npc_id": "npc.crowbanner-reaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Crowbanner Reaver",
+      "hit_points": 920,
+      "max_hit_points": 920,
+      "power_level": 12,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 7,
+      "armor_class": 14,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 5,
+      "coin_reward": 70,
+      "experience_reward": 120,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 140,
+      "max_vigor": 140,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.45,
+      "skill_ids": [
+        "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.ironhook-rend-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "inventory_items": [
+        {
+          "template_id": "item.bandit-salve-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "wander_chance": 0.1,
+      "wander_room_ids": [
+        "room.north-approach-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.switchback-scramble-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.thorn-ditch-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.outer-picket-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.broken-wagon-choke-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.palisade-gate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.south-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.mercenary-scimitar",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.scout-dagger",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.crowbanner-hexer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Crowbanner Hexer",
+      "hit_points": 840,
+      "max_hit_points": 840,
+      "power_level": 12,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 5,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 74,
+      "experience_reward": 125,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 40,
+      "max_vigor": 40,
+      "mana": 240,
+      "max_mana": 240,
+      "skill_use_chance": 0.1,
+      "skill_ids": [
+        "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.55,
+      "spell_ids": [
+        "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.training-sword",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.crowbanner-bulwark-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Crowbanner Bulwark",
+      "hit_points": 1080,
+      "max_hit_points": 1080,
+      "power_level": 13,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 8,
+      "armor_class": 16,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 78,
+      "experience_reward": 130,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 160,
+      "max_vigor": 160,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.5,
+      "skill_ids": [
+        "skill.wallbreaker-swing-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.crowbanner-knifeman-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Crowbanner Knifeman",
+      "hit_points": 880,
+      "max_hit_points": 880,
+      "power_level": 12,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 8,
+      "armor_class": 14,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 6,
+      "coin_reward": 72,
+      "experience_reward": 122,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 145,
+      "max_vigor": 145,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.5,
+      "skill_ids": [
+        "skill.crippling-pitchknife-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "wander_chance": 0.08,
+      "wander_room_ids": [
+        "room.central-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.west-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.east-wall-walk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.north-yard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.kennel-lane-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.cookfire-square-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room.armory-lean-to-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.training-dagger",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.ironhook-maela-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Ironhook Maela",
+      "is_named": true,
+      "hit_points": 1450,
+      "max_hit_points": 1450,
+      "power_level": 14,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 9,
+      "armor_class": 16,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 8,
+      "coin_reward": 160,
+      "experience_reward": 260,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "her",
+      "vigor": 220,
+      "max_vigor": 220,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.65,
+      "skill_ids": [
+        "skill.ironhook-rend-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "message": "A scarred woman on the tower platform grins without warmth. \"Climb all this way just to die at my boots? Good. Saves me the walk.\""
+        }
+      ],
+      "set_world_flags_on_death": [
+        "npc.ironhook-maela.defeated"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.varo-cindersmile-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Varo Cindersmile",
+      "is_named": true,
+      "hit_points": 1360,
+      "max_hit_points": 1360,
+      "power_level": 14,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 8,
+      "armor_class": 15,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 165,
+      "experience_reward": 265,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 80,
+      "max_vigor": 80,
+      "mana": 300,
+      "max_mana": 300,
+      "skill_use_chance": 0.15,
+      "skill_ids": [
+        "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.7,
+      "spell_ids": [
+        "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "message": "A thin man by the signal brazier laughs through broken teeth. \"You smell rain-soaked. Let me fix that with fire.\""
+        }
+      ],
+      "set_world_flags_on_death": [
+        "npc.varo-cindersmile.defeated"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.seln-of-the-pins-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Seln of the Pins",
+      "is_named": true,
+      "hit_points": 1390,
+      "max_hit_points": 1390,
+      "power_level": 14,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 9,
+      "armor_class": 16,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 8,
+      "coin_reward": 162,
+      "experience_reward": 262,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 225,
+      "max_vigor": 225,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.65,
+      "skill_ids": [
+        "skill.crippling-pitchknife-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.gutter-step-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "message": "A hooded killer rises from the crenels as if he had been nailed there by shadow. \"Too slow,\" he says, already moving."
+        }
+      ],
+      "set_world_flags_on_death": [
+        "npc.seln-of-the-pins.defeated"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.brother-cleft-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Brother Cleft",
+      "is_named": true,
+      "hit_points": 1510,
+      "max_hit_points": 1510,
+      "power_level": 14,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 9,
+      "armor_class": 16,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 170,
+      "experience_reward": 270,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 200,
+      "max_vigor": 200,
+      "mana": 210,
+      "max_mana": 210,
+      "skill_use_chance": 0.5,
+      "skill_ids": [
+        "skill.wallbreaker-swing-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.45,
+      "spell_ids": [
+        "spell.grave-prayer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "message": "A broad priest in split vestments lifts a massive maul from the chapel stones. \"Mercy has left this fort. Only weight remains.\""
+        }
+      ],
+      "set_world_flags_on_death": [
+        "npc.brother-cleft.defeated"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+      "name": "Hadrik Crowbanner",
+      "is_named": true,
+      "hit_points": 2400,
+      "max_hit_points": 2400,
+      "power_level": 16,
+      "attacks_per_round": 3,
+      "hit_roll_modifier": 10,
+      "armor_class": 17,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 300,
+      "experience_reward": 520,
+      "is_aggro": true,
+      "is_ally": false,
+      "pronoun_possessive": "his",
+      "vigor": 260,
+      "max_vigor": 260,
+      "mana": 260,
+      "max_mana": 260,
+      "skill_use_chance": 0.6,
+      "skill_ids": [
+        "skill.wallbreaker-swing-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.ironhook-rend-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "spell_use_chance": 0.5,
+      "spell_ids": [
+        "spell.cinder-kiss-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spell.coalburst-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spell.grave-prayer-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11"
+      ],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "message": "The warlord in the keep-heart rises beneath his torn black banner and drags his greatsword free. \"You broke my corners. Now break here, in the middle, where all things end.\""
+        }
+      ],
+      "set_world_flags_on_death": [
+        "npc.hadrik-crowbanner.defeated"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "armor.crowbanner-plate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.black-banner-token-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.blackwatch-sentry-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+      "name": "Blackwatch Sentry",
+      "hit_points": 255,
+      "max_hit_points": 255,
+      "power_level": 4,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 11,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 28,
+      "experience_reward": 38,
+      "is_aggro": true,
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 56,
+      "max_vigor": 56,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.35,
+      "skill_ids": [
+        "skill.sundering-cleave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "inventory_items": [
+        {
+          "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.grave-acolyte-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+      "name": "Grave Acolyte",
+      "hit_points": 230,
+      "max_hit_points": 230,
+      "power_level": 4,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 1,
+      "armor_class": 10,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 30,
+      "experience_reward": 40,
+      "is_aggro": true,
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "her",
+      "vigor": 24,
+      "max_vigor": 24,
+      "mana": 95,
+      "max_mana": 95,
+      "skill_use_chance": 0.15,
+      "skill_ids": [],
+      "spell_use_chance": 0.55,
+      "spell_ids": [
+        "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.crypt-warden-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+      "name": "Crypt Warden",
+      "hit_points": 300,
+      "max_hit_points": 300,
+      "power_level": 5,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 12,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 36,
+      "experience_reward": 50,
+      "is_aggro": true,
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 64,
+      "max_vigor": 64,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.4,
+      "skill_ids": [
+        "skill.sundering-cleave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "skill.grave-guard-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "inventory_items": [
+        {
+          "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.dark-priestess-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+      "name": "Dark Priestess Vael",
+      "is_named": true,
+      "hit_points": 320,
+      "max_hit_points": 320,
+      "power_level": 6,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 12,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 68,
+      "experience_reward": 82,
+      "is_aggro": true,
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "her",
+      "vigor": 30,
+      "max_vigor": 30,
+      "mana": 145,
+      "max_mana": 145,
+      "skill_use_chance": 0.0,
+      "skill_ids": [],
+      "spell_use_chance": 0.7,
+      "spell_ids": [
+        "spell.grave-bolt-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spell.unhallowed-mending-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spell.night-veil-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.dread-revenant-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+      "name": "Dread Revenant",
+      "hit_points": 345,
+      "max_hit_points": 345,
+      "power_level": 7,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 3,
+      "armor_class": 12,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 72,
+      "experience_reward": 90,
+      "is_aggro": true,
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "vigor": 78,
+      "max_vigor": 78,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.45,
+      "skill_ids": [
+        "skill.sundering-cleave-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "skill.grave-guard-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "inventory_items": [
+        {
+          "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Dune Scarab",
+      "hit_points": 210,
+      "max_hit_points": 210,
+      "power_level": 3,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 2,
+      "armor_class": 10,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 12,
+      "experience_reward": 26,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "vigor": 34,
+      "max_vigor": 34,
+      "skill_use_chance": 0.3,
+      "skill_ids": [
+        "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "inventory_items": [
+        {
+          "template_id": "item.scarab-shell-dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ]
+    },
+    {
+      "npc_id": "npc.glass-asp-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Glass Asp",
+      "hit_points": 225,
+      "max_hit_points": 225,
+      "power_level": 4,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 2,
+      "armor_class": 11,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 16,
+      "experience_reward": 32,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "vigor": 40,
+      "max_vigor": 40,
+      "skill_use_chance": 0.35,
+      "skill_ids": [
+        "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.sunken-guardian-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Sunken Guardian",
+      "hit_points": 285,
+      "max_hit_points": 285,
+      "power_level": 5,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 12,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 28,
+      "experience_reward": 44,
+      "is_aggro": true,
+      "is_ally": false,
+      "respawn": true,
+      "pronoun_possessive": "its",
+      "vigor": 58,
+      "max_vigor": 58,
+      "mana": 40,
+      "max_mana": 40,
+      "skill_use_chance": 0.25,
+      "skill_ids": [
+        "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.2,
+      "spell_ids": [
+        "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.veiled-paladin-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Veiled Paladin",
+      "hit_points": 310,
+      "max_hit_points": 310,
+      "power_level": 6,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 0,
+      "experience_reward": 60,
+      "is_aggro": false,
+      "aggro_player_flags": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "set_player_flags_on_hostile_action": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 70,
+      "max_vigor": 70,
+      "mana": 80,
+      "max_mana": 80,
+      "skill_use_chance": 0.2,
+      "skill_ids": [
+        "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.2,
+      "spell_ids": [
+        "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.lamp-keeper-sera-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Lamp-Keeper Sera",
+      "is_named": true,
+      "hit_points": 190,
+      "max_hit_points": 190,
+      "power_level": 1,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 0,
+      "armor_class": 10,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 0,
+      "experience_reward": 0,
+      "is_aggro": false,
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "is_merchant": true,
+      "merchant_inventory": [
+        {
+          "template_id": "item.waterskin-of-reprieve-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 4,
+          "infinite": false
+        },
+        {
+          "template_id": "item.saltfire-phial-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 4,
+          "infinite": false
+        },
+        {
+          "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 4,
+          "infinite": false
+        },
+        {
+          "template_id": "armor.veilwalker-cloak-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "infinite": true
+        },
+        {
+          "template_id": "armor.sunwarden-cuirass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "infinite": true
+        },
+        {
+          "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "infinite": true
+        },
+        {
+          "template_id": "item.potion.mending",
+          "infinite": true
+        },
+        {
+          "template_id": "item.potion.mana",
+          "infinite": true
+        },
+        {
+          "template_id": "item.potion.vigor",
+          "infinite": true
+        }
+      ],
+      "merchant_buy_markup": 1.0,
+      "merchant_sell_ratio": 0.55,
+      "pronoun_possessive": "her",
+      "vigor": 0,
+      "max_vigor": 0,
+      "mana": 0,
+      "max_mana": 0,
+      "skill_use_chance": 0.0,
+      "skill_ids": [],
+      "spell_use_chance": 0.0,
+      "spell_ids": [],
+      "main_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.sunmarshal-aurek-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Sunmarshal Aurek",
+      "is_named": true,
+      "corpse_label_style": "possessive",
+      "hit_points": 360,
+      "max_hit_points": 360,
+      "power_level": 7,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 4,
+      "armor_class": 14,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 0,
+      "experience_reward": 95,
+      "is_aggro": false,
+      "aggro_player_flags": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "set_player_flags_on_hostile_action": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 90,
+      "max_vigor": 90,
+      "mana": 110,
+      "max_mana": 110,
+      "skill_use_chance": 0.25,
+      "skill_ids": [
+        "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.25,
+      "spell_ids": [
+        "spell.solar-lance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek's voice hardens. \"You have made yourself an enemy of this order. Come no closer unless you mean to die for it.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_world_flags": [
+            "npc.sunmarshal-aurek.key-claimed"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek says, \"Well met, traveller. I have nothing more to offer just now.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.met",
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.sunmarshal-aurek.key-claimed"
+          ],
+          "set_player_flags": [
+            "npc.sunmarshal-aurek.met"
+          ],
+          "message": "Aurek says, \"Hail! Well met traveller. I may have something for you. Come, listen to an old man.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "npc.sunmarshal-aurek.met"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.sunmarshal-aurek.key-claimed"
+          ],
+          "message": "Aurek says, \"Welcome back. Are you ready to listen to my story?\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek says, \"Thank you for listening to an old man ramble.\""
+        }
+      ],
+      "keyword_actions": [
+        {
+          "keywords": [
+            "listen aurek",
+            "listen sunmarshal",
+            "listen sunmarshal aurek",
+            "listen to aurek",
+            "listen to sunmarshal",
+            "listen for aurek",
+            "bow aurek",
+            "bow sunmarshal",
+            "bow sunmarshal aurek",
+            "bow to aurek",
+            "bow to sunmarshal",
+            "bow before aurek"
+          ],
+          "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek bares his teeth. \"There will be no parley now. Defend yourself.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen aurek",
+            "listen sunmarshal",
+            "listen sunmarshal aurek",
+            "listen to aurek",
+            "listen to sunmarshal",
+            "listen for aurek",
+            "bow aurek",
+            "bow sunmarshal",
+            "bow sunmarshal aurek",
+            "bow to aurek",
+            "bow to sunmarshal",
+            "bow before aurek"
+          ],
+          "required_player_flags": [
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek says, \"Thank you for listening to an old man ramble.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen aurek",
+            "listen sunmarshal",
+            "listen sunmarshal aurek",
+            "listen to aurek",
+            "listen to sunmarshal",
+            "listen for aurek",
+            "bow aurek",
+            "bow sunmarshal",
+            "bow sunmarshal aurek",
+            "bow to aurek",
+            "bow to sunmarshal",
+            "bow before aurek"
+          ],
+          "required_world_flags": [
+            "npc.sunmarshal-aurek.key-claimed"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Aurek says, \"I have already entrusted my key to another. Return when the redoubt turns again.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen aurek",
+            "listen sunmarshal",
+            "listen sunmarshal aurek",
+            "listen to aurek",
+            "listen to sunmarshal",
+            "listen for aurek"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.sunmarshal-aurek.key-claimed"
+          ],
+          "message": "Aurek says, \"Paladins of our order first bow with respect.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "bow aurek",
+            "bow sunmarshal",
+            "bow sunmarshal aurek",
+            "bow to aurek",
+            "bow to sunmarshal",
+            "bow before aurek"
+          ],
+          "excluded_player_flags": [
+            "npc.sunmarshal-aurek.rewarded",
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.sunmarshal-aurek.key-claimed"
+          ],
+          "set_player_flags": [
+            "npc.sunmarshal-aurek.met",
+            "npc.sunmarshal-aurek.rewarded"
+          ],
+          "set_world_flags": [
+            "npc.sunmarshal-aurek.key-claimed"
+          ],
+          "message": "Aurek bows in return and places a bronze key in your hand. \"Take this to the weathered chest in the loft above the starting chamber.\"",
+          "already_message": "Aurek says, \"I've already given you everything I can.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "grant_item",
+              "template_id": "item.key.loft-chest",
+              "if_missing": true
+            }
+          ]
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.prayer-warden-samiel-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Prayer-Warden Samiel",
+      "is_named": true,
+      "hit_points": 330,
+      "max_hit_points": 330,
+      "power_level": 6,
+      "attacks_per_round": 1,
+      "hit_roll_modifier": 3,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 0,
+      "off_hand_hit_roll_modifier": 0,
+      "coin_reward": 0,
+      "experience_reward": 72,
+      "is_aggro": false,
+      "aggro_player_flags": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "set_player_flags_on_hostile_action": [
+        "zone.sunscour-redoubt.paladins-hostile"
+      ],
+      "is_ally": false,
+      "is_peaceful": false,
+      "respawn": true,
+      "corpse_label_style": "possessive",
+      "pronoun_possessive": "his",
+      "vigor": 74,
+      "max_vigor": 74,
+      "mana": 90,
+      "max_mana": 90,
+      "skill_use_chance": 0.2,
+      "skill_ids": [
+        "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.2,
+      "spell_ids": [
+        "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "room_communications": [
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel squares his shoulders. \"You have chosen treachery. Leave this walk or answer for it.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "message": "A veiled paladin hails you quietly. \"Traveller, the blasphemer to the south was once our chaplain. If you have the strength, put him down and return.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel bows his head. \"The vault has gone still. Kneel at the broken sun and speak absolution; the lower tomb should answer now. If you find the sepulcher key below, bring it to me.\""
+        },
+        {
+          "trigger": "player_enter",
+          "audience": "private",
+          "required_player_flags": [
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel says, \"You have done this redoubt a grace I will remember.\""
+        }
+      ],
+      "keyword_actions": [
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel",
+            "ask samiel about south",
+            "ask samiel about vault",
+            "ask samiel about key"
+          ],
+          "required_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel keeps his sabre ready. \"No counsel remains for oathbreakers.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel",
+            "ask samiel about south",
+            "ask samiel about vault"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "excluded_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "message": "Samiel says, \"The thing to the south was once Brother Merovech, keeper of this vault. End him, and perhaps the old ways below will answer us again.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel",
+            "ask samiel about vault",
+            "ask samiel about key",
+            "ask samiel about sepulcher"
+          ],
+          "required_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel says, \"Return to the vault and kneel at the broken sun. Speak absolution, and the lower sepulcher should open. Bring me the sepulcher key if you survive what waits below.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "give sepulcher key samiel",
+            "give sepulcher key to samiel",
+            "deliver sepulcher key samiel",
+            "deliver sepulcher key to samiel",
+            "present sepulcher key samiel",
+            "present sepulcher key to samiel",
+            "give key samiel",
+            "give key to samiel",
+            "deliver key samiel",
+            "deliver key to samiel",
+            "present key samiel",
+            "present key to samiel"
+          ],
+          "required_item_template_ids": [
+            "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "set_player_flags": [
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel receives the sepulcher key with both hands and exhales at last. \"Then the lower dead may sleep again. You have my thanks, and the order's.\"\nYou gain 450 experience.",
+          "already_message": "Samiel says, \"The key is already where it belongs.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "remove_item",
+              "template_id": "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+              "quantity": 1
+            },
+            {
+              "type": "award_experience",
+              "amount": 450
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "give sepulcher key samiel",
+            "give sepulcher key to samiel",
+            "deliver sepulcher key samiel",
+            "deliver sepulcher key to samiel",
+            "present sepulcher key samiel",
+            "present sepulcher key to samiel",
+            "give key samiel",
+            "give key to samiel",
+            "deliver key samiel",
+            "deliver key to samiel",
+            "present key samiel",
+            "present key to samiel"
+          ],
+          "required_world_flags": [
+            "npc.buried-heresiarch.defeated"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile",
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "message": "Samiel shakes his head. \"What I need is the sepulcher key from the tomb below, nothing less.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        },
+        {
+          "keywords": [
+            "listen samiel",
+            "listen prayer warden",
+            "listen prayer warden samiel",
+            "hail samiel",
+            "speak samiel"
+          ],
+          "required_player_flags": [
+            "npc.prayer-warden-samiel.rewarded"
+          ],
+          "excluded_player_flags": [
+            "zone.sunscour-redoubt.paladins-hostile"
+          ],
+          "message": "Samiel says, \"You have done enough. Go with the sun's mercy.\"",
+          "refresh_view": "none",
+          "actions": [
+            {
+              "type": "noop"
+            }
+          ]
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
+    },
+    {
+      "npc_id": "npc.buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+      "name": "Buried Heresiarch",
+      "hit_points": 3000,
+      "max_hit_points": 3000,
+      "power_level": 10,
+      "attacks_per_round": 2,
+      "hit_roll_modifier": 4,
+      "armor_class": 13,
+      "off_hand_attacks_per_round": 1,
+      "off_hand_hit_roll_modifier": 4,
+      "coin_reward": 96,
+      "experience_reward": 580,
+      "is_aggro": true,
+      "is_ally": false,
+      "set_world_flags_on_death": [
+        "npc.buried-heresiarch.defeated"
+      ],
+      "respawn": true,
+      "pronoun_possessive": "his",
+      "vigor": 72,
+      "max_vigor": 72,
+      "mana": 170,
+      "max_mana": 170,
+      "skill_use_chance": 0.35,
+      "skill_ids": [
+        "skill.sandrush-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "skill.vow-of-endurance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "spell_use_chance": 0.55,
+      "spell_ids": [
+        "spell.solar-lance-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spell.oasis-prayer-7b211de0-4cff-4cbc-83bb-a7a6c9269c83"
+      ],
+      "inventory_items": [
+        {
+          "template_id": "item.sunwell-drop-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 1,
+          "spawn_chance": 100
+        },
+        {
+          "template_id": "item.cracked-sun-medallion-buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+          "quantity": 1,
+          "spawn_chance": 100
+        }
+      ],
+      "main_hand_weapon": {
+        "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      },
+      "off_hand_weapon": {
+        "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+        "spawn_chance": 100,
+        "drop_on_death": 0
+      }
     }
-  ],
-  "items": []
+  ]
 }

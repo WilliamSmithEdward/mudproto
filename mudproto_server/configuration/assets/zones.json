@@ -1,22 +1,102 @@
 [
   {
     "zone_id": "zone.prototype-core",
-    "name": "Prototype Core",
+    "name": "Greybank Gatehouse",
     "repopulate_game_hours": 0
   },
   {
     "zone_id": "zone.northern-wing",
-    "name": "Northern Wing",
+    "name": "Old Greybank Keep",
     "repopulate_game_hours": 1
   },
   {
     "zone_id": "zone.whispering-sanctum",
-    "name": "Whispering Sanctum",
+    "name": "Cinder Chapel",
     "repopulate_game_hours": 1
   },
   {
     "zone_id": "zone.west-road",
-    "name": "West Road",
+    "name": "Lann Road",
     "repopulate_game_hours": 2
+  },
+  {
+    "zone_id": "zone.ashen-sepulcher-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+    "name": "Ashen Sepulcher",
+    "repopulate_game_hours": 36,
+    "repopulation_blocking_item_template_ids": [
+      "item.sepulcher-key-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77"
+    ],
+    "repopulation_block_cooldown_game_hours": 6
+  },
+  {
+    "zone_id": "zone.corrupted-emerald-maze-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+    "name": "The Corrupted Emerald Maze",
+    "repopulate_game_hours": 24,
+    "reset_player_flags": [],
+    "reset_world_flags": [],
+    "reset_container_template_ids": [],
+    "repopulation_blocking_item_template_ids": [],
+    "repopulation_block_cooldown_game_hours": 0,
+    "flag_spawns": []
+  },
+  {
+    "zone_id": "zone.crowbanner-fort-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Crowbanner Fort",
+    "repopulate_game_hours": 2,
+    "reset_player_flags": [],
+    "reset_world_flags": [
+      "npc.ironhook-maela.defeated",
+      "npc.varo-cindersmile.defeated",
+      "npc.seln-of-the-pins.defeated",
+      "npc.brother-cleft.defeated",
+      "npc.hadrik-crowbanner.defeated"
+    ],
+    "reset_container_template_ids": [],
+    "repopulation_blocking_item_template_ids": [],
+    "repopulation_block_cooldown_game_hours": 0,
+    "flag_spawns": [
+      {
+        "npc_id": "npc.hadrik-crowbanner-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "room_id": "room.keep-heart-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+        "count": 1,
+        "required_world_flags": [
+          "npc.ironhook-maela.defeated",
+          "npc.varo-cindersmile.defeated",
+          "npc.seln-of-the-pins.defeated",
+          "npc.brother-cleft.defeated"
+        ],
+        "excluded_world_flags": [
+          "npc.hadrik-crowbanner.defeated"
+        ],
+        "announcement_message": "A roar of iron chains rolls through Crowbanner Fort. The central brazier can now be raised, and Hadrik Crowbanner awaits the challengers who broke his corners."
+      }
+    ]
+  },
+  {
+    "zone_id": "zone.blackwatch-outpost-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+    "name": "Blackwatch Outpost",
+    "repopulate_game_hours": 1
+  },
+  {
+    "zone_id": "zone.sunscour-redoubt-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Sunscour Redoubt",
+    "repopulate_game_hours": 1,
+    "reset_player_flags": [
+      "npc.sunmarshal-aurek.met",
+      "npc.sunmarshal-aurek.rewarded",
+      "npc.prayer-warden-samiel.rewarded",
+      "zone.sunscour-redoubt.paladins-hostile"
+    ],
+    "reset_world_flags": [
+      "npc.sunmarshal-aurek.key-claimed",
+      "npc.buried-heresiarch.defeated"
+    ],
+    "reset_container_template_ids": [
+      "item.container.loft-chest"
+    ],
+    "repopulation_blocking_item_template_ids": [
+      "item.key.loft-chest"
+    ],
+    "repopulation_block_cooldown_game_hours": 6
   }
 ]

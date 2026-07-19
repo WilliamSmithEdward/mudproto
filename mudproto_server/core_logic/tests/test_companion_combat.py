@@ -100,7 +100,7 @@ def test_companion_heals_hurt_owner_with_target_heal_spell() -> None:
         resolve_companion_round(owner, medic, None, parts)
 
         assert owner.status.hit_points > 1
-        assert medic.mana == 68
+        assert medic.mana == 62
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "Mending Word" in rendered
     finally:
@@ -250,7 +250,7 @@ def test_companion_heals_hurt_companion_ally() -> None:
         resolve_companion_round(owner, medic, None, parts)
 
         assert hurt_squire.hit_points > 10
-        assert medic.mana == 68
+        assert medic.mana == 62
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "Bramble Squire" in rendered
     finally:
@@ -437,7 +437,7 @@ def test_companion_heals_itself_when_hurt() -> None:
         resolve_companion_round(owner, medic, None, parts)
 
         assert medic.hit_points > 10
-        assert medic.mana == 68
+        assert medic.mana == 62
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "on themselves" in rendered
     finally:
@@ -482,7 +482,7 @@ def test_companion_heals_group_members_hurt_companion() -> None:
         resolve_companion_round(owner, medic, None, parts)
 
         assert member_squire.hit_points > 10
-        assert medic.mana == 68
+        assert medic.mana == 62
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "Bramble Squire" in rendered
     finally:
@@ -734,7 +734,7 @@ def test_medic_dresses_a_hurt_ally_then_switches_to_burst_heals(monkeypatch) -> 
         resolve_companion_round(owner, medic, enemy, parts)
 
         # Moderately hurt: the ongoing ward goes on first.
-        assert medic.mana == 104
+        assert medic.mana == 96
         assert any(affect.affect_name == "Field Dressing" for affect in owner.active_affects)
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "casts Field Dressing on you" in rendered
@@ -742,7 +742,7 @@ def test_medic_dresses_a_hurt_ally_then_switches_to_burst_heals(monkeypatch) -> 
         # Still hurt but already dressed: the next round uses the burst heal.
         hit_points_before = owner.status.hit_points
         resolve_companion_round(owner, medic, enemy, parts)
-        assert medic.mana == 92
+        assert medic.mana == 78
         assert owner.status.hit_points > hit_points_before
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "casts Mending Word on you" in rendered
@@ -769,7 +769,7 @@ def test_medic_prefers_burst_heal_for_critically_hurt_allies(monkeypatch) -> Non
         parts: list[dict] = []
         resolve_companion_round(owner, medic, enemy, parts)
 
-        assert medic.mana == 108
+        assert medic.mana == 102
         assert owner.status.hit_points > 1
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "casts Mending Word on you" in rendered
@@ -801,7 +801,7 @@ def test_medic_dresses_a_hurt_allied_companion(monkeypatch) -> None:
         parts: list[dict] = []
         resolve_companion_round(owner, medic, enemy, parts)
 
-        assert medic.mana == 104
+        assert medic.mana == 96
         assert any(affect.affect_name == "Field Dressing" for affect in squire.active_affects)
         rendered = "".join(str(part.get("text", "")) for part in parts)
         assert "casts Field Dressing on" in rendered

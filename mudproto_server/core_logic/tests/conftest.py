@@ -68,6 +68,20 @@ def _load_class_asset_ids() -> dict[str, set[str]]:
 				if value:
 					result[kind].add(value)
 
+		raw_unlocks = raw_class.get("ability_unlocks", [])
+		if isinstance(raw_unlocks, list):
+			for raw_unlock in raw_unlocks:
+				if not isinstance(raw_unlock, dict):
+					continue
+				for kind, field_name in (("spells", "spell_ids"), ("skills", "skill_ids")):
+					raw_ids = raw_unlock.get(field_name, [])
+					if not isinstance(raw_ids, list):
+						continue
+					for raw_id in raw_ids:
+						value = str(raw_id).strip().lower()
+						if value:
+							result[kind].add(value)
+
 	return result
 
 

@@ -138,7 +138,7 @@ def test_monk_unarmed_profile_uses_passive_package() -> None:
     assert dual_unarmed_attacks is True
 
 
-def test_complete_login_does_not_auto_add_class_kit_passives_for_loaded_character(monkeypatch) -> None:
+def test_complete_login_reconciles_eligible_class_passives_for_loaded_character(monkeypatch) -> None:
     session = _make_session("client-login-passive", "Lucia")
 
     def _fake_load_player_state(target_session, player_key=None) -> bool:
@@ -167,7 +167,9 @@ def test_complete_login_does_not_auto_add_class_kit_passives_for_loaded_characte
         is_new_character=False,
     )
 
-    assert session.known_passive_ids == []
+    assert [value.strip().lower() for value in session.known_passive_ids] == [
+        "passive.monk-unarmed-mastery"
+    ]
 
 
 def test_complete_login_shows_blank_line_above_welcome_back(monkeypatch) -> None:

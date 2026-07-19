@@ -18,7 +18,7 @@ from room_actions import prepend_room_enter_communications
 from player_resources import clamp_player_resources_to_caps
 from player_state_db import clear_transient_interaction_flags_for_session, load_player_state, save_player_state
 from server_transport import send_outbound
-from session_bootstrap import apply_player_class, ensure_player_attributes
+from session_bootstrap import apply_player_class, ensure_player_attributes, grant_class_abilities_for_level
 from session_registry import (
     active_character_sessions,
     attach_session_to_shared_world,
@@ -351,6 +351,7 @@ def complete_login(session: ClientSession, character_record: dict, *, is_new_cha
     else:
         ensure_player_attributes(session)
 
+    grant_class_abilities_for_level(session)
     posture_was_reset = _reset_session_posture_to_standing(session)
     removed_nonpersistent_count = purge_nonpersistent_items(session, reason="login_sanitization")
     cleared_transient_flags = clear_transient_interaction_flags_for_session(session)

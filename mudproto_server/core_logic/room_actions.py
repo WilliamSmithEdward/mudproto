@@ -11,6 +11,7 @@ from inventory import build_equippable_item_from_template, build_misc_item_from_
 from models import ClientSession
 from player_resources import roll_level_resource_gains
 from server_broadcasts import _line_text
+from session_bootstrap import grant_class_abilities_for_level
 from session_registry import shared_world_flags
 from targeting_entities import list_room_entities
 from world import Room, get_room
@@ -234,6 +235,7 @@ def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int
     if new_level <= old_level:
         return []
     resource_gains = roll_level_resource_gains(session, old_level, new_level)
+    ability_unlocks = grant_class_abilities_for_level(session, new_level)
     show_mana = player_class_uses_mana(session.player.class_id)
     parts: list[dict] = []
     parts.append(newline_part())
@@ -255,6 +257,15 @@ def _build_level_up_lines(session: ClientSession, old_level: int, new_level: int
             build_part(f"+{int(resource_gains.get('mana', 0))}M", "combat_rewards.gain.mana", True),
         ])
     parts.append(newline_part())
+    for unlock in ability_unlocks:
+        kind = str(unlock.get("kind", "ability")).strip().lower() or "ability"
+        name = str(unlock.get("name", "Ability")).strip() or "Ability"
+        parts.extend([
+            build_part(f"New {kind}: ", "combat_rewards.text"),
+            build_part(name, "combat_rewards.level_up", True),
+            build_part(".", "combat_rewards.text"),
+            newline_part(),
+        ])
     return parts_to_lines(parts)
 
 

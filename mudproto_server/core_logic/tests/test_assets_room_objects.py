@@ -28,7 +28,7 @@ def test_room_object_names_are_title_cased(monkeypatch) -> None:
         )
 
 
-def test_room_object_names_title_cased_in_payloads() -> None:
+def test_all_room_object_names_are_title_cased() -> None:
     assets.load_rooms.cache_clear()
     all_rooms = assets.load_rooms()
 
@@ -143,6 +143,59 @@ def test_titlecase_preserves_small_words_in_room_objects(monkeypatch) -> None:
     assert rooms[0]["name"] == "Hall of the Fallen King"
     assert rooms[0]["room_objects"][0]["name"] == "Statue of the Fallen King"
 
+
+def test_exit_detail_name_does_not_replace_room_name(monkeypatch) -> None:
+    raw_rooms = [
+        {
+            "room_id": "test.gatehouse-court",
+            "name": "Gatehouse Court",
+            "description": "A gatehouse court used to test room loading.",
+            "zone_id": "zone.test",
+            "exits": {"west": "test.road"},
+            "exit_details": [
+                {
+                    "direction": "west",
+                    "exit_type": "gate",
+                    "name": "west gate",
+                }
+            ],
+        }
+    ]
+
+    rooms = _load_rooms_with_raw(monkeypatch, raw_rooms)
+
+    assert rooms[0]["name"] == "Gatehouse Court"
+    assert rooms[0]["exit_details"][0]["name"] == "West Gate"
+
+
+def test_starting_region_uses_greybank_content_names() -> None:
+    assets.load_rooms.cache_clear()
+    rooms = {
+        str(room.get("room_id", "")): room
+        for room in assets.load_rooms()
+    }
+    zones = {
+        str(zone.get("zone_id", "")): zone
+        for zone in assets.load_zones()
+    }
+    npcs = {
+        str(npc.get("npc_id", "")): npc
+        for npc in assets.load_npc_templates()
+    }
+    gear = {
+        str(template.get("template_id", "")): template
+        for template in assets.load_gear_templates()
+    }
+
+    assert rooms["start"]["name"] == "Greybank Gatehouse"
+    assert rooms["south-market"]["name"] == "Muster Court"
+    assert rooms["west-road-ford"]["name"] == "Ford of the Lann"
+    assert zones["zone.prototype-core"]["name"] == "Greybank Gatehouse"
+    assert zones["zone.west-road"]["name"] == "Lann Road"
+    assert npcs["npc.companion-squire"]["name"] == "Tarn Rusk"
+    assert npcs["npc.companion-brute"]["name"] == "Bram Keld"
+    assert npcs["npc.companion-field-medic"]["name"] == "Ora Pell"
+    assert gear["weapon.prototype-dawnblade"]["name"] == "Greybank Longsword"
 
 def test_all_gear_names_are_title_cased() -> None:
     for gear in assets.load_gear_templates():

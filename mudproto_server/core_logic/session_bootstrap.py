@@ -1,8 +1,8 @@
 import random
 import uuid
 
-from attribute_config import get_default_player_class, get_player_class_by_id, load_attributes
-from assets import get_gear_template_by_id, get_item_template_by_id
+from attribute_config import get_default_player_class, get_player_class_by_id, load_attributes, load_passives
+from assets import get_gear_template_by_id, get_item_template_by_id, get_skill_by_id, get_spell_by_id
 from equipment_logic import HAND_MAIN, HAND_OFF, equip_item, wear_item
 from inventory import build_equippable_item_from_template, build_misc_item_from_template, is_item_equippable
 from models import ClientSession, ItemState
@@ -110,6 +110,77 @@ def _equip_starting_gear_by_template_id(session: ClientSession, template_id: str
         wear_item(session, item)
 
 
+def grant_class_abilities_for_level(session: ClientSession, level: int | None = None) -> list[dict[str, str]]:
+    player_class = get_player_class_by_id(session.player.class_id)
+    if player_class is None:
+        return []
+
+    target_level = max(1, int(session.player.level if level is None else level))
+    grants = [{
+        "spell_ids": player_class.get("starting_spell_ids", []),
+        "skill_ids": player_class.get("starting_skill_ids", []),
+        "passive_ids": player_class.get("starting_passive_ids", []),
+    }]
+    grants.extend(
+        unlock
+        for unlock in player_class.get("ability_unlocks", [])
+        if int(unlock.get("level", 0)) <= target_level
+    )
+
+    known_spell_ids = {spell_id.strip().lower() for spell_id in session.known_spell_ids if spell_id.strip()}
+    known_skill_ids = {skill_id.strip().lower() for skill_id in session.known_skill_ids if skill_id.strip()}
+    known_passive_ids = {passive_id.strip().lower() for passive_id in session.known_passive_ids if passive_id.strip()}
+    passive_names = {
+        str(passive.get("passive_id", "")).strip().lower(): str(passive.get("name", "Passive")).strip() or "Passive"
+        for passive in load_passives()
+    }
+    unlocked: list[dict[str, str]] = []
+
+    for grant in grants:
+        for raw_spell_id in grant.get("spell_ids", []):
+            spell_id = str(raw_spell_id).strip()
+            normalized_spell_id = spell_id.lower()
+            if not normalized_spell_id or normalized_spell_id in known_spell_ids:
+                continue
+            session.known_spell_ids.append(spell_id)
+            known_spell_ids.add(normalized_spell_id)
+            spell = get_spell_by_id(spell_id)
+            unlocked.append({
+                "kind": "spell",
+                "ability_id": spell_id,
+                "name": str(spell.get("name", spell_id)).strip() if isinstance(spell, dict) else spell_id,
+            })
+
+        for raw_skill_id in grant.get("skill_ids", []):
+            skill_id = str(raw_skill_id).strip()
+            normalized_skill_id = skill_id.lower()
+            if not normalized_skill_id or normalized_skill_id in known_skill_ids:
+                continue
+            session.known_skill_ids.append(skill_id)
+            known_skill_ids.add(normalized_skill_id)
+            skill = get_skill_by_id(skill_id)
+            unlocked.append({
+                "kind": "skill",
+                "ability_id": skill_id,
+                "name": str(skill.get("name", skill_id)).strip() if isinstance(skill, dict) else skill_id,
+            })
+
+        for raw_passive_id in grant.get("passive_ids", []):
+            passive_id = str(raw_passive_id).strip()
+            normalized_passive_id = passive_id.lower()
+            if not normalized_passive_id or normalized_passive_id in known_passive_ids:
+                continue
+            session.known_passive_ids.append(passive_id)
+            known_passive_ids.add(normalized_passive_id)
+            unlocked.append({
+                "kind": "passive",
+                "ability_id": passive_id,
+                "name": passive_names.get(normalized_passive_id, passive_id),
+            })
+
+    return unlocked
+
+
 def apply_player_class(
     session: ClientSession,
     class_id: str | None = None,
@@ -161,29 +232,7 @@ def apply_player_class(
             continue
         _grant_starting_item_from_template(session, template)
 
-    known_spell_ids = {spell_id.strip().lower() for spell_id in session.known_spell_ids if spell_id.strip()}
-    for spell_id in player_class.get("starting_spell_ids", []):
-        normalized_spell_id = str(spell_id).strip().lower()
-        if not normalized_spell_id or normalized_spell_id in known_spell_ids:
-            continue
-        session.known_spell_ids.append(str(spell_id).strip())
-        known_spell_ids.add(normalized_spell_id)
-
-    known_skill_ids = {skill_id.strip().lower() for skill_id in session.known_skill_ids if skill_id.strip()}
-    for skill_id in player_class.get("starting_skill_ids", []):
-        normalized_skill_id = str(skill_id).strip().lower()
-        if not normalized_skill_id or normalized_skill_id in known_skill_ids:
-            continue
-        session.known_skill_ids.append(str(skill_id).strip())
-        known_skill_ids.add(normalized_skill_id)
-
-    known_passive_ids = {passive_id.strip().lower() for passive_id in session.known_passive_ids if passive_id.strip()}
-    for passive_id in player_class.get("starting_passive_ids", []):
-        normalized_passive_id = str(passive_id).strip().lower()
-        if not normalized_passive_id or normalized_passive_id in known_passive_ids:
-            continue
-        session.known_passive_ids.append(str(passive_id).strip())
-        known_passive_ids.add(normalized_passive_id)
+    grant_class_abilities_for_level(session)
 
     if initialize_progression:
         initialize_player_progression(session)

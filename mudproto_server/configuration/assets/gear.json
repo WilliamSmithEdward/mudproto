@@ -4,7 +4,10 @@
     "name": "Training Sword",
     "slot": "weapon",
     "description": "A blunted practice sword issued to new recruits.",
-    "keywords": ["training", "sword"],
+    "keywords": [
+      "training",
+      "sword"
+    ],
     "weapon_type": "sword",
     "can_hold": false,
     "can_two_hand": true,
@@ -22,7 +25,10 @@
     "name": "Training Dagger",
     "slot": "weapon",
     "description": "A lightweight practice dagger for off-hand drills.",
-    "keywords": ["training", "dagger"],
+    "keywords": [
+      "training",
+      "dagger"
+    ],
     "weapon_type": "dagger",
     "can_hold": true,
     "weight": 4,
@@ -39,7 +45,10 @@
     "name": "Scout Dagger",
     "slot": "weapon",
     "description": "A worn dagger taken from a hall scout.",
-    "keywords": ["scout", "dagger"],
+    "keywords": [
+      "scout",
+      "dagger"
+    ],
     "weapon_type": "dagger",
     "can_hold": false,
     "weight": 3,
@@ -53,10 +62,15 @@
   },
   {
     "template_id": "weapon.prototype-dawnblade",
-    "name": "Prototype Dawnblade",
+    "name": "Greybank Longsword",
     "slot": "weapon",
-    "description": "A keen sunsteel sword with a balanced grip and a pale edge that seems to hold the first light of morning.",
-    "keywords": ["prototype", "dawnblade", "sword", "sunsteel"],
+    "description": "A well-kept longsword from Greybank's armory. The steel is plain except for the bank-and-bridge mark struck near the guard.",
+    "keywords": [
+      "greybank",
+      "longsword",
+      "sword",
+      "armory"
+    ],
     "weapon_type": "sword",
     "can_hold": false,
     "can_two_hand": true,
@@ -74,7 +88,11 @@
     "name": "Reaver Nightblade",
     "slot": "weapon",
     "description": "A blackened longsword etched with pale runes that drink the brazier light.",
-    "keywords": ["reaver", "nightblade", "sword"],
+    "keywords": [
+      "reaver",
+      "nightblade",
+      "sword"
+    ],
     "weapon_type": "sword",
     "can_hold": false,
     "can_two_hand": true,
@@ -92,7 +110,11 @@
     "name": "Exarch Doomblade",
     "slot": "weapon",
     "description": "A massive rune-scarred sword that hums with crushing arcane pressure.",
-    "keywords": ["exarch", "doomblade", "sword"],
+    "keywords": [
+      "exarch",
+      "doomblade",
+      "sword"
+    ],
     "weapon_type": "sword",
     "can_hold": false,
     "requires_two_hands": true,
@@ -110,7 +132,12 @@
     "name": "Exarch Emberfang",
     "slot": "weapon",
     "description": "A hooked offhand blade glowing faintly along its ember-bright edge.",
-    "keywords": ["exarch", "emberfang", "blade", "dagger"],
+    "keywords": [
+      "exarch",
+      "emberfang",
+      "blade",
+      "dagger"
+    ],
     "weapon_type": "dagger",
     "can_hold": true,
     "weight": 4,
@@ -127,7 +154,12 @@
     "name": "Sunscour",
     "slot": "weapon",
     "description": "A radiant war axe of pale gold steel whose edge holds a captive dawn; every clean strike threatens to spill sunlight across the whole battlefield.",
-    "keywords": ["sunscour", "axe", "war axe", "sun"],
+    "keywords": [
+      "sunscour",
+      "axe",
+      "war axe",
+      "sun"
+    ],
     "weapon_type": "axe",
     "can_hold": false,
     "can_two_hand": true,
@@ -148,10 +180,15 @@
   },
   {
     "template_id": "weapon.daystar-club",
-    "name": "Daystar",
+    "name": "Warder's Cudgel",
     "slot": "weapon",
-    "description": "A dense offhand cudgel banded in sun-bright bronze; each sharp strike can flare into a focused burst of punishing light.",
-    "keywords": ["daystar", "club", "cudgel", "sun club"],
+    "description": "A short oak cudgel banded with bronze and set with a thumb-sized warding stone. On a hard strike, the stone gives off a white flash.",
+    "keywords": [
+      "warder's",
+      "cudgel",
+      "club",
+      "warding stone"
+    ],
     "weapon_type": "club",
     "can_hold": true,
     "weight": 4,
@@ -166,16 +203,21 @@
     "on_hit_target_damage_dice_count": 1,
     "on_hit_target_damage_dice_sides": 8,
     "on_hit_target_damage_roll_modifier": 0,
-    "on_hit_target_damage_message": "[weapon_name] cracks with focused sunlight and batters your foe again!",
-    "on_hit_target_damage_observer_message": "[actor_name]'s [weapon_name] cracks with focused sunlight and batters the target again!"
+    "on_hit_target_damage_message": "The warding stone in [weapon_name] flashes white and sears your foe!",
+    "on_hit_target_damage_observer_message": "The warding stone in [actor_name]'s [weapon_name] flashes white and sears the target!"
   },
   {
     "template_id": "armor.vanguard-jacket",
     "name": "Vanguard Jacket",
     "slot": "armor",
-    "wear_slots": ["chest"],
+    "wear_slots": [
+      "chest"
+    ],
     "description": "A reinforced jacket worn by front-line trainees.",
-    "keywords": ["vanguard", "jacket"],
+    "keywords": [
+      "vanguard",
+      "jacket"
+    ],
     "weight": 10,
     "coin_value": 30,
     "armor_class_bonus": 2
@@ -184,9 +226,14 @@
     "template_id": "armor.vanguard-boots",
     "name": "Vanguard Boots",
     "slot": "armor",
-    "wear_slots": ["feet"],
+    "wear_slots": [
+      "feet"
+    ],
     "description": "Heavy boots built for marching and impact.",
-    "keywords": ["vanguard", "boots"],
+    "keywords": [
+      "vanguard",
+      "boots"
+    ],
     "weight": 6,
     "coin_value": 20,
     "armor_class_bonus": 1
@@ -195,9 +242,14 @@
     "template_id": "armor.arcanist-robe",
     "name": "Arcanist Robe",
     "slot": "armor",
-    "wear_slots": ["chest"],
+    "wear_slots": [
+      "chest"
+    ],
     "description": "A rune-lined robe favored by novice arcanists.",
-    "keywords": ["arcanist", "robe"],
+    "keywords": [
+      "arcanist",
+      "robe"
+    ],
     "weight": 4,
     "coin_value": 26,
     "armor_class_bonus": 1
@@ -206,9 +258,14 @@
     "template_id": "armor.arcanist-wraps",
     "name": "Arcanist Wraps",
     "slot": "armor",
-    "wear_slots": ["hands"],
+    "wear_slots": [
+      "hands"
+    ],
     "description": "Light hand wraps that steady precise gestures.",
-    "keywords": ["arcanist", "wraps"],
+    "keywords": [
+      "arcanist",
+      "wraps"
+    ],
     "weight": 1,
     "coin_value": 16,
     "armor_class_bonus": 1
@@ -217,9 +274,14 @@
     "template_id": "armor.test-ring-amber",
     "name": "Amber Ring",
     "slot": "armor",
-    "wear_slots": ["ring"],
+    "wear_slots": [
+      "ring"
+    ],
     "description": "A simple brass ring used for slot testing.",
-    "keywords": ["amber", "ring"],
+    "keywords": [
+      "amber",
+      "ring"
+    ],
     "weight": 0,
     "armor_class_bonus": 0
   },
@@ -227,9 +289,14 @@
     "template_id": "armor.test-ring-azure",
     "name": "Azure Ring",
     "slot": "armor",
-    "wear_slots": ["ring"],
+    "wear_slots": [
+      "ring"
+    ],
     "description": "A polished silver ring used for multi-slot testing.",
-    "keywords": ["azure", "ring"],
+    "keywords": [
+      "azure",
+      "ring"
+    ],
     "weight": 0,
     "armor_class_bonus": 0
   },
@@ -237,9 +304,14 @@
     "template_id": "armor.test-chest-vest",
     "name": "Practice Vest",
     "slot": "armor",
-    "wear_slots": ["chest"],
+    "wear_slots": [
+      "chest"
+    ],
     "description": "A padded vest used to test occupied chest-slot behavior.",
-    "keywords": ["practice", "vest"],
+    "keywords": [
+      "practice",
+      "vest"
+    ],
     "weight": 3,
     "armor_class_bonus": 0
   },
@@ -247,9 +319,14 @@
     "template_id": "armor.test-back-cloak",
     "name": "Practice Cloak",
     "slot": "armor",
-    "wear_slots": ["back"],
+    "wear_slots": [
+      "back"
+    ],
     "description": "A padded cloak used to test occupied back-slot behavior.",
-    "keywords": ["practice", "cloak"],
+    "keywords": [
+      "practice",
+      "cloak"
+    ],
     "weight": 2,
     "armor_class_bonus": 0
   },
@@ -257,85 +334,154 @@
     "template_id": "armor.roadstrider-boots",
     "name": "Roadstrider Boots",
     "slot": "armor",
-    "wear_slots": ["feet"],
+    "wear_slots": [
+      "feet"
+    ],
     "description": "Supple dark boots reinforced with ridgehide and weighted for perfect balance over loose roadstone.",
-    "keywords": ["roadstrider", "boots", "road"],
+    "keywords": [
+      "roadstrider",
+      "boots",
+      "road"
+    ],
     "weight": 4,
     "coin_value": 240,
     "armor_class_bonus": 2,
     "equipment_effects": [
-      { "effect_type": "dex", "amount": 3 },
-      { "effect_type": "vigor", "amount": 46 },
-      { "effect_type": "hitroll", "amount": 6 }
+      {
+        "effect_type": "dex",
+        "amount": 3
+      },
+      {
+        "effect_type": "vigor",
+        "amount": 46
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 6
+      }
     ]
   },
   {
     "template_id": "armor.stoneheart-cloak",
     "name": "Stoneheart Cloak",
     "slot": "armor",
-    "wear_slots": ["back"],
+    "wear_slots": [
+      "back"
+    ],
     "description": "A heavy mantle lined with kiln-dried plates that steady the breath and harden the body against fatigue.",
-    "keywords": ["stoneheart", "cloak", "mantle"],
+    "keywords": [
+      "stoneheart",
+      "cloak",
+      "mantle"
+    ],
     "weight": 5,
     "coin_value": 260,
     "armor_class_bonus": 3,
     "equipment_effects": [
-      { "effect_type": "con", "amount": 3 },
-      { "effect_type": "hit_points", "amount": 40 }
+      {
+        "effect_type": "con",
+        "amount": 3
+      },
+      {
+        "effect_type": "hit_points",
+        "amount": 40
+      }
     ]
   },
   {
     "template_id": "armor.waywarden-bracers",
     "name": "Waywarden Bracers",
     "slot": "armor",
-    "wear_slots": ["hands"],
+    "wear_slots": [
+      "hands"
+    ],
     "description": "Lacquered travel bracers etched with mile-marks that guide every strike into the surest opening.",
-    "keywords": ["waywarden", "bracers"],
+    "keywords": [
+      "waywarden",
+      "bracers"
+    ],
     "weight": 3,
     "coin_value": 220,
     "armor_class_bonus": 2,
     "equipment_effects": [
-      { "effect_type": "dex", "amount": 3 },
-      { "effect_type": "hitroll", "amount": 6 }
+      {
+        "effect_type": "dex",
+        "amount": 3
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 6
+      }
     ]
   },
   {
     "template_id": "armor.ridgebreaker-harness",
     "name": "Ridgebreaker Harness",
     "slot": "armor",
-    "wear_slots": ["chest"],
+    "wear_slots": [
+      "chest"
+    ],
     "description": "A broad leather-and-iron harness built for caravan breakers who fought like battering rams.",
-    "keywords": ["ridgebreaker", "harness"],
+    "keywords": [
+      "ridgebreaker",
+      "harness"
+    ],
     "weight": 8,
     "coin_value": 310,
     "armor_class_bonus": 4,
     "equipment_effects": [
-      { "effect_type": "con", "amount": 3 },
-      { "effect_type": "hit_points", "amount": 40 },
-      { "effect_type": "weapon_damage", "amount": 4 }
+      {
+        "effect_type": "con",
+        "amount": 3
+      },
+      {
+        "effect_type": "hit_points",
+        "amount": 40
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 4
+      }
     ]
   },
   {
     "template_id": "armor.twinway-signet",
     "name": "Twinway Signet",
     "slot": "armor",
-    "wear_slots": ["ring"],
+    "wear_slots": [
+      "ring"
+    ],
     "description": "A roadwarden signet cut with two crossing trails, said to favor both quick feet and stubborn lungs.",
-    "keywords": ["twinway", "signet", "ring"],
+    "keywords": [
+      "twinway",
+      "signet",
+      "ring"
+    ],
     "weight": 0,
     "coin_value": 290,
     "armor_class_bonus": 1,
     "equipment_effects": [
-      { "effect_type": "dex", "amount": 3 },
-      { "effect_type": "con", "amount": 3 }
+      {
+        "effect_type": "dex",
+        "amount": 3
+      },
+      {
+        "effect_type": "con",
+        "amount": 3
+      }
     ]
   },
   {
     "template_id": "weapon.mercenary-scimitar",
-    "name": "Wicked Curved Scimitar",
+    "name": "Notched Road Sabre",
     "slot": "weapon",
-    "description": "A wickedly curved scimitar, its edge notched from hard use on the road.",
-    "keywords": ["scimitar", "curved", "wicked", "mercenary"],
+    "description": "A broad, single-edged sabre with a dark leather grip. Nicks along the edge show years of rough sharpening beside the road.",
+    "keywords": [
+      "sabre",
+      "road sabre",
+      "notched",
+      "mercenary"
+    ],
     "weapon_type": "sword",
     "can_hold": false,
     "can_two_hand": false,
@@ -347,5 +493,382 @@
     "hit_roll_modifier": 4,
     "attack_damage_bonus": 0,
     "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.censer-chain-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+    "name": "Censer Chain",
+    "slot": "weapon",
+    "description": "A length of blackened links ending in a bronze censer heavy with bitter ash.",
+    "keywords": [
+      "censer",
+      "chain",
+      "ash",
+      "flail"
+    ],
+    "weapon_type": "mace",
+    "can_hold": true,
+    "weight": 5,
+    "coin_value": 64,
+    "damage_dice_count": 3,
+    "damage_dice_sides": 6,
+    "damage_roll_modifier": 2,
+    "hit_roll_modifier": 2,
+    "attack_damage_bonus": 0,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.sepulcher-maul-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+    "name": "Sepulcher Maul",
+    "slot": "weapon",
+    "description": "A square-headed war maul stained with old soot and prayer-oil.",
+    "keywords": [
+      "sepulcher",
+      "maul",
+      "warhammer",
+      "hammer"
+    ],
+    "weapon_type": "club",
+    "can_hold": false,
+    "can_two_hand": true,
+    "weight": 9,
+    "coin_value": 91,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 7,
+    "damage_roll_modifier": 3,
+    "hit_roll_modifier": 3,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "armor.funerary-plate-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
+    "name": "Funerary Plate",
+    "slot": "armor",
+    "description": "Laminar plates lacquered in ash-black varnish and inscribed with dim protective verses.",
+    "keywords": [
+      "funerary",
+      "plate",
+      "armor",
+      "ash"
+    ],
+    "weight": 10,
+    "coin_value": 86,
+    "armor_class_bonus": 3,
+    "wear_slots": [
+      "chest"
+    ]
+  },
+  {
+    "template_id": "weapon.ironhook-cleaver-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Ironhook Cleaver",
+    "slot": "weapon",
+    "description": "A broad chopping blade with a hooked back-spur meant to drag shields and flesh alike out of line.",
+    "keywords": [
+      "ironhook",
+      "cleaver",
+      "hook",
+      "blade"
+    ],
+    "weapon_type": "axe",
+    "can_hold": false,
+    "can_two_hand": true,
+    "weight": 9,
+    "coin_value": 180,
+    "damage_dice_count": 5,
+    "damage_dice_sides": 8,
+    "damage_roll_modifier": 4,
+    "hit_roll_modifier": 4,
+    "attack_damage_bonus": 2,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Smokeglass Dirk",
+    "slot": "weapon",
+    "description": "A narrow black dirk whose edge shines like wet soot in firelight.",
+    "keywords": [
+      "smokeglass",
+      "dirk",
+      "dagger",
+      "black knife"
+    ],
+    "weapon_type": "dagger",
+    "can_hold": true,
+    "weight": 2,
+    "coin_value": 125,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 6,
+    "damage_roll_modifier": 2,
+    "hit_roll_modifier": 3,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Cinderbrand Sabre",
+    "slot": "weapon",
+    "description": "A heat-blushed sabre wrapped in charred leather, still faintly warm to the touch.",
+    "keywords": [
+      "cinderbrand",
+      "sabre",
+      "sword",
+      "ember"
+    ],
+    "weapon_type": "sword",
+    "can_hold": false,
+    "can_two_hand": false,
+    "weight": 7,
+    "coin_value": 170,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 8,
+    "damage_roll_modifier": 4,
+    "hit_roll_modifier": 4,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Tower Shiv",
+    "slot": "weapon",
+    "description": "A long stabbing knife balanced for vicious work in narrow stairs and murder slits.",
+    "keywords": [
+      "tower",
+      "shiv",
+      "knife",
+      "dagger"
+    ],
+    "weapon_type": "dagger",
+    "can_hold": true,
+    "weight": 3,
+    "coin_value": 150,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 7,
+    "damage_roll_modifier": 3,
+    "hit_roll_modifier": 4,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Carrion Maul",
+    "slot": "weapon",
+    "description": "A brutal iron maul wrapped in grave-cloth strips stiff with old blood and lamp soot.",
+    "keywords": [
+      "carrion",
+      "maul",
+      "hammer",
+      "club"
+    ],
+    "weapon_type": "club",
+    "can_hold": false,
+    "can_two_hand": true,
+    "weight": 12,
+    "coin_value": 195,
+    "damage_dice_count": 6,
+    "damage_dice_sides": 8,
+    "damage_roll_modifier": 5,
+    "hit_roll_modifier": 3,
+    "attack_damage_bonus": 2,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Crowbanner Greatsword",
+    "slot": "weapon",
+    "description": "A torn black pennon is wired beneath the hilt of this immense greatsword so it snaps and hisses with every swing.",
+    "keywords": [
+      "crowbanner",
+      "greatsword",
+      "sword",
+      "banner blade"
+    ],
+    "weapon_type": "sword",
+    "can_hold": false,
+    "requires_two_hands": true,
+    "weight": 13,
+    "coin_value": 320,
+    "damage_dice_count": 8,
+    "damage_dice_sides": 10,
+    "damage_roll_modifier": 7,
+    "hit_roll_modifier": 6,
+    "attack_damage_bonus": 4,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "armor.crowbanner-plate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
+    "name": "Crowbanner Plate",
+    "slot": "armor",
+    "wear_slots": [
+      "chest"
+    ],
+    "description": "A scorched breastplate lacquered black and stamped with the torn-wing badge of the fort.",
+    "keywords": [
+      "crowbanner",
+      "plate",
+      "breastplate",
+      "armor"
+    ],
+    "weight": 16,
+    "coin_value": 240,
+    "armor_class_bonus": 4
+  },
+  {
+    "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+    "name": "Dark Iron Greatsword",
+    "slot": "weapon",
+    "description": "A broad darkened blade maintained with severe discipline and funeral oil.",
+    "keywords": [
+      "dark",
+      "iron",
+      "greatsword",
+      "blackwatch",
+      "sword"
+    ],
+    "weapon_type": "sword",
+    "can_hold": false,
+    "weight": 9,
+    "coin_value": 72,
+    "damage_dice_count": 5,
+    "damage_dice_sides": 6,
+    "damage_roll_modifier": 2,
+    "hit_roll_modifier": 2,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.grave-mace-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+    "name": "Grave Mace",
+    "slot": "weapon",
+    "description": "A flanged iron mace engraved with ash-choked prayers.",
+    "keywords": [
+      "grave",
+      "mace",
+      "priest",
+      "iron"
+    ],
+    "weapon_type": "mace",
+    "can_hold": false,
+    "weight": 7,
+    "coin_value": 64,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 6,
+    "damage_roll_modifier": 2,
+    "hit_roll_modifier": 1,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "armor.blackwatch-cuirass-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+    "name": "Blackwatch Cuirass",
+    "slot": "armor",
+    "description": "A soot-dark breastplate worn by outpost enforcers.",
+    "keywords": [
+      "blackwatch",
+      "cuirass",
+      "armor",
+      "chest"
+    ],
+    "weight": 12,
+    "coin_value": 58,
+    "armor_class_bonus": 2,
+    "wear_slots": [
+      "chest"
+    ]
+  },
+  {
+    "template_id": "armor.ossuary-cloak-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
+    "name": "Ossuary Cloak",
+    "slot": "armor",
+    "description": "A heavy cloak lined with grave-dust thread and stitched bone toggles.",
+    "keywords": [
+      "ossuary",
+      "cloak",
+      "back",
+      "grave"
+    ],
+    "weight": 3,
+    "coin_value": 44,
+    "armor_class_bonus": 1,
+    "wear_slots": [
+      "back"
+    ]
+  },
+  {
+    "template_id": "weapon.sunpiercer-sabre-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Sunpiercer Sabre",
+    "slot": "weapon",
+    "description": "A curved paladin blade polished bright enough to throw hard desert light into an enemy's eyes.",
+    "keywords": [
+      "sunpiercer",
+      "sabre",
+      "paladin",
+      "sword"
+    ],
+    "weapon_type": "sword",
+    "can_hold": false,
+    "can_two_hand": true,
+    "weight": 7,
+    "coin_value": 82,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 7,
+    "damage_roll_modifier": 2,
+    "hit_roll_modifier": 3,
+    "attack_damage_bonus": 1,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "weapon.glassfang-knife-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Glassfang Knife",
+    "slot": "weapon",
+    "description": "A serrated blade chipped from amber desert glass and wrapped in cracked leather.",
+    "keywords": [
+      "glassfang",
+      "knife",
+      "glass",
+      "dagger"
+    ],
+    "weapon_type": "dagger",
+    "can_hold": true,
+    "weight": 2,
+    "coin_value": 48,
+    "damage_dice_count": 3,
+    "damage_dice_sides": 4,
+    "damage_roll_modifier": 1,
+    "hit_roll_modifier": 2,
+    "attack_damage_bonus": 0,
+    "attacks_per_round_bonus": 0
+  },
+  {
+    "template_id": "armor.veilwalker-cloak-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Veilwalker Cloak",
+    "slot": "armor",
+    "description": "A pale sand-colored cloak woven to blur the wearer's outline against moving dunes.",
+    "keywords": [
+      "veilwalker",
+      "cloak",
+      "sand"
+    ],
+    "weight": 2,
+    "coin_value": 54,
+    "armor_class_bonus": 1,
+    "wear_slots": [
+      "back"
+    ]
+  },
+  {
+    "template_id": "armor.sunwarden-cuirass-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Sunwarden Cuirass",
+    "slot": "armor",
+    "description": "A disciplined breastplate marked with a hidden order's radiant seal beneath the dust.",
+    "keywords": [
+      "sunwarden",
+      "cuirass",
+      "paladin"
+    ],
+    "weight": 11,
+    "coin_value": 88,
+    "armor_class_bonus": 3,
+    "wear_slots": [
+      "chest"
+    ]
   }
 ]

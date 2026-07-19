@@ -6,9 +6,14 @@ import item_logic
 import json
 from pathlib import Path
 import pytest
-from attribute_config import get_affect_template_by_id
+from attribute_config import get_affect_template_by_id, get_player_class_by_id
 from assets import _resolve_asset_affects, get_skill_by_id, get_spell_by_id
-from combat_ability_effects import _apply_entity_dealt_damage_multiplier, _preview_entity_damage_with_reduction
+from combat_ability_effects import (
+    _apply_ability_affects,
+    _apply_entity_dealt_damage_multiplier,
+    _apply_player_damage_with_reduction,
+    _preview_entity_damage_with_reduction,
+)
 from grammar import with_article
 from game_hour_ticks import process_game_hour_tick
 from models import ActiveAffectState, ClientSession, EntityState, ItemState
@@ -86,6 +91,7 @@ def test_shared_affect_templates_stay_generic() -> None:
     dealt_damage = _read_raw_affect("affect.dealt-damage")
     regeneration = _read_raw_affect("affect.regeneration")
     extra_hits = _read_raw_affect("affect.extra-hits")
+    damage_reduction = _read_raw_affect("affect.damage-reduction")
 
     assert "target" not in received_damage
     assert "target" not in dealt_damage
@@ -99,6 +105,8 @@ def test_shared_affect_templates_stay_generic() -> None:
     assert dealt_damage.get("can_be_negative") is True
     assert regeneration.get("can_be_negative") is False
     assert extra_hits.get("can_be_negative") is False
+    assert damage_reduction.get("descriptor") == "Damage Reduction"
+    assert damage_reduction.get("can_be_negative") is False
 
 
 def test_ice_storm_asset_has_aoe_damage_and_damage_dealt_debuff() -> None:
@@ -109,7 +117,7 @@ def test_ice_storm_asset_has_aoe_damage_and_damage_dealt_debuff() -> None:
     assert isinstance(ice_storm, dict)
     assert ice_storm.get("name") == "Ice Storm"
     assert ice_storm.get("cast_type") == "aoe"
-    assert 40 <= int(ice_storm.get("mana_cost", 0)) <= 50
+    assert 68 <= int(ice_storm.get("mana_cost", 0)) <= 72
     assert int(ice_storm.get("damage_dice_count", 0)) * int(ice_storm.get("damage_dice_sides", 0)) + int(ice_storm.get("damage_modifier", 0)) > (
         int(ember_lance.get("damage_dice_count", 0)) * int(ember_lance.get("damage_dice_sides", 0)) + int(ember_lance.get("damage_modifier", 0))
     )
@@ -851,3 +859,129 @@ def test_support_spell_rejects_another_players_companion() -> None:
     assert applied is False
     assert companion.hit_points == 40
     assert caster.status.mana == 50
+
+
+def test_bark_skin_asset_is_a_starting_targeted_timed_ward() -> None:
+    spell = get_spell_by_id("spell.bark-skin")
+    arcanist = get_player_class_by_id("class.arcanist")
+
+    assert isinstance(spell, dict)
+    assert isinstance(arcanist, dict)
+    assert spell["name"] == "Bark Skin"
+    assert spell["spell_type"] == "support"
+    assert spell["cast_type"] == "target"
+    assert spell["support_effect"] == ""
+    assert spell["support_mode"] == "timed"
+    assert spell["duration_hours"] == 4
+    assert spell["mana_cost"] == 30
+    bark_skin_unlock = next(
+        unlock for unlock in arcanist["ability_unlocks"] if "spell.bark-skin" in unlock["spell_ids"]
+    )
+    assert bark_skin_unlock["level"] == 5
+
+    assert len(spell["affect_ids"]) == 1
+    affect = spell["affect_ids"][0]
+    assert affect["affect_id"] == "affect.damage-reduction"
+    assert affect["target"] == "target"
+    assert affect["affect_mode"] == "timed"
+    assert affect["amount"] == 6
+    assert affect["duration_hours"] == 4
+
+
+def test_bark_skin_can_be_cast_on_self() -> None:
+    caster = _make_session("client-bark-self", "Caster")
+    caster.status.mana = 100
+    spell = get_spell_by_id("spell.bark-skin")
+    assert isinstance(spell, dict)
+
+    _, applied = player_abilities.cast_spell(caster, spell)
+
+    assert applied is True
+    assert caster.status.mana == 70
+    assert len(caster.active_affects) == 1
+    affect = caster.active_affects[0]
+    assert affect.affect_id == "affect.damage-reduction"
+    assert affect.affect_name == "Bark Skin"
+    assert affect.remaining_hours == 4
+    before_hp = caster.status.hit_points
+    assert _apply_player_damage_with_reduction(caster, 20) == 14
+    assert caster.status.hit_points == before_hp - 14
+
+
+def test_bark_skin_can_be_cast_on_another_player(monkeypatch) -> None:
+    caster = _make_session("client-bark-caster", "Caster")
+    target = _make_session("client-bark-target", "Receiver")
+    caster.status.mana = 100
+    spell = get_spell_by_id("spell.bark-skin")
+    assert isinstance(spell, dict)
+    monkeypatch.setattr(
+        player_abilities,
+        "_resolve_room_player_selector",
+        lambda _session, _target_name, require_exact_name=True: (target, None),
+    )
+
+    _, applied = player_abilities.cast_spell(caster, spell, "Receiver")
+
+    assert applied is True
+    assert caster.status.mana == 70
+    assert caster.active_affects == []
+    assert len(target.active_affects) == 1
+    assert target.active_affects[0].affect_id == "affect.damage-reduction"
+    assert target.active_affects[0].remaining_hours == 4
+
+
+def test_bark_skin_can_be_cast_on_an_owned_companion() -> None:
+    caster = _make_session("client-bark-companion", "Caster")
+    caster.status.mana = 100
+    companion = _make_companion("caster")
+    companion.name = "Tarn Rusk"
+    caster.entities[companion.entity_id] = companion
+    spell = get_spell_by_id("spell.bark-skin")
+    assert isinstance(spell, dict)
+
+    _, applied = player_abilities.cast_spell(caster, spell, "Tarn Rusk")
+
+    assert applied is True
+    assert caster.status.mana == 70
+    assert caster.active_affects == []
+    assert len(companion.active_affects) == 1
+    affect = companion.active_affects[0]
+    assert affect.affect_id == "affect.damage-reduction"
+    assert affect.remaining_hours == 4
+    assert _preview_entity_damage_with_reduction(companion, 20) == 14
+
+
+@pytest.mark.parametrize(
+    ("skill_id", "expected_reduction", "expected_rounds"),
+    [
+        ("skill.wingstorm-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1", 22, 3),
+        ("skill.plank-guard-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11", 8, 2),
+    ],
+)
+def test_existing_damage_reduction_skills_apply_their_declared_defense(
+    skill_id: str,
+    expected_reduction: int,
+    expected_rounds: int,
+) -> None:
+    skill = get_skill_by_id(skill_id)
+    entity = EntityState(
+        entity_id="entity-defender",
+        name="Defender",
+        room_id="start",
+        hit_points=100,
+        max_hit_points=100,
+    )
+    assert isinstance(skill, dict)
+
+    applied = _apply_ability_affects(
+        actor=entity,
+        target=entity,
+        ability=skill,
+        affect_target="self",
+    )
+
+    assert applied is True
+    assert len(entity.active_affects) == 1
+    assert entity.active_affects[0].affect_id == "affect.damage-reduction"
+    assert entity.active_affects[0].remaining_rounds == expected_rounds
+    assert _preview_entity_damage_with_reduction(entity, 30) == 30 - expected_reduction
