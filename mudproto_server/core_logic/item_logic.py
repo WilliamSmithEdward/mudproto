@@ -79,6 +79,32 @@ def _format_item_wear_slots(item: ItemState) -> str:
     return ", ".join(slot.replace("_", " ").title() for slot in wear_slots)
 
 
+_EQUIPMENT_EFFECT_LABELS = {
+    "hit_points": "max HP",
+    "vigor": "max vigor",
+    "mana": "max mana",
+    "weapon_damage": "weapon damage",
+    "hitroll": "hit roll",
+}
+
+
+def _format_item_equipment_effects(item: ItemState) -> str:
+    labels: list[str] = []
+    for effect in getattr(item, "equipment_effects", []) or []:
+        if not isinstance(effect, dict):
+            continue
+        effect_type = str(effect.get("effect_type", "")).strip().lower()
+        if not effect_type:
+            continue
+        amount = int(effect.get("amount", 0))
+        if effect_type == "damage_reduction":
+            labels.append(f"{-amount:+d} damage taken")
+            continue
+        effect_label = _EQUIPMENT_EFFECT_LABELS.get(effect_type, effect_type.upper())
+        labels.append(f"{amount:+d} {effect_label}")
+    return ", ".join(labels)
+
+
 def _display_item_examination(session: ClientSession, item: ItemState, *, default_location: str = "Inventory") -> OutboundResult:
     kind_label = _resolve_item_kind_label(item)
     location_label = _resolve_item_location_label(session, item, default_label=default_location)
@@ -90,13 +116,29 @@ def _display_item_examination(session: ClientSession, item: ItemState, *, defaul
     if kind_label == "Weapon":
         weapon_type = str(getattr(item, "weapon_type", "") or "weapon").replace("_", " ").title()
         rows.append(["Weapon Type", weapon_type])
+        dice_count = max(0, int(getattr(item, "damage_dice_count", 0)))
+        dice_sides = max(0, int(getattr(item, "damage_dice_sides", 0)))
+        if dice_count > 0 and dice_sides > 0:
+            damage_modifier = int(getattr(item, "damage_roll_modifier", 0)) + int(getattr(item, "attack_damage_bonus", 0))
+            modifier_label = f"{damage_modifier:+d}" if damage_modifier else ""
+            rows.append(["Damage", f"{dice_count}d{dice_sides}{modifier_label}"])
+        hit_modifier = int(getattr(item, "hit_roll_modifier", 0))
+        if hit_modifier:
+            rows.append(["Hit Roll", f"{hit_modifier:+d}"])
     elif kind_label == "Armor":
         wear_slot_label = _format_item_wear_slots(item)
         if wear_slot_label:
             rows.append(["Wear Slot", wear_slot_label])
+        armor_bonus = max(0, int(getattr(item, "armor_class_bonus", 0)))
+        if armor_bonus:
+            rows.append(["Armor Class", f"+{armor_bonus}"])
     elif kind_label == "Container":
         rows.append(["Carryable", "Yes" if bool(getattr(item, "portable", True)) else "No"])
         rows.append(["Contents", str(len(getattr(item, "container_items", {})))])
+
+    equipment_effects = _format_item_equipment_effects(item)
+    if equipment_effects:
+        rows.append(["Bonuses", equipment_effects])
 
     parts = build_menu_table_parts(
         str(getattr(item, "name", "Item")).strip() or "Item",

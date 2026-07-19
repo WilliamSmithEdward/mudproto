@@ -55,7 +55,7 @@ def test_grant_class_abilities_for_level_adds_crossed_unlocks_once() -> None:
     unlocked_again = grant_class_abilities_for_level(arcanist, 5)
 
     assert [(entry["kind"], entry["name"]) for entry in unlocked] == [
-        ("skill", "Guard Breath"),
+        ("skill", "Catch Breath"),
         ("spell", "Arc Bolt"),
         ("spell", "Mending Word"),
         ("spell", "Bark Skin"),

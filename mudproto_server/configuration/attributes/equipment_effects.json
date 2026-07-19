@@ -3,5 +3,6 @@
   "vigor",
   "mana",
   "weapon_damage",
-  "hitroll"
+  "hitroll",
+  "damage_reduction"
 ]

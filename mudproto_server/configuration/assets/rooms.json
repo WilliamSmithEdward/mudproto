@@ -401,7 +401,37 @@
   {
     "room_id": "sanctum",
     "name": "Cinder Chapel",
-    "description": "Soot veils the little chapel's wall paintings. Fresh chalk wards cross the floor between bronze lamps, and ash has been pressed into the mortar around the eastern door.",
+    "description": "The chapel's west doors stand open toward Greybank's gatehouse. Rain taps a patched lead roof above benches shoved against the walls. Chalk circles, bowls of clean sand, and bronze trimming shears cover a long worktable, while a sour thread of smoke rises through the floor grating. Narrow doors lead north and east, and worn steps descend.",
+    "zone_id": "zone.whispering-sanctum",
+    "npcs": [
+      {
+        "npc_id": "npc.cinder-chapel-keeper",
+        "count": 1
+      }
+    ],
+    "room_objects": [
+      {
+        "object_id": "chapel-worktable",
+        "name": "Chapel Worktable",
+        "description": "Clean winding cloth, copper shears, chalk, and thumb-sized cakes of black wax are laid out in working order. Two pieces of cloth have been cut away in haste and never hemmed."
+      },
+      {
+        "object_id": "floor-grating",
+        "name": "Floor Grating",
+        "description": "Warm air climbs through the iron grating with the smell of wet soot and bitter grave salt. The draft should be rising faster than it is."
+      }
+    ],
+    "exits": {
+      "west": "start",
+      "north": "room.cinder-chapel-vestry",
+      "east": "room.cinder-chapel-chancel",
+      "down": "reliquary"
+    }
+  },
+  {
+    "room_id": "room.cinder-chapel-vestry",
+    "name": "Linen Vestry",
+    "description": "Wooden racks crowd a low room where burial cloth is washed, boiled, and cut. A copper vat still steams over a banked charcoal fire. One rack has been torn from the wall, scattering damp linen across the north aisle, while a second doorway opens east toward the clerks' benches.",
     "zone_id": "zone.whispering-sanctum",
     "npcs": [
       {
@@ -409,24 +439,168 @@
         "count": 1
       }
     ],
+    "room_objects": [
+      {
+        "object_id": "copper-washing-vat",
+        "name": "Copper Washing Vat",
+        "description": "The vat holds grey water, soapwort, and strips of linen. Greenish wax floats on the surface, carried up from cloth that should have been burned below."
+      }
+    ],
     "exits": {
-      "west": "start",
-      "south": "reliquary"
+      "south": "sanctum",
+      "east": "room.cinder-chapel-choir"
+    }
+  },
+  {
+    "room_id": "room.cinder-chapel-choir",
+    "name": "Clerks' Choir",
+    "description": "Two rows of sloped desks face a plain stone lectern. The chapel's death rolls lie open beside tally sticks for lamp oil, salt, and linen. Sooty fingerprints cross the newest entries, and a handbell has been tied silent with waxed cord. The vestry lies west; the chancel is south.",
+    "zone_id": "zone.whispering-sanctum",
+    "npcs": [
+      {
+        "npc_id": "npc.cinder-chapel-reader",
+        "count": 1
+      }
+    ],
+    "room_objects": [
+      {
+        "object_id": "chapel-death-rolls",
+        "name": "Chapel Death Rolls",
+        "description": "Most entries list a name, a family mark, and the fee paid for linen and ash. The last two lines name chapel workers instead of townsfolk: Devan Pell and Prior Oren Saye. Oren's line has no burial date."
+      },
+      {
+        "object_id": "bound-handbell",
+        "name": "Bound Handbell",
+        "description": "Black waxed cord holds the clapper tight. A thinner wire runs from the bell through a drilled hole in the floor toward the undercroft."
+      }
+    ],
+    "exits": {
+      "west": "room.cinder-chapel-vestry",
+      "south": "room.cinder-chapel-chancel"
+    }
+  },
+  {
+    "room_id": "room.cinder-chapel-chancel",
+    "name": "Open Chancel",
+    "description": "A missing roof slate lets rain fall beside the altar, where buckets have been arranged to spare the chalk work. The eastern wall carries old smoke stains, but its lamps are cold and the air is clearer here. A narrow door leads north to the clerks' choir; the nave is west.",
+    "zone_id": "zone.whispering-sanctum",
+    "npcs": [],
+    "room_objects": [
+      {
+        "object_id": "cinder-altar",
+        "name": "Cinder Altar",
+        "description": "The altar is a waist-high dressing stone with channels for washing water. Its bronze lamp cups have been scraped clean, ready for oil that has not arrived."
+      },
+      {
+        "object_id": "rain-buckets",
+        "name": "Rain Buckets",
+        "description": "Each bucket bears Greybank's bank-and-bridge mark. Fresh chalk circles around their bases keep roof water from carrying soot across the ward lines."
+      }
+    ],
+    "exits": {
+      "west": "sanctum",
+      "north": "room.cinder-chapel-choir"
     }
   },
   {
     "room_id": "reliquary",
-    "name": "Chapel Undercroft",
-    "description": "Short stone pillars divide the chapel undercroft into burial bays. Someone has cleared one bay for a workroom: cinder braziers heat strips of warded steel, and black wax seals the oldest tomb.",
+    "name": "Burial Bays",
+    "description": "Short stone pillars divide the undercroft into numbered bays. The Cinder keepers have stacked the recent dead on clean boards above the damp floor, each wrapped and tagged for kin. Heat presses in from the east passage, softening the black wax seals on the oldest niches. Steps climb to the chapel.",
     "zone_id": "zone.whispering-sanctum",
     "npcs": [
       {
-        "npc_id": "npc.ashen-reliquary-exarch",
+        "npc_id": "npc.cinder-chapel-burial-hand",
         "count": 1
       }
     ],
+    "room_objects": [
+      {
+        "object_id": "burial-boards",
+        "name": "Burial Boards",
+        "description": "The boards are scrubbed and raised on stone trestles. Clay tags identify each body and record which family has been sent for; the chapel's own missing workers have no place among them."
+      },
+      {
+        "object_id": "softened-niche-seals",
+        "name": "Softened Niche Seals",
+        "description": "Black wax has begun to sag from the oldest burial niches. Fine grey dust gathers beneath the gaps, though nothing inside has forced its way out."
+      }
+    ],
     "exits": {
-      "north": "sanctum"
+      "up": "sanctum",
+      "east": "room.cinder-chapel-ash-store"
+    }
+  },
+  {
+    "room_id": "room.cinder-chapel-ash-store",
+    "name": "Ash Store",
+    "description": "Lidded bins fill a barrel-vaulted store beside the burial bays. Chalk labels separate hearth ash, clean bone ash, grave salt, and spoiled sweepings. Three lids have been split for kindling, and green grave wax has been kneaded into the kiln feed. A soot-black passage turns south.",
+    "zone_id": "zone.whispering-sanctum",
+    "npcs": [
+      {
+        "npc_id": "npc.cinder-chapel-kiln-tender",
+        "count": 1
+      }
+    ],
+    "room_objects": [
+      {
+        "object_id": "split-ash-bins",
+        "name": "Split Ash Bins",
+        "description": "Each bin was built for one grade of ash. The broken lids came from the spoiled-sweepings bins, where scraps of old wax and damp grave cloth should have been discarded."
+      },
+      {
+        "object_id": "green-grave-wax",
+        "name": "Green Grave Wax",
+        "description": "The wax smells of tallow and copper. Mixed into a warding fire, it would hold heat while fouling the flue with a heavy, bitter smoke."
+      }
+    ],
+    "exits": {
+      "west": "reliquary",
+      "south": "room.cinder-chapel-kiln-stair"
+    }
+  },
+  {
+    "room_id": "room.cinder-chapel-kiln-stair",
+    "name": "Kiln Stair",
+    "description": "The passage narrows around a steep stair cut through older foundation stone. A bell wire descends along the wall beside an iron chain used to work the lower damper. Both have been severed at shoulder height. Hot air pulses from below, followed by long pauses when the flue draws nothing.",
+    "zone_id": "zone.whispering-sanctum",
+    "npcs": [],
+    "room_objects": [
+      {
+        "object_id": "severed-bell-wire",
+        "name": "Severed Bell Wire",
+        "description": "The cut is bright and recent. The upper length runs back toward the choir handbell; the lower end vanishes through a drilled stone beside the kiln door."
+      },
+      {
+        "object_id": "damper-chain",
+        "name": "Damper Chain",
+        "description": "The chain should open a counterweighted plate in the flue. Its lower links are drawn tight, as if someone below has fastened the plate shut."
+      }
+    ],
+    "exits": {
+      "north": "room.cinder-chapel-ash-store",
+      "down": "room.cinder-chapel-lower-kiln"
+    }
+  },
+  {
+    "room_id": "room.cinder-chapel-lower-kiln",
+    "name": "Lower Kiln",
+    "description": "A brick burial kiln fills the lower chamber. Its iron mouth hangs open over heaps of half-burned grave cloth, and thick smoke rolls along the ceiling instead of climbing the blocked flue. A stone dressing bench has been dragged against the damper lever. The only clear way out is up the stair.",
+    "zone_id": "zone.whispering-sanctum",
+    "npcs": [],
+    "room_objects": [
+      {
+        "object_id": "burial-kiln",
+        "name": "Burial Kiln",
+        "description": "The kiln was built to reduce stained linen and broken ward materials to clean ash, not to burn bodies. Green wax gutters between the bricks and feeds the choking smoke."
+      },
+      {
+        "object_id": "blocked-damper-lever",
+        "name": "Blocked Damper Lever",
+        "description": "The dressing bench pins the lever in its closed position. Scrape marks show that someone moved the heavy stone bench alone and meant it to stay put."
+      }
+    ],
+    "exits": {
+      "up": "room.cinder-chapel-kiln-stair"
     }
   },
   {

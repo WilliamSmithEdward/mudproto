@@ -67,6 +67,7 @@ def test_llm_instruction_files_reference_current_affect_model() -> None:
     assert "equipment_effects" in combined
     assert "weapon_damage" in combined
     assert "hitroll" in combined
+    assert "damage_reduction" in combined
     assert "passive while-equipped bonuses" in combined
     assert "Only string references are supported" not in combined
     assert "affect.increase-received-damage" not in combined

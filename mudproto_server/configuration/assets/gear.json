@@ -85,13 +85,15 @@
   },
   {
     "template_id": "weapon.reaver-nightblade",
-    "name": "Reaver Nightblade",
+    "name": "Bellwatch Sword",
     "slot": "weapon",
-    "description": "A blackened longsword etched with pale runes that drink the brazier light.",
+    "description": "A blackened keep sword stamped with Greybank's old bell seal. The grip is bound in fresh cord, and the edge has been worked back from years of neglect.",
     "keywords": [
+      "bellwatch",
+      "sword",
+      "keep sword",
       "reaver",
-      "nightblade",
-      "sword"
+      "nightblade"
     ],
     "weapon_type": "sword",
     "can_hold": false,
@@ -103,50 +105,85 @@
     "damage_roll_modifier": 2,
     "hit_roll_modifier": 2,
     "attack_damage_bonus": 1,
-    "attacks_per_round_bonus": 0
+    "attacks_per_round_bonus": 0,
+    "equipment_effects": [
+      {
+        "effect_type": "str",
+        "amount": 2
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 2
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 2
+      }
+    ]
   },
   {
     "template_id": "weapon.exarch-doomblade",
-    "name": "Exarch Doomblade",
+    "name": "Kiln Rake",
     "slot": "weapon",
-    "description": "A massive rune-scarred sword that hums with crushing arcane pressure.",
+    "description": "A shortened iron rake used to turn ash and drag spoiled cloth from a burial kiln. Its outer tine has been hammered into a heavy hook.",
     "keywords": [
-      "exarch",
-      "doomblade",
-      "sword"
+      "kiln",
+      "rake",
+      "kiln rake",
+      "iron rake",
+      "hooked rake"
     ],
-    "weapon_type": "sword",
+    "weapon_type": "club",
     "can_hold": false,
     "requires_two_hands": true,
-    "weight": 10,
-    "coin_value": 128,
-    "damage_dice_count": 6,
-    "damage_dice_sides": 8,
-    "damage_roll_modifier": 4,
-    "hit_roll_modifier": 4,
-    "attack_damage_bonus": 2,
-    "attacks_per_round_bonus": 0
+    "weight": 8,
+    "coin_value": 55,
+    "damage_dice_count": 4,
+    "damage_dice_sides": 6,
+    "damage_roll_modifier": 1,
+    "hit_roll_modifier": 2,
+    "attack_damage_bonus": 0,
+    "attacks_per_round_bonus": 0,
+    "equipment_effects": [
+      {
+        "effect_type": "str",
+        "amount": 2
+      },
+      {
+        "effect_type": "con",
+        "amount": 1
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 2
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 1
+      }
+    ]
   },
   {
     "template_id": "weapon.exarch-emberfang",
-    "name": "Exarch Emberfang",
+    "name": "Wax Knife",
     "slot": "weapon",
-    "description": "A hooked offhand blade glowing faintly along its ember-bright edge.",
+    "description": "A short hooked knife for trimming winding cloth and lifting hot wax from warding bowls. Soot has worked into the wooden grip.",
     "keywords": [
-      "exarch",
-      "emberfang",
-      "blade",
-      "dagger"
+      "wax",
+      "knife",
+      "wax knife",
+      "trimming knife",
+      "hooked knife"
     ],
     "weapon_type": "dagger",
     "can_hold": true,
-    "weight": 4,
-    "coin_value": 104,
-    "damage_dice_count": 4,
-    "damage_dice_sides": 6,
-    "damage_roll_modifier": 3,
-    "hit_roll_modifier": 3,
-    "attack_damage_bonus": 1,
+    "weight": 2,
+    "coin_value": 18,
+    "damage_dice_count": 2,
+    "damage_dice_sides": 4,
+    "damage_roll_modifier": 0,
+    "hit_roll_modifier": 1,
+    "attack_damage_bonus": 0,
     "attacks_per_round_bonus": 0
   },
   {
@@ -541,20 +578,147 @@
   },
   {
     "template_id": "armor.funerary-plate-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-    "name": "Funerary Plate",
+    "name": "Custodian's Lamellar",
     "slot": "armor",
-    "description": "Laminar plates lacquered in ash-black varnish and inscribed with dim protective verses.",
+    "description": "Narrow iron plates overlap beneath a smoke-stiff leather coat. Short burial verses have been scratched into the inner faces where only the wearer can read them.",
     "keywords": [
+      "custodian",
+      "lamellar",
       "funerary",
       "plate",
-      "armor",
-      "ash"
+      "armor"
     ],
     "weight": 10,
     "coin_value": 86,
     "armor_class_bonus": 3,
     "wear_slots": [
       "chest"
+    ],
+    "equipment_effects": [
+      {
+        "effect_type": "con",
+        "amount": 3
+      },
+      {
+        "effect_type": "hit_points",
+        "amount": 45
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 2
+      }
+    ]
+  },
+  {
+    "template_id": "armor.briar-clasp-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+    "name": "Briar Clasp",
+    "slot": "armor",
+    "description": "A bronze cloak pin closes around a living blackthorn cutting. Its point turns slightly toward sudden movement when the clasp is worn.",
+    "keywords": [
+      "briar",
+      "clasp",
+      "bronze clasp",
+      "blackthorn"
+    ],
+    "weight": 1,
+    "coin_value": 420,
+    "armor_class_bonus": 2,
+    "wear_slots": [
+      "shoulders"
+    ],
+    "equipment_effects": [
+      {
+        "effect_type": "str",
+        "amount": 4
+      },
+      {
+        "effect_type": "dex",
+        "amount": 3
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 5
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 6
+      }
+    ]
+  },
+  {
+    "template_id": "armor.mothwing-veil-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+    "name": "Mothwing Veil",
+    "slot": "armor",
+    "description": "Grey wing-silk is sewn to a narrow silver headband. The cloth dims at its edges, even under direct lamp light.",
+    "keywords": [
+      "mothwing",
+      "veil",
+      "wing silk",
+      "headband"
+    ],
+    "weight": 1,
+    "coin_value": 430,
+    "armor_class_bonus": 2,
+    "wear_slots": [
+      "head"
+    ],
+    "equipment_effects": [
+      {
+        "effect_type": "wis",
+        "amount": 4
+      },
+      {
+        "effect_type": "mana",
+        "amount": 90
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 4
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 3
+      }
+    ]
+  },
+  {
+    "template_id": "armor.green-glass-crown-7f9a2d9a-5d2e-4da5-b0f0-4b8ef4b1d6a1",
+    "name": "Crown of Green Glass",
+    "slot": "armor",
+    "description": "Thick green glass has been cut into blunt leaves and wired to a dark bronze band. Sap moves inside the glass when blood is shed nearby.",
+    "keywords": [
+      "crown",
+      "green glass",
+      "glass crown",
+      "bronze crown"
+    ],
+    "weight": 2,
+    "coin_value": 650,
+    "armor_class_bonus": 5,
+    "wear_slots": [
+      "head"
+    ],
+    "equipment_effects": [
+      {
+        "effect_type": "con",
+        "amount": 5
+      },
+      {
+        "effect_type": "wis",
+        "amount": 5
+      },
+      {
+        "effect_type": "hit_points",
+        "amount": 120
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 8
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 4
+      }
     ]
   },
   {
@@ -578,7 +742,21 @@
     "damage_roll_modifier": 4,
     "hit_roll_modifier": 4,
     "attack_damage_bonus": 2,
-    "attacks_per_round_bonus": 0
+    "attacks_per_round_bonus": 0,
+    "equipment_effects": [
+      {
+        "effect_type": "str",
+        "amount": 3
+      },
+      {
+        "effect_type": "con",
+        "amount": 2
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 4
+      }
+    ]
   },
   {
     "template_id": "weapon.smokeglass-dirk-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -604,14 +782,15 @@
   },
   {
     "template_id": "weapon.cinderbrand-sabre-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-    "name": "Cinderbrand Sabre",
+    "name": "Varo's Fire-Blushed Sabre",
     "slot": "weapon",
-    "description": "A heat-blushed sabre wrapped in charred leather, still faintly warm to the touch.",
+    "description": "A cavalry sabre discolored by repeated heating. Charred leather and copper wire make a serviceable grip around the damaged tang.",
     "keywords": [
-      "cinderbrand",
+      "varo",
+      "fire blushed",
       "sabre",
       "sword",
-      "ember"
+      "cinderbrand"
     ],
     "weapon_type": "sword",
     "can_hold": false,
@@ -623,18 +802,33 @@
     "damage_roll_modifier": 4,
     "hit_roll_modifier": 4,
     "attack_damage_bonus": 1,
-    "attacks_per_round_bonus": 0
+    "attacks_per_round_bonus": 0,
+    "equipment_effects": [
+      {
+        "effect_type": "dex",
+        "amount": 3
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 4
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 3
+      }
+    ]
   },
   {
     "template_id": "weapon.tower-shiv-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-    "name": "Tower Shiv",
+    "name": "Seln's Stair Knife",
     "slot": "weapon",
-    "description": "A long stabbing knife balanced for vicious work in narrow stairs and murder slits.",
+    "description": "A long triangular knife weighted toward its point for close work on ladders and cramped tower stairs.",
     "keywords": [
-      "tower",
-      "shiv",
+      "seln",
+      "stair knife",
       "knife",
-      "dagger"
+      "dagger",
+      "tower shiv"
     ],
     "weapon_type": "dagger",
     "can_hold": true,
@@ -645,18 +839,33 @@
     "damage_roll_modifier": 3,
     "hit_roll_modifier": 4,
     "attack_damage_bonus": 1,
-    "attacks_per_round_bonus": 0
+    "attacks_per_round_bonus": 0,
+    "equipment_effects": [
+      {
+        "effect_type": "dex",
+        "amount": 4
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 5
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 3
+      }
+    ]
   },
   {
     "template_id": "weapon.carrion-maul-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-    "name": "Carrion Maul",
+    "name": "Cleft's Gate Maul",
     "slot": "weapon",
-    "description": "A brutal iron maul wrapped in grave-cloth strips stiff with old blood and lamp soot.",
+    "description": "An iron-headed maul with a shortened ash haft. Wedges, gate nails, and old blood have marked both faces.",
     "keywords": [
-      "carrion",
+      "cleft",
+      "gate maul",
       "maul",
       "hammer",
-      "club"
+      "carrion"
     ],
     "weapon_type": "club",
     "can_hold": false,
@@ -668,7 +877,25 @@
     "damage_roll_modifier": 5,
     "hit_roll_modifier": 3,
     "attack_damage_bonus": 2,
-    "attacks_per_round_bonus": 0
+    "attacks_per_round_bonus": 0,
+    "equipment_effects": [
+      {
+        "effect_type": "str",
+        "amount": 4
+      },
+      {
+        "effect_type": "con",
+        "amount": 3
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 5
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 1
+      }
+    ]
   },
   {
     "template_id": "weapon.crowbanner-greatsword-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
@@ -695,21 +922,40 @@
   },
   {
     "template_id": "armor.crowbanner-plate-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-    "name": "Crowbanner Plate",
+    "name": "Hadrik's Black Plate",
     "slot": "armor",
     "wear_slots": [
       "chest"
     ],
-    "description": "A scorched breastplate lacquered black and stamped with the torn-wing badge of the fort.",
+    "description": "A patched breastplate lacquered black and stamped with the fort seal. Fresh straps replace the ones cut away after an older siege.",
     "keywords": [
+      "hadrik",
+      "black plate",
       "crowbanner",
-      "plate",
       "breastplate",
       "armor"
     ],
     "weight": 16,
     "coin_value": 240,
-    "armor_class_bonus": 4
+    "armor_class_bonus": 4,
+    "equipment_effects": [
+      {
+        "effect_type": "con",
+        "amount": 4
+      },
+      {
+        "effect_type": "hit_points",
+        "amount": 70
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 3
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 2
+      }
+    ]
   },
   {
     "template_id": "weapon.dark-iron-greatsword-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
@@ -772,6 +1018,24 @@
     "armor_class_bonus": 2,
     "wear_slots": [
       "chest"
+    ],
+    "equipment_effects": [
+      {
+        "effect_type": "con",
+        "amount": 3
+      },
+      {
+        "effect_type": "hit_points",
+        "amount": 40
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 2
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 1
+      }
     ]
   },
   {
@@ -790,6 +1054,24 @@
     "armor_class_bonus": 1,
     "wear_slots": [
       "back"
+    ],
+    "equipment_effects": [
+      {
+        "effect_type": "wis",
+        "amount": 3
+      },
+      {
+        "effect_type": "mana",
+        "amount": 45
+      },
+      {
+        "effect_type": "hitroll",
+        "amount": 3
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 1
+      }
     ]
   },
   {
@@ -869,6 +1151,46 @@
     "armor_class_bonus": 3,
     "wear_slots": [
       "chest"
+    ]
+  },
+  {
+    "template_id": "armor.split-sun-disc-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
+    "name": "Split Sun Disc",
+    "slot": "armor",
+    "description": "A cracked brass sun hangs from a cord of red horsehair. Warm grit sifts from the split whenever its wearer draws on the old ward.",
+    "keywords": [
+      "split sun",
+      "sun disc",
+      "brass disc",
+      "medallion"
+    ],
+    "weight": 1,
+    "coin_value": 110,
+    "armor_class_bonus": 1,
+    "wear_slots": [
+      "trinket"
+    ],
+    "equipment_effects": [
+      {
+        "effect_type": "wis",
+        "amount": 3
+      },
+      {
+        "effect_type": "con",
+        "amount": 2
+      },
+      {
+        "effect_type": "mana",
+        "amount": 55
+      },
+      {
+        "effect_type": "weapon_damage",
+        "amount": 3
+      },
+      {
+        "effect_type": "damage_reduction",
+        "amount": 1
+      }
     ]
   }
 ]

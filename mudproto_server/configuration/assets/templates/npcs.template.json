@@ -22,7 +22,7 @@
         "type": "boolean",
         "required": false,
         "default": false,
-        "notes": "Explicit naming control. Set true for uniquely named or story-significant NPCs that should render without an indefinite article in combat and room text; leave false for ordinary generic mobs. Named NPC corpses render as full possessive labels such as 'Brother Cleft's corpse'."
+        "notes": "Explicit naming control. Set true for uniquely named or story-significant NPCs that should render without an indefinite article in combat and room text; leave false for ordinary generic mobs. Named NPC corpses render as full possessive labels such as 'Brother Edran's corpse'."
       },
       "hit_points": {
         "type": "integer",
@@ -121,7 +121,7 @@
         "required": false,
         "default": "generic",
         "allowed_values": ["generic", "possessive"],
-        "notes": "Controls corpse naming. generic produces 'the corpse of a Goblin', possessive produces 'Brother Cleft's corpse'. Typically use possessive for is_named NPCs."
+        "notes": "Controls corpse naming. generic produces 'the corpse of a Goblin', possessive produces 'Brother Edran's corpse'. Typically use possessive for is_named NPCs."
       },
       "respawn": {
         "type": "boolean",

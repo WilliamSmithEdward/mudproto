@@ -12,7 +12,27 @@
   {
     "zone_id": "zone.whispering-sanctum",
     "name": "Cinder Chapel",
-    "repopulate_game_hours": 1
+    "repopulate_game_hours": 1,
+    "reset_world_flags": [
+      "npc.cinder-chapel-reader.defeated",
+      "npc.cinder-chapel-kiln-tender.defeated",
+      "npc.prior-oren-saye.defeated"
+    ],
+    "flag_spawns": [
+      {
+        "npc_id": "npc.ashen-reliquary-exarch",
+        "room_id": "room.cinder-chapel-lower-kiln",
+        "count": 1,
+        "required_world_flags": [
+          "npc.cinder-chapel-reader.defeated",
+          "npc.cinder-chapel-kiln-tender.defeated"
+        ],
+        "excluded_world_flags": [
+          "npc.prior-oren-saye.defeated"
+        ],
+        "announcement_message": "The handbell in Cinder Chapel rings once without a hand. Below, iron drags across the kiln floor."
+      }
+    ]
   },
   {
     "zone_id": "zone.west-road",
@@ -68,7 +88,7 @@
         "excluded_world_flags": [
           "npc.hadrik-crowbanner.defeated"
         ],
-        "announcement_message": "A roar of iron chains rolls through Crowbanner Fort. The central brazier can now be raised, and Hadrik Crowbanner awaits the challengers who broke his corners."
+        "announcement_message": "The chain above the central brazier goes taut. The inner door stands open; Hadrik Voss has come down into the keep-heart."
       }
     ]
   },

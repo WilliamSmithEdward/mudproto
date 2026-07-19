@@ -181,37 +181,6 @@
     "coin_value": 0
   },
   {
-    "template_id": "item.charred-prayer-beads-penitent-custodian-a13a7a1b-4d2f-4f7e-b5b6-6a1f0c3d5e77",
-    "name": "charred prayer beads",
-    "description": "Prayer beads fused together by old heat, still warm in places that should be cold.",
-    "keywords": [
-      "charred",
-      "prayer",
-      "beads"
-    ],
-    "item_type": "misc",
-    "coin_value": 0
-  },
-  {
-    "template_id": "item.bandit-salve-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-    "name": "Bandit Salve",
-    "description": "A tarry herbal paste in a dented tin that stings like a curse and seals shallow wounds fast.",
-    "keywords": [
-      "bandit",
-      "salve",
-      "tin",
-      "healing"
-    ],
-    "item_type": "consumable",
-    "effect_type": "restore",
-    "effect_target": "hit_points",
-    "effect_amount": 80,
-    "coin_value": 20,
-    "use_lag_seconds": 0,
-    "observer_action": "[actor_name] smears on a bandit salve.",
-    "observer_context": "A bitter medicinal stink rises around [actor_object]."
-  },
-  {
     "template_id": "item.smoked-salt-tonic-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
     "name": "Smoked Salt Tonic",
     "description": "A sharp brown tonic cut with salt and pepper bark that drags tired lungs back into rhythm.",
@@ -229,55 +198,6 @@
     "use_lag_seconds": 0,
     "observer_action": "[actor_name] drinks a smoked salt tonic.",
     "observer_context": "Fresh breath and ugly resolve return to [actor_object]."
-  },
-  {
-    "template_id": "item.black-banner-token-9a7d7c2b-7d52-4b5c-9d33-7d1d9e6f4a11",
-    "name": "Black Banner Token",
-    "description": "A flat iron token punched with a crow in flight above a burning keep.",
-    "keywords": [
-      "black",
-      "banner",
-      "token",
-      "crowbanner",
-      "iron token"
-    ],
-    "item_type": "misc",
-    "coin_value": 55
-  },
-  {
-    "template_id": "item.shadow-balm-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-    "name": "Shadow Balm",
-    "description": "A bitter black salve that steadies the nerves and restores battle focus.",
-    "keywords": [
-      "shadow",
-      "balm",
-      "vigor"
-    ],
-    "effect_type": "restore",
-    "effect_target": "vigor",
-    "effect_amount": 32,
-    "coin_value": 18,
-    "use_lag_seconds": 0.0,
-    "observer_action": "[actor_name] rubs dark balm into [actor_possessive] wrists.",
-    "observer_context": "A sharp medicinal scent rises around [actor_object]."
-  },
-  {
-    "template_id": "item.grave-salt-draught-9d2a2c3e-5b7c-4b82-9d7c-9f1e3c6a4b11",
-    "name": "Grave Salt Draught",
-    "description": "A pale mineral tonic used by the outpost priesthood to stave off collapse.",
-    "keywords": [
-      "grave",
-      "salt",
-      "draught",
-      "healing"
-    ],
-    "effect_type": "restore",
-    "effect_target": "hit_points",
-    "effect_amount": 36,
-    "coin_value": 17,
-    "use_lag_seconds": 0.0,
-    "observer_action": "[actor_name] drinks a grave salt draught.",
-    "observer_context": "Color returns slowly to [actor_object]."
   },
   {
     "template_id": "item.waterskin-of-reprieve-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
@@ -332,28 +252,5 @@
     "use_lag_seconds": 0.0,
     "observer_action": "[actor_name] drinks a sunwell drop.",
     "observer_context": "A clean radiance settles behind [actor_object]'s eyes."
-  },
-  {
-    "template_id": "item.scarab-shell-dune-scarab-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-    "name": "scarab shell",
-    "description": "A lacquered dune scarab shell with bands of sun-baked gold.",
-    "keywords": [
-      "scarab",
-      "shell"
-    ],
-    "item_type": "misc",
-    "coin_value": 0
-  },
-  {
-    "template_id": "item.cracked-sun-medallion-buried-heresiarch-7b211de0-4cff-4cbc-83bb-a7a6c9269c83",
-    "name": "Cracked Sun Medallion",
-    "description": "A medallion split through the center, its radiant seal blackened by blasphemous heat.",
-    "keywords": [
-      "sun",
-      "medallion",
-      "cracked"
-    ],
-    "item_type": "misc",
-    "coin_value": 0
   }
 ]

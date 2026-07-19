@@ -1,7 +1,9 @@
 import combat
+from combat_ability_effects import _apply_player_damage_with_reduction
 from equipment_logic import get_player_effective_attributes, unequip_item, wear_item
 from inventory import build_equippable_item_from_template
-from models import ClientSession, EntityState, ItemState
+from item_logic import _display_item_examination
+from models import ActiveAffectState, ClientSession, EntityState, ItemState
 from player_resources import get_player_resource_caps
 
 
@@ -21,6 +23,14 @@ def _make_session(client_id: str, name: str) -> ClientSession:
 def _equip_item(session: ClientSession, item: ItemState, *, wear_slot: str = "ring") -> None:
     session.equipment.equipped_items[item.item_id] = item
     session.equipment.worn_item_ids[wear_slot] = item.item_id
+
+
+def _extract_display_text(outbound: dict) -> str:
+    return "\n".join(
+        "".join(str(part.get("text", "")) for part in line if isinstance(part, dict))
+        for line in outbound.get("payload", {}).get("lines", [])
+        if isinstance(line, list)
+    )
 
 
 def test_equipment_effects_raise_caps_and_clamp_attributes() -> None:
@@ -100,6 +110,52 @@ def test_equipment_weapon_damage_bonus_applies_to_player_attacks(monkeypatch) ->
     assert entity.hit_points == 86
 
 
+def test_equipment_damage_reduction_reduces_incoming_damage() -> None:
+    session = _make_session("client-reduction", "Lucia")
+    session.status.hit_points = 100
+    _equip_item(session, ItemState(
+        item_id="item-guard-ring",
+        name="Guard Ring",
+        equippable=True,
+        slot="armor",
+        wear_slot="ring",
+        wear_slots=["ring"],
+        equipment_effects=[{"effect_type": "damage_reduction", "amount": 4}],
+    ))
+
+    damage_dealt = _apply_player_damage_with_reduction(session, 17)
+
+    assert damage_dealt == 13
+    assert session.status.hit_points == 87
+
+
+def test_equipment_reduction_stacks_with_strongest_temporary_reduction() -> None:
+    session = _make_session("client-stacked-reduction", "Lucia")
+    session.status.hit_points = 100
+    _equip_item(session, ItemState(
+        item_id="item-guard-ring",
+        name="Guard Ring",
+        equippable=True,
+        slot="armor",
+        wear_slot="ring",
+        wear_slots=["ring"],
+        equipment_effects=[{"effect_type": "damage_reduction", "amount": 4}],
+    ))
+    session.active_affects = [ActiveAffectState(
+        affect_id="affect.damage-reduction",
+        affect_name="Bark Skin",
+        affect_mode="timed",
+        affect_type="damage_reduction",
+        affect_amount=6,
+        remaining_hours=2,
+    )]
+
+    damage_dealt = _apply_player_damage_with_reduction(session, 20)
+
+    assert damage_dealt == 10
+    assert session.status.hit_points == 90
+
+
 def test_equippable_hydration_preserves_equipment_effects() -> None:
     template = {
         "template_id": "armor.test-travel-ring",
@@ -117,6 +173,34 @@ def test_equippable_hydration_preserves_equipment_effects() -> None:
         {"effect_type": "dex", "amount": 2},
         {"effect_type": "hitroll", "amount": 3},
     ]
+
+
+def test_item_examination_shows_combat_stats_and_equipment_effects() -> None:
+    session = _make_session("client-examine", "Lucia")
+    item = ItemState(
+        item_id="item-kiln-rake",
+        name="Kiln Rake",
+        description="A shortened iron rake.",
+        equippable=True,
+        slot="weapon",
+        weapon_type="club",
+        damage_dice_count=4,
+        damage_dice_sides=6,
+        damage_roll_modifier=1,
+        hit_roll_modifier=2,
+        equipment_effects=[
+            {"effect_type": "str", "amount": 2},
+            {"effect_type": "weapon_damage", "amount": 2},
+            {"effect_type": "damage_reduction", "amount": 1},
+        ],
+    )
+
+    text = _extract_display_text(_display_item_examination(session, item))
+
+    assert "4d6+1" in text
+    assert "+2 STR" in text
+    assert "+2 weapon damage" in text
+    assert "-1 damage taken" in text
 
 
 def test_wear_and_unequip_recalculate_resource_caps_immediately() -> None:

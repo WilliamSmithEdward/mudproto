@@ -11,7 +11,7 @@ from attribute_config import (
     posture_prevents_skill_spell_use,
 )
 from assets import get_skill_by_id, get_spell_by_id
-from equipment_logic import get_player_effective_attribute
+from equipment_logic import get_player_damage_reduction_bonus, get_player_effective_attribute
 from models import ActiveAffectState, ClientSession, EntityState
 from player_resources import get_player_resource_caps
 
@@ -611,7 +611,8 @@ def _apply_player_damage_with_reduction(session: ClientSession, amount: int, *, 
     ))
 
     affect_reduction = _resolve_damage_reduction_from_affects(list(session.active_affects))
-    reduced_damage = max(0, incoming_damage - affect_reduction)
+    equipment_reduction = get_player_damage_reduction_bonus(session)
+    reduced_damage = max(0, incoming_damage - affect_reduction - equipment_reduction)
     damage_dealt = min(max(0, int(session.status.hit_points)), reduced_damage)
     session.status.hit_points = max(0, int(session.status.hit_points) - reduced_damage)
     return max(0, damage_dealt)

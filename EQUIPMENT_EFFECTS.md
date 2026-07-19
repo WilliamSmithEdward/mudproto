@@ -65,6 +65,7 @@ Current defaults include:
 - `mana`
 - `weapon_damage`
 - `hitroll`
+- `damage_reduction`
 
 ---
 
@@ -76,7 +77,14 @@ Equipment bonuses are applied to live gameplay systems, including:
 - HP / vigor / mana caps
 - melee hitroll
 - melee weapon damage
+- flat damage reduction on incoming hits
 - displayed score / stats output
+- item examination for weapon, armor, and bonus details
+
+`damage_reduction` subtracts its amount from each incoming hit after posture and
+received-damage multipliers. Bonuses from worn equipment add together and also
+apply alongside the strongest active `affect.damage-reduction` value. Final
+damage cannot fall below zero.
 
 The runtime integration lives primarily in:
 
@@ -108,6 +116,7 @@ Preferred:
 - `con`
 - `hitroll`
 - `weapon_damage`
+- `damage_reduction`
 - `hit_points`
 
 Avoid over-specialized or flavor-only effect names.

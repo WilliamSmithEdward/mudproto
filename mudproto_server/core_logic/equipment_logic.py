@@ -142,6 +142,7 @@ def get_player_equipment_bonuses(session: ClientSession) -> dict[str, int]:
         "mana": 0,
         "weapon_damage": 0,
         "hitroll": 0,
+        "damage_reduction": 0,
     })
 
     for item in _iter_unique_equipped_items(session):
@@ -197,6 +198,10 @@ def get_player_hitroll_bonus(session: ClientSession) -> int:
 
 def get_player_weapon_damage_bonus(session: ClientSession) -> int:
     return int(get_player_equipment_bonuses(session).get("weapon_damage", 0))
+
+
+def get_player_damage_reduction_bonus(session: ClientSession) -> int:
+    return max(0, int(get_player_equipment_bonuses(session).get("damage_reduction", 0)))
 
 
 def get_player_armor_class(session: ClientSession) -> int:

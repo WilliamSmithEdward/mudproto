@@ -502,6 +502,11 @@ Subsequent rounds are full strength for both sides.
   (`damage.py::roll_player_damage`).
 - NPC: power level + weapon dice + modifiers
   (`damage.py::roll_npc_weapon_damage`).
+- Incoming player damage applies posture and received-damage multipliers, then
+  subtracts the strongest active affect reduction and the total worn
+  `damage_reduction` equipment bonus. Damage cannot fall below zero.
+- `examine <item>` shows weapon dice, hit modifier, armor class, and passive
+  equipment bonuses so combat gear can be compared before equipping it.
 - Severity label chosen by damage-to-max-HP ratio (`combat_text.py`):
   miss -> barely -> normal -> hard -> extreme -> massacre -> annihilate ->
   obliterate.
@@ -509,8 +514,9 @@ Subsequent rounds are full strength for both sides.
 ### Death & Loot
 
 When an entity dies:
-- A `CorpseState` is created with coin reward and loot items (built from
-  the entity's equipped gear templates).
+- A `CorpseState` is created with coin reward and loot items. NPC
+  `inventory_items` that spawned are retained, while equipped weapons are added
+  only when their configured `drop_on_death` chance succeeds.
 - Lootable via `get <item> <corpse>` or `get all <corpse>`.
 - Engaged entity removed from `engaged_entity_ids`; combat ends if no
   targets remain.

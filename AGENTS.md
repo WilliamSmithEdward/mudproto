@@ -105,6 +105,34 @@ with [docs/world_setting.md](docs/world_setting.md) and
 - When a description gives an object enough weight that a player will try to
   examine it, add a matching `room_objects` entry.
 
+### Loot and boss rewards
+
+- Treat NPC inventory as gameplay state, not flavor storage. An ordinary NPC
+  should carry an item only when it has a clear combat, economy, quest, or
+  progression purpose. Do not add inert trophies, renamed copies of standard
+  consumables, or guaranteed corpse filler merely to make a loot table nonempty.
+- Preserve keys and other required route items when pruning loot. Trace each one
+  through locks, room actions, zone-repopulation blockers, and reward dialogue
+  before removing or replacing it.
+- Audit every zone when changing the reward model. Record which encounters are
+  bosses or required minibosses and which zones are deliberately boss-free, then
+  test that the configured encounter and reward plan agree.
+- Give each real boss or required miniboss one distinctive, reliably obtainable
+  signature reward instead of a pile of marginal items. Regular enemies may use
+  signature equipment without dropping it. Keep reward names grounded in the
+  owner, place, work, or material history, and retain stable internal IDs when a
+  player-facing name changes.
+- Boss equipment should change a build decision through a small set of
+  complementary bonuses, such as attributes, resource caps, hit roll, weapon
+  damage, armor class, or damage reduction. Tune the package against encounter
+  level, repeatability, merchant gear, and the number of slots a player can stack.
+- A reward stat must have a traced runtime consumer and a regression test. Item
+  examination must expose combat values and passive bonuses so players can judge
+  the reward before equipping it.
+- Worn `damage_reduction` equipment bonuses add together, then apply alongside
+  the strongest active `affect.damage-reduction` value. Temporary affect
+  reductions still use only their strongest active value rather than stacking.
+
 ### Class and ability progression
 
 - `configuration/attributes/classes.json` owns ability progression. The
@@ -135,6 +163,18 @@ with [docs/world_setting.md](docs/world_setting.md) and
   must prove that the affect changes damage, recovery, attacks, or another real
   outcome. `affect.damage-reduction` uses the strongest active flat reduction;
   reductions do not add together.
+
+### NPC kits and voice
+
+- Audit an NPC's display name, assigned abilities, combat narration, and room
+  communication as one presentation. An unusual name should point to visible
+  equipment, an occupation, an affiliation, or a title people actually use.
+- Give ordinary enemies a small readable pattern. Boss abilities may cover more
+  roles, but each one needs a distinct purpose; remove duplicate recovery moves
+  and interchangeable attacks that only make the AI choice harder to read.
+- Describe the physical action and result before adding magic language. Keep
+  hostile dialogue restrained, and let boss lines respond to changed rooms,
+  defeated allies, open routes, or other state instead of trading in quips.
 
 ### Content failure modes to guard against
 

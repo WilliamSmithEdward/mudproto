@@ -22,6 +22,13 @@ This arrangement should stay visible in room descriptions. Greybank repairs
 what it uses. Uncontrolled rooms show missing roofs, improvised barricades,
 stolen supplies, and fresh occupation rather than vague ruin.
 
+The Cinder chapel is Greybank's working funeral house. Its laykeepers wash and
+cut winding cloth, record the dead, and prepare ash, salt, wax, and lamp oil for
+burial wards. Numbered burial bays, an ash store, and a linen kiln occupy the
+undercroft. The kiln burns stained cloth and spent ward material, never bodies.
+Its flue passes through older keep masonry, so bad fuel or a closed damper can
+fill the chapel with smoke and soften the wax seals on the oldest niches.
+
 ## Local geography
 
 The Lann is a shallow, stony river west of Greybank. The Lann road follows the
